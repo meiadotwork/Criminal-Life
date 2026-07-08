@@ -1,0 +1,1245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CRIMINAL LIFE // terminal</title>
+<style>
+  :root{--phos:#39ff74;--phos-dim:#1c9c3c;--phos-dark:#0a3d18;--amber:#ffb642;--red:#ff5a52;--bg:#010602;--scan:rgba(0,0,0,.22)}
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:
+      radial-gradient(ellipse 100% 70% at 50% 42%, rgba(20,90,40,.10) 0%, transparent 70%),
+      radial-gradient(ellipse at center, #041206 0%, #010602 78%);
+    color:var(--phos);font-family:"Courier New",Courier,monospace;font-size:16px;line-height:1.45;overflow:hidden;
+    text-shadow:0 0 2px rgba(57,255,116,.5),0 0 6px rgba(57,255,116,.18)}
+  /* fine scanlines */
+  .crt::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:50;
+    background:repeating-linear-gradient(0deg,rgba(0,0,0,.28) 0 1px,transparent 1px 3px);opacity:.55}
+  /* screen curvature vignette + corner darkening + faint phosphor bloom */
+  .crt::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:51;
+    background:
+      radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,.6) 100%),
+      radial-gradient(ellipse 90% 60% at 50% 40%,rgba(57,255,116,.05),transparent 70%)}
+  /* subtle rolling-flicker on the whole screen */
+  #screen,#setup{animation:crtflick 8s infinite}
+  @keyframes crtflick{0%,96%,100%{opacity:1}97%{opacity:.94}98%{opacity:1}99%{opacity:.97}}
+  #screen{height:100%;padding:12px;display:flex;flex-direction:column;gap:8px;max-width:1240px;margin:0 auto}
+  .bar{border:1px solid var(--phos-dim);border-radius:2px;padding:6px 12px;display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap;
+    background:linear-gradient(180deg,rgba(28,156,60,.10),transparent);box-shadow:inset 0 0 12px rgba(57,255,116,.06),0 0 0 1px rgba(10,61,24,.6)}
+  .bar h1{font-size:16px;letter-spacing:4px;font-weight:bold;text-shadow:0 0 6px rgba(57,255,116,.6)}
+  #turnBanner{font-size:15px;font-weight:bold;letter-spacing:1px;padding:5px 14px;border:1px solid var(--phos);border-radius:2px;color:#020a04;text-shadow:none;box-shadow:0 0 10px rgba(57,255,116,.35)}
+  .main{flex:1;display:grid;grid-template-columns:1fr 300px;gap:9px;min-height:0}
+  @media(max-width:900px){.main{grid-template-columns:1fr}}
+  .panel{border:1px solid var(--phos-dim);border-radius:2px;padding:9px;overflow:auto;min-height:0;
+    background:linear-gradient(180deg,rgba(10,61,24,.12),rgba(1,6,2,.4));box-shadow:inset 0 0 18px rgba(0,0,0,.5),inset 0 0 0 1px rgba(10,61,24,.4)}
+  .panel h2{font-size:11px;letter-spacing:3px;color:var(--phos);border-bottom:1px solid var(--phos-dark);margin-bottom:7px;padding-bottom:4px;text-shadow:0 0 5px rgba(57,255,116,.4)}
+  .panel h2::before{content:"▓ "}
+  #board{display:grid;gap:3px}
+  .cell{border:1px solid var(--phos-dark);border-radius:2px;padding:3px;font-size:10px;line-height:1.15;min-height:52px;position:relative;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;
+    background:linear-gradient(180deg,rgba(10,61,24,.15),rgba(1,6,2,.3));box-shadow:inset 0 0 8px rgba(0,0,0,.4)}
+  .cell .nm{letter-spacing:.2px;word-break:break-word}
+  .cell .ic{font-size:15px;opacity:.95;text-shadow:0 0 5px currentColor}
+  /* card-type color coding */
+  .cell.k-street{border-color:var(--phos-dark)}
+  .cell.k-biz{border-color:#2a7d4a}
+  .cell.k-heist{border-color:var(--amber);color:var(--amber)}
+  .cell.k-hitman,.cell.k-drug{border-color:var(--red);color:#ffb0ab}
+  .cell.k-party,.cell.k-fate{border-color:#6fd3ff;color:#bfeeff}
+  .cell.k-raid,.cell.k-cop{border-color:#ff8fd6;color:#ffcdec}
+  .cell.k-attack{border-color:var(--red);color:var(--red);font-weight:bold}
+  .cell.k-hospital,.cell.k-visitjail,.cell.k-crew{border-color:var(--phos-dim)}
+  .cell.here{box-shadow:0 0 0 1px var(--phos),0 0 16px rgba(57,255,116,.7),inset 0 0 12px rgba(57,255,116,.25);animation:hop .24s;z-index:2}
+  @keyframes hop{0%{transform:scale(.85)}60%{transform:scale(1.14)}100%{transform:scale(1)}}
+  .cell.inner{opacity:.9}
+  .cell.hollow{border:none}
+  .toks{position:absolute;bottom:0;right:2px;font-size:17px;font-weight:bold;letter-spacing:1px;text-shadow:0 0 3px #000,0 0 3px #000}
+  .cell .own{position:absolute;top:1px;right:2px;font-size:8px;font-weight:bold}
+  #innerLabel{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:10px;letter-spacing:3px;color:var(--phos-dim);pointer-events:none}
+  #boardWrap{position:relative;margin-bottom:8px}
+  .pl{border:1px solid var(--phos-dark);padding:6px 8px;margin-bottom:5px;font-size:13.5px;cursor:pointer}
+  .pl.active{border-width:2px;background:rgba(255,255,255,.05)}
+  .pl.dead{opacity:.4;text-decoration:line-through}
+  .pl .row{display:flex;justify-content:space-between}
+  .pl .nm{font-weight:bold;letter-spacing:1px}
+  .pl .tag{font-size:9px;padding:1px 4px;border:1px solid currentColor;margin-left:4px}
+  #log{font-size:14px;white-space:pre-wrap;word-break:break-word}
+  #log .rd{border:1px solid var(--phos-dark);padding:4px 6px;margin-bottom:5px}
+  #log .rd b{color:var(--amber)}
+  #log .l{margin-bottom:1px;padding-left:4px}
+  #log .l.warn{color:var(--amber)} #log .l.bad{color:var(--red)} #log .l.good{color:var(--phos)}
+  .controls{display:flex;gap:6px;flex-wrap:wrap}
+  button{background:linear-gradient(180deg,rgba(10,61,24,.3),rgba(1,6,2,.3));color:var(--phos);border:1px solid var(--phos);border-radius:2px;font-family:inherit;font-size:12px;padding:8px 12px;cursor:pointer;letter-spacing:1px;font-weight:bold;text-shadow:inherit;transition:all .1s;box-shadow:0 0 8px rgba(57,255,116,.15),inset 0 0 8px rgba(10,61,24,.3)}
+  button:hover:not(:disabled){background:var(--phos);color:#020a04;text-shadow:none;box-shadow:0 0 16px rgba(57,255,116,.6)}
+  button:disabled{opacity:.3;cursor:not-allowed;border-color:var(--phos-dark);color:var(--phos-dim);box-shadow:none}
+  button.amber{border-color:var(--amber);color:var(--amber)} button.amber:hover:not(:disabled){background:var(--amber);color:#000}
+  button.red{border-color:var(--red);color:var(--red)} button.red:hover:not(:disabled){background:var(--red);color:#000}
+  #diceBox{display:flex;align-items:center;gap:14px;margin-bottom:8px}
+  #die{width:78px;height:78px;border:2px solid var(--phos);border-radius:10px;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);padding:11px;gap:3px;box-shadow:0 0 20px rgba(57,255,116,.5),inset 0 0 14px rgba(10,61,24,.5);background:radial-gradient(ellipse at center,#06180c,#010602);cursor:pointer}
+  #die.rolling{animation:shake .5s}
+  @keyframes shake{0%,100%{transform:translate(0,0) rotate(0)}20%{transform:translate(-4px,3px) rotate(-9deg)}60%{transform:translate(4px,-3px) rotate(9deg)}}
+  .pip{width:13px;height:13px;border-radius:50%;background:var(--phos);align-self:center;justify-self:center;box-shadow:0 0 8px var(--phos),0 0 3px #fff}
+  #diceLbl{font-size:14px;font-weight:bold}
+  .p1{grid-area:2/2}.p2a{grid-area:1/1}.p2b{grid-area:3/3}.p3a{grid-area:1/1}.p3b{grid-area:2/2}.p3c{grid-area:3/3}
+  .p4a{grid-area:1/1}.p4b{grid-area:1/3}.p4c{grid-area:3/1}.p4d{grid-area:3/3}
+  .p5a{grid-area:1/1}.p5b{grid-area:1/3}.p5c{grid-area:2/2}.p5d{grid-area:3/1}.p5e{grid-area:3/3}
+  .p6a{grid-area:1/1}.p6b{grid-area:1/3}.p6c{grid-area:2/1}.p6d{grid-area:2/3}.p6e{grid-area:3/1}.p6f{grid-area:3/3}
+  #modal{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.8);padding:14px}
+  #modal.on{display:flex}
+  .card{width:340px;max-width:94vw;background:linear-gradient(180deg,#06180c,#020a05);color:#c8ffd6;border:1px solid var(--phos);border-radius:3px;
+    box-shadow:0 0 0 1px rgba(10,61,24,.8),0 0 30px rgba(57,255,116,.25),0 12px 50px rgba(0,0,0,.9),inset 0 0 24px rgba(10,61,24,.3);padding:18px;text-shadow:0 0 2px rgba(57,255,116,.3)}
+  .card .lbl{font-size:11px;font-weight:bold;letter-spacing:3px;color:#020a04;padding:6px 8px;margin:-18px -18px 12px;text-align:center;text-shadow:none;box-shadow:0 0 12px rgba(57,255,116,.4)}
+  .card .art{display:none}
+  .card .ttl{font-size:21px;font-weight:bold;margin-bottom:6px;letter-spacing:1px;color:#eaffef;text-shadow:0 0 8px rgba(57,255,116,.5)}
+  .card .sub{font-size:14px;font-style:italic;color:#9fe6b4;margin-bottom:8px;line-height:1.45}
+  .card .bd{font-size:18px;line-height:1.5;margin-bottom:16px;min-height:52px;color:#d6ffe0}
+  .card .out{font-size:16px;font-weight:bold;padding:11px 13px;background:rgba(10,61,24,.35);border:1px solid var(--phos-dim);border-left:3px solid var(--phos);border-radius:2px;white-space:pre-wrap;color:#eaffef}
+  .card .go{margin-top:16px;text-align:center;display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+  .card .go button{border-color:var(--phos);color:var(--phos);font-size:13px;padding:9px 16px}
+  .card .go button:hover{background:var(--phos);color:#000}
+  .card .status{display:flex;justify-content:space-between;gap:6px;font-size:11.5px;font-weight:bold;margin:12px -18px -18px;padding:9px 14px;background:var(--phos);color:#000}
+  .card .status span{white-space:nowrap}
+  .card .ladder{margin:2px 0}
+  .card .ladder div{display:flex;justify-content:space-between;padding:1px 0}
+  #setup{position:fixed;inset:0;z-index:70;display:flex;align-items:center;justify-content:flex-start;flex-direction:column;gap:14px;background:var(--bg);padding:24px 20px 40px;text-align:center;overflow-y:auto;-webkit-overflow-scrolling:touch}
+  #setup pre{font-size:clamp(4px,1.3vw,10px);line-height:1.1;margin-top:8px;flex-shrink:0}
+  #setupStage{width:100%;max-width:520px}
+  .choice{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+  .hint{font-size:11px;opacity:.6;max-width:560px}
+  a.reset{color:var(--phos-dim);font-size:11px;cursor:pointer;text-decoration:underline}
+  .ctx{font-size:11px;opacity:.75;margin-top:8px;min-height:28px}
+  .psetup{border:1px solid var(--phos-dim);padding:10px;margin:5px;display:flex;flex-direction:column;gap:8px;align-items:center;min-width:200px}
+  .psetup input{background:#0d1510;border:1px solid var(--phos);color:var(--phos);font-family:inherit;font-size:14px;padding:6px 8px;width:160px;text-align:center}
+  .swatches{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+  .sw{width:26px;height:26px;border:2px solid #333;cursor:pointer;border-radius:4px}
+  .sw.sel{border-color:#fff;box-shadow:0 0 6px #fff}
+  .profile-crimes{font-size:11px;text-align:left;margin-top:6px;max-height:120px;overflow:auto}
+  .profile-crimes div{padding:1px 0;border-bottom:1px solid var(--phos-dark)}
+</style>
+</head>
+<body class="crt">
+
+<div id="setup">
+<pre>
+  ██████ ██████ ██ ██   ██ ██ ██   ██  █████  ██
+ ██     ██   ██ ██ ███ ███ ██ ███  ██ ██   ██ ██
+ ██     ██████  ██ ██ █ ██ ██ ██ █ ██ ███████ ██
+ ██     ██   ██ ██ ██   ██ ██ ██  ███ ██   ██ ██
+  ██████ ██  ██ ██ ██   ██ ██ ██   ██ ██   ██ ███████
+        L · I · F · E    //   crime terminal v3
+</pre>
+<div id="setupStage"></div>
+</div>
+
+<div id="modal"><div class="card" id="cardEl"></div></div>
+
+<div id="screen" style="display:none">
+  <div class="bar">
+    <h1>CRIMINAL&nbsp;LIFE</h1>
+    <div id="turnBanner">TURN 1</div>
+    <a class="reset" onclick="location.reload()">[reset]</a>
+  </div>
+  <div class="main">
+    <div class="panel">
+      <h2>THE CITY</h2>
+      <div id="boardWrap"><div id="board"></div><div id="innerLabel">P R I S O N</div></div>
+      <h2>CONSOLE — this round</h2>
+      <div id="log"></div>
+    </div>
+    <div class="panel">
+      <h2>ROSTER — tap for record</h2>
+      <div id="players"></div>
+      <h2>DICE</h2>
+      <div id="diceBox"><div id="die" onclick="rollDice()" title="tap to roll"></div><div style="font-size:14px;opacity:.7" id="diceLbl">tap die to roll</div></div>
+      <h2>ACTIONS</h2>
+      <div class="controls" style="min-height:8px">
+        <button id="sellAssetsBtn" onclick="openSellAssets()" style="display:none">[ SELL ASSETS ]</button>
+      </div>
+      <div class="ctx" id="ctxHint"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===== COLORS ===== */
+const COLORS=[
+  {n:"white",c:"#f5f5f5"},{n:"red",c:"#e01e1e"},{n:"green",c:"#1fb84a"},
+  {n:"yellow",c:"#e6c200"},{n:"orange",c:"#e8720c"},{n:"purple",c:"#9b30d0"}
+];
+
+/* ===== BOARD: ~40 spaces, HEIST at bottom-left corner = START. Fewer streets, more events. ===== */
+/* Order runs so index 0 = HEIST (bottom-left). We'll place it at the bottom-left of the grid. */
+const OUTER = [
+  {t:"HEIST · START",ic:"$!",k:"heist"},            // 0 bottom-left corner START
+  {t:"Marcy Proj",ic:"#",k:"street",price:20},
+  {t:"PARTY",ic:"?",k:"party"},
+  {t:"cocaine",ic:"co",k:"biz",income:200},
+  {t:"HITMAN",ic:"x",k:"hitman"},
+  {t:"Jerome Ave",ic:"#",k:"street",price:24},
+  {t:"DRUG DEAL",ic:"~",k:"drug"},
+  {t:"RECRUITING",ic:"@",k:"crew"},
+  {t:"CROOKED COP",ic:"$b",k:"cop"},
+  {t:"weed",ic:"wd",k:"biz",income:80},
+  {t:"ATTACK",ic:"><",k:"attack"},                  // bottom-right-ish
+  {t:"RECRUITING",ic:"@",k:"crew"},                 // corner
+  {t:"Fordham Rd",ic:"#",k:"street",price:45},
+  {t:"PARTY",ic:"?",k:"party"},
+  {t:"guns",ic:"gn",k:"biz",income:150},
+  {t:"POLICE RAID",ic:"*",k:"raid"},
+  {t:"Bedford Ave",ic:"#",k:"street",price:100},
+  {t:"HEIST",ic:"!",k:"heist"},
+  {t:"meth",ic:"me",k:"biz",income:170},
+  {t:"FATE",ic:"?",k:"fate"},
+  {t:"HOSPITAL",ic:"+",k:"hospital"},               // corner (top-left)
+  {t:"heroine",ic:"he",k:"biz",income:180},
+  {t:"RECRUITING",ic:"@",k:"crew"},
+  {t:"Fifth Ave",ic:"#",k:"street",price:225},
+  {t:"DRUG DEAL",ic:"~",k:"drug"},
+  {t:"money laundering",ic:"$$",k:"biz",income:120},
+  {t:"CROOKED COP",ic:"$b",k:"cop"},
+  {t:"Wall St",ic:"#",k:"street",price:300},
+  {t:"HITMAN",ic:"x",k:"hitman"},
+  {t:"fake documents",ic:"id",k:"biz",income:70},
+  {t:"VISIT/JAIL",ic:"[]",k:"visitjail"},           // corner (top-right)
+  {t:"RECRUITING",ic:"@",k:"crew"},
+  {t:"garage GTA",ic:"gt",k:"biz",income:90},
+  {t:"Madison Ave",ic:"#",k:"street",price:250},
+  {t:"POLICE RAID",ic:"*",k:"raid"},
+  {t:"crack",ic:"cr",k:"biz",income:95},
+  {t:"FATE",ic:"?",k:"fate"},
+  {t:"pills",ic:"Rx",k:"biz",income:110},
+  {t:"Flatbush Av",ic:"#",k:"street",price:60},
+  {t:"POKER NIGHT",ic:"AK",k:"poker",price:1000},
+];
+const INNER = [
+  {t:"prison entry",ic:">",k:"pentry"},{t:"prison day",ic:".",k:"pday"},{t:"prison fight",ic:"vs",k:"pfight"},
+  {t:"prison day",ic:".",k:"pday"},{t:"prison day",ic:".",k:"pday"},{t:"riot",ic:"!!",k:"riot"},
+  {t:"prison day",ic:".",k:"pday"},{t:"prison day",ic:".",k:"pday"},{t:"prison fight",ic:"vs",k:"pfight"},
+  {t:"prison day",ic:".",k:"pday"},{t:"riot",ic:"!!",k:"riot"},{t:"prison day",ic:".",k:"pday"},
+  {t:"prison day",ic:".",k:"pday"},{t:"prison fight",ic:"vs",k:"pfight"},{t:"prison day",ic:".",k:"pday"},
+  {t:"prison day",ic:".",k:"pday"},
+];
+
+/* ===== ICONS per card type (ASCII/emoji low-bit) ===== */
+const ART={heist:"$$$",hitman:"(X)",drug:"Rx",party:"(?)",fate:"(!)",cop:"PD",raid:"!!!",
+  pday:"~/~",pfight:")|(",riot:"^^^",hospital:"[+]",court:"===",street:"[#]",biz:"[=]",crew:"(i)"};
+// little man icon (replaces the chess-pawn soldier glyph) — monochrome SVG, colored per player
+function manIcon(color){return `<svg viewBox="0 0 12 16" width="9" height="12" style="vertical-align:-2px" aria-hidden="true"><circle cx="6" cy="3" r="2.6" fill="${color}"/><rect x="3.4" y="6" width="5.2" height="5.6" rx="2" fill="${color}"/><rect x="3.9" y="10.8" width="1.7" height="4.4" fill="${color}"/><rect x="6.4" y="10.8" width="1.7" height="4.4" fill="${color}"/></svg>`;}
+
+/* ===== DECKS (shuffle bag, no repeats until exhausted) ===== */
+/* HEIST — random level baked into card. levels: easy $1M, med $250k, hard $100k, real $0 */
+const DECKS={"heist":[{"ttl":"Bank robbery","bd":"You passed a note to the teller. She read it twice, then quietly emptied her drawer — you were gone before the manager looked up.","lbl":"HEIST","arr":2,"cut":3},{"ttl":"Bank robbery","bd":"You and the crew hit the vault at open. Clean job, no casualties — you even held the door for a customer.","lbl":"HEIST","arr":5,"cut":12},{"ttl":"Bank robbery","bd":"You took down the armored guard at the entrance. The bag was already loaded — you just had to run.","lbl":"HEIST","arr":7,"cut":8},{"ttl":"Bank robbery","bd":"Grabbed the cash and bolted. A dye pack burst in your bag — half the money came out stained red and worthless.","lbl":"HEIST","arr":2,"cut":2},{"ttl":"Bank robbery","bd":"Vault job gone loud. A guard reached for his radio and didn't make it home. Now it's a body on the job.","lbl":"HEIST","arr":25,"cut":45},{"ttl":"Bank robbery","bd":"Three branches, one week, same disguise. By the third, the news had already given your crew a nickname.","lbl":"HEIST","arr":12,"cut":18},{"ttl":"Bank robbery","bd":"Your inside man left the back door unlocked. You walked the vault after hours — no alarm, no rush, no witnesses.","lbl":"HEIST","arr":8,"cut":22},{"ttl":"Jewelry robbery","bd":"Sledgehammer through the front glass at 3 AM. Cases empty in ninety seconds, fenced before sunrise.","lbl":"HEIST","arr":2,"cut":6},{"ttl":"Jewelry robbery","bd":"You posed as a buyer in a tailored suit. When they brought out the tray, you brought out the gun.","lbl":"HEIST","arr":3,"cut":9},{"ttl":"Jewelry robbery","bd":"The owner kept a pistol under the counter. Shots fired both ways — you left with the vault tray and a graze.","lbl":"HEIST","arr":7,"cut":14},{"ttl":"Jewelry robbery","bd":"You drilled down through the roof over a long weekend. Dropped into the back room right on top of the safe.","lbl":"HEIST","arr":5,"cut":25},{"ttl":"Jewelry robbery","bd":"Hit a dealer's booth at a trade show. Grabbed the loose diamonds — the ones that never show up on any receipt.","lbl":"HEIST","arr":6,"cut":30},{"ttl":"Jewelry robbery","bd":"The silent alarm tripped the second you touched a case. You grabbed one tray and sprinted — sirens already close.","lbl":"HEIST","arr":3,"cut":2},{"ttl":"Gun store robbery","sub":"Federal — ATF","bd":"Overnight break-in through the loading dock. Cleared the wall racks, gone before the alarm company called it in.","lbl":"HEIST","arr":4,"cut":4},{"ttl":"Gun store robbery","sub":"Federal — ATF","bd":"You emptied the display cases into duffel bags. Every serial number filed off before they hit the street.","lbl":"HEIST","arr":5,"cut":7},{"ttl":"Gun store robbery","sub":"Federal — ATF","bd":"Daytime hit — the owner was armed and ready. A shootout spilled into the parking lot before you got the crates.","lbl":"HEIST","arr":10,"cut":15},{"ttl":"Gun store robbery","sub":"Federal — ATF","bd":"Bulk pistols and a pallet of ammo, straight to a waiting buyer. He counted the cash in the van without looking up.","lbl":"HEIST","arr":6,"cut":10},{"ttl":"Gun store robbery","sub":"Federal — ATF","bd":"The reinforced door held longer than you planned. Alarm hit, you walked with a single case and empty hands.","lbl":"HEIST","arr":4,"cut":1},{"ttl":"Gun store robbery","sub":"Federal — ATF","bd":"You're feeding a pipeline that runs across the border. This wasn't a robbery — it was a shipment.","lbl":"HEIST","arr":12,"cut":20},{"ttl":"ATM robbery","bd":"You wrapped a chain around it and a stolen truck did the rest. Dragged it into a field and cracked it open by flashlight.","lbl":"HEIST","arr":1,"cut":3},{"ttl":"ATM robbery","bd":"Slipped a skimmer and a pinhole camera onto a busy machine. Came back a week later to harvest the numbers.","lbl":"HEIST","arr":2,"cut":5},{"ttl":"ATM robbery","bd":"You loaded malware through the service port. The machine jackpotted — spat every bill onto the sidewalk.","lbl":"HEIST","arr":3,"cut":8},{"ttl":"ATM robbery","bd":"You timed the armored refill to the minute. Took the full cassette while the tech was still inside the lobby.","lbl":"HEIST","arr":6,"cut":15},{"ttl":"ATM robbery","bd":"The refill guard turned at the wrong moment. He got clipped — but you cleared every cassette in the truck.","lbl":"HEIST","arr":8,"cut":22},{"ttl":"ATM robbery","bd":"You pried at the housing for an hour in the cold. It never opened. A barking dog finally ran you off.","lbl":"HEIST","arr":1,"cut":0},{"ttl":"Luxury GTA","bd":"You watched the valet hang the key on the board. By the time the owner finished dessert, the car was on a trailer.","lbl":"HEIST","arr":2,"cut":5},{"ttl":"Luxury GTA","bd":"You cloned the key fob signal from across the lot. Doors popped, engine turned — you drove it off like you owned it.","lbl":"HEIST","arr":3,"cut":8},{"ttl":"Luxury GTA","bd":"Six exotics in one week, all to order. Your buyer sent photos; you sent back license plates.","lbl":"HEIST","arr":5,"cut":25},{"ttl":"Luxury GTA","bd":"You caught him at a red light with the window down. Gun through the glass, driver out, tires screaming.","lbl":"HEIST","arr":8,"cut":10},{"ttl":"Luxury GTA","bd":"You drove two straight off the dealership lot at closing. The salesman thought you were taking a test drive.","lbl":"HEIST","arr":4,"cut":18},{"ttl":"Luxury GTA","bd":"One of your buyers was wearing a wire. You got paid — then watched the ring collapse behind you.","lbl":"HEIST","arr":6,"cut":12},{"ttl":"Mansion robbery","bd":"The owners posted their vacation online. You watched the geotags, then let yourself in through the pool house.","lbl":"HEIST","arr":3,"cut":15},{"ttl":"Mansion robbery","bd":"Walls of art, drawers of jewelry, a wine cellar you ignored. In and out clean while the sprinklers ran.","lbl":"HEIST","arr":4,"cut":22},{"ttl":"Mansion robbery","bd":"The family was home. What started as a burglary ended as a home invasion — zip ties and shouting.","lbl":"HEIST","arr":12,"cut":50},{"ttl":"Mansion robbery","bd":"The housekeeper sold you the safe combo for a flat fee. You were out before the alarm's grace period ended.","lbl":"HEIST","arr":4,"cut":18},{"ttl":"Mansion robbery","bd":"A motion light kicked on the second you crossed the lawn. You grabbed a laptop and a watch and vanished into the hedges.","lbl":"HEIST","arr":3,"cut":4},{"ttl":"Mansion robbery","bd":"You found the floor safe under the closet carpet. Cash, gold bars, and a passport that wasn't yours.","lbl":"HEIST","arr":5,"cut":35},{"ttl":"Celebrity relative kidnap","sub":"Federal","bd":"You grabbed a famous name's cousin from a parking garage. The ransom was wired quietly — no one called anyone.","lbl":"HEIST","arr":15,"cut":60},{"ttl":"Celebrity relative kidnap","sub":"Federal","bd":"The family called the FBI within the hour. You collected a partial drop before the trace went hot.","lbl":"HEIST","arr":20,"cut":25},{"ttl":"Celebrity relative kidnap","sub":"Federal","bd":"You lifted a corporate exec off the sidewalk into a van. His company paid faster than any family would.","lbl":"HEIST","arr":18,"cut":80},{"ttl":"Celebrity relative kidnap","sub":"Federal","bd":"The hostage worked a zip tie loose and ran. No ransom, no leverage — just a witness who saw your face.","lbl":"HEIST","arr":20,"cut":0},{"ttl":"Celebrity relative kidnap","sub":"Federal","bd":"A tiger job — you held a bank manager's family overnight. He opened his own vault at dawn to get them back.","lbl":"HEIST","arr":16,"cut":40},{"ttl":"Celebrity relative kidnap","sub":"Federal","bd":"Full ransom, clean handoff, no shots. You left the hostage at a gas station with cab fare and an apology.","lbl":"HEIST","arr":20,"cut":100},{"ttl":"Cyber crime","bd":"A fake invoice email fooled the accounts department. They wired the money to a shell account you closed an hour later.","lbl":"HEIST","arr":3,"cut":10},{"ttl":"Cyber crime","bd":"You bought a stolen card dump and resold it in pieces. Thousands of numbers, moved before a single bank noticed.","lbl":"HEIST","arr":2,"cut":6},{"ttl":"Cyber crime","bd":"Business email compromise — you posed as the CEO. 'Send it now, I'm in a meeting.' Finance didn't question the boss.","lbl":"HEIST","arr":4,"cut":14},{"ttl":"Cyber crime","bd":"You cracked a crypto exchange's hot wallet. The coins bounced through a dozen mixers before anyone woke up.","lbl":"HEIST","arr":6,"cut":40},{"ttl":"Cyber crime","sub":"Federal","bd":"Ransomware locked a hospital's entire network. They paid within a day — the payout was huge, the heat is worse.","lbl":"HEIST","arr":14,"cut":100},{"ttl":"Cyber crime","bd":"Your phishing site was a perfect bank clone. Right up until a victim called their real bank mid-login.","lbl":"HEIST","arr":3,"cut":3},{"ttl":"Cyber crime","bd":"You SIM-swapped an influencer to drain their accounts. Their phone went dark; yours lit up with codes.","lbl":"HEIST","arr":4,"cut":18},{"ttl":"Armored truck heist","bd":"You knew the route, the schedule, the blind corner. Two minutes of chaos, guards on the ground, back doors swinging open on a full load.","lbl":"HEIST","arr":20,"cut":250},{"ttl":"Casino vault","bd":"You spent months as a regular before the crew ever moved. The count room opened on schedule — you were already in the ceiling.","lbl":"HEIST","arr":18,"cut":250},{"ttl":"Art museum heist","bd":"You cut two masterpieces from their frames in the dark. The gallery won't know until nine — and the buyer's already overseas.","lbl":"HEIST","arr":15,"cut":250},{"ttl":"Diamond district vault","bd":"A tunnel from the shop next door, dug over six weekends. You came up under the strongroom and cleaned out four hundred boxes.","lbl":"HEIST","arr":22,"cut":500},{"ttl":"Gold bullion hijack","bd":"You stopped the transport on a quiet highway. The bars were heavier than you rehearsed — you left a fortune on the road to get away.","lbl":"HEIST","arr":25,"cut":500},{"ttl":"Central bank reserve","bd":"The score of a lifetime — the vault under the vault. Three security layers breached. Every agency in the country is now looking for you.","lbl":"HEIST","arr":"LIFE","cut":1000}],"hitman":[{"ttl":"Hitman","bd":"Finally someone answers your dark web ad. You get a name and a photo, nothing else. You stage it like a robbery gone wrong. No one saw you.","lbl":"HITMAN","arr":8,"cut":5},{"ttl":"Hitman","bd":"The client wanted it to look like an accident. You cut the brake lines and waited for the hill on his morning commute.","lbl":"HITMAN","arr":12,"cut":8},{"ttl":"Hitman","bd":"A jealous business partner hired you to erase the other half of the company. You caught him alone in the garage after the late meeting.","lbl":"HITMAN","arr":15,"cut":15},{"ttl":"Hitman","bd":"The target was a witness set to testify Monday. You made sure Monday never came for him. Someone powerful sleeps easier now.","lbl":"HITMAN","arr":20,"cut":25},{"ttl":"Hitman","bd":"You took the job before you saw the photo. The target was a woman with a kid's car seat in the back. You did it anyway.","lbl":"HITMAN","arr":18,"cut":10},{"ttl":"Hitman","bd":"The contract came from inside a marriage. The husband wanted the wife gone before the divorce cleared.","lbl":"HITMAN","arr":16,"cut":12},{"ttl":"Hitman","bd":"A rival crew paid you to take out their competition's enforcer. He was bigger than the photo suggested. It got loud. It got done.","lbl":"HITMAN","arr":15,"cut":20},{"ttl":"Hitman","bd":"The job was a snitch hiding in witness protection. It took three months to find him. One night to finish it.","lbl":"HITMAN","arr":25,"cut":40},{"ttl":"Hitman","bd":"You were paid to send a message, not just a body. You left it where the whole neighborhood would see by morning.","lbl":"HITMAN","arr":22,"cut":18},{"ttl":"Hitman","bd":"The target spotted you first and ran. A footchase through six backyards ended the way the contract demanded.","lbl":"HITMAN","arr":14,"cut":9},{"ttl":"Hitman","bd":"A poison in the drink, a crowded restaurant, and you were three tables away when it happened. You were already home by the ambulance.","lbl":"HITMAN","arr":20,"cut":30},{"ttl":"Hitman","bd":"The client was a politician and the target a journalist. Some stories are worth killing to bury. You made sure this one stayed buried.","lbl":"HITMAN","arr":25,"cut":50},{"ttl":"Hitman","bd":"You took out a loan shark's biggest debtor so the debt would die with him. The shark paid you a cut of what he'd never collect.","lbl":"HITMAN","arr":15,"cut":14},{"ttl":"Hitman","bd":"The contract was on a made man, and the price was high because the risk was higher. You'll be looking over your shoulder for life.","lbl":"HITMAN","arr":25,"cut":60},{"ttl":"Hitman","bd":"A grieving father hired you to find the man the courts let walk. This one felt less like work and more like a favor.","lbl":"HITMAN","arr":18,"cut":7},{"ttl":"Hitman","bd":"The job went clean until a neighbor's camera caught your car. You finished the contract, but you left a thread hanging.","lbl":"HITMAN","arr":20,"cut":11},{"ttl":"Hitman","bd":"A crime boss wanted his own lieutenant gone before the man could turn. Killing a killer pays well — they saw you coming, still wasn't enough.","lbl":"HITMAN","arr":22,"cut":35},{"ttl":"Hitman","bd":"The target ran a rival dark web market. You closed his shop and his account permanently, and inherited half his customers.","lbl":"HITMAN","arr":20,"cut":28},{"ttl":"Hitman","bd":"You were hired to take out a bodyguard so someone else could reach the real target. You never met the man who mattered. Just cleared the door.","lbl":"HITMAN","arr":14,"cut":16},{"ttl":"Hitman","bd":"The client changed their mind an hour too late. The money already cleared, the job was already done. No refunds.","lbl":"HITMAN","arr":16,"cut":13},{"ttl":"Hitman","bd":"A sniper contract from four hundred yards. One shot through a kitchen window. You were breaking down the rifle before he hit the floor.","lbl":"HITMAN","arr":25,"cut":45},{"ttl":"Hitman","bd":"The target was a retired hitman living quiet in the suburbs. The people he used to work for finally wanted the loose end tied.","lbl":"HITMAN","arr":25,"cut":55},{"ttl":"Hitman","bd":"You disguised yourself as a delivery driver to get to the door. He signed for the package. That was the last thing he signed.","lbl":"HITMAN","arr":15,"cut":10},{"ttl":"Hitman","bd":"A cartel paid you to cross state lines and handle a distributor who skimmed. The money was good. The people you now owe are not.","lbl":"HITMAN","arr":25,"cut":50},{"ttl":"Hitman","bd":"The target was a landlord with too many enemies to count. Half the building probably thanked whoever did it. That was you.","lbl":"HITMAN","arr":14,"cut":8},{"ttl":"Hitman","bd":"You were hired to make a rival gang think a third gang did it. The frame worked. The war that followed had nothing to do with you.","lbl":"HITMAN","arr":18,"cut":22},{"ttl":"Hitman","bd":"The contract was on someone in your own old neighborhood. You knew his mother. You did it anyway, and you don't go back there now.","lbl":"HITMAN","arr":17,"cut":12},{"ttl":"Hitman","bd":"A tech CEO wanted a whistleblower silenced before the leak went public. You stopped the leak. The stock never even dipped.","lbl":"HITMAN","arr":25,"cut":70},{"ttl":"Hitman","bd":"The job was at a wedding, in front of two hundred guests. You did it in the chaos of the toast and vanished with the valet line.","lbl":"HITMAN","arr":25,"cut":40},{"ttl":"Hitman","bd":"The target had a bounty from three different clients at once. You collected from all three and let each think it was their money.","lbl":"HITMAN","arr":25,"cut":65},{"ttl":"Hitman","bd":"A prison contract — you paid an inmate to handle it from the inside. You never touched him, but the money leads back to your hand.","lbl":"HITMAN","arr":20,"cut":20},{"ttl":"Hitman","bd":"You were hired to take out a dirty cop before Internal Affairs could flip him. Killing a cop puts every badge in the state on your trail.","lbl":"HITMAN","arr":"LIFE","cut":45},{"ttl":"Hitman","bd":"The target was a judge who'd made the wrong enemies. The whole courthouse went dark chasing this one. You were long gone.","lbl":"HITMAN","arr":"LIFE","cut":80},{"ttl":"Hitman","bd":"A simple job turned complicated when the target's family came home early. You finished the contract and left more behind than you were paid for.","lbl":"HITMAN","arr":"LIFE","cut":15},{"ttl":"Hitman","bd":"You were paid in cryptocurrency by a client you'll never identify. The coins cleared, the target dropped, the trail vanished into the blockchain.","lbl":"HITMAN","arr":20,"cut":32},{"ttl":"Hitman","bd":"The target was a bodyguard-turned-informant hiding behind a fake name. You recognized the tattoo the fake ID couldn't hide.","lbl":"HITMAN","arr":20,"cut":26},{"ttl":"Hitman","bd":"A widow hired you to finish what a failed insurance scheme started. Her husband was worth more dead, and now he's worth it to you too.","lbl":"HITMAN","arr":18,"cut":18},{"ttl":"Hitman","bd":"You rigged the job to look like a suicide. The note was typed, the door was locked, and the police closed it in a week.","lbl":"HITMAN","arr":22,"cut":38},{"ttl":"Hitman","bd":"The contract was on a rival hitman gunning for the same client. Only one of you was walking away from that meeting. It was you.","lbl":"HITMAN","arr":25,"cut":42},{"ttl":"Hitman","bd":"A club owner wanted a supplier gone over an unpaid debt. You caught him in the VIP section between sets. Nobody heard it over the bass.","lbl":"HITMAN","arr":16,"cut":17},{"ttl":"Hitman","bd":"You were hired to stage a carjacking that ended the way carjackings sometimes do. The insurance ruled it random violence.","lbl":"HITMAN","arr":17,"cut":14},{"ttl":"Hitman","bd":"The target was hiding overseas, and the client paid for the plane ticket too. You did it where nobody knew your name and flew home that night.","lbl":"HITMAN","arr":"LIFE","cut":75},{"ttl":"Hitman","bd":"A gang leader wanted his own brother handled for talking to the feds. Blood meant nothing next to a life sentence. You handled it.","lbl":"HITMAN","arr":25,"cut":48},{"ttl":"Hitman","bd":"You were paid to take out a security guard who saw too much on another job. Cleaning up someone else's mess pays less than making your own.","lbl":"HITMAN","arr":15,"cut":9},{"ttl":"Hitman","bd":"The client was a movie producer and the target a rising star who knew too much. Hollywood buried it under a 'tragic overdose' headline.","lbl":"HITMAN","arr":25,"cut":60},{"ttl":"Hitman","bd":"The target survived the first attempt and went into hiding. It took you a month to find him and one second to finish it.","lbl":"HITMAN","arr":22,"cut":30},{"ttl":"Hitman","bd":"A drug lord wanted his accountant silenced before an audit. The books died with the man who kept them.","lbl":"HITMAN","arr":20,"cut":36},{"ttl":"Hitman","bd":"You were hired to make an example of someone who broke the code. The message was received loud and clear by everyone who mattered.","lbl":"HITMAN","arr":20,"cut":24},{"ttl":"Hitman","bd":"The contract came with a bonus if it happened before the weekend. You beat the deadline by a day and collected the extra.","lbl":"HITMAN","arr":18,"cut":28},{"ttl":"Hitman","bd":"Your final job was the client himself — someone paid more to erase the man who hired you. Everyone's a target eventually.","lbl":"HITMAN","arr":"LIFE","cut":90}],"court":[{"ttl":"Court Day — Good","bd":"Your lawyer proved the search was illegal — half the evidence gets tossed.","lbl":"COURT","dyears":-10},{"ttl":"Court Day — Good","bd":"The key witness changed their story on the stand and the case cracked open.","lbl":"COURT","dyears":-8},{"ttl":"Court Day — Good","bd":"Model inmate. You taught a literacy class and the board noticed.","lbl":"COURT","dyears":-5},{"ttl":"Court Day — Good","bd":"You signed a plea before trial and the prosecutor took the easy win.","lbl":"COURT","dyears":-12},{"ttl":"Court Day — Good","bd":"The DA's office is buried in cases and offered you a deal to clear the docket.","lbl":"COURT","dyears":-6},{"ttl":"Court Day — Good","bd":"First time in front of this judge — she gave you the benefit of the doubt.","lbl":"COURT","dyears":-7},{"ttl":"Court Day — Good","bd":"Your appeal landed on a technicality nobody caught the first time.","lbl":"COURT","dyears":-15},{"ttl":"Court Day — Good","bd":"The body cam footage didn't match the officer's report.","lbl":"COURT","dyears":-9},{"ttl":"Court Day — Good","bd":"The clock counted the time you already sat waiting for trial.","lbl":"COURT","dyears":-4},{"ttl":"Court Day — Good","bd":"Your lawyer can get you out with just a bail and a fine. You never even unpacked.","lbl":"COURT","cut":-10,"dyears":2},{"ttl":"Court Day — Good","bd":"You pulled a choking tax evader off the mess-hall floor. His family remembers.","lbl":"COURT","cut":50,"dyears":4},{"ttl":"Court Day — Good","bd":"You sued the county for a wrongful arrest — and won. Short stay, big check.","lbl":"COURT","cut":30,"dyears":3},{"ttl":"Court Day — Good","bd":"Your old cellmate died and left you the location of his stash.","lbl":"COURT","cut":20,"dyears":6},{"ttl":"Court Day — Good","bd":"You ran the yard's poker table for two years straight.","lbl":"COURT","cut":10,"dyears":5},{"ttl":"Court Day — Good","bd":"Your first lawyer botched it so badly the malpractice payout covered you.","lbl":"COURT","cut":40,"dyears":4},{"ttl":"Court Day — Good","bd":"A magazine paid for the rights to your story. You're famous now — for the wrong reasons.","lbl":"COURT","cut":25,"dyears":7},{"ttl":"Court Day — Good","bd":"A grateful boss on the outside quietly covered your bail in full.","lbl":"COURT"},{"ttl":"Court Day — Neutral","bd":"The deal on the table matched what you were already facing. No better, no worse.","lbl":"COURT"},{"ttl":"Court Day — Neutral","bd":"The judge reviewed everything and upheld the original sentence.","lbl":"COURT"},{"ttl":"Court Day — Neutral","bd":"Transferred to a facility three states over. Same walls, same clock.","lbl":"COURT"},{"ttl":"Court Day — Neutral","bd":"The jury deliberated an hour and convicted you exactly as charged.","lbl":"COURT"},{"ttl":"Court Day — Neutral","bd":"Your plea deal collapsed at the last minute. Back to square one.","lbl":"COURT"},{"ttl":"Court Day — Neutral","bd":"Parole denied this cycle — but no time added either.","lbl":"COURT"},{"ttl":"Court Day — Neutral","bd":"Your public defender met you in the hallway. He did the bare minimum.","lbl":"COURT"},{"ttl":"Court Day — Neutral","bd":"Continuance after continuance. Nothing moves.","lbl":"COURT"},{"ttl":"Court Day — Neutral","bd":"Restitution was ordered, but an old insurance policy quietly covered it.","lbl":"COURT","cut":0},{"ttl":"Court Day — Neutral","bd":"Swapped the last stretch for an ankle monitor. Same time, nicer view.","lbl":"COURT"},{"ttl":"Court Day — Neutral","bd":"Mistrial, retrial, identical result. You lived the whole thing twice.","lbl":"COURT"},{"ttl":"Court Day — Bad","bd":"Court costs and victim restitution came due all at once.","lbl":"COURT","cut":-15},{"ttl":"Court Day — Bad","bd":"The state seized what it could prove you bought with the take.","lbl":"COURT","cut":-25},{"ttl":"Court Day — Bad","bd":"The victim's family filed a civil suit — and won.","lbl":"COURT","cut":-40},{"ttl":"Court Day — Bad","bd":"The judge hinted the sentence could stay reasonable for the right envelope.","lbl":"COURT","cut":-20},{"ttl":"Court Day — Bad","bd":"A fine stacked right on top of your time. Serve it and pay it.","lbl":"COURT","cut":-10},{"ttl":"Court Day — Bad","bd":"Your high-priced lawyer padded every hour on the bill.","lbl":"COURT","cut":-30},{"ttl":"Court Day — Bad","bd":"You owed the wrong crew protection money to make it to breakfast.","lbl":"COURT","cut":-15},{"ttl":"Court Day — Bad","bd":"The IRS noticed the money before you did. Tax charges landed hard.","lbl":"COURT","cut":-50},{"ttl":"Court Day — Bad","bd":"A witness recognized you from a robbery across town you had nothing to do with. Now you answer for two jobs.","lbl":"COURT","ryears":15},{"ttl":"Court Day — Bad","bd":"The gun you left behind was used in a shooting a week later by whoever found it. Ballistics come back to your job.","lbl":"COURT","ryears":12},{"ttl":"Court Day — Bad","bd":"A security tape from the wrong angle makes it look like you struck the guard. The freeze-frame is all the jury sees.","lbl":"COURT","ryears":10},{"ttl":"Court Day — Bad","bd":"Someone using your name skipped court last year. That old warrant lands on you now.","lbl":"COURT","ryears":8},{"ttl":"Court Day — Bad","bd":"A cellmate started a fire and blamed you to save himself. The guards believe the guy who talks first.","lbl":"COURT","ryears":9},{"ttl":"Court Day — Bad","bd":"Your crew's cut got traced through an account with your name on it — for a job you sat out entirely.","lbl":"COURT","ryears":7},{"ttl":"Court Day — Bad","bd":"The prosecutor stacked every charge they could dream up.","lbl":"COURT","ryears":15},{"ttl":"Court Day — Bad","bd":"You refused to name your accomplices. The judge took it personally.","lbl":"COURT","ryears":7},{"ttl":"Court Day — Bad","bd":"The judge decided to make an example of you for the papers.","lbl":"COURT","ryears":10},{"ttl":"Court Day — DEADLY","bd":"At the ATM job an eyewitness swears you shot a man dead. You never fired — but she's certain, and the jury believes her.","lbl":"COURT"},{"ttl":"Court Day — DEADLY","bd":"A body turned up near your last job. Your DNA was on a cup you tossed nearby. They build a murder case out of a coffee lid.","lbl":"COURT"},{"ttl":"Court Day — DEADLY","bd":"Your getaway driver ran over a pedestrian blocks away. You were gone — but the law calls it felony murder for the whole crew.","lbl":"COURT"},{"ttl":"Court Day — DEADLY","bd":"A jailhouse informant testifies you confessed to a killing you've never heard of. He gets his sentence cut. You get his story.","lbl":"COURT"},{"ttl":"Court Day — DEADLY","bd":"They mixed up your file with a cop-killer's who shares your name. By the time it's sorted, the sentence is signed.","lbl":"COURT"}],"cop":[{"ttl":"Crooked Cop","bd":"A cop on your payroll tips you off before the raid. You clear the stash house an hour early and the warrant finds empty rooms.","lbl":"CROOKED COP","cut":10},{"ttl":"Crooked Cop","bd":"An officer skims a drug bust and needs a buyer for the lost evidence. You take it off his hands cheap and flip it.","lbl":"CROOKED COP","cut":15},{"ttl":"Crooked Cop","bd":"Your guy on the force sells you the informant list. Now you know exactly who's been talking.","lbl":"CROOKED COP","cut":8},{"ttl":"Crooked Cop","bd":"A detective loses your file for a flat fee — to you, that file was worth ten times what he charged.","lbl":"CROOKED COP","cut":12},{"ttl":"Crooked Cop","bd":"A cop shakes down a rival dealer and cuts you in for pointing him at the right door.","lbl":"CROOKED COP","cut":9},{"ttl":"Crooked Cop","bd":"You bought a real badge and radio off a dirty officer. Half your jobs just got easier.","lbl":"CROOKED COP","cut":20},{"ttl":"Crooked Cop","bd":"An evidence-room cop reclassifies your seized cash as unmarked. It comes back to you clean.","lbl":"CROOKED COP","cut":25},{"ttl":"Crooked Cop","bd":"A patrol officer runs escort for your shipment, lights off, for a cut of the load.","lbl":"CROOKED COP","cut":18},{"ttl":"Crooked Cop","bd":"Your inside man kills a wiretap warrant before a judge ever signs it.","lbl":"CROOKED COP","cut":14},{"ttl":"Crooked Cop","bd":"A cop tips you which impound cars go unclaimed. You buy the paperwork and sell the metal.","lbl":"CROOKED COP","cut":7},{"ttl":"Crooked Cop","bd":"An officer plants a throwaway on your rival and clears your corner for you.","lbl":"CROOKED COP","cut":16},{"ttl":"Crooked Cop","bd":"You blackmail a cop caught on your own camera taking a bribe. He pays monthly now.","lbl":"CROOKED COP","cut":22},{"ttl":"Crooked Cop","bd":"A sergeant sells you next month's patrol schedule. Every route you run is now a blind spot.","lbl":"CROOKED COP","cut":11},{"ttl":"Crooked Cop","bd":"Your contact in narcotics feeds you the location of a rival's safehouse. You hit it first.","lbl":"CROOKED COP","cut":30},{"ttl":"Crooked Cop","bd":"A cop forgets to log part of a seizure and splits the difference with you.","lbl":"CROOKED COP","cut":13},{"ttl":"Crooked Cop","bd":"An officer moonlights as your muscle on collection day. Nobody argues with a badge.","lbl":"CROOKED COP","cut":10},{"ttl":"Crooked Cop","bd":"You pay a dispatcher to route every patrol away from your block for one crucial night.","lbl":"CROOKED COP","cut":17},{"ttl":"Crooked Cop","bd":"A crooked cop hands you a competitor's whole case file. You use it to take over his turf.","lbl":"CROOKED COP","cut":35},{"ttl":"Crooked Cop","bd":"An officer sells back the guns he confiscated. You resell them for triple.","lbl":"CROOKED COP","cut":12},{"ttl":"Crooked Cop","bd":"Your man on the force flips a federal informant into a double agent working for you.","lbl":"CROOKED COP","cut":40},{"ttl":"Crooked Cop","bd":"The cop you paid takes your money and raids you anyway. He kept both the bribe and the bust.","lbl":"CROOKED COP","cut":-10},{"ttl":"Crooked Cop","bd":"A dirty officer decides your monthly protection just went up. Refuse and he makes a call.","lbl":"CROOKED COP","cut":-8},{"ttl":"Crooked Cop","bd":"Your contact got transferred. His replacement wants a fresh down payment to look the other way.","lbl":"CROOKED COP","cut":-12},{"ttl":"Crooked Cop","bd":"A cop plants evidence on you and offers to make it disappear — for a price.","lbl":"CROOKED COP","cut":-15},{"ttl":"Crooked Cop","bd":"The detective you bribed is under investigation. He needs cash to stay quiet about you.","lbl":"CROOKED COP","cut":-20},{"ttl":"Crooked Cop","bd":"An officer impounds your car by mistake. Getting it back off the record costs you.","lbl":"CROOKED COP","cut":-5},{"ttl":"Crooked Cop","bd":"Your inside man demands a bigger cut or he walks straight to Internal Affairs with your name.","lbl":"CROOKED COP","cut":-18},{"ttl":"Crooked Cop","bd":"A cop shakes you down at a traffic stop, finds your roll of cash, and confiscates all of it.","lbl":"CROOKED COP","cut":-9},{"ttl":"Crooked Cop","bd":"The sergeant on your payroll got greedy and now three of his buddies want in too.","lbl":"CROOKED COP","cut":-25},{"ttl":"Crooked Cop","bd":"You paid for a tip that turned out to be bait. The easy score was a sting, and buying out isn't cheap.","lbl":"CROOKED COP","cut":-22},{"ttl":"Crooked Cop","bd":"A cop you burned in the past gets his revenge with a random search. Grease his palm or lose everything.","lbl":"CROOKED COP","cut":-14},{"ttl":"Crooked Cop","bd":"Your dirty officer got caught and named you first to save himself. Damage control costs money.","lbl":"CROOKED COP","cut":-30},{"ttl":"Crooked Cop","bd":"An officer holds your shipment at the checkpoint until the toll is paid.","lbl":"CROOKED COP","cut":-11},{"ttl":"Crooked Cop","bd":"The cop protecting you wants his kid's tuition covered now, framed as a gift.","lbl":"CROOKED COP","cut":-16},{"ttl":"Crooked Cop","bd":"A vice cop threatens to leak your operation to a rival unless you buy his silence.","lbl":"CROOKED COP","cut":-13},{"ttl":"Crooked Cop","bd":"Your bribed officer double-crossed you and sold your route to the competition. Buying it back costs double.","lbl":"CROOKED COP","cut":-28},{"ttl":"Crooked Cop","bd":"An IA sting caught your cop on tape taking your money. Now you're both paying lawyers.","lbl":"CROOKED COP","cut":-24},{"ttl":"Crooked Cop","bd":"A rookie you tried to bribe reported it. Making the paperwork vanish takes a much bigger bribe up the chain.","lbl":"CROOKED COP","cut":-19},{"ttl":"Crooked Cop","bd":"The cop you own gambled away his own money and is skimming yours to cover it.","lbl":"CROOKED COP","cut":-17},{"ttl":"Crooked Cop","bd":"Your entire police contact network got swept up in a corruption probe. You pay just to stay unnamed.","lbl":"CROOKED COP","cut":-40},{"ttl":"Crooked Cop — Jail","bd":"A cop who owes you a life loses your arrest paperwork entirely. You were never booked.","lbl":"CROOKED COP","freeArrest":true},{"ttl":"Crooked Cop — Jail","bd":"The arresting officer takes a quiet envelope and swears the collar was mistaken identity.","lbl":"CROOKED COP","cut":-5,"freeArrest":true},{"ttl":"Crooked Cop — Jail","bd":"Your lawyer's cop friend misplaces the arrest report. No report, no case.","lbl":"CROOKED COP","cut":-10,"freeArrest":true},{"ttl":"Crooked Cop — Jail","bd":"A detective agrees to break the chain of evidence so nothing sticks. His silence has a price.","lbl":"CROOKED COP","cut":-15,"freeArrest":true},{"ttl":"Crooked Cop — Jail","bd":"The booking sergeant releases you on a technicality he invented on the spot.","lbl":"CROOKED COP","cut":-20,"freeArrest":true},{"ttl":"Crooked Cop — Jail","bd":"An officer swaps out the evidence bag for an empty one. Suddenly there's no case at all.","lbl":"CROOKED COP","cut":-25,"freeArrest":true},{"ttl":"Crooked Cop — Jail","bd":"A captain owed a favor makes your charges disappear before they reach a prosecutor.","lbl":"CROOKED COP","cut":-30,"freeArrest":true},{"ttl":"Crooked Cop — Jail","bd":"The crooked cop network pulls every string at once to walk you out the front door.","lbl":"CROOKED COP","cut":-40,"freeArrest":true},{"ttl":"Crooked Cop — Jail","bd":"A high-ranking official on the take quashes the indictment personally. That reach isn't cheap.","lbl":"CROOKED COP","cut":-50,"freeArrest":true},{"ttl":"Crooked Cop — Jail","bd":"The whole department buries your case in exchange for a payout that clears every hand it passes through.","lbl":"CROOKED COP","cut":-75,"freeArrest":true}],"raid":[{"ttl":"Police Raid","bd":"They came through the door at 5 AM with a battering ram. You were still half-asleep when the zip ties went on.","lbl":"POLICE RAID","raidArr":true},{"ttl":"Police Raid","bd":"A neighbor filmed your traffic and sent it in. The warrant was signed before you noticed the unmarked car.","lbl":"POLICE RAID","raidArr":true},{"ttl":"Police Raid","bd":"You flushed what you could, but the plumbing gave you up. They pulled the evidence right out of the pipe.","lbl":"POLICE RAID","raidArr":true},{"ttl":"Police Raid","bd":"The informant you trusted drew them a map of your whole operation. They knew which floorboard to lift.","lbl":"POLICE RAID","raidArr":true},{"ttl":"Police Raid","bd":"A helicopter had been watching the heat signatures for weeks. The raid was just the last page of a long book.","lbl":"POLICE RAID","raidArr":true},{"ttl":"Police Raid","bd":"You ran out the back straight into the second team waiting in the alley. They'd read your escape plan.","lbl":"POLICE RAID","raidArr":true},{"ttl":"Police Raid","bd":"Your own security cameras got subpoenaed and played back your whole month for a jury.","lbl":"POLICE RAID","raidArr":true},{"ttl":"Police Raid","bd":"The K-9 hit on the wall cavity in seconds. Whatever you spent hiding it, the dog undid in one breath.","lbl":"POLICE RAID","raidArr":true},{"ttl":"Police Raid","bd":"They'd been in the empty unit next door for a week, listening through the drywall. You never lowered your voice.","lbl":"POLICE RAID","raidArr":true},{"ttl":"Police Raid","bd":"A parking ticket tied your car to three different scenes. The raid was just them collecting on the math.","lbl":"POLICE RAID","raidArr":true},{"ttl":"Police Raid","bd":"Your phone was cloned months ago. Every text you deleted, they'd already screenshotted.","lbl":"POLICE RAID","raidArr":true},{"ttl":"Police Raid","bd":"The delivery driver was an undercover cop. He signed for the package, then read you your rights.","lbl":"POLICE RAID","raidArr":true},{"ttl":"Police Raid","bd":"They froze your accounts first, then knocked. By the time you understood, there was nothing to run with.","lbl":"POLICE RAID","raidArr":true},{"ttl":"Police Raid","bd":"A rival dropped an anonymous tip to clear your corner. It worked — the cops did his dirty work for free.","lbl":"POLICE RAID","raidArr":true},{"ttl":"Police Raid","bd":"Your fingerprint on a single shell casing closed a case you thought was cold. They came for you on a Tuesday.","lbl":"POLICE RAID","raidArr":true},{"ttl":"Police Raid","bd":"The task force had a wiretap running for six months. You were on tape doing the whole thing, twice.","lbl":"POLICE RAID","raidArr":true},{"ttl":"Police Raid","bd":"You made bail on the last charge and walked right into a fresh warrant on the courthouse steps.","lbl":"POLICE RAID","raidArr":true},{"ttl":"Police Raid","bd":"They traced the crypto through three mixers and back to your name. The blockchain never forgets.","lbl":"POLICE RAID","raidArr":true},{"ttl":"Police Raid","bd":"A traffic stop turned into a search turned into a very long night. The trunk told the whole story.","lbl":"POLICE RAID","raidArr":true},{"ttl":"Police Raid","bd":"Your accountant flipped to save himself and handed them the ledgers with your name on every line.","lbl":"POLICE RAID","raidArr":true},{"ttl":"Police Raid","bd":"The raid hit while you were counting the take on the kitchen table. Nothing to explain, everything to seize.","lbl":"POLICE RAID","raidArr":true},{"ttl":"Police Raid","bd":"A body cam from an unrelated stop caught you in the background of a scene you swore you'd never been to.","lbl":"POLICE RAID","raidArr":true},{"ttl":"Police Raid","bd":"They served the warrant at your mother's house, where you'd stashed everything thinking they'd never look.","lbl":"POLICE RAID","raidArr":true},{"ttl":"Police Raid","bd":"Facial recognition matched you off a gas station camera. The rest was just paperwork and handcuffs.","lbl":"POLICE RAID","raidArr":true},{"ttl":"Police Raid","bd":"You'd gone legit for a year, but an old case finally caught up. They cuffed you in front of your new life.","lbl":"POLICE RAID","raidArr":true},{"ttl":"Police Raid","bd":"They hit the wrong address by one digit. By the time they sorted the paperwork, you were long gone.","lbl":"POLICE RAID"},{"ttl":"Police Raid","bd":"Your lookout spotted the convoy three blocks out. You were clean and calm before the first knock.","lbl":"POLICE RAID"},{"ttl":"Police Raid","bd":"The warrant had a typo that got the whole search thrown out. Your lawyer earned every dollar that week.","lbl":"POLICE RAID"},{"ttl":"Police Raid","bd":"You'd moved everything the night before on a gut feeling. They raided an empty room and left embarrassed.","lbl":"POLICE RAID"},{"ttl":"Police Raid","bd":"The tunnel you dug just in case finally paid for itself. You surfaced two yards over as the door came down.","lbl":"POLICE RAID"},{"ttl":"Police Raid","bd":"A crooked cop on your payroll tipped you the date and time. You spent raid day at the beach.","lbl":"POLICE RAID"},{"ttl":"Police Raid","bd":"The evidence got logged wrong and vanished into the property room. No evidence, no case, no problem.","lbl":"POLICE RAID"},{"ttl":"Police Raid","bd":"You were three states away closing another deal when they kicked in a door with nobody behind it.","lbl":"POLICE RAID"},{"ttl":"Police Raid","bd":"The informant got cold feet and recanted. Without him, the whole warrant fell apart overnight.","lbl":"POLICE RAID"},{"ttl":"Police Raid","bd":"You'd rented the place under a dead man's name. They arrested a ghost and let you walk.","lbl":"POLICE RAID"},{"ttl":"Police Raid","bd":"The safe room behind the bookshelf held while they tore up the rest of the house around it.","lbl":"POLICE RAID"},{"ttl":"Police Raid","bd":"A jurisdiction dispute between two departments stalled the raid a full day — exactly the day you needed.","lbl":"POLICE RAID"},{"ttl":"Police Raid","bd":"You blended into the crowd of confused tenants and walked out past the officers holding the door.","lbl":"POLICE RAID"},{"ttl":"Police Raid","bd":"The judge tossed the wiretap as illegal. Everything they built on it collapsed like a bad frame.","lbl":"POLICE RAID"},{"ttl":"Police Raid","bd":"Your decoy stash house took the raid while the real one two miles away never got a glance.","lbl":"POLICE RAID"},{"ttl":"Police Raid","bd":"They ran out of overtime budget and the surveillance ended a week too early. You slipped through the gap.","lbl":"POLICE RAID"},{"ttl":"Police Raid","bd":"The chain of custody broke when an officer forgot to sign the log. Everything walked out the door with you.","lbl":"POLICE RAID"},{"ttl":"Police Raid","bd":"You'd been tipped off by the sound of the wrong car idling too long. You were gone before they formed up.","lbl":"POLICE RAID"},{"ttl":"Police Raid","bd":"The raid made the news as a botched operation. You watched it from a hotel across town, smiling.","lbl":"POLICE RAID"},{"ttl":"Police Raid","bd":"A power outage killed their surveillance feed at the worst moment for them, best for you.","lbl":"POLICE RAID"},{"ttl":"Police Raid","bd":"Your neighbor's dog wouldn't stop barking at the staging cops. That noise bought you the ninety seconds you needed.","lbl":"POLICE RAID"},{"ttl":"Police Raid","bd":"The dirty money was already clean and sitting in a legitimate account. They found nothing to seize.","lbl":"POLICE RAID"},{"ttl":"Police Raid","bd":"They arrested a lookalike two doors down and closed the file before realizing their mistake.","lbl":"POLICE RAID"},{"ttl":"Police Raid","bd":"You'd quietly become an informant yourself. The raid skipped your door on purpose.","lbl":"POLICE RAID"},{"ttl":"Police Raid","bd":"The whole case got reassigned in a department shake-up and simply fell through the cracks. You were never touched.","lbl":"POLICE RAID"}],"party":[{"ttl":"Party","bd":"Backroom poker, four players, and you're holding the nuts. You let the loud one bet into you all night.","lbl":"PARTY","cut":18},{"ttl":"Party","bd":"You caught a made man bluffing and called him in front of everyone. You won the pot. You may have lost something worse.","lbl":"PARTY","cut":12,"skip":1},{"ttl":"Party","bd":"The dice were loaded — and not by you. You noticed too late and won anyway. Now the shooter wants a word outside.","lbl":"PARTY","cut":8},{"ttl":"Party","bd":"You went all-in on a pair of eights. The river was kind. Somewhere, a man is explaining a big loss to his boss.","lbl":"PARTY","cut":25},{"ttl":"Party","bd":"Craps game in the back of a meat freezer. You're up big — then the point rolls wrong.","lbl":"PARTY","cut":-10},{"ttl":"Party","bd":"You spotted the tell — a little vein in his neck — and cleaned him out over three hands.","lbl":"PARTY","cut":15},{"ttl":"Party","bd":"A quiet card game turns loud when someone accuses the dealer. Chairs go over. You leave with your winnings and shoes untied.","lbl":"PARTY","cut":6},{"ttl":"Party","bd":"You hosted the game, so you took the rake all night. The house always eats.","lbl":"PARTY","cut":9},{"ttl":"Party","bd":"You bluffed with absolute garbage and a straight face. He folded aces. You'll never tell him.","lbl":"PARTY","cut":20},{"ttl":"Party","bd":"Seven-hour session, and you finally lost it all on one stupid hand at sunrise.","lbl":"PARTY","cut":-14},{"ttl":"Party","bd":"You loaned a desperate player cash mid-game at friendly interest. He paid it back with the pot he won off someone else.","lbl":"PARTY","cut":7},{"ttl":"Party","bd":"The don himself sat down at your table. You let him win a little. Respect is cheaper than pride.","lbl":"PARTY","cut":-5,"freeArrest":true},{"ttl":"Party","bd":"Dice game in the alley. You rolled three passes in a row and walked before the streak turned.","lbl":"PARTY","cut":11},{"ttl":"Party","bd":"A stranger with a briefcase wanted a seat at the high-stakes table. You took his money and asked no questions.","lbl":"PARTY","cut":30},{"ttl":"Party","bd":"You got caught counting cards at an underground blackjack table. They don't call the cops here — they call the big guy.","lbl":"PARTY","cut":-16},{"ttl":"Party","bd":"The whole table folded to your raise. You showed the bluff anyway, just to watch their faces. Worth it.","lbl":"PARTY","cut":10},{"ttl":"Party","bd":"You won a man's watch, his cash, and the pink slip to his car in one night. He shook your hand like a professional.","lbl":"PARTY","cut":22},{"ttl":"Party","bd":"A rival crew crashed the game looking for someone. It wasn't you, but you hit the floor with everyone else.","lbl":"PARTY","skip":1},{"ttl":"Party","bd":"You ran the dice table and paid out honest all night. Word gets around — honest houses draw big money.","lbl":"PARTY","cut":13},{"ttl":"Party","bd":"The cards went cold and stayed cold. You chased your losses like a fool and paid for the lesson.","lbl":"PARTY","cut":-12},{"ttl":"Party","bd":"A drunk oil man sat down and didn't know how to fold. You were the one who taught him.","lbl":"PARTY","cut":28},{"ttl":"Party","bd":"You palmed an ace and got away clean. This time.","lbl":"PARTY","cut":9},{"ttl":"Party","bd":"You palmed an ace and did not get away clean. The dealer saw everything.","lbl":"PARTY","cut":-15},{"ttl":"Party","bd":"Poker night ran into a business meeting. A supplier at the table liked how you played and offered you a line.","lbl":"PARTY","cut":20},{"ttl":"Party","bd":"You called the big blind on a hunch and flopped a set. The hunch paid the rent for a year.","lbl":"PARTY","cut":17},{"ttl":"Party","bd":"A cop plays in this game off-duty. You let him win and now you've got a friend downtown.","lbl":"PARTY","cut":-4,"freeArrest":true},{"ttl":"Party","bd":"Two players got into it over a call and it spilled into the parking lot. You collected both their abandoned stacks.","lbl":"PARTY","cut":14},{"ttl":"Party","bd":"You went to a party thrown by a rival to keep the peace. The peace held. Barely.","lbl":"PARTY","skip":1},{"ttl":"Party","bd":"You won the side bet on the fight everyone else got wrong.","lbl":"PARTY","cut":8},{"ttl":"Party","bd":"Backgammon with an old Greek who's been hustling since before you were born. He took you to school.","lbl":"PARTY","cut":-6},{"ttl":"Party","bd":"The high roller turned out to be a federal accountant unwinding after work. You changed the subject fast and cashed out.","lbl":"PARTY","cut":10,"skip":1},{"ttl":"Party","bd":"You threw the party of the year and every earner in the city showed up. Deals got made in every corner.","lbl":"PARTY","cut":35},{"ttl":"Party","bd":"The dice loved you until they didn't. You left owing the house, and the house has a long memory.","lbl":"PARTY","cut":-18},{"ttl":"Party","bd":"You caught someone marking the cards with a thumbnail. You said nothing and just started betting against him.","lbl":"PARTY","cut":16},{"ttl":"Party","bd":"A wedding, an open bar, and a card game in the coat room. You skipped the toast for the flush.","lbl":"PARTY","cut":12},{"ttl":"Party","bd":"You lost a friendly bet and had to pay up in front of everyone. Reputation costs are real.","lbl":"PARTY","cut":-5},{"ttl":"Party","bd":"You out-waited everyone — folded ninety percent of the night, then took the biggest pot cold.","lbl":"PARTY","cut":19},{"ttl":"Party","bd":"Someone brought a briefcase of counterfeit chips. When the game realized it, the night ended in the worst way for him.","lbl":"PARTY","cut":9},{"ttl":"Party","bd":"You went viral for winning a poker hand so absurd a spectator filmed it. Fun — until the wrong people saw the video.","lbl":"PARTY","cut":15},{"ttl":"Party","bd":"A card shark from out of town thought this was easy money. You reminded him whose city it was.","lbl":"PARTY","cut":24},{"ttl":"Party","bd":"The game got raided mid-hand. You went out the bathroom window with the pot still in your pockets.","lbl":"PARTY","cut":11,"skip":1},{"ttl":"Party","bd":"You bankrolled a hungry young player who ran it up all night and cut you your fair share.","lbl":"PARTY","cut":13},{"ttl":"Party","bd":"You bankrolled a hungry young player who lost it all and vanished before sunrise.","lbl":"PARTY","cut":-8},{"ttl":"Party","bd":"Roulette in a basement lit by one bulb. You put it all on black. It came up black.","lbl":"PARTY","cut":26},{"ttl":"Party","bd":"Same wheel, same bulb, next spin. You let it ride. It did not come up black.","lbl":"PARTY","cut":-20},{"ttl":"Party","bd":"You read the room, folded a great hand, and dodged a set-up designed to clean you out.","lbl":"PARTY"},{"ttl":"Party","bd":"An old capo took a liking to you over cigars and cards. He tells you a story worth more than the pot.","lbl":"PARTY","crew":1},{"ttl":"Party","bd":"The party was a front for a sit-down between two families. You served drinks, kept quiet, got tipped for your discretion.","lbl":"PARTY","cut":10},{"ttl":"Party","bd":"You won big and tipped the dealer generously. That dealer now tips you off before every crooked game.","lbl":"PARTY","cut":12},{"ttl":"Party","bd":"You lost your whole stack, borrowed from the wrong man to keep playing, and lost that too.","lbl":"PARTY","cut":-22},{"ttl":"Party","bd":"The dice came up boxcars at the perfect moment and the whole alley groaned. You raked it in.","lbl":"PARTY","cut":14},{"ttl":"Party","bd":"You hosted a game where a rival got cleaned out. He blames the cards. You know it was the whiskey you kept pouring.","lbl":"PARTY","cut":17},{"ttl":"Party","bd":"You bet on the wrong horse at the party's private book. The favorite stumbled and so did your wallet.","lbl":"PARTY","cut":-9},{"ttl":"Party","bd":"You talked your way into a members-only game above your bankroll and somehow left ahead.","lbl":"PARTY","cut":21},{"ttl":"Party","bd":"A crew member of yours got hustled at the table. You covered his debt to save face for the crew.","lbl":"PARTY","cut":-7},{"ttl":"Party","bd":"You caught the dealer working with a player and quietly bought the dealer's loyalty instead.","lbl":"PARTY","cut":15},{"ttl":"Party","bd":"You went all-in on a stone bluff and got called by a bigger bluff. Two liars, one loser. It was you.","lbl":"PARTY","cut":-13},{"ttl":"Party","bd":"The best night of cards in your life. Everything hit. You bought the whole bar a round and still walked out rich.","lbl":"PARTY","cut":30},{"ttl":"Party","bd":"You lent your lucky lighter to a stranger who won huge with it and never gave it back. Small loss, big grudge.","lbl":"PARTY"},{"ttl":"Party","bd":"A quiet game turned into a negotiation. You left the table with a new distribution deal instead of a pot.","lbl":"PARTY","cut":25},{"ttl":"Party","bd":"You slow-played pocket kings so well the whole table paid you off.","lbl":"PARTY","cut":18},{"ttl":"Party","bd":"You got greedy on a winning streak, stayed one hand too long, and the table remembered every dollar you took.","lbl":"PARTY","cut":-11},{"ttl":"Party","bd":"You spotted an undercover at the private game by his cheap shoes and got everyone out clean. They owe you.","lbl":"PARTY","crew":2},{"ttl":"Party","bd":"The party's dice game had a five-figure buy-in. You made the buy-in back and then some before midnight.","lbl":"PARTY","cut":23},{"ttl":"Party","bd":"You tipped a bartender who overheard a rival's whole plan and passed it to you.","lbl":"PARTY","cut":10},{"ttl":"Party","bd":"You lost a hand, lost your temper, and flipped the table. Now you owe for the chips and the table.","lbl":"PARTY","cut":-6},{"ttl":"Party","bd":"You bet a man he couldn't drink the whole bottle. He couldn't. Easy money, mild concern for his health.","lbl":"PARTY","cut":4},{"ttl":"Party","bd":"A legendary hustler passed through town and you got him at his own game — once. You'll dine out on that forever.","lbl":"PARTY","cut":16},{"ttl":"Party","bd":"The card game doubled as an audition. A boss watched how you handled losing and offered you real work.","lbl":"PARTY","cut":20},{"ttl":"Party","bd":"You won a boat in a poker game. You don't want a boat. Docking fees are a nightmare.","lbl":"PARTY","cut":-5},{"ttl":"Party","bd":"Dice ran hot in the back of the club. You pressed your bets perfectly and pulled out at the peak.","lbl":"PARTY","cut":19},{"ttl":"Party","bd":"You got caught in a cheating scheme you didn't even know was happening. Guilt by association isn't cheap.","lbl":"PARTY","cut":-12},{"ttl":"Party","bd":"The house comped your whole night because you're good for business. You drank, played, and lost nothing.","lbl":"PARTY"},{"ttl":"Party","bd":"You cleaned out a trust-fund kid who wanted to play with real gangsters. His allowance funded your week.","lbl":"PARTY","cut":14},{"ttl":"Party","bd":"A blackjack table, a hot shoe, and perfect basic strategy. The pit boss watched but couldn't prove a thing.","lbl":"PARTY","cut":17},{"ttl":"Party","bd":"You bet the deed to a corner in a drunken poker hand — and won a better one.","lbl":"PARTY","crew":1},{"ttl":"Party","bd":"You lost that same hand the next week. The corner's gone. Pride's worse.","lbl":"PARTY","cut":0,"loseCrew":1},{"ttl":"Party","bd":"You brokered peace between two hotheads at the table before it turned deadly. Both bosses hear you kept it civil.","lbl":"PARTY","crew":2},{"ttl":"Party","bd":"The dealer dealt you in for free all night as a thank-you for an old favor. You ran the freebie into a fortune.","lbl":"PARTY","cut":15},{"ttl":"Party","bd":"A player couldn't cover his loss and signed over his debt to you. Now you get to collect from him. Fun.","lbl":"PARTY","cut":10},{"ttl":"Party","bd":"You went to a quiet dinner party that turned into a six-hour high-stakes marathon. You held your own.","lbl":"PARTY","cut":13},{"ttl":"Party","bd":"A rival tried to embarrass you at the table. You let him win small, then buried him on the last hand.","lbl":"PARTY","cut":21},{"ttl":"Party","bd":"You backed the wrong side of a bar bet in front of the whole crew. Small money, big laughs at your expense.","lbl":"PARTY","cut":-3},{"ttl":"Party","bd":"You caught a lucky streak so absurd the other players got superstitious and cashed out early, leaving you the room.","lbl":"PARTY","cut":18},{"ttl":"Party","bd":"The game ran late and someone dozed off on their stack. You're an honest man. Mostly. You woke him and took the pot fair.","lbl":"PARTY","cut":9},{"ttl":"Party","bd":"You played cards with a priest who turned out to be the sharpest hustler in the parish. God's work, apparently.","lbl":"PARTY","cut":-7},{"ttl":"Party","bd":"You won the pot with a royal flush and the whole table stood up to shake your hand. A moment you'll never top.","lbl":"PARTY","cut":27},{"ttl":"Party","bd":"A crew member vouched for a guest who cheated the whole table. You covered the loss and had a word with the crew.","lbl":"PARTY","cut":-10},{"ttl":"Party","bd":"You spotted a counterfeit chip in the pot and called it out. The house rewarded your sharp eye.","lbl":"PARTY","cut":8},{"ttl":"Party","bd":"The party's back-room roulette wheel was rigged — in the house's favor. You figured it out and only bet where it paid.","lbl":"PARTY","cut":16},{"ttl":"Party","bd":"You got invited to a boss's private game as a sign of respect. Losing gracefully to him earned you more than winning.","lbl":"PARTY","cut":-8,"freeArrest":true},{"ttl":"Party","bd":"Some out-of-towners tried a coordinated cheat. The local table handled it the local way. You just collected your share.","lbl":"PARTY","cut":12},{"ttl":"Party","bd":"You went card-for-card with the best player in the city to a standstill. No money changed hands, but everyone saw you could hang.","lbl":"PARTY"},{"ttl":"Party","bd":"You won a briefcase in a bet, opened it later, and found more inside than you gambled for.","lbl":"PARTY","cut":22},{"ttl":"Party","bd":"The dice betrayed you at the worst moment, in front of the worst people, for the worst amount.","lbl":"PARTY","cut":-17},{"ttl":"Party","bd":"You hosted, you dealt, you raked, and you never played a hand. Smartest man in the room walks out up.","lbl":"PARTY","cut":14},{"ttl":"Party","bd":"A pretty distraction at the table cost three players their focus and their stacks. You kept your eyes on the cards.","lbl":"PARTY","cut":19},{"ttl":"Party","bd":"You lost badly, tipped well anyway, and left with your dignity. The room respected it. Broke, but respected.","lbl":"PARTY","cut":-10},{"ttl":"Party","bd":"You cleaned the table so thoroughly they've barred you from the game. A championship problem to have.","lbl":"PARTY","cut":25},{"ttl":"Party","bd":"A backroom dice game ran till dawn and you never gave up the hot hand. The whole table paid to watch you roll.","lbl":"PARTY","cut":16}],"fate":[{"ttl":"Fate","bd":"Someone rings your bell. It's a 20-year-old claiming to be the kid you never knew you had — and he needs a job. Blood is blood.","lbl":"FATE","crew":1},{"ttl":"Fate","bd":"Your great-aunt dies and leaves you her quiet little laundromat. Three other families were washing more than clothes there.","lbl":"FATE","cut":50},{"ttl":"Fate","bd":"You win $10K on a scratch-off. The clerk remembers your face, and so does the camera above his head.","lbl":"FATE","cut":10,"freeRaid":true},{"ttl":"Fate","bd":"Your cousin gets married and asks you to be the money godfather. Flattering, until you see the open bar bill.","lbl":"FATE","cut":-15},{"ttl":"Fate","bd":"A crew member quits to follow his dreams and open a food truck. He was your best earner. The tacos are excellent.","lbl":"FATE","cut":0,"loseCrew":1},{"ttl":"Fate","bd":"You find a duffel bag on the subway. Nobody claims it. You don't ask twice.","lbl":"FATE","cut":30},{"ttl":"Fate","bd":"Your landlord accidentally saw what's in the back room. Now the rent is negotiable and his silence isn't.","lbl":"FATE","cut":-20},{"ttl":"Fate","bd":"An old rival dies of natural causes at 89, rich and unpunished. His crew scatters and half come to you.","lbl":"FATE","crew":2},{"ttl":"Fate","bd":"You get a jury duty summons. You, of all people. The irony nearly kills you before the trial does.","lbl":"FATE","skip":1},{"ttl":"Fate","bd":"Your ex sells your story to a podcast. It goes viral. Now you're famous and a person of interest.","lbl":"FATE","cut":25},{"ttl":"Fate","bd":"A stray dog adopts you and turns out to be a fantastic lookout. Loyal, alert, works for kibble.","lbl":"FATE"},{"ttl":"Fate","bd":"You co-signed a loan for your brother-in-law. He vanished. The loan did not.","lbl":"FATE","cut":-18},{"ttl":"Fate","bd":"A tech startup wants to buy your logistics company for the shell value. They don't ask what you move.","lbl":"FATE","cut":75},{"ttl":"Fate","bd":"You're named godfather to a real baby this time. The christening gift expectations are criminal on their own.","lbl":"FATE","cut":-5},{"ttl":"Fate","bd":"Your accountant found a creative deduction and the refund is enormous. Genius or about to get you indicted.","lbl":"FATE","cut":40},{"ttl":"Fate","bd":"A childhood friend became a cop and wants to catch up over coffee. You go, because not going looks worse.","lbl":"FATE","skip":1},{"ttl":"Fate","bd":"You inherit a racehorse from a gambling debt. It's never won. It eats like it has.","lbl":"FATE","cut":-12},{"ttl":"Fate","bd":"Your crew member's mother makes you Sunday dinner every week and treats you like a son. You'd take a bullet for her lasagna.","lbl":"FATE","crew":1},{"ttl":"Fate","bd":"A pipe bursts in your stash apartment. The plumber sees everything and charges emergency rates for his memory.","lbl":"FATE","cut":-8},{"ttl":"Fate","bd":"You get recognized on the street by a fan of that viral podcast. He wants a selfie. You want a new city.","lbl":"FATE"},{"ttl":"Fate","bd":"Your uncle gets out of prison after 25 years with nothing but connections and a grudge. Both are useful.","lbl":"FATE","crew":2},{"ttl":"Fate","bd":"You bet on the wrong team in the big game. Your bookie is also your barber. Now you're afraid of scissors.","lbl":"FATE","cut":-10},{"ttl":"Fate","bd":"A politician you donated to wins the election. Suddenly your permits move fast and your problems move slow.","lbl":"FATE","cut":60},{"ttl":"Fate","bd":"Your teenage kid starts asking where the money comes from. You buy him a car to change the subject. It works.","lbl":"FATE","cut":-22},{"ttl":"Fate","bd":"You save a drowning man at the beach. He turns out to own half the docks. He never forgets a debt.","lbl":"FATE","cut":35},{"ttl":"Fate","bd":"A crew member found religion and confessed everything — to a priest, thankfully bound by the seal. Close one.","lbl":"FATE"},{"ttl":"Fate","bd":"Your storage unit goes to auction over a missed payment. Someone bids $80 for a locker worth a fortune. You buy it back for more.","lbl":"FATE","cut":-15},{"ttl":"Fate","bd":"An influencer films a day-in-the-life at your restaurant front. The pasta trends. The FBI takes an interest in the tag.","lbl":"FATE","cut":20,"skip":1},{"ttl":"Fate","bd":"Your dentist owes you a favor and does the whole crew's teeth off the books. Morale has never been higher.","lbl":"FATE","crew":1},{"ttl":"Fate","bd":"You get audited. Not by the IRS — by your own mother, who found the cash under the mattress.","lbl":"FATE","cut":-5},{"ttl":"Fate","bd":"A rival's widow asks you to take over her late husband's territory. She trusts you more than his own crew did.","lbl":"FATE","crew":3},{"ttl":"Fate","bd":"You slip on ice outside a bank and sue for a settlement. The bank pays. You were casing it anyway — bonus.","lbl":"FATE","cut":28},{"ttl":"Fate","bd":"Your car gets stolen. By amateurs. Who then get pulled over. With your trunk still loaded.","lbl":"FATE"},{"ttl":"Fate","bd":"A famous chef wants to partner on your restaurant front, no questions asked. The food gets so good it's almost a problem.","lbl":"FATE","cut":45},{"ttl":"Fate","bd":"Your crew member wins the lottery and retires to Florida. He sends a postcard. It's a little insulting, honestly.","lbl":"FATE","cut":0,"loseCrew":1},{"ttl":"Fate","bd":"You find out your therapist has been taking notes. Detailed ones. You convince him to lose the file.","lbl":"FATE","cut":-10},{"ttl":"Fate","bd":"A blackout hits the whole city. For one beautiful night, no cameras, no alarms, no records. You get a lot done.","lbl":"FATE","cut":50},{"ttl":"Fate","bd":"Your name gets cleared in an old case when the real guy confesses on his deathbed. You didn't do that one, for once.","lbl":"FATE","freeArrest":true},{"ttl":"Fate","bd":"A documentary crew wants to interview you as a neighborhood legend. Flattering. Also, subpoena-able.","lbl":"FATE","cut":-15},{"ttl":"Fate","bd":"Your grandmother's old friend ran numbers in the 60s. She teaches you a few things over tea.","lbl":"FATE","cut":18},{"ttl":"Fate","bd":"A crew member gets his girlfriend pregnant and needs a raise, a bigger place, and time off. Family first, he says.","lbl":"FATE","cut":-12},{"ttl":"Fate","bd":"You buy a haunted house cheap because nobody wants it. The basement is perfect for storage. Ghosts don't testify.","lbl":"FATE","cut":25},{"ttl":"Fate","bd":"Your identity gets stolen by a scammer overseas. He racks up debt in your name. You almost respect the hustle.","lbl":"FATE","cut":-14},{"ttl":"Fate","bd":"A guy you helped years ago is now a judge. He remembers. He misplaces a file for old times' sake.","lbl":"FATE","freeArrest":true},{"ttl":"Fate","bd":"Your crew member's day job is at the DMV. He can make a lot of paperwork disappear or appear.","lbl":"FATE","crew":1},{"ttl":"Fate","bd":"You win big at an underground casino, then realize the house is run by people scarier than you. You cash out politely.","lbl":"FATE","cut":30,"skip":1},{"ttl":"Fate","bd":"Your building gets declared a historic landmark. Now you can't renovate the basement, and inspectors come around.","lbl":"FATE","cut":-16},{"ttl":"Fate","bd":"A crew of teenagers starts running your old corner, running it well, and they want a mentor. You've still got it.","lbl":"FATE","crew":2},{"ttl":"Fate","bd":"You get a fruit basket from an anonymous admirer. Inside the bottom layer is a warning, and a phone number.","lbl":"FATE","skip":1},{"ttl":"Fate","bd":"Your long-lost twin shows up. Same face, clean record. The alibi possibilities are endless and beautiful.","lbl":"FATE"}],"drug":[{"ttl":"Drug Trade","bd":"A brick of cocaine came up through a car wash you own on paper. The kid who washed the cars never knew what he dried in the back bay.","lbl":"DRUG DEAL","arr":8,"cut":20},{"ttl":"Drug Trade","bd":"Your fentanyl batch went out cut too strong. Three regulars didn't wake up, and you're the name the survivors whisper to detectives.","lbl":"DRUG DEAL","arr":20,"cut":40},{"ttl":"Drug Trade","bd":"You ran meth out of a rented farmhouse until a neighbor called about the smell and the dead grass. You were gone that night.","lbl":"DRUG DEAL","arr":12,"cut":25},{"ttl":"Drug Trade","bd":"A distributor two cities over took your whole load of heroin and paid in a gym bag of cash. He counted twice; you counted the exits once.","lbl":"DRUG DEAL","arr":15,"cut":30},{"ttl":"Drug Trade","bd":"Counterfeit oxycodone pressed to look real moved through a crooked pharmacist. He wrote it off as inventory shrinkage.","lbl":"DRUG DEAL","arr":10,"cut":18},{"ttl":"Drug Trade","bd":"You supplied an entire festival with ecstasy out of a fanny pack. One weekend paid a year's wages, and you danced through all of it.","lbl":"DRUG DEAL","arr":6,"cut":15},{"ttl":"Drug Trade","bd":"A crack corner ran around the clock under your name — lookouts, runners, the whole machine — until a rival lit it up.","lbl":"DRUG DEAL","arr":9,"cut":12},{"ttl":"Drug Trade","bd":"A cartel shipment crossed the border buried in a truck of avocados. The driver didn't know what he hauled, which was the point.","lbl":"DRUG DEAL","arr":25,"cut":60},{"ttl":"Drug Trade","bd":"You dropped LSD on blotter paper printed with cartoon characters into the college scene. Legend by Monday.","lbl":"DRUG DEAL","arr":5,"cut":8},{"ttl":"Drug Trade","bd":"You washed a month of drug money through a nightclub's register, skimming off the top when nobody could count fast enough.","lbl":"DRUG DEAL","arr":7,"cut":22},{"ttl":"Drug Trade","bd":"A rival's cocaine stash went unguarded the day his crew got arrested. You took the product and the corner both.","lbl":"DRUG DEAL","arr":10,"cut":35},{"ttl":"Drug Trade","bd":"You sold fentanyl pills through a dark web storefront with five-star reviews. Faceless buyers, a coin trail you thought was cold.","lbl":"DRUG DEAL","arr":22,"cut":45},{"ttl":"Drug Trade","bd":"A weed grow filled a warehouse floor to ceiling. Legal three states over, a felony where you stood.","lbl":"DRUG DEAL","arr":4,"cut":14},{"ttl":"Drug Trade","bd":"You kept a film set supplied with cocaine through the whole shoot. The stars paid in cash and introductions.","lbl":"DRUG DEAL","arr":8,"cut":28},{"ttl":"Drug Trade","bd":"The meth cook you backed was an artist. His product ran so pure buyers drove hours and never haggled.","lbl":"DRUG DEAL","arr":14,"cut":32},{"ttl":"Drug Trade","bd":"You smuggled heroin sewn into furniture cushions. Customs opened one box, sat in the chair, and waved the truck through.","lbl":"DRUG DEAL","arr":18,"cut":38},{"ttl":"Drug Trade","bd":"A pill ring ran on prescription pads from three doctors who'd sell a script to anyone with cash and a fake limp.","lbl":"DRUG DEAL","arr":9,"cut":20},{"ttl":"Drug Trade","bd":"A cocaine supplier trusted the wrong middleman and got clipped by the law. His pipeline had to go somewhere — to you.","lbl":"DRUG DEAL","arr":15,"cut":50},{"ttl":"Drug Trade","bd":"A bad batch of fentanyl put three buyers in the ICU in one night. The money was spent; the heat was just arriving.","lbl":"DRUG DEAL","arr":25,"cut":10},{"ttl":"Drug Trade","bd":"You ran ecstasy and ketamine through a rave circuit that moved city to city in a box truck. Same wristband guy at the door — you.","lbl":"DRUG DEAL","arr":6,"cut":17},{"ttl":"Drug Trade","bd":"A crack house you supplied got raided at dawn, but it was one of three you ran. They hit a limb, not the source.","lbl":"DRUG DEAL","arr":11,"cut":13},{"ttl":"Drug Trade","bd":"You became a cartel lieutenant's man in the north. The money changed your life — and put a permanent target on your back.","lbl":"DRUG DEAL","arr":25,"cut":70},{"ttl":"Drug Trade","bd":"A meth deal in a motel lot went sideways when the buyer flashed a badge. You got the money and were three states away by morning.","lbl":"DRUG DEAL","arr":12,"cut":9},{"ttl":"Drug Trade","bd":"You moved bulk marijuana edibles packaged like gas-station candy, sold right off the counter next to the register.","lbl":"DRUG DEAL","arr":4,"cut":11},{"ttl":"Drug Trade","bd":"Your cocaine pipeline ran clean for a full year. Then one driver got greedy, got caught, and traded your name for a lighter sentence.","lbl":"DRUG DEAL","arr":15,"cut":55}],"pday":[{"ttl":"Prison Life","bd":"You ran the laundry hustle, pressing shirts for guys who wanted to look sharp on visitation day.","lbl":"PRISON DAY"},{"ttl":"Prison Life","bd":"You lost a bet on the big fight to a guy who never loses. Pay up or lose face.","lbl":"PRISON DAY"},{"ttl":"Prison Life","bd":"You brewed pruno in a trash bag under your bunk and sold it by the cup. Nasty stuff, steady buyers.","lbl":"PRISON DAY"},{"ttl":"Prison Life","bd":"A shakedown cost you your whole stash. The guards confiscated it — which means they're smoking it now.","lbl":"PRISON DAY"},{"ttl":"Prison Life","bd":"You're the block's tattoo artist, inking with a homemade gun. Everybody wants your work.","lbl":"PRISON DAY"},{"ttl":"Prison Life","bd":"You ran the poker table in the day room and took the rake all week.","lbl":"PRISON DAY"},{"ttl":"Prison Life","bd":"You bought protection from the biggest crew on the yard. Worth every pack.","lbl":"PRISON DAY"},{"ttl":"Prison Life","bd":"You smuggled a cell phone in and rented it out by the minute. Best business on the block.","lbl":"PRISON DAY"},{"ttl":"Prison Life","bd":"You got caught with the phone. Bye-bye phone, bye-bye profits, hello solitary.","lbl":"PRISON DAY","skip":1},{"ttl":"Prison Life","bd":"You worked the kitchen and skimmed extra food to sell to the hungry.","lbl":"PRISON DAY"},{"ttl":"Prison Life","bd":"A new fish needed everything — soap, snacks, a lesson in how things work. You set him up at a markup.","lbl":"PRISON DAY"},{"ttl":"Prison Life","bd":"You owed the wrong man and the debt came due. He doesn't do payment plans.","lbl":"PRISON DAY"},{"ttl":"Prison Life","bd":"You won the cell-block chess tournament. The pot was cigarettes and pride.","lbl":"PRISON DAY"},{"ttl":"Prison Life","bd":"You bribed a guard to look the other way on your side business. Overhead is overhead.","lbl":"PRISON DAY"},{"ttl":"Prison Life","bd":"You ran a store — snacks and smokes on credit at interest. The whole tier owes you now.","lbl":"PRISON DAY"},{"ttl":"Prison Life","bd":"Your best customer got transferred owing you big. You'll never see that debt again.","lbl":"PRISON DAY"},{"ttl":"Prison Life","bd":"You brokered a deal between two crews and took a cut for keeping the peace.","lbl":"PRISON DAY"},{"ttl":"Prison Life","bd":"You bet you could do 100 push-ups. You could not. The yard had a good laugh at your expense.","lbl":"PRISON DAY"},{"ttl":"Prison Life","bd":"You sharpened tools for the right people and got paid for your discretion.","lbl":"PRISON DAY"},{"ttl":"Prison Life","bd":"A guard planted contraband on you and offered to lose the write-up for the right price.","lbl":"PRISON DAY"},{"ttl":"Prison Life","bd":"You wrote love letters for the illiterate guys on the block. Business boomed around Valentine's Day.","lbl":"PRISON DAY"},{"ttl":"Prison Life","bd":"You lost a domino game so badly they still bring it up at chow.","lbl":"PRISON DAY"},{"ttl":"Prison Life","bd":"You ran the numbers on the outside games through a guy with a radio. The house always wins, and you're the house.","lbl":"PRISON DAY"},{"ttl":"Prison Life","bd":"Your pruno operation exploded — literally. The smell gave you up and cost you the batch.","lbl":"PRISON DAY"},{"ttl":"Prison Life","bd":"You taught guys to read for their GED and the block chipped in to thank you. Rare honest money.","lbl":"PRISON DAY"},{"ttl":"Prison Life","bd":"You cornered the market on stamps, the other prison currency. Now everyone trades through you.","lbl":"PRISON DAY"},{"ttl":"Prison Life","bd":"You got extorted by a crew who knew you'd been saving up. Resistance wasn't an option.","lbl":"PRISON DAY"},{"ttl":"Prison Life","bd":"You fixed the broken TV in the day room and became a legend for a week. Tips rolled in.","lbl":"PRISON DAY"},{"ttl":"Prison Life","bd":"You ran a betting book on which cells would get tossed next. Insider info from a friendly guard helped.","lbl":"PRISON DAY"},{"ttl":"Prison Life","bd":"You backed the wrong man in a yard dispute and had to pay to smooth it over.","lbl":"PRISON DAY"}],"pfight":[{"ttl":"Prison Fight","bd":"You stood your ground against a bigger man and dropped him in front of everyone.","lbl":"PRISON FIGHT"},{"ttl":"Prison Fight","bd":"He tested you in the chow line. You put him down fast.","lbl":"PRISON FIGHT"},{"ttl":"Prison Fight","bd":"Two of them jumped you in the shower and left you on the tile.","lbl":"PRISON FIGHT","rounds":2},{"ttl":"Prison Fight","bd":"You caught a beating in the yard and didn't get up on your own.","lbl":"PRISON FIGHT","rounds":2},{"ttl":"Prison Fight","bd":"You beat the block's enforcer bloody. The whole prison knows your name now.","lbl":"PRISON FIGHT"},{"ttl":"Prison Fight","bd":"They caught you in the blind spot by the stairs. A shank came out.","lbl":"PRISON FIGHT","rounds":3},{"ttl":"Prison Fight","bd":"He swung first, you swung last. Clean win, no guards.","lbl":"PRISON FIGHT"},{"ttl":"Prison Fight","bd":"You went down and they picked you clean before you came to.","lbl":"PRISON FIGHT","rounds":2},{"ttl":"Prison Fight","bd":"A bad one. You were stabbed and barely pulled through.","lbl":"PRISON FIGHT","rounds":4},{"ttl":"Prison Fight","bd":"You defended a younger inmate and won. He and his people owe you.","lbl":"PRISON FIGHT"},{"ttl":"Prison Fight","bd":"Sucker-punched at breakfast, and you never found your feet.","lbl":"PRISON FIGHT","rounds":1},{"ttl":"Prison Fight","bd":"You held off three of them until the guards broke it up. A loss, but honorable.","lbl":"PRISON FIGHT"},{"ttl":"Prison Fight","bd":"Cracked ribs in the yard, and they emptied your pockets while you gasped.","lbl":"PRISON FIGHT","rounds":2},{"ttl":"Prison Fight","bd":"A grudge years in the making, settled with your fists. You won.","lbl":"PRISON FIGHT"},{"ttl":"Prison Fight","bd":"You lost bad and someone took your shoes, your smokes, everything.","lbl":"PRISON FIGHT","rounds":1},{"ttl":"Prison Fight","bd":"You won, but a guard saw it. Respect earned, and a stint in the hole.","lbl":"PRISON FIGHT","skip":1},{"ttl":"Prison Fight","bd":"They cornered you in the laundry and left you unconscious.","lbl":"PRISON FIGHT","rounds":3},{"ttl":"Prison Fight","bd":"You dethroned the man running the tier through fear. Power just shifted to you.","lbl":"PRISON FIGHT"},{"ttl":"Prison Fight","bd":"You started a fight you couldn't finish, and the block watched you get humbled.","lbl":"PRISON FIGHT","rounds":1},{"ttl":"Prison Fight","bd":"You took a beating over your own stash and lost it anyway.","lbl":"PRISON FIGHT","rounds":1},{"ttl":"Prison Fight","bd":"A quick, clean win in front of the right people.","lbl":"PRISON FIGHT"},{"ttl":"Prison Fight","bd":"The worst beating of your life. You flatlined once on the way to the hospital.","lbl":"PRISON FIGHT","rounds":4},{"ttl":"Prison Fight","bd":"An underdog win nobody saw coming. The whole yard is talking.","lbl":"PRISON FIGHT"},{"ttl":"Prison Fight","bd":"Dragged into someone else's beef and took the worst of it.","lbl":"PRISON FIGHT","rounds":2},{"ttl":"Prison Fight","bd":"One punch, walked away like it was nothing. Legends are made of this.","lbl":"PRISON FIGHT"}],"riot":[{"ttl":"Prison Riot","bd":"The whole block erupts and the doors hang open in the chaos. You move toward the fence while the guards are overwhelmed.","lbl":"RIOT","escape":true},{"ttl":"Prison Riot","bd":"Smoke fills the corridors and nobody's counting heads. You slip through a service door left unlocked in the panic.","lbl":"RIOT","escape":true},{"ttl":"Prison Riot","bd":"In the confusion you found the man who put you here and settled it. Revenge — but a body during a riot means new charges.","lbl":"RIOT","ryears":15},{"ttl":"Prison Riot","bd":"A crew paid you in cigarettes to handle a rival while the cameras were down.","lbl":"RIOT"},{"ttl":"Prison Riot","bd":"You tried to run during the riot and made it to the yard wall before a guard tackled you.","lbl":"RIOT","escape":true},{"ttl":"Prison Riot","bd":"You took advantage of the chaos to raid the commissary storeroom. You came out with your arms full.","lbl":"RIOT"},{"ttl":"Prison Riot","bd":"You settled an old grudge in the smoke, and no one could prove it was you.","lbl":"RIOT"},{"ttl":"Prison Riot","bd":"You led the riot from the front and became a legend inside. The whole block answers to you now.","lbl":"RIOT"},{"ttl":"Prison Riot","bd":"You were paid to break someone out along with you. You both made it over the wall.","lbl":"RIOT","cut":50,"escape":true},{"ttl":"Prison Riot","bd":"You stayed in your cell and waited it out. Smart. When the smoke cleared, you were the only one with clean hands.","lbl":"RIOT"},{"ttl":"Prison Riot","bd":"You made a break through the laundry chute and got stuck halfway. Humiliating and painful.","lbl":"RIOT","skip":1,"escape":true},{"ttl":"Prison Riot","bd":"You robbed three inmates at knifepoint while the guards were busy elsewhere.","lbl":"RIOT"},{"ttl":"Prison Riot","bd":"You got your revenge, but a guard saw the whole thing.","lbl":"RIOT"},{"ttl":"Prison Riot","bd":"You used the riot to slip into the records room and burn your own file. Harder to keep you now.","lbl":"RIOT"},{"ttl":"Prison Riot","bd":"You almost made it out, then the National Guard rolled in and locked the whole place down.","lbl":"RIOT","escape":true},{"ttl":"Prison Riot","bd":"A rival crew came for you in the chaos. You survived, but barely.","lbl":"RIOT","rounds":4},{"ttl":"Prison Riot","bd":"You brokered the peace that ended the riot. The warden quietly owes you one.","lbl":"RIOT"},{"ttl":"Prison Riot","bd":"You took a paid contract during the riot — cigarettes now, cash waiting outside.","lbl":"RIOT","cut":20},{"ttl":"Prison Riot","bd":"You made it to the roof and a helicopter your crew paid for lifted you out. Spectacular and expensive.","lbl":"RIOT","cut":-100,"escape":true},{"ttl":"Prison Riot","bd":"You got blamed for starting the whole thing. You didn't, but the warden needs someone to hang it on.","lbl":"RIOT","ryears":12}],"hospital":[{"ttl":"Hospital","bd":"You had internal bleeding. They had to operate.","lbl":"HOSPITAL","rounds":3,"cost":100,"hospLike":true},{"ttl":"Hospital","bd":"Complications on the table. You flatlined once and they brought you back, but the ICU stay runs long.","lbl":"HOSPITAL","rounds":4,"cost":150,"hospLike":true},{"ttl":"Hospital","bd":"Minor procedure, and a nurse on the ward owed you a favor. Discharged early, billed light.","lbl":"HOSPITAL","rounds":1,"cost":20,"hospLike":true},{"ttl":"Hospital","bd":"Emergency surgery, no complications. Textbook recovery, brutal itemized bill.","lbl":"HOSPITAL","rounds":2,"cost":60,"hospLike":true},{"ttl":"Hospital","bd":"You woke up mid-surgery and they had to start the anesthesia over. Longer stay, bigger bill, worse dreams.","lbl":"HOSPITAL","rounds":3,"cost":90,"hospLike":true},{"ttl":"Hospital","bd":"Infection set in after the operation. Weeks of IV antibiotics and a private room you didn't ask for.","lbl":"HOSPITAL","rounds":4,"cost":120,"hospLike":true},{"ttl":"Hospital","bd":"Clean break, quick cast, out the same day. The X-ray tech didn't even charge you full.","lbl":"HOSPITAL","rounds":1,"cost":8,"hospLike":true},{"ttl":"Hospital","bd":"They found something on the scan they weren't looking for. Caught early — but surgery anyway.","lbl":"HOSPITAL","rounds":3,"cost":80,"hospLike":true},{"ttl":"Hospital","bd":"The surgeon left a sponge inside you. You sued the hospital and won big — but you're back under the knife.","lbl":"HOSPITAL","cut":200,"rounds":2},{"ttl":"Hospital","bd":"A botched anesthesia dose put you in a coma for observation. Your lawyer is already circling.","lbl":"HOSPITAL","cut":100,"rounds":5},{"ttl":"Hospital","bd":"You slipped on a wet floor in the hospital and broke your wrist. You sued them for it while admitted.","lbl":"HOSPITAL","cut":40,"rounds":1},{"ttl":"Hospital","bd":"Full recovery, no surgery needed, and your insurance (a guy named Sal) covered the whole thing.","lbl":"HOSPITAL","rounds":1,"cost":0,"hospLike":true},{"ttl":"Hospital","bd":"They kept you overnight for observation and charged you like a hotel with an aggressive minibar.","lbl":"HOSPITAL","rounds":1,"cost":15,"hospLike":true},{"ttl":"Hospital","bd":"Reconstructive surgery on your hand. It'll work again, but the specialist doesn't come cheap.","lbl":"HOSPITAL","rounds":4,"cost":130,"hospLike":true},{"ttl":"Hospital","bd":"A collapsed lung. Chest tube, a week flat on your back, and a bill that takes your breath away again.","lbl":"HOSPITAL","rounds":3,"cost":95,"hospLike":true},{"ttl":"Hospital","bd":"The hospital billed you for a surgery you never had. You fought it, won, and they comped your stay.","lbl":"HOSPITAL","rounds":2,"cost":0,"hospLike":true},{"ttl":"Hospital","bd":"You needed a blood transfusion. The type was rare and the search took days.","lbl":"HOSPITAL","rounds":3,"cost":70,"hospLike":true},{"ttl":"Hospital","bd":"Emergency appendectomy. Routine — until the bill arrived itemizing every gauze pad.","lbl":"HOSPITAL","rounds":2,"cost":45,"hospLike":true},{"ttl":"Hospital","bd":"You caught a hospital-borne infection unrelated to why you came in. Your lawyer calls it a gift.","lbl":"HOSPITAL","cut":60,"rounds":3},{"ttl":"Hospital","bd":"The doctor misdiagnosed you and treated the wrong thing for a week. When it came out, so did the check.","lbl":"HOSPITAL","cut":110,"rounds":4},{"ttl":"Hospital","bd":"Skin grafts and a long stay in the burn unit. The most expensive kind of patient to be.","lbl":"HOSPITAL","rounds":5,"cost":180,"hospLike":true},{"ttl":"Hospital","bd":"You made a fast recovery and flirted your way into a discount from the billing department.","lbl":"HOSPITAL","rounds":1,"cost":10,"hospLike":true},{"ttl":"Hospital","bd":"Surgery went perfectly. Then physical therapy dragged on twice as long as anyone expected.","lbl":"HOSPITAL","rounds":3,"cost":55,"hospLike":true},{"ttl":"Hospital","bd":"They admitted you under a fake name to keep you off the record. Discretion has a premium.","lbl":"HOSPITAL","rounds":2,"cost":75,"hospLike":true},{"ttl":"Hospital","bd":"A specialist flew in for your rare condition. World-class care, world-class invoice.","lbl":"HOSPITAL","rounds":4,"cost":160,"hospLike":true},{"ttl":"Hospital","bd":"You checked yourself out early against medical advice to handle business. It healed wrong and you paid twice.","lbl":"HOSPITAL","rounds":2,"cost":85,"hospLike":true},{"ttl":"Hospital","bd":"The nurse mixed up your chart with another patient's. You caught it before disaster — and the hospital paid for the scare.","lbl":"HOSPITAL","cut":30,"rounds":1},{"ttl":"Hospital","bd":"Titanium plate in your leg. You'll set off every metal detector for life, inconvenient in your line of work.","lbl":"HOSPITAL","rounds":4,"cost":140,"hospLike":true},{"ttl":"Hospital","bd":"Just observation and fluids. You were fine. They still billed four figures per bag of saltwater.","lbl":"HOSPITAL","rounds":1,"cost":12,"hospLike":true},{"ttl":"Hospital","bd":"Heart scare turned out to be nothing, but the cardiac workup ran every test known to medicine.","lbl":"HOSPITAL","rounds":2,"cost":50,"hospLike":true},{"ttl":"Hospital","bd":"The surgery worked, but you're allergic to the painkillers. Recovery was miserable, slow, and cheap on meds.","lbl":"HOSPITAL","rounds":3,"cost":65,"hospLike":true},{"ttl":"Hospital","bd":"A rival visited you in recovery. Security did nothing, so you're suing the hospital for the lapse.","lbl":"HOSPITAL","cut":80,"rounds":2},{"ttl":"Hospital","bd":"You needed a specialist surgeon who owes a made man a favor. The favor covered your bill entirely.","lbl":"HOSPITAL","rounds":3,"cost":0,"hospLike":true},{"ttl":"Hospital","bd":"Spinal procedure. Delicate, dangerous, and the recovery is measured in patience you don't have.","lbl":"HOSPITAL","rounds":5,"cost":170,"hospLike":true},{"ttl":"Hospital","bd":"The ambulance ride alone cost more than most people's cars. Then the actual treatment started.","lbl":"HOSPITAL","rounds":2,"cost":40,"hospLike":true},{"ttl":"Hospital","bd":"A quick stitch-up by an intern who undercharged because he didn't know the codes. His mistake, your discount.","lbl":"HOSPITAL","rounds":1,"cost":5,"hospLike":true},{"ttl":"Hospital","bd":"They lost your paperwork entirely and couldn't figure out what to bill you. You walked out clean and confused.","lbl":"HOSPITAL","rounds":2,"cost":0,"hospLike":true},{"ttl":"Hospital","bd":"The wrong-site surgery scandal made the news, and you were one of the patients. The settlement is life-changing.","lbl":"HOSPITAL","cut":250,"rounds":4},{"ttl":"Hospital","bd":"Reconstructive facial surgery. New look, fresh start — an unexpected upside for a man with your resume.","lbl":"HOSPITAL","rounds":4,"cost":120,"hospLike":true},{"ttl":"Hospital","bd":"Kidney stone. Not dangerous, just the worst pain of your life and a steep bill for passing it naturally.","lbl":"HOSPITAL","rounds":1,"cost":18,"hospLike":true},{"ttl":"Hospital","bd":"You needed a transplant and jumped the list through a donation to the right foundation.","lbl":"HOSPITAL","rounds":5,"cost":220,"hospLike":true},{"ttl":"Hospital","bd":"Concussion protocol. They wouldn't release you until the swelling went down, and billed every quiet hour.","lbl":"HOSPITAL","rounds":2,"cost":35,"hospLike":true},{"ttl":"Hospital","bd":"The hospital double-charged your insurance and you. You noticed, lawyered up, and turned their greed into your payday.","lbl":"HOSPITAL","cut":60,"rounds":2},{"ttl":"Hospital","bd":"Emergency dental surgery after the fight. Titanium teeth now — they look great and cost like a car.","lbl":"HOSPITAL","rounds":2,"cost":48,"hospLike":true},{"ttl":"Hospital","bd":"You healed fast, checked out ahead of schedule, and the doctor waved half the bill out of professional respect.","lbl":"HOSPITAL","rounds":1,"cost":15,"hospLike":true},{"ttl":"Hospital","bd":"Nerve damage in your hand needs microsurgery. For a man who works with his hands, this one's personal.","lbl":"HOSPITAL","rounds":4,"cost":145,"hospLike":true},{"ttl":"Hospital","bd":"A long stay, a bad prognosis that turned around, and a bill that almost hurt worse than the illness.","lbl":"HOSPITAL","rounds":5,"cost":160,"hospLike":true},{"ttl":"Hospital","bd":"The hospital's billing error was so egregious your lawyer got the entire debt erased and then some.","lbl":"HOSPITAL","cut":100,"rounds":3},{"ttl":"Hospital","bd":"Routine stitches, out in an hour, and you charmed the front desk into forgetting to run your card.","lbl":"HOSPITAL","rounds":1,"cost":0,"hospLike":true},{"ttl":"Hospital","bd":"Major reconstructive surgery after a very bad week. The longest, most expensive recovery of your life — but you're alive.","lbl":"HOSPITAL","rounds":6,"cost":200,"hospLike":true}],"visit":[{"ttl":"Visit Prison","bd":"You went to visit a friend in the infirmary. He's being pressured by a crew and needs to settle a debt or he won't make it to next week.","lbl":"VISIT PRISON","cut":-10,"rounds":4,"cost":10,"hospLike":true},{"ttl":"Visit Prison","bd":"Your old partner is in the infirmary. The people who put him there want the rest of what he owes — and you're the only one who can pay.","lbl":"VISIT PRISON","cut":-8,"rounds":3,"cost":8,"hospLike":true},{"ttl":"Visit Prison","bd":"You visit and he begs you to put money on his books. Commissary is the only thing keeping him fed and protected.","lbl":"VISIT PRISON","cut":-3},{"ttl":"Visit Prison","bd":"A guard on the visit floor pats you down and finds your cash. He pockets it and calls it contraband.","lbl":"VISIT PRISON","cut":-5},{"ttl":"Visit Prison","bd":"Your friend's lawyer needs a retainer or he's going to get buried by the state's case.","lbl":"VISIT PRISON","cut":-15},{"ttl":"Visit Prison","bd":"You get caught trying to pass something across the table. They fine you and ban you — but the smuggling fee is already spent.","lbl":"VISIT PRISON","cut":-4},{"ttl":"Visit Prison","bd":"The crew that runs his cell block wants a tax for keeping him breathing. You pay it every visit now.","lbl":"VISIT PRISON","cut":-7},{"ttl":"Visit Prison","bd":"He asks you to cover a phone account so he can keep running business from inside. It's not cheap.","lbl":"VISIT PRISON","cut":-6},{"ttl":"Visit Prison","bd":"A CO offers to move your friend to a safer block — for the right envelope handed over quietly.","lbl":"VISIT PRISON","cut":-10},{"ttl":"Visit Prison","bd":"Your friend's family is drowning while he's locked up. You promised you'd look after them.","lbl":"VISIT PRISON","cut":-12},{"ttl":"Visit Prison","bd":"He got into a debt over a card game inside. The winner doesn't take excuses, only cash.","lbl":"VISIT PRISON","cut":-5},{"ttl":"Visit Prison","bd":"The prison store your friend runs got robbed. You front him the money to rebuild or he loses his standing.","lbl":"VISIT PRISON","cut":-8},{"ttl":"Visit Prison","bd":"You bribe a guard to let the visit run long. He takes the money and cuts it short anyway.","lbl":"VISIT PRISON","cut":-3},{"ttl":"Visit Prison","bd":"Your friend needs medicine the prison doesn't have. You pay the black-market price on the inside.","lbl":"VISIT PRISON","cut":-6},{"ttl":"Visit Prison","bd":"An old associate two cells down recognizes you and reminds you of a debt you forgot. He hasn't.","lbl":"VISIT PRISON","cut":-14},{"ttl":"Visit Prison","bd":"You get shaken down in the parking lot on the way out by people who knew you'd be carrying.","lbl":"VISIT PRISON","cut":-9},{"ttl":"Visit Prison","bd":"He needs bail money for an appeal bond. You empty your pockets to give him a shot.","lbl":"VISIT PRISON","cut":-20},{"ttl":"Visit Prison","bd":"A CO threatens to flag your name on the visitor list unless you make it worth his while.","lbl":"VISIT PRISON","cut":-7},{"ttl":"Visit Prison","bd":"Your friend took a beating meant for you. The least you can do is pay the crew to leave him alone.","lbl":"VISIT PRISON","cut":-11},{"ttl":"Visit Prison","bd":"The visit gets you a message: a job you backed out of still needs to be paid off. They found you here.","lbl":"VISIT PRISON","cut":-13},{"ttl":"Visit Prison","bd":"He wants you to hire a private investigator to find the witness who framed him.","lbl":"VISIT PRISON","cut":-10},{"ttl":"Visit Prison","bd":"You cover his fines so he can make parole. Freedom has an invoice.","lbl":"VISIT PRISON","cut":-8},{"ttl":"Visit Prison","bd":"A shot-caller offers your friend protection — the fee comes out of your pocket, monthly, in advance.","lbl":"VISIT PRISON","cut":-15},{"ttl":"Visit Prison","bd":"You slip cash to a trustee to move a package for your friend. It never arrives, and neither does your money.","lbl":"VISIT PRISON","cut":-4},{"ttl":"Visit Prison","bd":"Your friend's cellmate is a snitch. Paying to have him transferred out is cheaper than what he knows.","lbl":"VISIT PRISON","cut":-18},{"ttl":"Visit Prison","bd":"Your friend introduces you to his cellmate — a fence with buyers on the outside for anything you can move.","lbl":"VISIT PRISON","cut":12},{"ttl":"Visit Prison","bd":"A veteran inside gives you the layout of a warehouse he used to rob. It's still soft.","lbl":"VISIT PRISON","cut":18},{"ttl":"Visit Prison","bd":"You meet a locked-up hacker who hands you a job to run on the outside for a split.","lbl":"VISIT PRISON","cut":25},{"ttl":"Visit Prison","bd":"An old boss inside still runs his crew from his cell. He puts you on a payroll for outside errands.","lbl":"VISIT PRISON","cut":15},{"ttl":"Visit Prison","bd":"Your friend connects you to his supplier now that he can't move product himself.","lbl":"VISIT PRISON","cut":30},{"ttl":"Visit Prison","bd":"A lifer with nothing to lose sells you the location of a stash he'll never get to spend.","lbl":"VISIT PRISON","cut":40},{"ttl":"Visit Prison","bd":"You're introduced to a forger who does flawless documents by mail. You broker his work outside.","lbl":"VISIT PRISON","cut":14},{"ttl":"Visit Prison","bd":"A connected inmate needs a debt collected on the street and cuts you in on what you recover.","lbl":"VISIT PRISON","cut":10},{"ttl":"Visit Prison","bd":"Your friend hands off his corner and clientele to you while he serves his time.","lbl":"VISIT PRISON","cut":22},{"ttl":"Visit Prison","bd":"A car-theft specialist inside teaches you his method and points you at the right lots.","lbl":"VISIT PRISON","cut":16},{"ttl":"Visit Prison","bd":"You meet a smuggler who needs someone on the outside to receive shipments. The pay is per package.","lbl":"VISIT PRISON","cut":28},{"ttl":"Visit Prison","bd":"An inmate with cartel ties vouches for you up the chain. Your first job as a trusted man pays well.","lbl":"VISIT PRISON","cut":35},{"ttl":"Visit Prison","bd":"A bank robber past his prime walks you through a job he never got to pull. You pull it.","lbl":"VISIT PRISON","cut":45},{"ttl":"Visit Prison","bd":"Your friend's connect needs a driver for a run this weekend. You take the wheel.","lbl":"VISIT PRISON","cut":9},{"ttl":"Visit Prison","bd":"A gang leader inside puts you on collections for the whole neighborhood. Everyone pays now.","lbl":"VISIT PRISON","cut":20},{"ttl":"Visit Prison","bd":"You meet a money launderer who needs clean businesses to run cash through. You're his new front.","lbl":"VISIT PRISON","cut":32},{"ttl":"Visit Prison","bd":"An inmate sells you a list of empty vacation homes his old crew never got to hit.","lbl":"VISIT PRISON","cut":17},{"ttl":"Visit Prison","bd":"A jailed arms dealer connects you to his buyers. You become the new middleman.","lbl":"VISIT PRISON","cut":38},{"ttl":"Visit Prison","bd":"Your friend introduces you to a corrupt accountant who's building a fraud scheme from his cell.","lbl":"VISIT PRISON","cut":26},{"ttl":"Visit Prison","bd":"A veteran thief gives you the combination to a safe in a business that never changed it.","lbl":"VISIT PRISON","cut":21},{"ttl":"Visit Prison","bd":"You're put in touch with a chop shop that's short-staffed since half the crew got locked up.","lbl":"VISIT PRISON","cut":13},{"ttl":"Visit Prison","bd":"An inmate points you at a drug shipment his rivals abandoned when they got arrested.","lbl":"VISIT PRISON","cut":33},{"ttl":"Visit Prison","bd":"A connected friend gets you hired as an enforcer for an operation that needs muscle outside.","lbl":"VISIT PRISON","cut":19},{"ttl":"Visit Prison","bd":"You meet a counterfeiter who needs a distributor. You take the fake bills to market.","lbl":"VISIT PRISON","cut":24},{"ttl":"Visit Prison","bd":"A former crew boss gifts you his entire black book of contacts as a thank-you for the visits.","lbl":"VISIT PRISON","cut":50},{"ttl":"Visit Prison","bd":"A guard finds contraband in your bag on the way in and charges you with attempting to smuggle it.","lbl":"VISIT PRISON","raidArr":true},{"ttl":"Visit Prison","bd":"Your name comes up on a warrant when they run your ID at the visitor desk.","lbl":"VISIT PRISON","raidArr":true},{"ttl":"Visit Prison","bd":"You get caught passing a package across the table on camera. There's no talking your way out.","lbl":"VISIT PRISON","raidArr":true},{"ttl":"Visit Prison","bd":"An informant inside told the guards you'd be coming. They were waiting for you at the door.","lbl":"VISIT PRISON","raidArr":true},{"ttl":"Visit Prison","bd":"The friend you visited flipped for a deal and wore a wire during your whole conversation.","lbl":"VISIT PRISON","raidArr":true},{"ttl":"Visit Prison","bd":"You're caught planning a job out loud in the visit room — the whole place is monitored.","lbl":"VISIT PRISON","raidArr":true},{"ttl":"Visit Prison","bd":"A drug dog hits on your car in the visitor lot. The search finds enough to book you.","lbl":"VISIT PRISON","raidArr":true},{"ttl":"Visit Prison","bd":"The CO you tried to bribe was working with Internal Affairs the whole time.","lbl":"VISIT PRISON","raidArr":true},{"ttl":"Visit Prison","bd":"Facial recognition at the entrance links you to an open case. They cuff you before you sit down.","lbl":"VISIT PRISON","raidArr":true},{"ttl":"Visit Prison","bd":"You're caught arranging a hit through your locked-up contact. Conspiracy charges, on the spot.","lbl":"VISIT PRISON","raidArr":true},{"ttl":"Visit Prison","bd":"You visit a friend being treated in the infirmary. The crew that put him there wants their money or he doesn't survive the week.","lbl":"VISIT PRISON","cut":-10,"rounds":4,"cost":10,"hospLike":true},{"ttl":"Visit Prison","bd":"Your cellmate from years back calls you over. He's marked for a debt he can't cover, and he's looking at you.","lbl":"VISIT PRISON","cut":-9,"rounds":3,"cost":9,"hospLike":true},{"ttl":"Visit Prison","bd":"A guard finds cash on you at the checkpoint and pockets it as contraband. No receipt, no argument.","lbl":"VISIT PRISON","cut":-5},{"ttl":"Visit Prison","bd":"Your friend needs his books loaded or he starves and gets robbed. You cover him for the month.","lbl":"VISIT PRISON","cut":-3},{"ttl":"Visit Prison","bd":"His appeal lawyer won't file another motion until the retainer clears. The clock is running.","lbl":"VISIT PRISON","cut":-15},{"ttl":"Visit Prison","bd":"A shot-caller offers your friend insurance against the yard. The premium comes out of your pocket every visit.","lbl":"VISIT PRISON","cut":-7},{"ttl":"Visit Prison","bd":"You get caught slipping a phone across the table. The fine is steep and the smuggler already got paid.","lbl":"VISIT PRISON","cut":-4},{"ttl":"Visit Prison","bd":"Your friend took a beating that was meant for you. The least you can do is pay the crew to call it even.","lbl":"VISIT PRISON","cut":-11},{"ttl":"Visit Prison","bd":"A CO offers to move him off a block run by his enemies. The transfer costs a quiet envelope.","lbl":"VISIT PRISON","cut":-10},{"ttl":"Visit Prison","bd":"His family's rent is three months behind while he's inside. You made a promise you have to keep.","lbl":"VISIT PRISON","cut":-12},{"ttl":"Visit Prison","bd":"He lost big in a card game to men who don't take excuses. You cover it before it becomes a body.","lbl":"VISIT PRISON","cut":-6},{"ttl":"Visit Prison","bd":"An old associate on the same block reminds you of a debt you'd forgotten. He hasn't, and he has an audience.","lbl":"VISIT PRISON","cut":-14},{"ttl":"Visit Prison","bd":"The prison store your friend runs got cleaned out. You front the restock or he loses his standing.","lbl":"VISIT PRISON","cut":-8},{"ttl":"Visit Prison","bd":"He needs medicine the prison doesn't stock. You pay the inside price, triple the street price.","lbl":"VISIT PRISON","cut":-6},{"ttl":"Visit Prison","bd":"You get shaken down in the parking lot by people who knew you'd be leaving with empty pockets.","lbl":"VISIT PRISON","cut":-9},{"ttl":"Visit Prison","bd":"His appeal bond is the only shot at getting him out early. You empty your account for the chance.","lbl":"VISIT PRISON","cut":-20},{"ttl":"Visit Prison","bd":"A CO threatens to flag your name on the visitor log unless you make it worth his while.","lbl":"VISIT PRISON","cut":-7},{"ttl":"Visit Prison","bd":"Your friend's snitch cellmate knows too much. Paying to transfer him out is cheaper than what he could say.","lbl":"VISIT PRISON","cut":-18},{"ttl":"Visit Prison","bd":"A trustee promises to move a package for your friend and pockets your money instead. Nothing arrives.","lbl":"VISIT PRISON","cut":-4},{"ttl":"Visit Prison","bd":"The message reaches you at the visit: a job you walked away from still owes a debt, and they found you.","lbl":"VISIT PRISON","cut":-13},{"ttl":"Visit Prison","bd":"He wants a private investigator to track the witness who framed him. Good ones aren't cheap.","lbl":"VISIT PRISON","cut":-10},{"ttl":"Visit Prison","bd":"You cover his outstanding fines so he can make parole. Freedom comes with an invoice.","lbl":"VISIT PRISON","cut":-8},{"ttl":"Visit Prison","bd":"The block's protection racket set a monthly rate on your friend's safety, payable in advance, by you.","lbl":"VISIT PRISON","cut":-15},{"ttl":"Visit Prison","bd":"A guard let a crew work your friend over. Making it stop costs more than making it start did.","lbl":"VISIT PRISON","cut":-11},{"ttl":"Visit Prison","bd":"Your friend's kid is about to age out of a program he can't afford from inside. He asks you to carry it.","lbl":"VISIT PRISON","cut":-5},{"ttl":"Visit Prison","bd":"Your friend hands you off to his fence, a man with buyers on the outside for anything that isn't nailed down.","lbl":"VISIT PRISON","cut":12},{"ttl":"Visit Prison","bd":"A retired stickup man sketches you the layout of a warehouse he used to hit. It's still soft after all these years.","lbl":"VISIT PRISON","cut":18},{"ttl":"Visit Prison","bd":"You meet a jailed hacker who hands you a live job to run outside for a split of the take.","lbl":"VISIT PRISON","cut":25},{"ttl":"Visit Prison","bd":"An old boss still runs his crew from his cell. He puts you on payroll for the errands he can't do himself.","lbl":"VISIT PRISON","cut":15},{"ttl":"Visit Prison","bd":"Your friend passes you his supplier now that he can't move product from behind the wall.","lbl":"VISIT PRISON","cut":30},{"ttl":"Visit Prison","bd":"A lifer with nothing left sells you the spot where he buried a stash he'll never touch again.","lbl":"VISIT PRISON","cut":40},{"ttl":"Visit Prison","bd":"You're introduced to a forger who does flawless work by mail. You become the hands that deliver it.","lbl":"VISIT PRISON","cut":14},{"ttl":"Visit Prison","bd":"A connected inmate needs a street debt collected and cuts you in on everything you recover.","lbl":"VISIT PRISON","cut":10},{"ttl":"Visit Prison","bd":"Your friend gifts you his corner and his whole client list to hold down while he serves his stretch.","lbl":"VISIT PRISON","cut":22},{"ttl":"Visit Prison","bd":"A car-theft specialist teaches you his method through the glass and points you at the right lots.","lbl":"VISIT PRISON","cut":16},{"ttl":"Visit Prison","bd":"A smuggler needs someone outside to receive shipments. He pays per package, and they keep coming.","lbl":"VISIT PRISON","cut":28},{"ttl":"Visit Prison","bd":"An inmate with cartel ties vouches for you up the chain. Your first job as a trusted man pays like it.","lbl":"VISIT PRISON","cut":35},{"ttl":"Visit Prison","bd":"A bank robber past his prime walks you through the job he never got to pull. You go pull it.","lbl":"VISIT PRISON","cut":45},{"ttl":"Visit Prison","bd":"Your friend's connect is short a driver for a weekend run. You take the wheel and the cut.","lbl":"VISIT PRISON","cut":9},{"ttl":"Visit Prison","bd":"A gang leader inside puts you on collections for the whole neighborhood. Now everyone pays on time.","lbl":"VISIT PRISON","cut":20},{"ttl":"Visit Prison","bd":"A money launderer needs clean businesses to run cash through. You become his new front.","lbl":"VISIT PRISON","cut":32},{"ttl":"Visit Prison","bd":"An inmate sells you the list of empty vacation homes his old crew never got around to hitting.","lbl":"VISIT PRISON","cut":17},{"ttl":"Visit Prison","bd":"A jailed arms dealer connects you straight to his buyers. You're the middleman now.","lbl":"VISIT PRISON","cut":38},{"ttl":"Visit Prison","bd":"Your friend introduces you to an accountant building a fraud scheme from his cell, patient and precise.","lbl":"VISIT PRISON","cut":26},{"ttl":"Visit Prison","bd":"A veteran thief gives you the combination to a safe in a business that never once changed it.","lbl":"VISIT PRISON","cut":21},{"ttl":"Visit Prison","bd":"A chop shop is running short-handed since half the crew got locked up. They need you yesterday.","lbl":"VISIT PRISON","cut":13},{"ttl":"Visit Prison","bd":"An inmate points you at a drug shipment his rivals abandoned the day they got arrested.","lbl":"VISIT PRISON","cut":33},{"ttl":"Visit Prison","bd":"A crew boss needs muscle on the outside and your friend vouched for your hands.","lbl":"VISIT PRISON","cut":19},{"ttl":"Visit Prison","bd":"A counterfeiter needs a distributor for his bills. You take the fakes to market.","lbl":"VISIT PRISON","cut":24},{"ttl":"Visit Prison","bd":"A former crew boss, grateful for every visit, hands you his entire black book of contacts on the way out.","lbl":"VISIT PRISON","cut":50},{"ttl":"Visit Prison","bd":"A guard finds contraband in your jacket on the way in and charges you with trying to smuggle it.","lbl":"VISIT PRISON","raidArr":true},{"ttl":"Visit Prison","bd":"Your name lights up a warrant when they run your ID at the visitor desk.","lbl":"VISIT PRISON","raidArr":true},{"ttl":"Visit Prison","bd":"You're caught on camera passing a package across the table. There's no talking your way out of footage.","lbl":"VISIT PRISON","raidArr":true},{"ttl":"Visit Prison","bd":"An informant inside tipped the guards you'd be coming. They were waiting before you sat down.","lbl":"VISIT PRISON","raidArr":true},{"ttl":"Visit Prison","bd":"The friend you came to see flipped for a deal and wore a wire through the whole visit.","lbl":"VISIT PRISON","raidArr":true},{"ttl":"Visit Prison","bd":"You planned a job out loud in the visit room, forgetting every inch of it is monitored.","lbl":"VISIT PRISON","raidArr":true},{"ttl":"Visit Prison","bd":"A drug dog hits on your car in the visitor lot and the search finds enough to book you.","lbl":"VISIT PRISON","raidArr":true},{"ttl":"Visit Prison","bd":"The CO you tried to bribe was wired for Internal Affairs the entire time.","lbl":"VISIT PRISON","raidArr":true},{"ttl":"Visit Prison","bd":"Facial recognition at the door links you to an open case before you reach the desk.","lbl":"VISIT PRISON","raidArr":true},{"ttl":"Visit Prison","bd":"You're overheard arranging a hit through your locked-up contact. Conspiracy charges, on the spot.","lbl":"VISIT PRISON","raidArr":true}]};
+
+/* ===== RANDOM CARD DRAW (fully random every round) ===== */
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function draw(deck){
+  const arr=DECKS[deck];
+  return arr[Math.floor(Math.random()*arr.length)];
+}
+
+/* ===== STATE ===== */
+let S=null;
+function newPlayer(i,name,color){return{id:i,name:name||("P"+(i+1)),color:color,ring:"outer",pos:0,
+  cash:100,crew:0,packs:0,alive:true,respawns:1,hosp:0,cleanLaps:0,
+  inJail:false,sentence:0,owns:new Map(),skip:0,freeArrest:0,freeRaid:0,
+  crimes:[],network:[],stayCount:0,age:15};}
+
+/* ===== SETUP FLOW ===== */
+let setupData={n:0,players:[],idx:0,difficulty:null,startCash:100};
+const DIFFICULTY={
+  EASY:  {cash:1000, label:"EASY", flavor:"You pulled off the score of a lifetime - a central bank vault. You start rich, but everyone's watching."},
+  MEDIUM:{cash:250,  label:"MEDIUM", flavor:"You knocked over an armored truck and walked with a solid stake. Enough to build on."},
+  HARD:  {cash:100,  label:"HARD", flavor:"You scraped together seed money from corner jobs and stick-ups. It's lean out here."},
+  REALISTIC:{cash:0, label:"REALISTIC", flavor:"You came up from nothing - no money, no connections, just the streets. Every dollar has to be earned or stolen. This is real life."},
+};
+function renderSetupStart(){
+  document.getElementById("setupStage").innerHTML=`
+   <div style="font-size:15px;letter-spacing:1px">CHOOSE DIFFICULTY<span style="animation:none">_</span></div>
+   <div style="font-size:12px;opacity:.7;margin-bottom:4px">sets your starting money</div>
+   <div class="choice">
+     <button onclick="chooseDifficulty('EASY')">[ EASY · start $1M ]</button>
+     <button onclick="chooseDifficulty('MEDIUM')">[ MEDIUM · start $250K ]</button>
+     <button onclick="chooseDifficulty('HARD')">[ HARD · start $100K ]</button>
+     <button onclick="chooseDifficulty('REALISTIC')">[ REALISTIC · start $0 ]</button>
+   </div>
+   <div class="hint">Difficulty = how much cash you start with. Outer ring = the street. Inner ring = PRISON (1 lap = 1 year). Arrested → JAIL → COURT → PRISON. Broke + hurt = HOSPITAL (3 visits = dead). Last boss standing wins.</div>`;
+}
+function chooseDifficulty(d){
+  setupData.difficulty=d; setupData.startCash=DIFFICULTY[d].cash;
+  // show the opening heist story that explains the starting cash
+  document.getElementById("setupStage").innerHTML=`
+    <div class="psetup" style="max-width:340px">
+      <div style="font-size:13px;letter-spacing:2px;color:var(--amber)">THE OPENING SCORE</div>
+      <div style="font-size:14px;line-height:1.5;text-align:left">${DIFFICULTY[d].flavor}</div>
+      <div style="font-size:16px;font-weight:bold">You start with ${fmtK(DIFFICULTY[d].cash)}.</div>
+      <button onclick="afterDifficulty()">[ CONTINUE ]</button>
+    </div>`;
+}
+function afterDifficulty(){
+  document.getElementById("setupStage").innerHTML=`
+   <div style="font-size:15px;letter-spacing:1px">SELECT PLAYERS<span style="animation:none">_</span></div>
+   <div style="font-size:12px;opacity:.7;margin-bottom:4px">1 player = you vs the AI · 2-6 = pass & play</div>
+   <div class="choice">
+     <button onclick="chooseCount(1)">[ 1 PLAYER (vs AI) ]</button>
+     <button onclick="chooseCount(2)">[ 2 PLAYERS ]</button>
+     <button onclick="chooseCount(3)">[ 3 PLAYERS ]</button>
+     <button onclick="chooseCount(4)">[ 4 PLAYERS ]</button>
+     <button onclick="chooseCount(5)">[ 5 PLAYERS ]</button>
+     <button onclick="chooseCount(6)">[ 6 PLAYERS ]</button>
+   </div>`;
+}
+function chooseCount(n){setupData.n=n;setupData.players=[];setupData.idx=0;setupData.ai=(n===1);nextPlayerSetup();}
+function nextPlayerSetup(){
+  const i=setupData.idx;
+  const total=setupData.ai?2:setupData.n; // 1p mode => you + 1 AI
+  if(i>=total){ launch(); return; }
+  const isAI=setupData.ai && i===1;
+  const used=setupData.players.map(p=>p.color);
+  const sw=COLORS.map(c=>`<div class="sw ${used.includes(c.c)?'':''}" style="background:${c.c};${used.includes(c.c)?'opacity:.25;pointer-events:none':''}" data-c="${c.c}" onclick="pickColor(this)"></div>`).join("");
+  document.getElementById("setupStage").innerHTML=`
+    <div class="psetup">
+      <div style="font-size:13px;letter-spacing:1px">${isAI?"AI OPPONENT":"PLAYER "+(i+1)} SETUP</div>
+      <input id="pname" placeholder="${isAI?'CPU':'name'}" value="${isAI?'CPU':''}" maxlength="10" ${isAI?'disabled':''}>
+      <div style="font-size:11px;opacity:.7">pick a color</div>
+      <div class="swatches">${sw}</div>
+      <button onclick="confirmPlayer(${isAI})">[ CONFIRM ]</button>
+    </div>`;
+  window._pickColor=null;
+}
+function pickColor(el){document.querySelectorAll('.sw').forEach(s=>s.classList.remove('sel'));el.classList.add('sel');window._pickColor=el.dataset.c;}
+function confirmPlayer(isAI){
+  const name=document.getElementById("pname").value.trim()||(isAI?"CPU":("P"+(setupData.idx+1)));
+  let color=window._pickColor;
+  if(!color){ const used=setupData.players.map(p=>p.color); color=(COLORS.find(c=>!used.includes(c.c))||COLORS[0]).c; }
+  setupData.players.push({name,color,ai:isAI});
+  setupData.idx++; nextPlayerSetup();
+}
+function launch(){
+  S={turn:1,cur:0,n:setupData.players.length,rolled:false,over:false,ai:setupData.ai,roundEvents:[]};
+  const startCash=(setupData.startCash??100);
+  S.players=setupData.players.map((p,i)=>{const pl=newPlayer(i,p.name,p.color);pl.ai=p.ai;pl.cash=startCash;return pl;});
+  document.getElementById("setup").style.display="none";
+  document.getElementById("screen").style.display="flex";
+  buildBoardGrid();
+  render();updateControls();drawDie(0);
+  newRound();
+  log("SYSTEM ONLINE. "+setupData.difficulty+" mode — everyone starts with "+fmtK(startCash)+".","sys");
+}
+
+/* ===== BOARD GRID (HEIST at bottom-left) ===== */
+function buildBoardGrid(){
+  const N=11;const board=document.getElementById("board");board.style.gridTemplateColumns=`repeat(${N},1fr)`;
+  // Build perimeter starting bottom-left, going UP the left side, across top, down right, back across bottom.
+  // This puts index 0 at bottom-left corner as requested.
+  const perim=[];
+  for(let r=N-1;r>=0;r--)perim.push([r,0]);         // left col bottom->top
+  for(let c=1;c<N;c++)perim.push([0,c]);            // top row L->R
+  for(let r=1;r<N;r++)perim.push([r,N-1]);          // right col top->bottom
+  for(let c=N-2;c>=1;c--)perim.push([N-1,c]);       // bottom row R->L
+  // perim length = 40
+  const cellAt={};
+  perim.forEach((rc,i)=>{cellAt[rc[0]+"_"+rc[1]]={idx:i<OUTER.length?i:null};});
+  const innerPerim=[];const a=3,b=7;
+  for(let c=a;c<=b;c++)innerPerim.push([a,c]);
+  for(let r=a+1;r<=b;r++)innerPerim.push([r,b]);
+  for(let c=b-1;c>=a;c--)innerPerim.push([b,c]);
+  for(let r=b-1;r>=a+1;r--)innerPerim.push([r,a]);
+  const innerMap={};innerPerim.forEach((rc,i)=>{innerMap[rc[0]+"_"+rc[1]]={idx:i<INNER.length?i:null};});
+  board.innerHTML="";
+  for(let r=0;r<N;r++)for(let c=0;c<N;c++){
+    const key=r+"_"+c;const cell=document.createElement("div");cell.dataset.r=r;cell.dataset.c=c;
+    if(cellAt[key]&&cellAt[key].idx!==null){const d=OUTER[cellAt[key].idx];cell.className="cell k-"+d.k;cell.dataset.ring="outer";cell.dataset.idx=cellAt[key].idx;}
+    else if(innerMap[key]&&innerMap[key].idx!==null){cell.className="cell inner k-"+INNER[innerMap[key].idx].k;cell.dataset.ring="inner";cell.dataset.idx=innerMap[key].idx;}
+    else cell.className="cell hollow";
+    board.appendChild(cell);
+  }
+}
+
+function render(){
+  document.querySelectorAll("#board .cell").forEach(cell=>{
+    const ring=cell.dataset.ring;if(!ring)return;
+    const idx=+cell.dataset.idx;const data=ring==="outer"?OUTER[idx]:INNER[idx];if(!data)return;
+    cell.classList.remove("here");cell.style.background="";cell.style.borderColor="";
+    const ownerP=ring==="outer"?S.players.find(p=>p.owns.has(idx)):null;
+    let ownHtml="";
+    if(ownerP){cell.style.borderColor=ownerP.color;ownHtml=`<span class="own" style="color:${ownerP.color}">${ownerP.name[0]}·${ownerP.owns.get(idx)}</span>`;}
+    const cp=S.players[S.cur];
+    if(cp.ring===ring&&cp.pos===idx){cell.classList.add("here");cell.style.background=hexA(cp.color,.18);cell.style.borderColor=cp.color;}
+    const toks=S.players.filter(p=>p.alive&&p.ring===ring&&p.pos===idx)
+      .map(p=>`<span style="color:${p.color}">${p.name[0]}</span>`).join("");
+    cell.innerHTML=`${ownHtml}<span class="ic">${data.ic}</span><span class="nm">${data.t}</span>`+(toks?`<span class="toks">${toks}</span>`:"");
+  });
+  const pl=document.getElementById("players");pl.innerHTML="";
+  S.players.forEach(p=>{
+    const d=document.createElement("div");d.className="pl"+(p.id===S.cur?" active":"")+(p.alive?"":" dead");
+    d.style.borderColor=p.color;if(p.id===S.cur)d.style.boxShadow="0 0 10px "+hexA(p.color,.5);
+    d.onclick=()=>showProfile(p.id);
+    const hp=p.alive?("♥".repeat(Math.max(0,3-p.hosp))+"·".repeat(p.hosp)):"DEAD";
+    let loc=p.inJail?"JAIL(await court)":p.ring==="inner"?("PRISON "+p.sentence+"y"):OUTER[p.pos].t;
+    const joj=p.freeArrest>0?`<span class="tag">JOJ×${p.freeArrest}</span>`:"";
+    d.innerHTML=`<div class="row"><span class="nm" style="color:${p.color}">${p.name}${joj}</span><span>${hp}</span></div>
+      <div class="row"><span>${fmtK(p.cash)}</span><span>${p.ring==="inner"?("pk "+p.packs):(manIcon(p.color)+' '+p.crew)}</span></div>
+      <div class="row" style="opacity:.6;font-size:10px"><span>${loc}</span><span>${p.age}yo${p.respawns?"":" (final)"}</span></div>`;
+    pl.appendChild(d);
+  });
+  document.getElementById("turnNo")&&(document.getElementById("turnNo").textContent=S.turn);
+  const cp=S.players[S.cur];
+  const tb=document.getElementById("turnBanner");
+  tb.textContent=`TURN ${S.turn} — ${cp.name}`+(cp.ring==="inner"?" [PRISON]":"");
+  tb.style.background=cp.color;tb.style.borderColor=cp.color;
+}
+function hexA(hex,a){const n=parseInt(hex.slice(1),16);return`rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${a})`;}
+
+/* ===== PER-ROUND CONSOLE ===== */
+function newRound(){
+  const box=document.getElementById("log");
+  const rd=document.createElement("div");rd.className="rd";rd.id="round-"+S.turn;
+  rd.innerHTML=`<b>ROUND ${S.turn}</b>`;
+  box.insertBefore(rd,box.firstChild);
+  S.roundEl=rd;
+}
+function log(m,cls=""){const d=document.createElement("div");d.className="l "+cls;d.textContent="• "+m;
+  (S.roundEl||document.getElementById("log")).appendChild(d);}
+
+/* ===== DICE ===== */
+const PIPS={1:["p1"],2:["p2a","p2b"],3:["p3a","p3b","p3c"],4:["p4a","p4b","p4c","p4d"],5:["p5a","p5b","p5c","p5d","p5e"],6:["p6a","p6b","p6c","p6d","p6e","p6f"]};
+function drawDie(v){const die=document.getElementById("die");die.innerHTML="";if(v>=1)PIPS[v].forEach(cls=>{const p=document.createElement("div");p.className="pip "+cls;die.appendChild(p);});}
+
+function updateControls(){
+  const p=S.players[S.cur];
+  const die=document.getElementById("die");
+  const canRoll=!S.rolled&&p.alive&&!S.over&&!(p.ai);
+  die.style.cursor=canRoll?"pointer":"default";
+  die.style.opacity=canRoll?"1":".5";
+  const h=document.getElementById("ctxHint");
+  if(!p.alive)h.textContent="";
+  else if(p.ai)h.textContent="AI is thinking...";
+  else if(p.inJail)h.textContent="In JAIL. Tap die to face COURT DAY.";
+  else if(p.ring==="inner")h.textContent="PRISON. Each full lap = 1 year served.";
+  else if(!S.rolled)h.textContent="Tap the die to move.";
+  else h.textContent="Move resolved — next player up...";
+  const sab=document.getElementById("sellAssetsBtn");
+  if(sab) sab.style.display=(!p.ai&&p.alive&&!S.over&&p.owns.size>0)?"inline-block":"none";
+}
+function openSellAssets(){
+  const p=S.players[S.cur];
+  if(p.ai||!p.alive||S.over)return;
+  const el=document.getElementById("cardEl");
+  const rows=Array.from(p.owns.entries());
+  const body = rows.length ? rows.map(([idx,cnt])=>{
+    const c=OUTER[idx];const per=c.incomeBase||c.price||c.income||0;const val=Math.round(per*cnt*0.6);
+    return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin:3px 0;border-bottom:1px solid #1a2a1a;padding-bottom:4px">
+      <span>${c.t} x${cnt}<br><span style="opacity:.6;font-size:11px">worth ${fmtK(per*cnt)}</span></span>
+      <button class="red" onclick="sellAssetFromMenu(${idx})">[ SELL ${fmtK(val)} ]</button></div>`;
+  }).join("") : "<div style='opacity:.6'>You own nothing to sell.</div>";
+  el.innerHTML=`<div class="lbl" style="background:${p.color}">SELL ASSETS</div>
+    <div class="ttl">Cash out</div>
+    <div class="bd">Sell any property or business for 60% of its value to cover debts or free up cash. This does NOT end your turn.</div>
+    <div class="out">Cash on hand: ${fmtK(p.cash)}</div>
+    <div class="out" style="max-height:210px;overflow:auto;background:#0d1510;border-left:4px solid ${p.color}">${body}</div>
+    <div class="go"><button onclick="closeModal()">[ DONE ]</button></div>`;
+  openModal();
+}
+function sellAssetFromMenu(idx){
+  const p=S.players[S.cur];const c=OUTER[idx];const cnt=p.owns.get(idx);if(!cnt)return;
+  const per=c.incomeBase||c.price||c.income||0;const val=Math.round(per*cnt*0.6);
+  p.cash+=val;p.owns.delete(idx);
+  log(p.name+" sells "+c.t+" (x"+cnt+") for "+fmtK(val)+".","warn");
+  render();openSellAssets();
+}
+
+/* ===== ROLL + STEP MOVEMENT (always visible) ===== */
+function rollDice(){
+  const p=S.players[S.cur];if(S.rolled||!p.alive)return;
+  const die=document.getElementById("die");die.classList.add("rolling");
+  const r=1+Math.floor(Math.random()*6);let t=0;
+  const iv=setInterval(()=>{drawDie(1+Math.floor(Math.random()*6));if(++t>6){clearInterval(iv);drawDie(r);die.classList.remove("rolling");afterRoll(r);}},60);
+  S.rolled=true;document.getElementById("diceLbl").textContent="rolled "+r;
+}
+function afterRoll(r){
+  const p=S.players[S.cur];p.stayCount=0;
+  if(p.inJail){p.inJail=false;drawCourt();return;}
+  stepMove(p,r);
+}
+function stepMove(p,left){
+  if(left<=0){arriveCell(p);return;}
+  const ring=p.ring;const len=ring==="inner"?INNER.length:OUTER.length;
+  p.pos=(p.pos+1)%len;
+  // passing OVER one of your own businesses = you've lapped it (a year) → collect its profit
+  if(ring==="outer" && left>1 && p.owns.has(p.pos)) collectOne(p,p.pos);
+  if(ring==="inner"&&p.pos===0){p.sentence-=1;p.age++;log(p.name+" finishes a prison lap. 1 year done (now "+p.age+" yo). "+(p.sentence>0?p.sentence+"y left":"TIME SERVED"),p.sentence>0?"":"good");
+    if(p.sentence<=0){render();setTimeout(()=>releaseFromPrison(p),300);return;}}
+  if(ring==="outer"&&p.pos===0){p.age++;log(p.name+" makes it another year (now "+p.age+" yo).","");
+    if(p.crew>0){const wages=p.crew*SOLDIER_WAGE;p.cash-=wages;log(p.name+" pays soldier wages: "+fmtK(wages)+" ("+p.crew+" × $"+SOLDIER_WAGE+"K/yr).","warn");}
+    p.cleanLaps++;if(p.hosp>0&&p.cleanLaps%2===0){p.hosp--;log(p.name+" recovers — 1 hospital visit cleared.","good");}}
+  render();
+  scrollToToken();
+  document.getElementById("diceLbl").textContent="…moving ("+left+")";
+  setTimeout(()=>stepMove(p,left-1),240);
+}
+function scrollToToken(){
+  const here=document.querySelector("#board .cell.here");
+  if(here) here.scrollIntoView({behavior:"smooth",block:"center",inline:"center"});
+}
+function arriveCell(p){
+  document.getElementById("diceLbl").textContent="landed";
+  if(p.ring==="inner"){log(p.name+" (prison) → "+INNER[p.pos].t);resolveInner();}
+  else{log(p.name+" → "+OUTER[p.pos].t);resolveOuter();}
+}
+function collectIncome(p){let inc=0;p.owns.forEach((s,idx)=>{inc+=(OUTER[idx].incomeBase||0)*s;});if(inc>0){p.cash+=inc;log(p.name+" collects "+fmtK(inc)+" from turf.","good");}return inc;}
+/* one business/property pays a full year's profit when you lap back around to it */
+function collectOne(p,idx){
+  if(!p.owns.has(idx))return 0;
+  const cell=OUTER[idx];const unit=cell.incomeBase||cell.price||cell.income||0;
+  const inc=unit*p.owns.get(idx);
+  if(inc>0){p.cash+=inc;log(p.name+" collects "+fmtK(inc)+" — a year's profit from "+cell.t+".","good");}
+  return inc;
+}
+function fmtK(v){
+  const neg=v<0?"-":""; v=Math.abs(v);
+  if(v>=1000){ const m=v/1000; return neg+"$"+(m%1===0?m:m.toFixed(m>=10?0:1))+"M"; }
+  return neg+"$"+v+"K";
+}
+
+/* ===== RESOLVE OUTER ===== */
+function resolveOuter(){
+  const p=S.players[S.cur];const c=OUTER[p.pos];
+  switch(c.k){
+    case "hospital": log("Hospital. You're healthy — just passing."); finish(); break;
+    case "street": tryStreet(c); break;
+    case "biz": tryBiz(c); break;
+    case "crew": offerHire(); break;
+    case "attack": doAttack(); break;
+    case "visitjail": drawStory("visit"); break;
+    case "heist": drawStory("heist"); break;
+    case "hitman": drawStory("hitman"); break;
+    case "party": drawStory("party"); break;
+    case "fate": drawStory("fate"); break;
+    case "drug": drawStory("drug"); break;
+    case "cop": drawStory("cop"); break;
+    case "raid": drawStory("raid"); break;
+    case "poker": pokerNight(); break;
+    default: finish();
+  }
+}
+function resolveInner(){
+  const p=S.players[S.cur];const c=INNER[p.pos];
+  switch(c.k){
+    case "pentry":log("Prison entry. Do your time.");finish();break;
+    case "pday":
+      // No cigarettes on a regular prison day = you get beaten down
+      if(p.packs<=0){ log(p.name+" has no cigarettes — the block beats him down.","bad"); toHospital(p,1); }
+      else drawStory("pday");
+      break;
+    case "pfight":drawStory("pfight");break;
+    case "riot":drawStory("riot");break;
+    default:finish();
+  }
+}
+
+/* ===== STREET ===== */
+function tryStreet(c){
+  const p=S.players[S.cur];const idx=p.pos;OUTER[idx].incomeBase=c.price;
+  const owner=S.players.find(x=>x.owns.has(idx));
+  if(owner&&owner.id===p.id){ collectOne(p,idx); if(p.ai){render();finish();return;} ownStreetOptions(idx); return; }
+  if(owner&&owner.id!==p.id){
+    const toll=Math.round((OUTER[idx].incomeBase)*owner.owns.get(idx)/2);
+    payTo(p,owner,toll,"toll on "+c.t);render();finish();return;
+  }
+  if(p.ai){ aiBuyStreet(idx,c); return; }
+  const ladder=soldierLadder(c.price);
+  let rows=ladder.map(l=>`<div><span>${l.n} soldier${l.n>1?"s":""}</span><span>${fmtK(l.v)}/yr</span></div>`).join("");
+  let btns=`<button onclick="buyStreet(${idx},1,${c.price})">[ BUY 1 · ${fmtK(c.price)} ]</button>`;
+  const el=document.getElementById("cardEl");
+  el.innerHTML=`<div class="lbl" style="background:${p.color}">STREET · FOR SALE</div>
+    <div class="art">${ART.street}</div><div class="ttl">${c.t}</div>
+    <div class="sub">Price per soldier = their yearly take. Buy soldiers one at a time; add more later.</div>
+    <div class="out ladder">${rows}</div>
+    <div class="go">${p.cash>=c.price?btns:'<span style="opacity:.6">need '+fmtK(c.price)+'</span>'}<button onclick="closeModal();finish()">[ PASS ]</button></div>
+    ${statusBar()}`;
+  openModal();
+}
+function ownStreetOptions(idx){
+  const p=S.players[S.cur];const c=OUTER[idx];const per=OUTER[idx].incomeBase||c.price;const cur=p.owns.get(idx);
+  const maxN=Math.floor(p.cash/per);
+  const el=document.getElementById("cardEl");
+  el.innerHTML=`<div class="lbl" style="background:${p.color}">YOUR TURF</div>
+    <div class="art">${ART.street}</div><div class="ttl">${c.t}</div>
+    <div class="sub">You hold this with ${cur} soldier${cur>1?"s":""} (${fmtK(per*cur)}/yr). Add more, or sell.</div>
+    <div class="out">Each extra soldier: ${fmtK(per)} · earns ${fmtK(per)}/yr</div>
+    <div class="go">
+      ${maxN>=1?`<button onclick="addSoldierTo(${idx},${per},1)">[ +1 · ${fmtK(per)} ]</button>`:''}
+      ${maxN>=5?`<button onclick="addSoldierTo(${idx},${per},5)">[ +5 · ${fmtK(per*5)} ]</button>`:''}
+      ${maxN>=1?`<button class="amber" onclick="addSoldierTo(${idx},${per},${maxN})">[ MAX +${maxN} ]</button>`:''}
+      <button class="red" onclick="sellProp(${idx})">[ SELL ]</button>
+      <button onclick="closeModal();finish()">[ DONE ]</button></div>
+    ${statusBar()}`;
+  openModal();
+}
+function addSoldierTo(idx,per,n){const p=S.players[S.cur];n=Math.min(n,Math.floor(p.cash/per));if(n<1)return;p.cash-=per*n;p.owns.set(idx,p.owns.get(idx)+n);log(p.name+" adds "+n+" soldier"+(n>1?"s":"")+" to "+OUTER[idx].t+" (now "+p.owns.get(idx)+").","good");render();ownStreetOptions(idx);}
+function buyStreet(idx,n,v){const p=S.players[S.cur];p.cash-=v;p.owns.set(idx,n);log(p.name+" claims "+OUTER[idx].t+" ("+fmtK(v)+").","good");render();ownStreetOptions(idx);}
+function soldierLadder(b){return[{n:1,v:b},{n:4,v:b*4},{n:10,v:b*10},{n:25,v:b*25},{n:100,v:b*100}];}
+function sellProp(idx){const p=S.players[S.cur];const c=OUTER[idx];const per=OUTER[idx].incomeBase||c.price;const sold=p.owns.get(idx);
+  const val=Math.round(per*sold*0.6);p.cash+=val;p.owns.delete(idx);
+  log(p.name+" sells "+c.t+" (with "+sold+" workers) for "+fmtK(val)+".","warn");closeModal();render();finish();}
+
+/* ===== POKER NIGHT (casino) ===== */
+function pokerNight(){
+  const p=S.players[S.cur];const idx=p.pos;const c=OUTER[idx];
+  const owner=S.players.find(x=>x.owns.has(idx));
+  // if YOU own the house, you just run it tonight
+  if(owner&&owner.id===p.id){
+    if(p.ai){finish();return;}
+    const el=document.getElementById("cardEl");
+    el.innerHTML=`<div class="lbl" style="background:${p.color}">POKER NIGHT - YOUR HOUSE</div>
+      <div class="ttl">You run the tables</div>
+      <div class="bd">This is your casino. The house doesn't gamble against itself - you just count the take when others play.</div>
+      <div class="go"><button class="red" onclick="sellPoker(${idx})">[ SELL HOUSE - ${fmtK(Math.round(c.price*0.6))} ]</button><button onclick="closeModal();finish()">[ DONE ]</button></div>
+      ${statusBar()}`;
+    openModal();return;
+  }
+  // AI never gambles at the tables (too swingy) - it may buy the house if flush, else walks away. (No modal = no freeze.)
+  if(p.ai){
+    if(!owner && p.cash>=c.price*2){ pokerBuy(idx); } else { finish(); }
+    return;
+  }
+  const ownerName=owner?owner.name:null;
+  const maxBet=Math.max(0,p.cash);
+  if(p._pokerBet===undefined) p._pokerBet=Math.round(maxBet/2);
+  p._pokerBet=Math.max(0,Math.min(p._pokerBet,maxBet));
+  const bet=p._pokerBet;
+  const el=document.getElementById("cardEl");
+  const ownLine = ownerName?`<div class="sub">${ownerName} owns this house - if you LOSE, your bet goes to ${ownerName}. Wins are paid by the house.</div>`
+                           :`<div class="sub">Nobody owns this house yet. Buy it, or try your luck.</div>`;
+  const buyBtn = (!owner && p.cash>=c.price)?`<button onclick="pokerBuy(${idx})">[ BUY HOUSE - ${fmtK(c.price)} ]</button>`:"";
+  el.innerHTML=`<div class="lbl" style="background:${p.color}">POKER NIGHT</div>
+    <div class="ttl">Place your bet</div>
+    <div class="bd">Choose your stake, then roll: <b>4-6 you WIN your bet</b> (double it), <b>1-3 you LOSE your bet</b>.</div>
+    ${ownLine}
+    <div style="text-align:center;font-size:24px;font-weight:bold;margin:6px 0;color:var(--gold-lt)">Bet: ${fmtK(bet)}</div>
+    <div class="out">Win = +${fmtK(bet)} &nbsp;·&nbsp; Lose = -${fmtK(bet)}</div>
+    <div class="go" style="flex-wrap:wrap">
+      <button onclick="pokerBetAdj(${idx},-1)" ${bet<=0?'disabled':''}>[ - ]</button>
+      <button onclick="pokerBetAdj(${idx},1)" ${bet>=maxBet?'disabled':''}>[ + ]</button>
+      <button onclick="pokerBetAdj(${idx},'half')">[ HALF ]</button>
+      <button onclick="pokerBetAdj(${idx},'max')">[ MAX ]</button>
+    </div>
+    <div class="go">
+      ${bet>0?`<button class="amber" onclick="pokerRoll(${idx})">[ ROLL THE DICE ]</button>`:'<span style="opacity:.6">set a bet to play</span>'}
+      ${buyBtn}
+      <button onclick="closeModal();finish()">[ WALK AWAY ]</button></div>
+    ${statusBar()}`;
+  openModal();
+}
+function pokerBetAdj(idx,d){
+  const p=S.players[S.cur];const max=Math.max(0,p.cash);
+  const step=Math.max(25,Math.round(max/10));
+  if(d==='half')p._pokerBet=Math.round(max/2);
+  else if(d==='max')p._pokerBet=max;
+  else p._pokerBet=Math.min(max,Math.max(0,(p._pokerBet||0)+d*step));
+  pokerNight();
+}
+function pokerBuy(idx){const p=S.players[S.cur];const c=OUTER[idx];p.cash-=c.price;p.owns.set(idx,1);OUTER[idx].incomeBase=c.price;log(p.name+" buys the POKER NIGHT house ("+fmtK(c.price)+").","good");render();closeModal();finish();}
+function sellPoker(idx){const p=S.players[S.cur];const c=OUTER[idx];const val=Math.round(c.price*0.6);p.cash+=val;p.owns.delete(idx);log(p.name+" sells the POKER NIGHT house ("+fmtK(val)+").","warn");closeModal();render();finish();}
+function pokerRoll(idx){
+  const p=S.players[S.cur];const owner=S.players.find(x=>x.owns.has(idx));
+  const stake=Math.min(Math.max(0,p._pokerBet||0),Math.max(0,p.cash));
+  const r=1+Math.floor(Math.random()*6);
+  const win=r>=4;
+  if(win){
+    p.cash+=stake;
+    log(p.name+" rolled a "+r+" - WINS the bet! +"+fmtK(stake)+" (now "+fmtK(p.cash)+").","good");
+  }else{
+    p.cash-=stake;
+    log(p.name+" rolled a "+r+" - LOSES the bet ("+fmtK(stake)+").","bad");
+    if(owner&&owner.id!==p.id){ owner.cash+=stake; log("The house takes it - "+fmtK(stake)+" goes to "+owner.name+".","warn"); }
+  }
+  p._pokerBet=0;
+  if(p.ai){render();finish();return;}
+  const el=document.getElementById("cardEl");
+  el.innerHTML=`<div class="lbl" style="background:${p.color}">POKER NIGHT</div>
+    <div class="ttl">${win?"WINNER":"YOU LOSE"}</div>
+    <div class="bd">You rolled a <b>${r}</b>. ${win?("You won your bet - +"+fmtK(stake)+"."):("You lost your bet"+(owner&&owner.id!==p.id?" - "+owner.name+" collects.":"."))}</div>
+    <div class="out">${fmtK(p.cash)} on hand</div>
+    <div class="go"><button onclick="closeModal();finish()">[ ${win?"CASH OUT":"WALK AWAY"} ]</button></div>
+    ${statusBar()}`;
+  render();openModal();
+}
+/* ===== BUSINESS ===== */
+function tryBiz(c){
+  const p=S.players[S.cur];const idx=p.pos;OUTER[idx].incomeBase=c.income;
+  const owner=S.players.find(x=>x.owns.has(idx));
+  if(owner&&owner.id===p.id){ collectOne(p,idx); if(p.ai){render();finish();return;} ownBizOptions(idx); return; }
+  if(owner&&owner.id!==p.id){ buyProduct(p,owner,idx,c); return; }
+  if(p.ai){ aiBuyBiz(idx,c); return; }
+  const el=document.getElementById("cardEl");const can=p.cash>=c.income;
+  el.innerHTML=`<div class="lbl" style="background:${p.color}">BUSINESS · FOR SALE</div>
+    <div class="art">${ART.biz}</div><div class="ttl">${c.t}</div>
+    <div class="sub">Staff with 1 worker to open. Buy more workers later. Rivals landing here pay you — everybody eats.</div>
+    <div class="out">Open with 1 worker: ${fmtK(c.income)} · earns ${fmtK(c.income)}/yr each</div>
+    <div class="go">${can?`<button onclick="buyBiz(${idx},${c.income})">[ OPEN ${fmtK(c.income)} ]</button>`:'<span style="opacity:.6">need '+fmtK(c.income)+'</span>'}<button onclick="closeModal();finish()">[ PASS ]</button></div>
+    ${statusBar()}`;
+  openModal();
+}
+function buyBiz(idx,cost){const p=S.players[S.cur];p.cash-=cost;p.owns.set(idx,1);log(p.name+" opens "+OUTER[idx].t+" ("+fmtK(cost)+").","good");render();ownBizOptions(idx);}
+function ownBizOptions(idx){
+  const p=S.players[S.cur];const c=OUTER[idx];const per=OUTER[idx].incomeBase||c.income;const cur=p.owns.get(idx);
+  const maxN=Math.floor(p.cash/per);
+  const el=document.getElementById("cardEl");
+  el.innerHTML=`<div class="lbl" style="background:${p.color}">YOUR BUSINESS</div>
+    <div class="art">${ART.biz}</div><div class="ttl">${c.t}</div>
+    <div class="sub">${cur} worker${cur>1?"s":""} earning ${fmtK(per*cur)}/yr. Add workers, or sell the business (with workers).</div>
+    <div class="out">Each extra worker: ${fmtK(per)}</div>
+    <div class="go">
+      ${maxN>=1?`<button onclick="addWorker(${idx},${per},1)">[ +1 · ${fmtK(per)} ]</button>`:''}
+      ${maxN>=5?`<button onclick="addWorker(${idx},${per},5)">[ +5 · ${fmtK(per*5)} ]</button>`:''}
+      ${maxN>=1?`<button class="amber" onclick="addWorker(${idx},${per},${maxN})">[ MAX +${maxN} ]</button>`:''}
+      <button class="red" onclick="sellProp(${idx})">[ SELL ]</button>
+      <button onclick="closeModal();finish()">[ DONE ]</button></div>
+    ${statusBar()}`;
+  openModal();
+}
+function addWorker(idx,per,n){const p=S.players[S.cur];n=Math.min(n,Math.floor(p.cash/per));if(n<1)return;p.cash-=per*n;p.owns.set(idx,p.owns.get(idx)+n);log(p.name+" adds "+n+" worker"+(n>1?"s":"")+" to "+OUTER[idx].t+" (now "+p.owns.get(idx)+").","good");render();ownBizOptions(idx);}
+function buyProduct(p,owner,idx,c){
+  if(p.ai){ const amt=Math.min(c.income,Math.floor(p.cash/2)); if(amt>0){p.cash-=amt;owner.cash+=amt*2;p.cash+=amt*2;log(p.name+" buys "+fmtK(amt)+" product at "+owner.name+"'s "+c.t+".","good");} render();finish();return; }
+  const maxBuy=Math.min(c.income, p.cash);
+  const el=document.getElementById("cardEl");
+  el.innerHTML=`<div class="lbl" style="background:${owner.color}">${owner.name.toUpperCase()}'S ${c.t.toUpperCase()}</div>
+    <div class="art">${ART.biz}</div><div class="ttl">Buy product</div>
+    <div class="sub">Buy up to ${fmtK(maxBuy)} of product. You pay ${owner.name}, and you BOTH profit — you double your buy, they get double too.</div>
+    <div class="out">Choose how much to buy:</div>
+    <div class="go" id="prodBtns"></div>
+    ${statusBar()}`;
+  const tiers=[Math.round(maxBuy*0.25),Math.round(maxBuy*0.5),maxBuy].filter((v,i,a)=>v>0&&a.indexOf(v)===i);
+  const pb=el.querySelector("#prodBtns");
+  tiers.forEach(t=>{const b=document.createElement("button");b.textContent=`[ buy ${fmtK(t)} → +${fmtK(t)} ]`;b.onclick=()=>doProduct(p.id,owner.id,t);pb.appendChild(b);});
+  const pass=document.createElement("button");pass.textContent="[ PASS ]";pass.onclick=()=>{closeModal();finish();};pb.appendChild(pass);
+  openModal();
+}
+function doProduct(pid,oid,amt){const p=S.players[pid],o=S.players[oid];p.cash-=amt;o.cash+=amt*2;p.cash+=amt*2;
+  log(p.name+" buys "+fmtK(amt)+" product from "+o.name+". You net +"+fmtK(amt)+", "+o.name+" +"+fmtK(amt*2)+".","good");closeModal();render();finish();}
+
+/* ===== RECRUITING (bulk) ===== */
+const SOLDIER_COST=100; // $100K per soldier
+const SOLDIER_WAGE=10; // paid per soldier every year (lap past START)
+const MAX_SOLDIERS=4;   // hard cap on recruiting slots
+function offerHire(){
+  const p=S.players[S.cur];
+  if(p.ai){ while(p.crew<MAX_SOLDIERS && p.cash>=SOLDIER_COST*2){p.cash-=SOLDIER_COST;p.crew++;} log(p.name+" recruits soldiers.","good"); finish(); return; }
+  const slotsLeft=MAX_SOLDIERS-p.crew;
+  const affordable=Math.floor(p.cash/SOLDIER_COST);
+  const canBuy=Math.min(slotsLeft,affordable);
+  // start the picker at 0; player adjusts up/down then confirms
+  if(p._hirePick===undefined) p._hirePick=0;
+  p._hirePick=Math.max(0,Math.min(p._hirePick,canBuy));
+  const el=document.getElementById("cardEl");
+  const pick=p._hirePick;
+  el.innerHTML=`<div class="lbl" style="background:${p.color}">RECRUITING</div>
+    <div class="ttl">Hire soldiers</div>
+    <div class="bd">Soldiers take the fall for you (one goes to prison in your place if you're arrested) and fight in attacks. Max ${MAX_SOLDIERS} total.</div>
+    <div class="out">You have ${p.crew}/${MAX_SOLDIERS} · $${SOLDIER_COST}K each${slotsLeft<=0?" · roster full":""}</div>
+    <div style="text-align:center;font-size:26px;font-weight:bold;margin:6px 0;font-family:'Lora',serif;color:var(--gold-lt)">
+      Hiring: ${pick} &nbsp;(${fmtK(pick*SOLDIER_COST)})
+    </div>
+    <div class="go" style="flex-wrap:wrap">
+      ${slotsLeft>0?`<button onclick="hirePick(-1)" ${pick<=0?'disabled':''}>[ − ]</button>
+      <button onclick="hirePick(1)" ${pick>=canBuy?'disabled':''}>[ + ]</button>
+      <button onclick="hirePick('max')" ${canBuy<1?'disabled':''}>[ MAX ${canBuy} ]</button>
+      <button onclick="hirePick('reset')">[ RESET ]</button>`:''}
+    </div>
+    <div class="go">
+      <button class="amber" onclick="hireConfirm()">${pick>0?`[ CONFIRM ${pick} · ${fmtK(pick*SOLDIER_COST)} ]`:`[ CONFIRM · buy none ]`}</button>
+    </div>
+    ${statusBar()}`;
+  openModal();
+}
+function hirePick(d){
+  const p=S.players[S.cur];
+  const canBuy=Math.min(MAX_SOLDIERS-p.crew,Math.floor(p.cash/SOLDIER_COST));
+  if(d==='max')p._hirePick=canBuy;
+  else if(d==='reset')p._hirePick=0;
+  else p._hirePick=Math.max(0,Math.min(canBuy,(p._hirePick||0)+d));
+  offerHire();
+}
+function hireConfirm(){
+  const p=S.players[S.cur];const n=p._hirePick||0;
+  const canBuy=Math.min(MAX_SOLDIERS-p.crew,Math.floor(p.cash/SOLDIER_COST));
+  const buy=Math.min(n,canBuy);
+  if(buy>0){p.cash-=SOLDIER_COST*buy;p.crew+=buy;log(p.name+" hires "+buy+" soldier"+(buy>1?"s":"")+" (now "+p.crew+"/"+MAX_SOLDIERS+").","good");}
+  p._hirePick=0;render();closeModal();finish();
+}
+function hireCancel(){const p=S.players[S.cur];p._hirePick=0;closeModal();finish();}
+
+/* ===== ATTACK (reworked) ===== */
+function doAttack(){
+  const p=S.players[S.cur];
+  const targets=[];
+  S.players.forEach(o=>{if(o.id!==p.id&&o.alive){o.owns.forEach((s,idx)=>targets.push({o,idx,s}));}});
+  if(p.crew<1){log(p.name+" has no soldiers to attack with."); finish(); return;}
+  if(targets.length===0){log("No rival turf to attack."); finish(); return;}
+  if(p.ai){ const t=targets[0]; resolveAttack(p,t.o,t.idx); return; }
+  const el=document.getElementById("cardEl");
+  let btns=targets.map(t=>`<button onclick="resolveAttack(S.players[${p.id}],S.players[${t.o.id}],${t.idx})">[ ${t.o.name}: ${OUTER[t.idx].t} (${t.s} def) ]</button>`).join("");
+  el.innerHTML=`<div class="lbl" style="background:${p.color}">ATTACK</div>
+    <div class="art">)|(</div><div class="ttl">Send your soldiers</div>
+    <div class="sub">You have ${p.crew} soldiers. Most soldiers wins. You lose soldiers equal to the defenders. Tie = both wiped, owner keeps it.</div>
+    <div class="out">Pick a target:</div>
+    <div class="go">${btns}<button onclick="closeModal();finish()">[ STAND DOWN ]</button></div>
+    ${statusBar()}`;
+  openModal();
+}
+function resolveAttack(p,o,idx){
+  closeModal();
+  const def=o.owns.get(idx)||0;const atk=p.crew;
+  if(atk>def){ p.crew-=def; o.owns.delete(idx); p.owns.set(idx,Math.max(1,atk-def)); 
+    log(p.name+" takes "+OUTER[idx].t+" from "+o.name+"! Lost "+def+" soldiers.","good"); }
+  else if(atk===def){ p.crew-=atk; log(p.name+" and "+o.name+" wipe each other out at "+OUTER[idx].t+". "+o.name+" keeps it (unstaffed).","warn"); o.owns.set(idx,0); }
+  else { p.crew=0; log(p.name+"'s attack on "+OUTER[idx].t+" fails. Lost all "+atk+" soldiers.","bad"); }
+  render();finish();
+}
+
+/* ===== STORY CARDS ===== */
+/* ===== HEIST LEVEL PICKER (player chooses risk) ===== */
+const HEIST_LEVELS={
+  EASY:  {payouts:[1000], jailChance:0.55, arr:[6,8], label:"EASY · big score, high heat"},
+  MEDIUM:{payouts:[250],  jailChance:0.40, arr:[5,10],label:"MEDIUM · solid score"},
+  HARD:  {payouts:[100],  jailChance:0.25, arr:[3,4], label:"HARD · low take, low risk"},
+  REAL:  {payouts:[0],    jailChance:0.15, arr:[2,5], label:"REAL · nothing, but you tried"},
+};
+const HEIST_FLAVOR={
+  EASY:["Bank vault, months of planning. The alarm never made a sound.","Casino count room. You were in the ceiling before anyone blinked."],
+  MEDIUM:["Jewelry smash-and-grab. Cases empty in ninety seconds.","Armored truck at the blind corner. Two minutes of chaos, doors open."],
+  HARD:["ATM ripped out with a stolen truck. Cracked in a field at dawn.","Corner store register and the safe under the counter."],
+  REAL:["Dye pack blew. Alarm screamed. You ran with a story and nothing else.","The whole thing was bait. Out clean, empty-handed."],
+};
+function heistPicker(){
+  const p=S.players[S.cur];
+  if(p.ai){ // AI picks by cash: rich=go big
+    const lvl = p.cash>400?"EASY":p.cash>150?"MEDIUM":"HARD";
+    runHeist(lvl); return;
+  }
+  const el=document.getElementById("cardEl");
+  const rows=Object.entries(HEIST_LEVELS).map(([k,v])=>
+    `<button onclick="runHeist('${k}')" style="display:block;width:100%;margin:4px 0;text-align:left">[ ${k} · ${fmtK(v.payouts[0])} ] ${v.label}</button>`).join("");
+  el.innerHTML=`<div class="lbl" style="background:${p.color}">HEIST · PICK YOUR JOB</div>
+    <div class="art">$$$</div><div class="ttl">Choose the level</div>
+    <div class="sub">Bigger score = bigger heat. Pick your risk.</div>
+    <div class="go" style="flex-direction:column">${rows}<button onclick="closeModal();finish()">[ WALK AWAY ]</button></div>
+    ${statusBar()}`;
+  openModal();
+}
+function runHeist(lvl){
+  const p=S.players[S.cur];const L=HEIST_LEVELS[lvl];closeModal();
+  const cut=L.payouts[0];
+  const flav=HEIST_FLAVOR[lvl][Math.floor(Math.random()*HEIST_FLAVOR[lvl].length)];
+  const arrYears=L.arr[Math.floor(Math.random()*L.arr.length)];
+  p.crimes.push({name:CHARGES.heist[Math.floor(Math.random()*CHARGES.heist.length)],years:arrYears,lvl});
+  if(cut>0){p.cash+=cut;log(p.name+" pulls a "+lvl+" heist: +"+fmtK(cut)+".","good");}
+  else log(p.name+" pulls a "+lvl+" heist: nothing.","warn");
+  // risk of getting caught
+  if(Math.random()<L.jailChance){
+    log("The job went hot!","bad");
+    if(!crewSave(p,"arrest")) arrest(p,arrYears);
+  } else log(p.name+" gets away clean.","good");
+  render();finish();
+}
+
+/* ===== HEIST LEVEL PICKER end ===== */
+function drawStory(deck){
+  const p=S.players[S.cur];const card=draw(deck);
+  document.getElementById("cardEl")._card=card;document.getElementById("cardEl")._deck=deck;
+  renderStoryCard(card,deck,p.ai);
+  openModal();
+  scrollToToken();
+}
+function renderStoryCard(card,deck,isAI){
+  const p=S.players[S.cur];const el=document.getElementById("cardEl");
+  const art=ART[deck]||"[?]";
+  const {text,btn}=outcomeAndButton(card,deck);
+  const lbl=(card.lbl||deck.toUpperCase())+(card.lvl?" · "+card.lvl:"")+(isAI?" · "+p.name:"");
+  el.innerHTML=`<div class="lbl" style="background:${p.color}">${lbl}</div>
+    <div class="art">${art}</div>
+    ${card.ttl?`<div class="ttl">${card.ttl}</div>`:""}
+    <div class="bd">${card.bd}</div>
+    <div class="out">${text}</div>
+    <div class="go"><button onclick="applyCard()">${btn}</button></div>
+    ${statusBar()}`;
+}
+function outcomeAndButton(c,deck){
+  let lines=[];let btn="[ OK ]";
+  if(deck==="party"){
+    if(c.tag==="poker"){ lines.push((c.win?"You WIN the pot: +$":"You LOSE the bet: -$")+c.bet+"K"); btn=c.win?"[ COLLECT ]":"[ PAY ]"; }
+    else if(c.bet){ } 
+    if(c.cut>0){lines.push("Collect $"+c.cut+"K");btn="[ COLLECT ]";}
+    if(c.cut<0){lines.push("Pay $"+(-c.cut)+"K");btn="[ PAY ]";}
+    if(c.crew){lines.push("Gain "+c.crew+" soldier");btn="[ OK ]";}
+    if(c.raidArr){lines.push("ARRESTED");btn="[ FACE THE LAW ]";}
+    if(c.note&&!lines.length){lines.push(c.note);btn="[ OK ]";}
+    return {text:lines.join("\n")||"...",btn};
+  }
+  if(c.cut>0){lines.push("Collect $"+c.cut+"K");btn="[ COLLECT ]";}
+  if(c.cut<0){lines.push("Pay $"+(-c.cut)+"K");btn="[ PAY ]";}
+  if(c.packs>0){lines.push("Win "+c.packs+" packs");btn="[ COLLECT ]";}
+  if(c.packs<0){lines.push("Lose "+(-c.packs)+" packs");btn="[ PAY ]";}
+  if(c.respect)lines.push("Respect earned");
+  if(c.crew)lines.push("Gain "+c.crew+" soldier");
+  if(c.arr!==undefined)lines.push("If arrested: "+(c.arr==="LIFE"?"LIFE":c.arr+" yrs"));
+  if(c.hosp){lines.push("Hurt bad — HOSPITAL");}
+  if(c.raidArr){lines.push("ARRESTED");btn="[ FACE THE LAW ]";}
+  if(deck==="raid"&&!c.raidArr){lines.push("✓ YOU DODGE THE RAID — no arrest, you stay FREE");btn="[ WALK FREE ]";}
+  if(c.safe)lines.push("✓ You get away clean — NO arrest");
+  if(c.freeArrest)lines.push("★ AVOID PRISON — get-out-of-jail card SAVED");
+  if(c.dyears!==undefined)lines.push(c.dyears>0?"Sentence +"+c.dyears+"y":c.dyears<0?"Sentence "+c.dyears+"y":"No change");
+  if(c.escape)lines.push("ESCAPE — you're free");
+  if(c.ryears!==undefined)lines.push(c.ryears>0?"+"+c.ryears+"y":c.ryears+"y");
+  if(c.cost!==undefined)lines.push("Medical bill: $"+c.cost+"K");
+  return {text:lines.join("\n")||"...",btn};
+}
+
+/* ===== APPLY CARD ===== */
+function applyCard(){
+  const c=document.getElementById("cardEl")._card;const deck=document.getElementById("cardEl")._deck;const p=S.players[S.cur];closeModal();
+  // record crime for profile with real charge name + years exposure
+  recordCharge(p,deck,c);
+  // PARTY poker bets
+  if(deck==="party"&&c.tag==="poker"){ p.cash+=(c.win?c.bet:-c.bet); log(p.name+(c.win?" wins $"+c.bet+"K at "+(c.ttl):" loses $"+c.bet+"K at "+(c.ttl)),c.win?"good":"warn"); afterMoney(p); if(!c.raidArr){finish();return;} }
+  if(c.cut){p.cash+=c.cut;log(p.name+(c.cut>0?" gains $":" loses $")+Math.abs(c.cut)+"K.",c.cut>0?"good":"warn");}
+  if(c.packs)p.packs=Math.max(0,p.packs+c.packs);
+  if(c.crew){p.crew+=c.crew;log(p.name+" gains "+c.crew+" soldier.","good");}
+  if(c.respect)log(p.name+" earns respect inside.","good");
+  if(c.freeArrest){p.freeArrest++;log(p.name+" AVOIDS PRISON — banks a get-out-of-jail card ("+p.freeArrest+").","good");}
+  if(c.loseCrew){p.crew=Math.max(0,p.crew-c.loseCrew);log(p.name+" loses "+c.loseCrew+" soldier.","bad");}
+  if(c.skip){p.skip=(p.skip||0)+c.skip;log(p.name+" will lose "+c.skip+" turn.","warn");}
+  if(c.freeRaid){p.freeRaid=(p.freeRaid||0)+1;log(p.name+" dodges the next raid.","good");}
+  if(c.note&&!c.cut&&!c.crew)log(p.name+": "+c.note);
+  // COURT
+  if(c.dyears!==undefined){p.sentence=Math.max(0,p.sentence+c.dyears);
+    if(p.sentence<=0){log(p.name+" walks free from court!","good");render();finish();return;}
+    log(p.name+" sentenced: "+p.sentence+"y. To prison.","warn");sendToPrison(p);render();finish();return;}
+  // RIOT sentence changes
+  if(c.ryears!==undefined){p.sentence=Math.max(0,p.sentence+c.ryears);log(p.name+"'s sentence now "+p.sentence+"y.",c.ryears>0?"bad":"good");
+    if(p.sentence<=0)releaseFromPrison(p);else{render();finish();}return;}
+  if(c.escape){p.sentence=0;log(p.name+" ESCAPES in the chaos!","good");releaseFromPrison(p);return;}
+  // HOSPITAL card (from prison fight etc.)
+  if(c.hosp){toHospital(p,c.hosp);return;}
+  // HEIST/drug/hitman arrest chance
+  if(c.arr!==undefined){
+    const caught=Math.random()<0.4;
+    if(caught){ p._pendingYears=(c.arr==="LIFE"?30:c.arr); arrestFlow(p); return; }
+    else log("Clean getaway.","good");
+  }
+  if(c.raidArr){
+    if(p.freeRaid>0){p.freeRaid--;log(p.name+" was tipped off — dodges the raid.","good");afterMoney(p);if(!p._sentToHospital)finish();p._sentToHospital=false;return;}
+    p._pendingYears=2; arrestFlow(p); return;
+  }
+  if(c.safe)log(p.name+" gets away clean.","good");
+  afterMoney(p);
+  if(!p._sentToHospital) finish();
+  p._sentToHospital=false;
+}
+function afterMoney(p){
+  // Cash can go negative — being broke no longer sends you to the hospital.
+  if(p.cash<0){ log(p.name+" is in the red: "+fmtK(p.cash)+".","warn"); }
+  p._sentToHospital=false;
+}
+
+/* ===== LAW ===== */
+function crewSave(p,type){if(p.crew>0){p.crew--;log(p.name+" burns a soldier — they take the "+(type==="arrest"?"cuffs":"bullet")+".","good");return true;}return false;}
+
+/* Arrest flow: get-out card > soldier takes your place > buy cigs from crooked CO > jail */
+function arrestFlow(p){
+  const years=p._pendingYears||5;
+  if(p.freeArrest>0){p.freeArrest--;log(p.name+" uses a get-out-of-jail card. Walks free.","good");p._pendingYears=null;finish();return;}
+  if(p.ai){
+    // AI: soldier takes the fall if available, else just go in (buys a few packs if rich)
+    if(p.crew>0){p.crew--;log(p.name+"'s soldier takes the fall and goes to prison. "+p.name+" stays free.","good");p._pendingYears=null;finish();return;}
+    const packs=Math.min(20,Math.floor(p.cash/1)); if(packs>0){p.cash-=packs;p.packs=packs;}
+    doArrest(p,years);return;
+  }
+  const el=document.getElementById("cardEl");
+  const hasSoldier=p.crew>0;
+  el.innerHTML=`<div class="lbl" style="background:${p.color}">BUSTED</div>
+    <div class="art">PD</div><div class="ttl">You're going down</div>
+    <div class="bd">The cuffs are out — ${years==30?"they're calling it LIFE":years+" years"} hanging over you.${hasSoldier?" One of your soldiers can take the fall and do the time in your place.":" No soldiers to cover you."}</div>
+    <div class="out">${hasSoldier?"Send a soldier, or face it yourself.":"A crooked CO offers cigarette packs at $1K each — packs keep you safe inside."}</div>
+    <div class="go">
+      ${hasSoldier?`<button class="amber" onclick="soldierTakesFall()">[ SOLDIER TAKES FALL ]</button>`:''}
+      <button onclick="goToJailWithCigs(${years})">[ ${hasSoldier?"FACE IT":"GO IN"} ]</button>
+    </div>
+    ${statusBar()}`;
+  openModal();
+}
+function soldierTakesFall(){const p=S.players[S.cur];p.crew--;log(p.name+"'s soldier takes the fall and goes to prison. "+p.name+" stays free.","good");p._pendingYears=null;closeModal();render();finish();}
+function goToJailWithCigs(years){
+  const p=S.players[S.cur];closeModal();
+  // one chance to buy cigarette packs from crooked CO at $1K/pack
+  const maxPacks=Math.min(30,Math.floor(p.cash/1));
+  if(maxPacks<1){ doArrest(p,years); return; }
+  const el=document.getElementById("cardEl");
+  el.innerHTML=`<div class="lbl" style="background:${p.color}">CROOKED CO</div>
+    <div class="art">~/~</div><div class="ttl">One last deal</div>
+    <div class="bd">A crooked corrections officer slides up before you're processed. "Packs keep you breathing in there. $1K each. How many?"</div>
+    <div class="out">Cigarettes protect you inside — no packs = you get beaten (hospital). You can afford up to ${maxPacks}.</div>
+    <div class="go">
+      <button onclick="buyCigs(5,${years})">[ 5 · $5K ]</button>
+      <button onclick="buyCigs(10,${years})">[ 10 · $10K ]</button>
+      <button class="amber" onclick="buyCigs(${maxPacks},${years})">[ MAX ${maxPacks} ]</button>
+      <button onclick="buyCigs(0,${years})">[ NONE ]</button>
+    </div>
+    ${statusBar()}`;
+  openModal();
+}
+function buyCigs(n,years){const p=S.players[S.cur];n=Math.min(n,Math.floor(p.cash/1));p.cash-=n;p.packs+=n;if(n>0)log(p.name+" buys "+n+" cigarette packs from the CO (-$"+n+"K).","warn");closeModal();doArrest(p,years);}
+function doArrest(p,years){
+  p.inJail=true;p.ring="outer";p.pos=30;p.sentence=0;p._pendingYears=years;
+  log(p.name+" ARRESTED → JAIL. Awaiting court.","bad");
+  render();finish();
+}
+function drawCourt(){ const p=S.players[S.cur]; log(p.name+"'s court day.","warn");
+  p.sentence = p._pendingYears || 5; p._pendingYears=null;
+  const card=draw("court"); document.getElementById("cardEl")._card=card;document.getElementById("cardEl")._deck="court";
+  renderStoryCard(card,"court",p.ai); openModal(); }
+function sendToPrison(p){p.inJail=false;p.ring="inner";p.pos=0;log(p.name+" enters PRISON. Serve "+p.sentence+"y (1 lap = 1 year). Packs: "+p.packs,"warn");}
+function releaseFromPrison(p){p.ring="outer";p.pos=30;p.packs=0;log(p.name+" walks out of prison.","good");render();finish();}
+
+/* ===== HOSPITAL (death only here) ===== */
+function toHospital(p,visits){
+  // Soldiers act as bodyguards: when you're FREE (not in prison) and have a soldier,
+  // one can take the beating and go to the hospital in your place.
+  if(p.ring!=="inner" && p.crew>0){
+    if(p.ai){ p.crew--; log(p.name+"'s soldier takes the beating and goes to the hospital. "+p.name+" walks away.","good"); render(); finish(); return; }
+    p._hospPending=visits;
+    const el=document.getElementById("cardEl");
+    el.innerHTML=`<div class="lbl" style="background:${p.color}">JUMPED!</div>
+      <div class="ttl">Take the beating?</div>
+      <div class="bd">You're about to get hurt bad. One of your soldiers (${manIcon(p.color)} ${p.crew}) can step in and take it — he goes to the hospital, you walk away clean.</div>
+      <div class="go">
+        <button class="amber" onclick="soldierTakesBeating()">[ SOLDIER TAKES IT (-1) ]</button>
+        <button class="red" onclick="hospProceed()">[ TAKE IT YOURSELF ]</button></div>
+      ${statusBar()}`;
+    openModal();return;
+  }
+  doHospital(p,visits);
+}
+function soldierTakesBeating(){const p=S.players[S.cur];p.crew--;p._hospPending=null;log(p.name+"'s soldier takes the beating and goes to the hospital. "+p.name+" walks away.","good");closeModal();render();finish();}
+function hospProceed(){const p=S.players[S.cur];const v=p._hospPending||1;p._hospPending=null;closeModal();doHospital(p,v);}
+function doHospital(p,visits){
+  p.hosp+=visits;p.cleanLaps=0;log(p.name+" HOSPITALIZED (visit "+p.hosp+"/3).","bad");
+  if(p.hosp>=3){log(p.name+" flatlines — 3 visits.","bad");killPlayer(p);return;}
+  const card=draw("hospital");
+  if(p.ai){ p.cash-=card.cost; log(p.name+" checks out (-$"+card.cost+"K).","warn"); finish(); return; }
+  const el=document.getElementById("cardEl");
+  el.innerHTML=`<div class="lbl" style="background:${p.color}">HOSPITAL</div><div class="art">${ART.hospital}</div>
+    <div class="ttl">${card.ttl}</div><div class="bd">${card.bd}</div>
+    <div class="out">Medical bill: $${card.cost}K</div>
+    <div class="go"><button onclick="leaveHospital(${card.cost})">[ CHECK OUT ]</button></div>${statusBar()}`;
+  openModal();
+}
+function leaveHospital(cost){const p=S.players[S.cur];p.cash-=cost;closeModal();log(p.name+" checks out (-$"+cost+"K)"+(p.cash<0?" — now "+fmtK(p.cash)+" in the red":"")+".","warn");finish();}
+
+/* ===== DEATH / WIN ===== */
+function killPlayer(p){
+  if(p.respawns>0){
+    p.respawns--;log(p.name+" DIES at "+p.age+" — but claws back for one more life. Empire wiped.","bad");
+    const rc=(setupData.startCash??100);
+    p.owns=new Map();p.cash=rc;p.crew=0;p.packs=0;p.hosp=0;p.cleanLaps=0;p.inJail=false;p.sentence=0;p.ring="outer";p.pos=0;p.skip=0;p.crimes.push("(reborn)");
+    render();finish();
+  } else {
+    p.alive=false;p.diedAt=p.age;log(p.name+" DIES for good at "+p.age+". OUT.","bad");
+    render();
+    showDeathAnnounce(p); // big announcement → RIP memorial
+  }
+}
+function showDeathAnnounce(p){
+  const el=document.getElementById("cardEl");
+  el.innerHTML=`<div class="lbl" style="background:#7a0d0d">PLAYER DOWN</div>
+    <div style="text-align:center;font-size:44px;line-height:1.1;margin:10px 0;letter-spacing:2px">x_x</div>
+    <div class="ttl" style="color:${p.color};text-align:center;font-size:30px">${p.name} IS DEAD</div>
+    <div class="sub" style="text-align:center;font-size:16px">Gunned down at <b>${p.diedAt}</b> years old.<br>Started this life at 15. The game caught up with them.</div>
+    <div class="go"><button class="red" onclick="showRIP(${p.id})">[ MEMORIAL ]</button></div>`;
+  openModal();
+}
+
+function ripEpitaph(p){
+  const list=p.crimes.filter(c=>typeof c==="object");
+  const n=list.length;
+  const heists=list.filter(c=>/Robbery|Larceny|Burglary/i.test(c.name)).length;
+  const hits=list.filter(c=>/Murder|Homicide|Manslaughter/i.test(c.name)).length;
+  const drugs=list.filter(c=>/Distribute|Trafficking|Narcotics|Controlled/i.test(c.name)).length;
+  const totalYears=totalChargeYears(p);
+  let kind="a small-time crook";
+  if(n>=12)kind="a legendary crime boss";
+  else if(n>=7)kind="a feared kingpin";
+  else if(n>=3)kind="a rising name in the underworld";
+  let spec="";
+  if(heists>=hits&&heists>=drugs&&heists>0)spec=" — the city's boldest thief";
+  else if(hits>=drugs&&hits>0)spec=" — a ruthless triggerman";
+  else if(drugs>0)spec=" — a product mover who fed the streets";
+  return {kind,spec,n,heists,hits,drugs,totalYears};
+}
+function showRIP(id){
+  const p=(typeof id==="object")?id:S.players[id];
+  const e=ripEpitaph(p);
+  const died=(p.diedAt!==undefined?p.diedAt:p.age);
+  const el=document.getElementById("cardEl");
+  el.innerHTML=`<div class="lbl" style="background:${p.color}">R · I · P</div>
+    <div class="art">[ + ]</div>
+    <div class="ttl" style="color:${p.color}">${p.name}</div>
+    <div class="sub">Age 15 – ${died} &nbsp;·&nbsp; Here lies ${e.kind}${e.spec}.</div>
+    <div class="out">Died at <b>${died}</b> years old\nRap sheet: ${e.n} charges · ${e.totalYears}y exposure\n${e.heists} robberies · ${e.hits} murders · ${e.drugs} drug charges\nThe streets will remember the name.</div>
+    <div class="go"><button onclick="afterRIP()">[ LAY TO REST ]</button></div>`;
+  openModal();
+}
+function afterRIP(){
+  closeModal();
+  const alive=S.players.filter(p=>p.alive);
+  if(alive.length<=1){ S.over=true; showGameOver(alive[0]); updateControls(); return; }
+  // game continues — advance past the dead player
+  S.rolled=true; // allow endTurn to proceed
+  endTurn();
+}
+function checkWin(){const alive=S.players.filter(p=>p.alive);if(alive.length<=1){S.over=true;setTimeout(()=>showGameOver(alive[0]),300);updateControls();}}
+function showGameOver(winner){
+  const el=document.getElementById("cardEl");
+  const w=winner?winner:null;
+  el.innerHTML=`<div class="lbl" style="background:${w?w.color:'#888'}">LAST BOSS STANDING</div>
+    <div style="text-align:center;font-size:40px;line-height:1.1;margin:8px 0;letter-spacing:2px">#1</div>
+    <div class="ttl" style="color:${w?w.color:'#fff'};text-align:center;font-size:28px">${w?w.name+" WINS":"No survivors"}</div>
+    <div class="sub" style="text-align:center">${w?("Survived to <b>"+w.age+"</b> years old — started at 15 and outlived them all. The city is theirs."):"Everyone's dead. The streets win."}</div>
+    <div class="out">${w?"Age "+w.age+" · Net worth "+fmtK(netWorth(w))+" · "+w.owns.size+" turf · "+manIcon(w.color)+" "+w.crew:"—"}</div>
+    <div class="go"><button onclick="location.reload()">[ NEW GAME ]</button></div>`;
+  openModal();
+}
+
+/* ===== CHARGES (real charge names + years) ===== */
+const CHARGES={
+  heist:  ["Armed Robbery","Grand Larceny","Burglary in the First Degree","Bank Robbery"],
+  hitman: ["Murder in the First Degree","Conspiracy to Commit Murder","Manslaughter","Criminal Homicide"],
+  drug:   ["Possession with Intent to Distribute","Drug Trafficking","Operating a Narcotics Enterprise","Manufacturing a Controlled Substance"],
+  party:  ["Driving Under the Influence","Assault in the Third Degree","Disorderly Conduct","Illegal Gambling"],
+  raid:   ["Possession of Contraband","Resisting Arrest","Criminal Possession of a Weapon"],
+  riot:   ["Inciting a Riot","Aggravated Assault","Escape in the First Degree"],
+};
+function chargeYears(deck,c){
+  // years exposure = the arrest term on the card, or a sensible default per type
+  if(c && c.arr!==undefined) return c.arr==="LIFE"?99:c.arr;
+  const def={heist:5,hitman:15,drug:8,party:1,raid:2,riot:10};
+  return def[deck]||1;
+}
+function recordCharge(p,deck,c){
+  const pool=CHARGES[deck];
+  if(!pool) return; // non-criminal cards (fate, cop, court) don't add charges
+  // party only counts the arrest-type ones as charges
+  if(deck==="party" && !c.raidArr && c.tag!=="arrest") return;
+  const name=pool[Math.floor(Math.random()*pool.length)];
+  const years=chargeYears(deck,c);
+  p.crimes.push({name,years,lvl:c&&c.lvl?c.lvl:null});
+}
+function totalChargeYears(p){return p.crimes.reduce((s,ch)=>s+(typeof ch==="object"?(ch.years===99?0:ch.years):0),0);}
+function hasLifeCharge(p){return p.crimes.some(ch=>typeof ch==="object"&&ch.years===99);}
+/* ===== NET WORTH: cash + everything invested in businesses & property ===== */
+function assetValue(p){let a=0;p.owns.forEach((cnt,idx)=>{const cell=OUTER[idx];const unit=cell.incomeBase||cell.price||cell.income||0;a+=unit*cnt;});return a;}
+function netWorth(p){return p.cash+assetValue(p);}
+
+/* ===== NETWORK (contacts the player builds up) ===== */
+const NETWORK_ROLES=[
+  ["money launder","Money Launderer"],["launder","Money Launderer"],
+  ["arms dealer","Arms Dealer"],["counterfeiter","Counterfeiter"],
+  ["forger","Forger"],["hacker","Hacker"],["fence","Fence"],
+  ["car-theft","Car-Theft Pro"],["chop shop","Chop Shop"],
+  ["accountant","Corrupt Accountant"],["gang leader","Gang Leader"],
+  ["cartel","Cartel Contact"],["supplier","Supplier"],
+  ["bank robber","Bank Robber"],["stickup man","Stickup Man"],
+  ["crew boss","Crew Boss"],["smuggler","Smuggler"],
+  ["private investigator","Private Eye"],["dispatcher","Police Dispatcher"],
+  ["sergeant","Crooked Sergeant"],["detective","Crooked Detective"],
+  ["captain","Crooked Captain"],["politician","Politician"],
+  ["judge","Judge on the Take"],["lawyer","Lawyer"],["officer","Crooked Cop"],
+  ["cop","Crooked Cop"],
+];
+function recordNetwork(p,deck,c){
+  if(!p.network)p.network=[];
+  // only contact-building cards: visit/cop connections, or fate favors that add crew/get-out cards.
+  const positive=(c.cut>0)||c.crew||c.freeArrest;
+  const contactDeck=(deck==="visit"||deck==="cop"||deck==="fate");
+  if(!contactDeck||!positive)return;
+  const t=(c.bd||"").toLowerCase();
+  for(const [kw,label] of NETWORK_ROLES){
+    if(t.includes(kw)){
+      const ex=p.network.find(n=>n.role===label);
+      if(ex)ex.n++; else p.network.push({role:label,n:1});
+      return;
+    }
+  }
+  // a generic connection if it's clearly a favor but no role matched
+  if(deck==="cop"){const ex=p.network.find(n=>n.role==="Crooked Cop");if(ex)ex.n++;else p.network.push({role:"Crooked Cop",n:1});}
+}
+
+/* ===== PROFILE (crime record) ===== */
+function showProfile(id){
+  const p=S.players[id];const el=document.getElementById("cardEl");
+  // build charge list (handle both old string format and new object format)
+  const list=p.crimes.filter(c=>typeof c==="object");
+  const rebornCount=p.crimes.filter(c=>c==="(reborn)").length;
+  const crimeRows=list.length
+    ? list.map(ch=>`<div style="display:flex;justify-content:space-between;gap:8px"><span>▪ ${ch.name}${ch.lvl?" ("+ch.lvl+")":""}</span><span style="opacity:.8;white-space:nowrap">${ch.years===99?"LIFE":ch.years+"y"}</span></div>`).join("")
+    : "<div>clean record (so far)</div>";
+  const total=totalChargeYears(p);
+  const lifeTag=hasLifeCharge(p)?" + LIFE":"";
+  const joj=p.freeArrest>0?`<div style="color:var(--phos);margin-top:4px">★ ${p.freeArrest} get-out-of-jail card(s)</div>`:"";
+  const rebornTag=rebornCount>0?`<div style="opacity:.6;margin-top:4px">reborn ${rebornCount}×</div>`:"";
+  const assets=assetValue(p);const worth=p.cash+assets;
+  const assetRows=p.owns.size
+    ? Array.from(p.owns.entries()).map(([idx,cnt])=>{const cell=OUTER[idx];const unit=cell.incomeBase||cell.price||cell.income||0;return `<div style="display:flex;justify-content:space-between;gap:8px"><span>◦ ${cell.t} ×${cnt}</span><span style="opacity:.85">${fmtK(unit*cnt)}</span></div>`;}).join("")
+    : "<div style='opacity:.6'>no businesses or property yet</div>";
+  el.innerHTML=`<div class="lbl" style="background:${p.color}">RAP SHEET</div>
+    <div class="ttl" style="color:${p.color}">${p.name}</div>
+    <div class="sub">${manIcon(p.color)} ${p.crew} soldiers · Turf ${p.owns.size} · Age ${p.age} · Health ${3-p.hosp}/3${p.ring==="inner"?" · "+p.packs+" packs":""}</div>
+    <div class="out" style="margin-bottom:2px;font-size:18px;color:var(--gold-lt)">NET WORTH: ${fmtK(worth)}</div>
+    <div class="out" style="margin-bottom:8px;opacity:.9">Cash ${fmtK(p.cash)} · Invested ${fmtK(assets)}</div>
+    <div class="out" style="max-height:110px;overflow:auto;background:#0d1510;border-left:4px solid var(--gold)"><div class="profile-crimes">${assetRows}</div></div>
+    <div class="out" style="margin-top:8px;margin-bottom:4px">CHARGES: ${list.length} · exposure ${total}y${lifeTag}</div>
+    <div class="out" style="max-height:100px;overflow:auto;background:#0d1510;border-left:4px solid ${p.color}"><div class="profile-crimes">${crimeRows}</div></div>
+    ${joj}${rebornTag}
+    <div class="go"><button onclick="closeModal()">[ CLOSE ]</button></div>`;
+  openModal();
+}
+
+/* ===== TURN ADVANCE ===== */
+function finish(){render();updateControls();
+  if(S.over||!S.rolled) return;
+  // auto-advance the turn once the move is fully resolved and no modal is open
+  const delay=S.players[S.cur].ai?700:600;
+  setTimeout(()=>{ if(!document.getElementById("modal").classList.contains("on") && S.rolled && !S.over) endTurn(); }, delay);
+}
+function endTurn(){ if(S.over)return; if(!S.rolled)return;
+  let g=0;
+  do{ S.cur=(S.cur+1)%S.n; if(S.cur===0){S.turn++;newRound();} g++;
+    const np=S.players[S.cur];
+    if(np.alive&&np.skip>0){np.skip--;log(np.name+" sits out (recovering).");continue;}
+    if(np.alive)break;
+  }while(g<30);
+  S.rolled=false;drawDie(0);document.getElementById("diceLbl").textContent="roll to move";
+  render();updateControls();
+  const np=S.players[S.cur];
+  if(np.ai&&!S.over){ setTimeout(()=>rollDiceAI(),700); }
+}
+function rollDiceAI(){ if(S.players[S.cur].ai&&!S.rolled){ rollDice(); } }
+
+/* ===== AI helpers ===== */
+function aiBuyStreet(idx,c){const p=S.players[S.cur];if(p.cash>=c.price*2){p.cash-=c.price;p.owns.set(idx,1);log(p.name+" claims "+c.t+".","good");}else log(p.name+" passes on "+c.t+".");render();finish();}
+function aiBuyBiz(idx,c){const p=S.players[S.cur];if(p.cash>=c.income*1.5){p.cash-=c.income;p.owns.set(idx,1);log(p.name+" opens "+c.t+".","good");}else log(p.name+" passes on "+c.t+".");render();finish();}
+
+/* ===== helpers ===== */
+function payTo(p,owner,amt,reason){if(p.cash>=amt){p.cash-=amt;owner.cash+=amt;log(p.name+" pays "+fmtK(amt)+" to "+owner.name+" ("+reason+").","warn");}else{log(p.name+" can't cover "+reason+".","warn");p.cash-=amt;afterMoney(p);}}
+function statusBar(){const p=S.players[S.cur];const wealth=p.ring==="inner"?`<span>PACKS: ${p.packs}</span>`:`<span>${fmtK(p.cash)}</span>`;
+  return `<div class="status" style="background:${p.color}"><span>${p.name}</span>${wealth}<span>SOL: ${p.crew}</span><span>TURF: ${p.owns.size}</span></div>`;}
+function openModal(){document.getElementById("modal").classList.add("on");}
+function closeModal(){document.getElementById("modal").classList.remove("on");}
+
+/* ===== BOOT ===== */
+renderSetupStart();
+</script>
+</body>
+</html>
