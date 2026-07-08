@@ -939,9 +939,8 @@ function applyCard(){
   p._sentToHospital=false;
 }
 function afterMoney(p){
-  // Cash can go negative — being broke no longer sends you to the hospital.
-  if(p.cash<0){ log(p.name+" is in the red: "+fmtK(p.cash)+".","warn"); }
-  p._sentToHospital=false;
+  // Being broke sends you to the hospital (broke = you get hurt). The hospital BILL is what's allowed to go negative (handled in leaveHospital).
+  if(p.cash<0){ log(p.name+" is broke — rushed to the HOSPITAL.","bad"); p._sentToHospital=true; p.cash=0; toHospital(p,1); }
 }
 
 /* ===== LAW ===== */
