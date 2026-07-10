@@ -14,6 +14,8 @@
       radial-gradient(ellipse at center, #041206 0%, #010602 78%);
     color:var(--phos);font-family:"Courier New",Courier,monospace;font-size:16px;line-height:1.45;overflow:hidden;
     text-shadow:0 0 2px rgba(57,255,116,.5),0 0 6px rgba(57,255,116,.18)}
+  /* ALL-GREEN old-PC-DOS mode: force everything to monochrome phosphor green */
+  body.greendos{filter:grayscale(1) sepia(1) hue-rotate(70deg) saturate(6) contrast(1.05) brightness(1.02);}
   /* fine scanlines */
   .crt::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:50;
     background:repeating-linear-gradient(0deg,rgba(0,0,0,.28) 0 1px,transparent 1px 3px);opacity:.55}
@@ -117,8 +119,76 @@
   .profile-crimes{font-size:11px;text-align:left;margin-top:6px;max-height:120px;overflow:auto}
   .profile-crimes div{padding:1px 0;border-bottom:1px solid var(--phos-dark)}
 </style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+<style id="dosskin">
+  :root{
+    --phos:#33ff44; --phos-dim:#1f9e2a; --phos-dark:#0c3f14;
+    --amber:#33ff44; --red:#33ff44; --bg:#000000;
+  }
+  body.bw{--phos:#e8e8e8; --phos-dim:#8a8a8a; --phos-dark:#3a3a3a; --amber:#e8e8e8; --red:#e8e8e8;}
+  /* ONE font everywhere — logo, setup, board, cards, boot */
+  *{font-family:'VT323','Perfect DOS VGA 437','PxPlus IBM VGA8',Consolas,'Courier New',monospace !important;}
+  #setup pre{font-size:clamp(14px,4vw,22px) !important;line-height:1.2 !important;}
+  /* ONE color for ALL text — kills every player color / red / amber */
+  *{color:var(--phos) !important; text-shadow:none !important; box-shadow:none !important;}
+  /* EVERYTHING black — no gradients, no green shading (incl. empty board slots) */
+  html,body,#screen,#setup,.bar,.panel,#board,.cell,.card,#log,.psetup,.choice,.controls,#players,#diceBox,#die,.pill,input,button,#dosgate{background:#000 !important;background-image:none !important;}
+  body.crt::before, body.crt::after{display:none !important;}
+  /* ONE border color; brighter for framed/interactive things */
+  *{border-color:var(--phos-dark) !important;}
+  button,.card,#die,#turnBanner,#dosgate{border-color:var(--phos) !important;}
+  body.crt{font-size:18px; letter-spacing:.4px;}
+
+  /* INVERTED BOXES: phosphor fill, BLACK text (DOS highlight bar) */
+  .lbl,.card .lbl,.panel h2,#turnBanner,.dosbar,.card .status{background:var(--phos) !important;border:none !important;padding:2px 7px;}
+  .lbl,.lbl *,.card .lbl,.card .lbl *,.panel h2,.panel h2 *,#turnBanner,#turnBanner *,.dosbar,.dosbar *,.card .status,.card .status *{color:#000 !important;}
+  /* buttons = DOS menu items */
+  button{border-radius:0 !important;border:1px solid var(--phos) !important;padding:8px 12px;}
+  button:hover,button:focus,button:active{background:var(--phos) !important;color:#000 !important;}
+  button:hover *,button:focus *,button:active *{color:#000 !important;}
+  /* board cells: pure black, single border, NO shading anywhere */
+  .cell{border:1px solid var(--phos-dim) !important;border-radius:0 !important;}
+  .cell.here{background:#000 !important;border:1px solid var(--phos) !important;}
+  /* die = plain black box, lit pips */
+  .pip{background:var(--phos) !important;border-radius:50% !important;}
+  /* swatches -> uniform mono boxes (no color) */
+  .sw{border:2px solid var(--phos-dim) !important;border-radius:0 !important;}
+  .sw.sel{border-color:var(--phos) !important;}
+  /* svg icons -> one color */
+  svg *{fill:var(--phos) !important;stroke:var(--phos) !important;}
+
+  /* ---- blinking ---- */
+  @keyframes dosblink{0%,49%{opacity:1}50%,100%{opacity:0}}
+  .blink{animation:dosblink 1.05s steps(1) infinite;}
+
+  /* password + boot terminal overlay */
+  #dosgate{position:fixed;inset:0;z-index:9999;padding:20px 16px;overflow:hidden;font-size:20px;line-height:1.32;}
+  #dosgate pre{margin:0;white-space:pre-wrap;word-break:break-word;font-size:inherit;line-height:inherit;}
+  #dosgate.hidden{display:none;}
+
+  /* ---- player identity PATTERNS (mono, no color) ---- */
+  .patchip{display:inline-block;width:13px;height:13px;vertical-align:middle;border:1px solid var(--phos);background-color:#000;}
+  .toks .patchip.tok{width:14px;height:14px;margin-left:2px;}
+  .pat-solid{background:var(--phos) !important;}
+  .pat-inv{background:#000 !important;border:2px solid var(--phos) !important;}
+  .pat-vstripe{background:repeating-linear-gradient(90deg,var(--phos) 0 2px,#000 2px 4px) !important;}
+  .pat-hstripe{background:repeating-linear-gradient(0deg,var(--phos) 0 2px,#000 2px 4px) !important;}
+  .pat-dots{background:radial-gradient(var(--phos) 34%,#000 36%) 0 0/5px 5px,#000 !important;}
+  .pat-checker{background:conic-gradient(var(--phos) 90deg,#000 0 180deg,var(--phos) 0 270deg,#000 0) 0 0/6px 6px,#000 !important;}
+  .swatches{gap:10px !important;}
+  .swatches .sw{width:32px !important;height:32px !important;}
+
+  /* ---- card text: bigger, upright, plain DOS (no italic) ---- */
+  .card .ttl{font-size:26px !important;font-style:normal !important;}
+  .card .bd{font-size:20px !important;font-style:normal !important;line-height:1.4 !important;}
+  .card .sub{font-size:16px !important;font-style:normal !important;}
+  .card .out{font-size:18px !important;font-style:normal !important;background:#000 !important;border:1px solid var(--phos) !important;border-left:3px solid var(--phos) !important;}
+</style>
 </head>
 <body class="crt">
+<div id="dosgate"><pre id="dosout"></pre></div>
 
 <div id="setup">
 <pre>
@@ -127,7 +197,7 @@
  ██     ██████  ██ ██ █ ██ ██ ██ █ ██ ███████ ██
  ██     ██   ██ ██ ██   ██ ██ ██  ███ ██   ██ ██
   ██████ ██  ██ ██ ██   ██ ██ ██   ██ ██   ██ ███████
-        L · I · F · E    //   crime terminal v6.6
+        L · I · F · E    //   crime terminal v7.1
 </pre>
 <div id="setupStage"></div>
 </div>
@@ -155,7 +225,7 @@
         <button id="commitCrimeBtn" onclick="commitCrime()" style="display:none">[ COMMIT CRIME ]</button>
         <button id="buyWorkersBtn" onclick="openBuyWorkers()" style="display:none">[ HIRE WORKERS ]</button>
         <button id="sellAssetsBtn" onclick="openSellAssets()" style="display:none">[ SELL ASSETS ]</button>
-        <button id="colorsBtn" onclick="openColorPicker()">[ TEAM COLORS ]</button>
+        <button id="greenBtn" onclick="toggleGreenDos()">[ MODE: GREEN ]</button>
         <button id="followBtn" onclick="toggleFollow()">[ FOLLOW: OFF ]</button>
       </div>
       <div class="ctx" id="ctxHint"></div>
@@ -170,6 +240,10 @@
 const COLORS=[
   {n:"white",c:"#f5f5f5"},{n:"red",c:"#e01e1e"},{n:"green",c:"#1fb84a"},
   {n:"yellow",c:"#e6c200"},{n:"orange",c:"#e8720c"},{n:"blue",c:"#2f6fe0"}
+];
+const PATTERNS=[
+  {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
+  {k:"hstripe",label:"horizontal"},{k:"dots",label:"dots"},{k:"checker",label:"checker"}
 ];
 
 /* ===== BOARD: ~40 spaces, HEIST at bottom-left corner = START. Fewer streets, more events. ===== */
@@ -245,13 +319,13 @@ function draw(deck){
 
 /* ===== STATE ===== */
 let S=null;
-function newPlayer(i,name,color){return{id:i,name:name||("P"+(i+1)),color:color,ring:"outer",pos:0,
+function newPlayer(i,name,pattern){return{id:i,name:name||("P"+(i+1)),color:"#33ff44",pattern:pattern||"solid",ring:"outer",pos:0,
   cash:100,crew:0,packs:0,alive:true,respawns:0,hosp:0,cleanLaps:0,
   inJail:false,sentence:0,owns:new Map(),skip:0,freeArrest:0,freeRaid:0,
   crimes:[],network:[],stayCount:0,age:15,crimeOps:3};}
 
 /* ===== SETUP FLOW ===== */
-let setupData={n:0,players:[],idx:0,difficulty:null,startCash:100};
+let setupData={n:0,players:[],idx:0,difficulty:null,startCash:100,dice:1};
 const DIFFICULTY={
   EASY:  {cash:1000, label:"EASY", flavor:"You pulled off the score of a lifetime - a central bank vault. You start rich, but everyone's watching."},
   MEDIUM:{cash:250,  label:"MEDIUM", flavor:"You knocked over an armored truck and walked with a solid stake. Enough to build on."},
@@ -283,6 +357,18 @@ function chooseDifficulty(d){
 }
 function afterDifficulty(){
   document.getElementById("setupStage").innerHTML=`
+   <div style="font-size:15px;letter-spacing:1px">GAME SPEED<span style="animation:none">_</span></div>
+   <div style="font-size:12px;opacity:.7;margin-bottom:4px">how many dice you roll — more dice, faster laps</div>
+   <div class="choice">
+     <button onclick="chooseSpeed(1)">[ SLOW · 1 die ]</button>
+     <button onclick="chooseSpeed(2)">[ NORMAL · 2 dice ]</button>
+     <button onclick="chooseSpeed(3)">[ FAST · 3 dice ]</button>
+   </div>
+   <div class="hint">A full lap of the outer ring is one year. Fewer dice = a slower, grittier climb; more dice = the years fly by. Any player with 10+ soldiers rolls one extra die.</div>`;
+}
+function chooseSpeed(n){ setupData.dice=n; afterSpeed(); }
+function afterSpeed(){
+  document.getElementById("setupStage").innerHTML=`
    <div style="font-size:15px;letter-spacing:1px">SELECT PLAYERS<span style="animation:none">_</span></div>
    <div style="font-size:12px;opacity:.7;margin-bottom:4px">1 player = you vs the AI · 2-6 = pass & play</div>
    <div class="choice">
@@ -300,13 +386,13 @@ function nextPlayerSetup(){
   const total=setupData.ai?2:setupData.n; // 1p mode => you + 1 AI
   if(i>=total){ launch(); return; }
   const isAI=setupData.ai && i===1;
-  const used=setupData.players.map(p=>p.color);
-  const sw=COLORS.map(c=>`<div class="sw ${used.includes(c.c)?'':''}" style="background:${c.c};${used.includes(c.c)?'opacity:.25;pointer-events:none':''}" data-c="${c.c}" onclick="pickColor(this)"></div>`).join("");
+  const used=setupData.players.map(p=>p.pattern);
+  const sw=PATTERNS.map(pt=>`<div class="sw pat-${pt.k}" style="${used.includes(pt.k)?'opacity:.2;pointer-events:none':''}" data-c="${pt.k}" title="${pt.label}" onclick="pickColor(this)"></div>`).join("");
   document.getElementById("setupStage").innerHTML=`
     <div class="psetup">
       <div style="font-size:13px;letter-spacing:1px">${isAI?"AI OPPONENT":"PLAYER "+(i+1)} SETUP</div>
       <input id="pname" placeholder="${isAI?'CPU':'name'}" value="${isAI?'CPU':''}" maxlength="10" ${isAI?'disabled':''}>
-      <div style="font-size:11px;opacity:.7">pick a color</div>
+      <div style="font-size:11px;opacity:.7">pick a pattern</div>
       <div class="swatches">${sw}</div>
       <button onclick="confirmPlayer(${isAI})">[ CONFIRM ]</button>
     </div>`;
@@ -315,15 +401,15 @@ function nextPlayerSetup(){
 function pickColor(el){document.querySelectorAll('.sw').forEach(s=>s.classList.remove('sel'));el.classList.add('sel');window._pickColor=el.dataset.c;}
 function confirmPlayer(isAI){
   const name=document.getElementById("pname").value.trim()||(isAI?"CPU":("P"+(setupData.idx+1)));
-  let color=window._pickColor;
-  if(!color){ const used=setupData.players.map(p=>p.color); color=(COLORS.find(c=>!used.includes(c.c))||COLORS[0]).c; }
-  setupData.players.push({name,color,ai:isAI});
+  let pattern=window._pickColor;
+  if(!pattern){ const used=setupData.players.map(p=>p.pattern); pattern=(PATTERNS.find(pt=>!used.includes(pt.k))||PATTERNS[0]).k; }
+  setupData.players.push({name,pattern,ai:isAI});
   setupData.idx++; nextPlayerSetup();
 }
 function launch(){
-  S={turn:1,cur:0,n:setupData.players.length,rolled:false,over:false,ai:setupData.ai,roundEvents:[]};
+  S={turn:1,cur:0,n:setupData.players.length,rolled:false,over:false,ai:setupData.ai,roundEvents:[],baseDice:(setupData.dice||1)};
   const startCash=(setupData.startCash??100);
-  S.players=setupData.players.map((p,i)=>{const pl=newPlayer(i,p.name,p.color);pl.ai=p.ai;pl.cash=startCash;return pl;});
+  S.players=setupData.players.map((p,i)=>{const pl=newPlayer(i,p.name,p.pattern);pl.ai=p.ai;pl.cash=startCash;return pl;});
   document.getElementById("setup").style.display="none";
   document.getElementById("screen").style.display="flex";
   buildBoardGrid();
@@ -368,11 +454,11 @@ function render(){
     cell.classList.remove("here");cell.style.background="";cell.style.borderColor="";
     const ownerP=ring==="outer"?S.players.find(p=>p.owns.has(idx)):null;
     let ownHtml="";
-    if(ownerP){cell.style.borderColor=ownerP.color;ownHtml=`<span class="own" style="color:${ownerP.color}">${ownerP.name[0]}·${ownerP.owns.get(idx)}</span>`;}
+    if(ownerP){ownHtml=`<span class="own"><span class="patchip pat-${ownerP.pattern||'solid'}"></span>${ownerP.owns.get(idx)}</span>`;}
     const cp=S.players[S.cur];
     if(cp.ring===ring&&cp.pos===idx){cell.classList.add("here");cell.style.background=hexA(cp.color,.18);cell.style.borderColor=cp.color;}
     const toks=S.players.filter(p=>p.alive&&p.ring===ring&&p.pos===idx)
-      .map(p=>`<span style="color:${p.color}">${p.name[0]}</span>`).join("");
+      .map(p=>`<span class="patchip tok pat-${p.pattern||'solid'}"></span>`).join("");
     cell.innerHTML=`${ownHtml}<span class="ic">${data.ic}</span><span class="nm">${data.t}</span>`+(toks?`<span class="toks">${toks}</span>`:"");
   });
   const pl=document.getElementById("players");pl.innerHTML="";
@@ -383,7 +469,7 @@ function render(){
     const hp=p.alive?("♥".repeat(Math.max(0,3-p.hosp))+"·".repeat(p.hosp)):"DEAD";
     let loc=p.inJail?"JAIL(await court)":p.ring==="inner"?("PRISON "+p.sentence+"y"):OUTER[p.pos].t;
     const joj=p.freeArrest>0?`<span class="tag">JOJ×${p.freeArrest}</span>`:"";
-    d.innerHTML=`<div class="row"><span class="nm" style="color:${p.color}">${p.name}${joj}</span><span>${hp}</span></div>
+    d.innerHTML=`<div class="row"><span class="nm"><span class="patchip pat-${p.pattern||'solid'}"></span> ${p.name}${joj}</span><span>${hp}</span></div>
       <div class="row"><span>${fmtK(p.cash)}</span><span>${p.ring==="inner"?("pk "+p.packs):soldierIcons(p.color,p.crew)}</span></div>
       <div class="row" style="opacity:.6;font-size:10px"><span>${loc}</span><span>${p.age}yo</span></div>`;
     pl.appendChild(d);
@@ -443,14 +529,14 @@ function openSellAssets(){
   const el=document.getElementById("cardEl");
   const rows=Array.from(p.owns.entries());
   const body = rows.length ? rows.map(([idx,cnt])=>{
-    const c=OUTER[idx];const per=c.incomeBase||c.price||c.income||0;const val=Math.round(per*cnt*0.6);
+    const c=OUTER[idx];const per=c.incomeBase||c.price||c.income||0;const val=Math.round(per*cnt);
     return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin:3px 0;border-bottom:1px solid #1a2a1a;padding-bottom:4px">
       <span>${c.t} x${cnt}<br><span style="opacity:.6;font-size:11px">worth ${fmtK(per*cnt)}</span></span>
       <button class="red" onclick="sellAssetFromMenu(${idx})">[ SELL ${fmtK(val)} ]</button></div>`;
   }).join("") : "<div style='opacity:.6'>You own nothing to sell.</div>";
   el.innerHTML=`<div class="lbl" style="background:${p.color}">SELL ASSETS</div>
     <div class="ttl">Cash out</div>
-    <div class="bd">Sell any property or business for 60% of its value to cover debts or free up cash. This does NOT end your turn.</div>
+    <div class="bd">Sell any property or business back for the full price you paid, to cover debts or free up cash. This does NOT end your turn.</div>
     <div class="out">Cash on hand: ${fmtK(p.cash)}</div>
     <div class="out" style="max-height:210px;overflow:auto;background:#0d1510;border-left:4px solid ${p.color}">${body}</div>
     <div class="go"><button onclick="closeModal()">[ DONE ]</button></div>`;
@@ -458,7 +544,7 @@ function openSellAssets(){
 }
 function sellAssetFromMenu(idx){
   const p=S.players[S.cur];const c=OUTER[idx];const cnt=p.owns.get(idx);if(!cnt)return;
-  const per=c.incomeBase||c.price||c.income||0;const val=Math.round(per*cnt*0.6);
+  const per=c.incomeBase||c.price||c.income||0;const val=Math.round(per*cnt);
   p.cash+=val;p.owns.delete(idx);
   log(p.name+" sells "+c.t+" (x"+cnt+") for "+fmtK(val)+".","warn");
   render();openSellAssets();
@@ -468,9 +554,14 @@ function sellAssetFromMenu(idx){
 function rollDice(){
   const p=S.players[S.cur];if(S.rolled||!p.alive)return;
   const die=document.getElementById("die");die.classList.add("rolling");
-  const r=1+Math.floor(Math.random()*6);let t=0;
-  const iv=setInterval(()=>{drawDie(1+Math.floor(Math.random()*6));if(++t>6){clearInterval(iv);drawDie(r);die.classList.remove("rolling");afterRoll(r);}},60);
-  S.rolled=true;document.getElementById("diceLbl").textContent="rolled "+r;
+  const bonus=(p.crew>=10)?1:0;                 // 10+ soldiers roll one extra die
+  const n=Math.max(1,(S.baseDice||1)+bonus);
+  const rolls=[];for(let i=0;i<n;i++)rolls.push(1+Math.floor(Math.random()*6));
+  const total=rolls.reduce((a,b)=>a+b,0);
+  const label=(n>1?total+" ("+rolls.join("+")+")":""+total)+(bonus?" · +1 die (10+ soldiers)":"");
+  let t=0;
+  const iv=setInterval(()=>{drawDie(1+Math.floor(Math.random()*6));if(++t>6){clearInterval(iv);drawDie(rolls[0]);die.classList.remove("rolling");afterRoll(total);}},60);
+  S.rolled=true;document.getElementById("diceLbl").textContent="rolled "+label;
 }
 function afterRoll(r){
   const p=S.players[S.cur];p.stayCount=0;
@@ -527,6 +618,7 @@ function scrollToToken(){
   if(here) here.scrollIntoView({behavior:"smooth",block:"center",inline:"center"});
 }
 function toggleFollow(){ S.followAnim=!S.followAnim; const b=document.getElementById("followBtn"); if(b)b.textContent=S.followAnim?"[ FOLLOW: ON ]":"[ FOLLOW: OFF ]"; }
+function toggleGreenDos(){ const bw=document.body.classList.toggle("bw"); const b=document.getElementById("greenBtn"); if(b)b.textContent=bw?"[ MODE: B&W ]":"[ MODE: GREEN ]"; }
 function openColorPicker(){
   const el=document.getElementById("cardEl");
   const rows=S.players.map(p=>{
@@ -642,7 +734,7 @@ function addSoldierTo(idx,per,n){const p=S.players[S.cur];n=Math.min(n,Math.floo
 function buyStreet(idx,n,v){const p=S.players[S.cur];p.cash-=v;p.owns.set(idx,n);log(p.name+" claims "+OUTER[idx].t+" ("+fmtK(v)+").","good");render();ownStreetOptions(idx);}
 function soldierLadder(b){return[{n:1,v:b},{n:4,v:b*4},{n:10,v:b*10},{n:25,v:b*25},{n:100,v:b*100}];}
 function sellProp(idx){const p=S.players[S.cur];const c=OUTER[idx];const per=OUTER[idx].incomeBase||c.price;const sold=p.owns.get(idx);
-  const val=Math.round(per*sold*0.6);p.cash+=val;p.owns.delete(idx);
+  const val=Math.round(per*sold);p.cash+=val;p.owns.delete(idx);
   log(p.name+" sells "+c.t+" (with "+sold+" workers) for "+fmtK(val)+".","warn");closeModal();render();finish();}
 
 /* ===== POKER NIGHT (casino) ===== */
@@ -651,12 +743,13 @@ function pokerNight(){
   const owner=S.players.find(x=>x.owns.has(idx));
   // if YOU own the house, you just run it tonight
   if(owner&&owner.id===p.id){
-    if(p.ai){finish();return;}
+    collectOne(p,idx); // your casino pays out its year's take ($1M) when you come around
+    if(p.ai){render();finish();return;}
     const el=document.getElementById("cardEl");
     el.innerHTML=`<div class="lbl" style="background:${p.color}">POKER NIGHT - YOUR HOUSE</div>
       <div class="ttl">You run the tables</div>
-      <div class="bd">This is your casino. The house doesn't gamble against itself - you just count the take when others play.</div>
-      <div class="go"><button class="red" onclick="sellPoker(${idx})">[ SELL HOUSE - ${fmtK(Math.round(c.price*0.6))} ]</button><button onclick="closeModal();finish()">[ DONE ]</button></div>
+      <div class="bd">This is your casino. It earns you <b>$1M a year</b>, and every bet a rival loses at these tables comes straight to you. The house doesn't gamble against itself — you just count the take.</div>
+      <div class="go"><button class="red" onclick="sellPoker(${idx})">[ SELL HOUSE - ${fmtK(c.price)} ]</button><button onclick="closeModal();finish()">[ DONE ]</button></div>
       ${statusBar()}`;
     openModal();return;
   }
@@ -702,7 +795,7 @@ function pokerBetAdj(idx,d){
   pokerNight();
 }
 function pokerBuy(idx){const p=S.players[S.cur];const c=OUTER[idx];p.cash-=c.price;p.owns.set(idx,1);OUTER[idx].incomeBase=c.price;log(p.name+" buys the POKER NIGHT house ("+fmtK(c.price)+").","good");render();closeModal();finish();}
-function sellPoker(idx){const p=S.players[S.cur];const c=OUTER[idx];const val=Math.round(c.price*0.6);p.cash+=val;p.owns.delete(idx);log(p.name+" sells the POKER NIGHT house ("+fmtK(val)+").","warn");closeModal();render();finish();}
+function sellPoker(idx){const p=S.players[S.cur];const c=OUTER[idx];const val=c.price;p.cash+=val;p.owns.delete(idx);log(p.name+" sells the POKER NIGHT house ("+fmtK(val)+").","warn");closeModal();render();finish();}
 function pokerRoll(idx){
   const p=S.players[S.cur];const owner=S.players.find(x=>x.owns.has(idx));
   const stake=Math.min(Math.max(0,p._pokerBet||0),Math.max(0,p.cash));
@@ -763,12 +856,14 @@ function ownBizOptions(idx){
 }
 function addWorker(idx,per,n){const p=S.players[S.cur];n=Math.min(n,Math.floor(p.cash/per));if(n<1)return;p.cash-=per*n;p.owns.set(idx,p.owns.get(idx)+n);log(p.name+" adds "+n+" worker"+(n>1?"s":"")+" to "+OUTER[idx].t+" (now "+p.owns.get(idx)+").","good");render();ownBizOptions(idx);}
 function buyProduct(p,owner,idx,c){
-  if(p.ai){ const amt=Math.min(c.income,Math.floor(p.cash/2)); if(amt>0){p.cash-=amt;owner.cash+=amt*2;p.cash+=amt*2;log(p.name+" buys "+fmtK(amt)+" product at "+owner.name+"'s "+c.t+".","good");} render();finish();return; }
-  const maxBuy=Math.min(c.income, p.cash);
+  const workers=owner.owns.get(idx)||1;         // charge for the WHOLE staffed business
+  const capacity=c.income*workers;
+  if(p.ai){ const amt=Math.min(capacity,Math.floor(p.cash/2)); if(amt>0){p.cash-=amt;owner.cash+=amt*2;p.cash+=amt*2;log(p.name+" buys "+fmtK(amt)+" product at "+owner.name+"'s "+c.t+" ("+workers+" staff).","good");} render();finish();return; }
+  const maxBuy=Math.min(capacity, p.cash);
   const el=document.getElementById("cardEl");
   el.innerHTML=`<div class="lbl" style="background:${owner.color}">${owner.name.toUpperCase()}'S ${c.t.toUpperCase()}</div>
     <div class="art">${ART.biz}</div><div class="ttl">Buy product</div>
-    <div class="sub">Buy up to ${fmtK(maxBuy)} of product. You pay ${owner.name}, and you BOTH profit — you double your buy, they get double too.</div>
+    <div class="sub">${owner.name} has ${workers} worker${workers>1?"s":""} here, so there's up to ${fmtK(capacity)} of product on offer. You pay ${owner.name}, and you BOTH profit — you double your buy, they get double too.</div>
     <div class="out">Choose how much to buy:</div>
     <div class="go" id="prodBtns"></div>
     ${statusBar()}`;
@@ -916,11 +1011,28 @@ function resolveAttack(p,o,idx,atk){
   closeModal();
   const def=o.owns.get(idx)||0;
   atk=Math.max(1,Math.min(atk||p.crew,p.crew));
+  let title,body;
   if(atk>def){ p.crew-=def; o.owns.delete(idx); p.owns.set(idx,Math.max(1,atk-def));
-    log(p.name+" sends "+atk+" and takes "+OUTER[idx].t+" from "+o.name+"! Lost "+def+" in the fight.","good"); }
-  else if(atk===def){ p.crew-=atk; o.owns.set(idx,0); log(p.name+" sends "+atk+" — both crews wiped at "+OUTER[idx].t+". "+o.name+" keeps it (unstaffed).","warn"); }
-  else { p.crew-=atk; o.owns.set(idx,Math.max(1,def-atk)); log(p.name+"'s "+atk+"-soldier attack on "+OUTER[idx].t+" fails — lost all "+atk+". "+o.name+" holds with "+o.owns.get(idx)+".","bad"); }
-  render();finish();
+    title="TURF TAKEN";
+    body=p.name+" sent "+atk+" against "+o.name+"'s "+def+" at "+OUTER[idx].t+". Lost "+def+" in the fight, wiped their crew, and seized the block with "+Math.max(1,atk-def)+" left standing.";
+    log(p.name+" takes "+OUTER[idx].t+" from "+o.name+" ("+atk+" vs "+def+").","good"); }
+  else if(atk===def){ p.crew-=atk; o.owns.set(idx,0);
+    title="STALEMATE";
+    body="Both crews wiped each other out at "+OUTER[idx].t+" \u2014 "+atk+" for "+atk+". "+o.name+" keeps the deed, but it sits empty and earns nothing until re-staffed.";
+    log(p.name+" and "+o.name+" trade full crews at "+OUTER[idx].t+".","warn"); }
+  else { p.crew-=atk; o.owns.set(idx,Math.max(1,def-atk));
+    title="ATTACK FAILED";
+    body=p.name+" threw "+atk+" at "+OUTER[idx].t+" and lost every last one. "+o.name+" held the line and still has "+o.owns.get(idx)+" dug in.";
+    log(p.name+"'s attack on "+OUTER[idx].t+" fails.","bad"); }
+  render();
+  if(p.ai){ finish(); return; }
+  const el=document.getElementById("cardEl");
+  el.innerHTML=`<div class="lbl">ATTACK</div>
+    <div class="ttl">${title}</div>
+    <div class="bd">${body}</div>
+    <div class="go"><button onclick="closeModal();finish()">[ CONTINUE ]</button></div>
+    ${statusBar()}`;
+  openModal();
 }
 
 /* ===== STORY CARDS ===== */
@@ -1053,7 +1165,7 @@ function applyCard(){
   // RIOT sentence changes
   if(c.ryears!==undefined){p.sentence=Math.max(0,p.sentence+c.ryears);log(p.name+"'s sentence now "+p.sentence+"y.",c.ryears>0?"bad":"good");
     if(p.sentence<=0)releaseFromPrison(p);else{render();finish();}return;}
-  if(c.escape){p.sentence=0;log(p.name+" ESCAPES in the chaos!","good");releaseFromPrison(p);return;}
+  if(c.escape){ p._escapedYears=(p._escapedYears||0)+Math.max(0,p.sentence)+5; p.sentence=0; log(p.name+" ESCAPES in the chaos! (the law still wants the "+p._escapedYears+"y you skipped, plus more)","good"); releaseFromPrison(p); return; }
   // HOSPITAL card (from prison fight etc.)
   if(c.hosp){toHospital(p,c.hosp,"a beating");return;}
   // PRISON FIGHT / RIOT beating — cards carry `rounds` = how bad the beating was
@@ -1137,6 +1249,7 @@ function doArrest(p,years){
 }
 function drawCourt(){ const p=S.players[S.cur]; log(p.name+"'s court day.","warn");
   p.sentence = p._pendingYears || 5; p._pendingYears=null;
+  if(p._escapedYears){ p.sentence+=p._escapedYears; log(p.name+" still owes "+p._escapedYears+"y from the last escape — added on top.","bad"); p._escapedYears=0; }
   const card=draw("court"); document.getElementById("cardEl")._card=card;document.getElementById("cardEl")._deck="court";
   renderStoryCard(card,"court",p.ai); openModal(); }
 function sendToPrison(p){p.inJail=false;p.ring="inner";p.pos=0;log(p.name+" enters PRISON. Serve "+p.sentence+"y (1 lap = 1 year). Packs: "+p.packs,"warn");}
@@ -1173,10 +1286,12 @@ function doHospital(p,visits){
   if(p.hosp>=3){log(p.name+" flatlines — 3 visits.","bad");killPlayer(p);return;}
   const card=draw("hospital");
   const oc=card.outcome||"neutral";
+  const bill=(card.cost!=null?card.cost:0);        // some hospital cards have no bill
+  const settle=(card.cut!=null?card.cut:0);        // ...they carry a lawsuit/settlement (cut) instead
   const ocLine = oc==="good" ? "✓ Good news — you're healing well. This visit is cleared."
                : oc==="bad" ? "✗ Complication — this counts as an EXTRA hospital visit."
                : "— Stable. Just the bill and some rest.";
-  if(p.ai){ p.cash-=card.cost; applyHospOutcome(p,oc); if(!p.alive)return; log(p.name+" checks out (-$"+card.cost+"K).","warn"); finish(); return; }
+  if(p.ai){ p.cash-=bill; if(settle)p.cash+=settle; applyHospOutcome(p,oc); if(!p.alive)return; log(p.name+" checks out (-$"+bill+"K"+(settle?", settlement +$"+settle+"K":"")+").","warn"); finish(); return; }
   const el=document.getElementById("cardEl");
   const hnum=(typeof DECKS!=="undefined"&&DECKS.hospital)?DECKS.hospital.indexOf(card)+1:0;
   el.innerHTML=`<div class="lbl" style="background:${p.color}">${hnum?`<span style="float:right;font-weight:normal;opacity:.8">hospital#${hnum}</span>`:""}HOSPITAL</div><div class="art">${ART.hospital}</div>
@@ -1184,8 +1299,8 @@ function doHospital(p,visits){
     <div class="sub">Put here by: ${p._hospCause||"their injuries"}</div>
     <div class="bd">${card.bd}</div>
     <div class="out" style="color:${oc==="good"?"var(--phos)":oc==="bad"?"var(--red)":"inherit"}">${ocLine}</div>
-    <div class="out">Medical bill: $${card.cost}K</div>
-    <div class="go"><button onclick="leaveHospital(${card.cost},'${oc}')">[ CHECK OUT ]</button></div>${statusBar()}`;
+    <div class="out">Medical bill: $${bill}K${settle?` &nbsp;·&nbsp; <span style="color:var(--phos)">settlement +$${settle}K</span>`:""}</div>
+    <div class="go"><button onclick="leaveHospital(${bill},'${oc}',${settle})">[ CHECK OUT ]</button></div>${statusBar()}`;
   openModal();
 }
 function applyHospOutcome(p,oc){
@@ -1193,7 +1308,7 @@ function applyHospOutcome(p,oc){
   else if(oc==="bad"){ p.hosp++; log(p.name+" takes a turn for the worse — extra hospital visit (now "+p.hosp+"/3).","bad");
     if(p.hosp>=3){ log(p.name+" doesn't pull through — 3 visits.","bad"); killPlayer(p); } }
 }
-function leaveHospital(cost,oc){const p=S.players[S.cur];p.cash-=cost;closeModal();log(p.name+" checks out (-$"+cost+"K)"+(p.cash<0?" — now "+fmtK(p.cash)+" in the red":"")+".","warn");applyHospOutcome(p,oc||"neutral");if(!p.alive)return;finish();}
+function leaveHospital(cost,oc,settle){cost=cost||0;settle=settle||0;const p=S.players[S.cur];p.cash-=cost;if(settle)p.cash+=settle;closeModal();log(p.name+" checks out (-$"+cost+"K"+(settle?", settlement +$"+settle+"K":"")+")"+(p.cash<0?" — now "+fmtK(p.cash)+" in the red":"")+".","warn");applyHospOutcome(p,oc||"neutral");if(!p.alive)return;finish();}
 
 /* ===== DEATH / WIN ===== */
 function killPlayer(p){
@@ -1410,12 +1525,97 @@ function rentCard(p,owner,amt,reason){
   openModal();
 }
 function statusBar(){const p=S.players[S.cur];const wealth=p.ring==="inner"?`<span>PACKS: ${p.packs}</span>`:`<span>${fmtK(p.cash)}</span>`;
-  return `<div class="status" style="background:${p.color}"><span>${p.name}</span>${wealth}<span>SOL: ${p.crew}</span><span>TURF: ${p.owns.size}</span></div>`;}
+  return `<div class="status"><span>${p.name}</span>${wealth}<span>SOL: ${p.crew}</span><span>TURF: ${p.owns.size}</span></div>`;}
 function openModal(){document.getElementById("modal").classList.add("on");}
 function closeModal(){document.getElementById("modal").classList.remove("on");}
 
 /* ===== BOOT ===== */
-renderSetupStart();
+/* ===== DOS TERMINAL FRONT-END: password gate + MS-DOS boot ===== */
+(function(){
+  const gate=document.getElementById('dosgate');
+  const out=document.getElementById('dosout');
+  const CUR='<span class="blink">\u2588</span>';   // blinking block cursor
+  let pw="", phase="idle", inp=null;
+
+  const nl = s => { out.innerHTML += s + "\n"; out.scrollTop=out.scrollHeight; };
+  function setLast(s){ const t=out.innerHTML; const i=t.lastIndexOf("\n", t.length-2); out.innerHTML=t.slice(0,i+1)+s+"\n"; }
+
+  function startLogin(){
+    out.innerHTML="";
+    nl("CRIMINAL LIFE (R) SECURE TERMINAL   v7.1");
+    nl("(C) 1985 FAMILY SYSTEMS CORP.  ALL RIGHTS RESERVED.");
+    nl("");
+    nl("RESTRICTED SYSTEM \u2014 AUTHORIZED USERS ONLY.");
+    nl("");
+    nl('<span style="opacity:.7">[ tap the screen, then type a 4-character code ]</span>');
+    nl("");
+    nl("ENTER ACCESS CODE: " + CUR);
+    phase="login";
+  }
+  function drawPw(){ setLast("ENTER ACCESS CODE: " + "*".repeat(pw.length) + CUR); }
+  function granted(){
+    setLast("ENTER ACCESS CODE: " + "*".repeat(pw.length));
+    nl(""); nl('<span class="dosbar">ACCESS GRANTED</span>'); nl("");
+    setTimeout(boot, 750);
+  }
+  function boot(){
+    phase="boot"; out.innerHTML="";
+    const L=[
+      ["FAMILY SYSTEMS BIOS v4.1    01/01/1985", 260],
+      ["CRIMINAL-PC  \u2014  8088 @ 4.77 MHz", 240],
+      ["MEMORY TEST : 640K OK", 460],
+      ["", 120],
+      ["C:\\> INITIATING SYSTEM LOAD...", 420],
+      ["[                              ]   0%", 60],
+      ["[######                        ]  20%", 120],
+      ["[############                  ]  40%", 120],
+      ["[###################           ]  65%", 120],
+      ["[############################  ]  90%", 120],
+      ["[##############################] 100%", 360],
+      ["", 160],
+      ["Starting MS-DOS...", 700],
+      ["", 180],
+      ["C:\\> CRIMELIFE.EXE", 480],
+      ["Loading criminal database ......... OK", 280],
+      ["Shredding the evidence ............ OK", 280],
+      ["Bribing the arresting officer ..... OK", 280],
+      ["Laundering your startup capital ... OK", 280],
+      ["Digging one (1) shallow hole ...... OK", 280],
+      ["Mounting the board ................ OK", 280],
+      ["", 260],
+    ];
+    // the loading-bar frames overwrite the previous line for a real filling effect
+    let i=0, barStarted=false;
+    (function step(){
+      if(i>=L.length){ nl('<span class="blink">Press any key to begin_</span>'); phase="ready"; return; }
+      const [txt,delay]=L[i++];
+      const isBar = txt.indexOf("[")===0;
+      if(isBar && barStarted){ setLast(txt); } else { nl(txt); if(isBar) barStarted=true; }
+      setTimeout(step, delay);
+    })();
+  }
+  function finish(){ if(phase==="done")return; phase="done"; gate.classList.add("hidden"); if(inp)inp.remove(); }
+
+  window.dosBoot=function(){
+    gate.classList.remove("hidden");
+    inp=document.createElement("input");
+    inp.type="text"; inp.autocomplete="off"; inp.setAttribute("autocapitalize","off"); inp.spellcheck=false;
+    inp.style.cssText="position:fixed;opacity:0;left:0;bottom:0;width:1px;height:1px;border:0;padding:0;z-index:-1;";
+    document.body.appendChild(inp);
+    startLogin();
+    inp.addEventListener("input", ()=>{
+      if(phase!=="login")return;
+      pw=inp.value.replace(/[^a-zA-Z0-9]/g,"").slice(0,4);
+      drawPw();
+      if(pw.length>=4){ phase="granted"; inp.blur(); setTimeout(granted,180); }
+    });
+    // tap anywhere: raise the keyboard during login, or begin once ready
+    gate.addEventListener("click", ()=>{ if(phase==="ready"){ finish(); } else if(phase==="login"){ inp.focus(); } });
+    document.addEventListener("keydown", (e)=>{ if(phase==="ready"){ finish(); } });
+    setTimeout(()=>inp.focus(), 120);
+  };
+})();
+renderSetupStart(); dosBoot();
 </script>
 </body>
 </html>
