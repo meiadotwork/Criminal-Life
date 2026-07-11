@@ -293,6 +293,15 @@
   .cvnote{font-size:12px;}
   @media(max-width:640px){ .cvgrid{grid-template-columns:1fr;} .cvlist{max-height:80px;} }
 </style>
+<style id="dos78">
+  @media(max-width:900px){
+    .board-panel{max-height:46vh;}
+    .side>.panel:last-child{order:-1;}   /* DICE/ACTIONS/CONSOLE above the players list on phones */
+  }
+  .agestep{display:flex;align-items:center;justify-content:center;gap:10px;margin:2px 0 4px;}
+  .agestep button{font-size:20px;padding:4px 14px;line-height:1;}
+  #pageval{font-size:20px;min-width:44px;text-align:center;}
+</style>
 </head>
 <body class="crt">
 <div id="dosgate"><pre id="dosout"></pre></div>
@@ -300,7 +309,7 @@
 <div id="setup">
 <div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
 <div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
-<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v7.4</div>
+<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v7.5</div>
 <div id="setupStage"></div>
 </div>
 
@@ -311,8 +320,9 @@
     <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL</h1>
     <div id="turnBanner">TURN 1</div>
     <div class="topbtns">
-      <button onclick="openManual()">[ MANUAL ]</button>
+      <button id="manualBtn" onclick="openManual()">[ MANUAL ]</button>
       <button id="followBtn" onclick="toggleFollow()">[ FOLLOW: OFF ]</button>
+      <button id="langBtn" onclick="toggleLang()">[ PT ]</button>
       <button id="greenBtn" onclick="toggleGreenDos()">[ 87 ]</button>
       <a class="reset" onclick="location.reload()">[reset]</a>
     </div>
@@ -498,11 +508,17 @@ function nextPlayerSetup(){
       <div style="font-size:11px;opacity:.7">pick a pattern</div>
       <div class="swatches">${sw}</div>
       <div style="font-size:11px;opacity:.7;margin-top:8px">your age (any — doesn't affect play)</div>
-      <input id="page" type="number" value="${isAI?21:25}" min="1" max="120" style="width:90px;text-align:center">
+      <div class="agestep">
+        <button type="button" onclick="ageStep(-1)">▼</button>
+        <span id="pageval">${isAI?21:25}</span>
+        <button type="button" onclick="ageStep(1)">▲</button>
+      </div>
+      <input type="hidden" id="page" value="${isAI?21:25}">
       <button onclick="confirmPlayer(${isAI})">[ CONFIRM ]</button>
     </div>`;
   window._pickColor=null;
 }
+function ageStep(d){ const inp=document.getElementById("page"); if(!inp)return; let v=(parseInt(inp.value)||25)+d; v=Math.max(1,Math.min(120,v)); inp.value=v; const s=document.getElementById("pageval"); if(s)s.textContent=v; }
 function nameKey(k){ const inp=document.getElementById("pname"); if(!inp)return; if(k==='DEL')inp.value=inp.value.slice(0,-1); else if(k==='SP'){if(inp.value.length<10)inp.value+=' ';} else if(inp.value.length<10)inp.value+=k; }
 function pickColor(el){document.querySelectorAll('.sw').forEach(s=>s.classList.remove('sel'));el.classList.add('sel');window._pickColor=el.dataset.c;}
 function confirmPlayer(isAI){
@@ -515,12 +531,13 @@ function confirmPlayer(isAI){
 function launch(){
   S={turn:1,cur:0,n:setupData.players.length,rolled:false,over:false,ai:setupData.ai,roundEvents:[],baseDice:(setupData.dice||1)};
   const startCash=(setupData.startCash??100);
-  S.players=setupData.players.map((p,i)=>{const pl=newPlayer(i,p.name,p.pattern);pl.ai=p.ai;pl.cash=startCash;pl.age=p.age||25;return pl;});
+  S.players=setupData.players.map((p,i)=>{const pl=newPlayer(i,p.name,p.pattern);pl.ai=p.ai;pl.cash=startCash;pl.age=p.age||25;pl.startAge=pl.age;return pl;});
   document.getElementById("setup").style.display="none";
   document.getElementById("screen").style.display="flex";
   buildBoardGrid();
   render();updateControls();
-  setTimeout(fitBoard,60);
+  [60,300,700,1400].forEach(t=>setTimeout(fitBoard,t));
+  if(document.fonts&&document.fonts.ready){document.fonts.ready.then(()=>setTimeout(fitBoard,40));}
   newRound();
   log("SYSTEM ONLINE. "+setupData.difficulty+" mode — everyone starts with "+fmtK(startCash)+".","sys");
 }
@@ -772,10 +789,31 @@ function scrollToToken(){
   const here=document.querySelector("#board .cell.here");
   if(here) here.scrollIntoView({behavior:"smooth",block:"center",inline:"center"});
 }
-function toggleFollow(){ S.followAnim=!S.followAnim; const b=document.getElementById("followBtn"); if(b)b.textContent=S.followAnim?"[ FOLLOW: ON ]":"[ FOLLOW: OFF ]"; }
+function toggleFollow(){ S.followAnim=!S.followAnim; const b=document.getElementById("followBtn"); if(b)b.textContent=tr(S.followAnim?"[ FOLLOW: ON ]":"[ FOLLOW: OFF ]"); }
+/* ===== LANGUAGE: interface translation (EN / PT). Card text stays EN for now. ===== */
+let LANG='EN';
+const PT={
+ 'THE CITY':'A CIDADE','PLAYERS — tap for record':'JOGADORES — toque p/ ficha','DICE':'DADOS',
+ 'ACTIONS':'AÇÕES','CONSOLE — this round':'CONSOLE — esta rodada',
+ '[ ZOOM − ]':'[ ZOOM − ]','[ RESET ]':'[ RESET ]','[ ZOOM + ]':'[ ZOOM + ]',
+ '[ MANUAL ]':'[ MANUAL ]','[reset]':'[reiniciar]',
+ '[ FOLLOW: OFF ]':'[ SEGUIR: NÃO ]','[ FOLLOW: ON ]':'[ SEGUIR: SIM ]',
+ '[ AUTO: OFF ]':'[ AUTO: NÃO ]','[ AUTO: ON ]':'[ AUTO: SIM ]',
+ 'tap die to roll':'toque no dado para rolar','roll to move':'role para andar','landed':'chegou'
+};
+function tr(s){ return (LANG==='PT'&&PT[s])?PT[s]:s; }
+function applyLang(){
+  const P=LANG==='PT';
+  document.querySelectorAll('.panel h2, .zoombar button, #manualBtn, #followBtn, a.reset').forEach(el=>{
+    if(el.dataset.en===undefined)el.dataset.en=el.textContent;
+    const pt=PT[el.dataset.en]; el.textContent=(P&&pt)?pt:el.dataset.en;
+  });
+}
+function updateLangBtn(){ const b=document.getElementById("langBtn"); if(b)b.textContent=LANG==='EN'?"[ PT ]":"[ EN ]"; }
+function toggleLang(){ LANG=(LANG==='EN')?'PT':'EN'; if(S&&S.players){render();updateControls();} applyLang(); updateLangBtn(); }
 function toggleGreenDos(){ const bw=document.body.classList.toggle("bw"); const b=document.getElementById("greenBtn"); if(b)b.textContent=bw?"[ 94 ]":"[ 87 ]"; }
 /* ===== AUTO-PLAY: per-player. Auto-rolls & resolves; pauses on an affordable buy; skips attacks ===== */
-function updateAutoBtn(){ const p=S&&S.players?S.players[S.cur]:null; const b=document.getElementById("autoBtn"); if(b)b.textContent=(p&&p.auto)?"[ AUTO: ON ]":"[ AUTO: OFF ]"; }
+function updateAutoBtn(){ const p=S&&S.players?S.players[S.cur]:null; const b=document.getElementById("autoBtn"); if(b)b.textContent=tr((p&&p.auto)?"[ AUTO: ON ]":"[ AUTO: OFF ]"); }
 function toggleAuto(){
   const p=S.players[S.cur]; if(!p||p.ai) return;
   p.auto=!p.auto; updateAutoBtn();
@@ -1570,7 +1608,7 @@ function showGameOver(winner){
   el.innerHTML=`<div class="lbl" style="background:${w?w.color:'#888'}">LAST BOSS STANDING</div>
     <div style="text-align:center;font-size:40px;line-height:1.1;margin:8px 0;letter-spacing:2px">#1</div>
     <div class="ttl" style="color:${w?w.color:'#fff'};text-align:center;font-size:28px">${w?w.name+" WINS":"No survivors"}</div>
-    <div class="sub" style="text-align:center">${w?("Survived to <b>"+w.age+"</b> years old — started at 15 and outlived them all. The city is theirs."):"Everyone's dead. The streets win."}</div>
+    <div class="sub" style="text-align:center">${w?("Survived to <b>"+w.age+"</b> years old — started at "+(w.startAge||w.age)+" and outlived them all. The city is theirs."):"Everyone's dead. The streets win."}</div>
     <div class="out">${w?"Age "+w.age+" · Net worth "+fmtK(netWorth(w))+" · "+w.owns.size+" turf · "+soldierIcons(w.color,w.crew):"—"}</div>
     <div class="go"><button onclick="location.reload()">[ NEW GAME ]</button></div>`;
   openModal();
@@ -1782,7 +1820,7 @@ function closeModal(){document.getElementById("modal").classList.remove("on");}
   }
   function startLogin(){
     out.innerHTML="";
-    nl("CRIMINAL TERMINAL (R) v7.4");
+    nl("CRIMINAL TERMINAL (R) v7.5");
     nl("(C) 1987 SATAN SYSTEMS CORP. ALL RIGHTS RESERVED.");
     nl("");
     nl("RESTRICTED SYSTEM - AUTHORIZED USERS ONLY.");
@@ -1875,6 +1913,7 @@ function closeModal(){document.getElementById("modal").classList.remove("on");}
   };
 })();
 window.addEventListener("resize",()=>{try{if(typeof fitBoard==="function")fitBoard();}catch(e){}});
+try{ if(window.ResizeObserver){ let _rt; const _ro=new ResizeObserver(()=>{ clearTimeout(_rt); _rt=setTimeout(()=>{try{fitBoard();}catch(e){}},120); }); const _bp=document.querySelector(".board-panel"); if(_bp)_ro.observe(_bp); else document.addEventListener("DOMContentLoaded",()=>{const p=document.querySelector(".board-panel");if(p)_ro.observe(p);}); } }catch(e){}
 renderSetupStart(); dosBoot();
 </script>
 </body>
