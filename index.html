@@ -221,7 +221,7 @@
   @media(max-width:900px){.main{grid-template-columns:1fr !important;}}
   .side{display:flex;flex-direction:column;gap:9px;min-height:0;}
   .board-panel{overflow:auto;display:flex;flex-direction:column;}
-  #boardWrap{position:relative;width:calc(100% * var(--bz,1));margin:0;}
+  #boardWrap{position:relative;width:100%;margin:0;zoom:var(--bzoom,1);}
   #board{width:100%;}
   .side .panel{overflow:auto;}
   .zoombar{display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap;}
@@ -247,19 +247,60 @@
   .toks .patchip.tok{margin-left:0 !important;}
   .cell .own{position:absolute;top:1px;right:2px;display:flex;align-items:center;gap:2px;line-height:1;font-size:clamp(7px,1vw,11px) !important;}
 </style>
+<style id="dos75">
+  /* board fit handled by JS zoom-to-fit; keep panel scrollable for zoom-in */
+  .board-panel{overflow:auto;}
+</style>
+<style id="dos76">
+  .side{overflow:hidden;}
+  .side>.panel:first-child{flex:0 0 auto;overflow:visible;}                 /* PLAYERS: fit all, no scroll */
+  .side>.panel:last-child{flex:1 1 auto;min-height:130px;overflow:auto;}    /* dice/actions/console scroll */
+  #players{gap:6px;}
+  .pl.big{padding:8px;}
+  .pl.big .nm{font-size:16px;}
+  .others{gap:5px;}
+  .pl.mini{flex:1 1 46%;min-width:0;padding:5px 6px;}
+  .pl .row{gap:5px;align-items:center;}
+</style>
+<style id="dos77">
+  /* DOS config (difficulty + speed on one screen) */
+  .dosconfig{text-align:left;max-width:480px;margin:0 auto;}
+  .cfgline{font-size:14px;opacity:.85;margin:2px 0;}
+  .cfghead{margin:12px 0 5px;font-size:13px;letter-spacing:1px;}
+  .cfgflavor{font-size:12px;opacity:.85;line-height:1.4;margin:5px 0;border-left:2px solid var(--phos-dim);padding-left:8px;}
+  .cfg.sel{background:var(--phos) !important;color:#000 !important;}
+  .cfg.sel *{color:#000 !important;}
+  .cfggo{margin-top:14px;}
+  /* on-screen name keyboard (all touch) */
+  .namekeys{display:flex;flex-direction:column;gap:5px;margin:8px auto;align-items:stretch;width:100%;max-width:340px;}
+  .krow{display:flex;gap:4px;width:100%;}
+  .kkey{flex:1 1 0;min-width:0;max-width:42px;padding:9px 2px;font-size:14px;margin:0 auto;}
+  .kwide{flex:2 1 0;max-width:none;}
+  #pname{text-align:center;letter-spacing:2px;caret-color:transparent;}
+  /* CV / résumé profile */
+  #cardEl:has(.cv){width:min(760px,95vw) !important;max-width:95vw !important;max-height:94vh !important;}
+  .cv{display:flex;flex-direction:column;gap:10px;}
+  .cvhead{border-bottom:1px solid var(--phos-dim);padding-bottom:6px;}
+  .cvtitle{font-size:26px;font-weight:bold;display:flex;align-items:center;gap:8px;}
+  .cvtitle .patchip{width:18px !important;height:18px !important;}
+  .cvsub{font-size:12px;opacity:.7;letter-spacing:2px;}
+  .cvgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .cvbox{border:1px solid var(--phos-dim);padding:8px;}
+  .cvh{background:var(--phos) !important;color:#000 !important;padding:2px 6px;margin:-8px -8px 6px;font-size:12px;letter-spacing:1px;}
+  .cvrow{display:flex;justify-content:space-between;gap:10px;font-size:14px;padding:1px 0;}
+  .cvlist{max-height:150px;overflow:auto;}
+  .cvdim{opacity:.55;font-size:13px;}
+  .cvnote{font-size:12px;}
+  @media(max-width:640px){ .cvgrid{grid-template-columns:1fr;} .cvlist{max-height:80px;} }
+</style>
 </head>
 <body class="crt">
 <div id="dosgate"><pre id="dosout"></pre></div>
 
 <div id="setup">
-<pre>
-  ██████ ██████ ██ ██   ██ ██ ██   ██  █████  ██
- ██     ██   ██ ██ ███ ███ ██ ███  ██ ██   ██ ██
- ██     ██████  ██ ██ █ ██ ██ ██ █ ██ ███████ ██
- ██     ██   ██ ██ ██   ██ ██ ██  ███ ██   ██ ██
-  ██████ ██  ██ ██ ██   ██ ██ ██   ██ ██   ██ ███████
-        T · E · R · M · I · N · A · L    //   v7.3
-</pre>
+<div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
+<div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
+<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v7.4</div>
 <div id="setupStage"></div>
 </div>
 
@@ -392,7 +433,7 @@ let S=null;
 function newPlayer(i,name,pattern){return{id:i,name:name||("P"+(i+1)),color:"#33ff44",pattern:pattern||"solid",ring:"outer",pos:0,
   cash:100,crew:0,packs:0,alive:true,respawns:0,hosp:0,cleanLaps:0,
   inJail:false,sentence:0,owns:new Map(),skip:0,freeArrest:0,freeRaid:0,
-  crimes:[],network:[],stayCount:0,age:15,crimeOps:3};}
+  crimes:[],network:[],stayCount:0,age:15,crimeOps:3,yearsServed:0};}
 
 /* ===== SETUP FLOW ===== */
 let setupData={n:0,players:[],idx:0,difficulty:null,startCash:100,dice:1};
@@ -403,40 +444,29 @@ const DIFFICULTY={
   REALISTIC:{cash:0, label:"REALISTIC", flavor:"You came up from nothing - no money, no connections, just the streets. Every dollar has to be earned or stolen. This is real life."},
 };
 function renderSetupStart(){
+  const d=setupData.difficulty, sp=setupData.dice0;
+  const dB=(k,lbl,cash)=>`<button class="cfg${d===k?' sel':''}" onclick="selectDiff('${k}')">[ ${lbl} · ${cash} ]</button>`;
+  const sB=(n,lbl)=>`<button class="cfg${sp===n?' sel':''}" onclick="selectSpeed(${n})">[ ${lbl} ]</button>`;
+  const ready=d&&sp;
   document.getElementById("setupStage").innerHTML=`
-   <div style="font-size:15px;letter-spacing:1px">CHOOSE DIFFICULTY<span style="animation:none">_</span></div>
-   <div style="font-size:12px;opacity:.7;margin-bottom:4px">sets your starting money</div>
-   <div class="choice">
-     <button onclick="chooseDifficulty('EASY')">[ EASY · start $1M ]</button>
-     <button onclick="chooseDifficulty('MEDIUM')">[ MEDIUM · start $250K ]</button>
-     <button onclick="chooseDifficulty('HARD')">[ HARD · start $100K ]</button>
-     <button onclick="chooseDifficulty('REALISTIC')">[ REALISTIC · start $0 ]</button>
-   </div>
-   <div class="hint">Difficulty = how much cash you start with. Outer ring = the street. Inner ring = PRISON (1 lap = 1 year). Arrested → JAIL → COURT → PRISON. Broke + hurt = HOSPITAL (3 visits = dead). Last boss standing wins.</div>`;
+   <div class="dosconfig">
+     <div class="cfgline">C:\\> CRIMELIFE.EXE /NEWGAME</div>
+     <div class="cfgline">CONFIGURE SESSION_</div>
+     <div class="cfghead">1. DIFFICULTY <span style="opacity:.55">(starting capital)</span></div>
+     <div class="choice">${dB('EASY','EASY','$1M')}${dB('MEDIUM','MEDIUM','$250K')}${dB('HARD','HARD','$100K')}${dB('REALISTIC','REALISTIC','$0')}</div>
+     ${d?`<div class="cfgflavor">&gt; ${DIFFICULTY[d].flavor}</div>`:''}
+     <div class="cfghead">2. SPEED <span style="opacity:.55">(dice per roll)</span></div>
+     <div class="choice">${sB(1,'SLOW · 1 die')}${sB(2,'NORMAL · 2 dice')}${sB(3,'FAST · 3 dice')}</div>
+     <div class="cfghead">3. ${ready?'READY.':'&lt; select both above &gt;'}</div>
+     <button class="cfggo" ${ready?'':'disabled'} onclick="afterSpeed()">[ CONTINUE » ]</button>
+     <div class="hint">Outer ring = the street (1 lap = 1 year). Arrested → JAIL → COURT → PRISON. Broke+hurt → HOSPITAL (3 = dead). 10+ soldiers = bonus die. Last boss standing wins.</div>
+   </div>`;
 }
-function chooseDifficulty(d){
-  setupData.difficulty=d; setupData.startCash=DIFFICULTY[d].cash;
-  // show the opening heist story that explains the starting cash
-  document.getElementById("setupStage").innerHTML=`
-    <div class="psetup" style="max-width:340px">
-      <div style="font-size:13px;letter-spacing:2px;color:var(--amber)">THE OPENING SCORE</div>
-      <div style="font-size:14px;line-height:1.5;text-align:left">${DIFFICULTY[d].flavor}</div>
-      <div style="font-size:16px;font-weight:bold">You start with ${fmtK(DIFFICULTY[d].cash)}.</div>
-      <button onclick="afterDifficulty()">[ CONTINUE ]</button>
-    </div>`;
-}
-function afterDifficulty(){
-  document.getElementById("setupStage").innerHTML=`
-   <div style="font-size:15px;letter-spacing:1px">GAME SPEED<span style="animation:none">_</span></div>
-   <div style="font-size:12px;opacity:.7;margin-bottom:4px">how many dice you roll — more dice, faster laps</div>
-   <div class="choice">
-     <button onclick="chooseSpeed(1)">[ SLOW · 1 die ]</button>
-     <button onclick="chooseSpeed(2)">[ NORMAL · 2 dice ]</button>
-     <button onclick="chooseSpeed(3)">[ FAST · 3 dice ]</button>
-   </div>
-   <div class="hint">A full lap of the outer ring is one year. Fewer dice = a slower, grittier climb; more dice = the years fly by. Any player with 10+ soldiers rolls one extra die.</div>`;
-}
-function chooseSpeed(n){ setupData.dice=n; afterSpeed(); }
+function selectDiff(d){ setupData.difficulty=d; setupData.startCash=DIFFICULTY[d].cash; renderSetupStart(); }
+function selectSpeed(n){ setupData.dice0=n; setupData.dice=n; renderSetupStart(); }
+function chooseDifficulty(d){ selectDiff(d); }
+function afterDifficulty(){ /* difficulty + speed are now one screen */ }
+function chooseSpeed(n){ selectSpeed(n); }
 function afterSpeed(){
   document.getElementById("setupStage").innerHTML=`
    <div style="font-size:15px;letter-spacing:1px">SELECT PLAYERS<span style="animation:none">_</span></div>
@@ -461,7 +491,10 @@ function nextPlayerSetup(){
   document.getElementById("setupStage").innerHTML=`
     <div class="psetup">
       <div style="font-size:13px;letter-spacing:1px">${isAI?"AI OPPONENT":"PLAYER "+(i+1)} SETUP</div>
-      <input id="pname" placeholder="${isAI?'CPU':'name'}" value="${isAI?'CPU':''}" maxlength="10" ${isAI?'disabled':''}>
+      <input id="pname" placeholder="${isAI?'CPU':'name'}" value="${isAI?'CPU':''}" maxlength="10" ${isAI?'disabled':''} readonly>
+      ${isAI?'':`<div class="namekeys">`+
+        ['QWERTYUIOP','ASDFGHJKL','ZXCVBNM'].map(row=>`<div class="krow">`+row.split('').map(k=>`<button type="button" class="kkey" onclick="nameKey('${k}')">${k}</button>`).join('')+`</div>`).join('')+
+        `<div class="krow"><button type="button" class="kkey kwide" onclick="nameKey('SP')">SPACE</button><button type="button" class="kkey kwide" onclick="nameKey('DEL')">DEL</button></div></div>`}
       <div style="font-size:11px;opacity:.7">pick a pattern</div>
       <div class="swatches">${sw}</div>
       <div style="font-size:11px;opacity:.7;margin-top:8px">your age (any — doesn't affect play)</div>
@@ -470,6 +503,7 @@ function nextPlayerSetup(){
     </div>`;
   window._pickColor=null;
 }
+function nameKey(k){ const inp=document.getElementById("pname"); if(!inp)return; if(k==='DEL')inp.value=inp.value.slice(0,-1); else if(k==='SP'){if(inp.value.length<10)inp.value+=' ';} else if(inp.value.length<10)inp.value+=k; }
 function pickColor(el){document.querySelectorAll('.sw').forEach(s=>s.classList.remove('sel'));el.classList.add('sel');window._pickColor=el.dataset.c;}
 function confirmPlayer(isAI){
   const name=document.getElementById("pname").value.trim()||(isAI?"CPU":("P"+(setupData.idx+1)));
@@ -547,8 +581,7 @@ function render(){
       <div class="row" style="opacity:.6;font-size:11px"><span>${loc}</span><span>TURF ${p.owns.size} · ${p.age}yo</span></div>
       <div class="row" style="opacity:.5;font-size:10px"><span>tap for record (CV)</span></div>`;
     } else {
-      d.innerHTML=`<div class="row"><span class="nm"><span class="patchip pat-${p.pattern||'solid'}"></span> ${p.name}${joj}</span><span>${hp}</span></div>
-      <div class="row" style="font-size:11px"><span>${fmtK(p.cash)}</span><span>${p.ring==="inner"?("pk "+p.packs):("sol "+p.crew)}</span></div>`;
+      d.innerHTML=`<div class="row"><span class="nm" style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><span class="patchip pat-${p.pattern||'solid'}"></span> ${p.name}</span><span style="white-space:nowrap;font-size:11px">${fmtK(p.cash)} · ${p.ring==="inner"?("pk"+p.packs):("s"+p.crew)} · ${hp}</span></div>`;
     }
     return d;
   };
@@ -580,6 +613,7 @@ function drawDie(v){const die=document.getElementById("die");if(!die)return;die.
 
 function updateControls(){
   const p=S.players[S.cur];
+  updateAutoBtn();
   const row=document.getElementById("diceRow");
   if(row && !S.rolled){ row.innerHTML='<div class="die roller" onclick="rollDice()" title="tap to roll"></div>'; }
   const die=row?row.querySelector(".die"):null;
@@ -633,9 +667,21 @@ function sellAssetFromMenu(idx){
 }
 
 /* ===== ROLL + STEP MOVEMENT (always visible) ===== */
-let _bz=1;
-function fitBoard(){ _bz=1; const w=document.getElementById("boardWrap"); if(w)w.style.setProperty("--bz",1); }
-function boardZoom(dir){ if(dir===0){fitBoard();return;} _bz=Math.max(0.5,Math.min(2.8,+(_bz+dir*0.2).toFixed(2))); const w=document.getElementById("boardWrap"); if(w)w.style.setProperty("--bz",_bz); }
+let _bz=1,_fit=1;
+function applyBoardZoom(){ const bw=document.getElementById("boardWrap"); if(bw)bw.style.setProperty("--bzoom",+((_fit||1)*_bz).toFixed(3)); }
+function fitBoard(){
+  const bp=document.querySelector(".board-panel"), bw=document.getElementById("boardWrap"); if(!bp||!bw)return;
+  bw.style.setProperty("--bzoom",1);                    // measure natural (unzoomed) size
+  requestAnimationFrame(()=>{
+    const natW=bw.offsetWidth||1, natH=bw.offsetHeight||1;
+    const availW=bp.clientWidth-6, availH=bp.clientHeight-6;
+    let fit = (window.innerWidth>=900) ? Math.min(availW/natW, availH/natH) : (availW/natW);
+    if(!isFinite(fit)||fit<=0) fit=1;
+    if(window.innerWidth>=900 && fit>1) fit=1;          // don't upscale past natural on desktop
+    _fit=fit; applyBoardZoom();
+  });
+}
+function boardZoom(dir){ if(dir===0){_bz=1;fitBoard();return;} _bz=Math.max(0.4,Math.min(3,+(_bz+dir*0.15).toFixed(2))); applyBoardZoom(); }
 function drawDieEl(el,v){el.innerHTML="";if(v>=1)PIPS[v].forEach(cls=>{const p=document.createElement("div");p.className="pip "+cls;el.appendChild(p);});}
 function rollDice(){
   const p=S.players[S.cur];if(S.rolled||!p.alive)return;
@@ -711,7 +757,7 @@ function stepMove(p,left){
   p.pos=(p.pos+1)%len;
   // passing OVER one of your own businesses = you've lapped it (a year) → collect its profit
   if(ring==="outer" && left>1 && p.owns.has(p.pos)) collectOne(p,p.pos);
-  if(ring==="inner"&&p.pos===0){p.sentence-=1;p.age++;log(p.name+" finishes a prison lap. 1 year done (now "+p.age+" yo). "+(p.sentence>0?p.sentence+"y left":"TIME SERVED"),p.sentence>0?"":"good");
+  if(ring==="inner"&&p.pos===0){p.sentence-=1;p.age++;p.yearsServed=(p.yearsServed||0)+1;log(p.name+" finishes a prison lap. 1 year done (now "+p.age+" yo). "+(p.sentence>0?p.sentence+"y left":"TIME SERVED"),p.sentence>0?"":"good");
     if(p.sentence<=0){render();setTimeout(()=>releaseFromPrison(p),300);return;}}
   if(ring==="outer"&&p.pos===0){p.age++;p.crimeOps=3;log(p.name+" makes it another year (now "+p.age+" yo). Crime chances refilled.","");
     if(p.crew>0){const wages=p.crew*SOLDIER_WAGE;p.cash-=wages;log(p.name+" pays soldier wages: "+fmtK(wages)+" ("+p.crew+" × $"+SOLDIER_WAGE+"K/yr).","warn");}
@@ -728,33 +774,41 @@ function scrollToToken(){
 }
 function toggleFollow(){ S.followAnim=!S.followAnim; const b=document.getElementById("followBtn"); if(b)b.textContent=S.followAnim?"[ FOLLOW: ON ]":"[ FOLLOW: OFF ]"; }
 function toggleGreenDos(){ const bw=document.body.classList.toggle("bw"); const b=document.getElementById("greenBtn"); if(b)b.textContent=bw?"[ 94 ]":"[ 87 ]"; }
-/* ===== AUTO-PLAY: auto-roll & auto-pass, pause when you can afford to buy/act ===== */
+/* ===== AUTO-PLAY: per-player. Auto-rolls & resolves; pauses on an affordable buy; skips attacks ===== */
+function updateAutoBtn(){ const p=S&&S.players?S.players[S.cur]:null; const b=document.getElementById("autoBtn"); if(b)b.textContent=(p&&p.auto)?"[ AUTO: ON ]":"[ AUTO: OFF ]"; }
 function toggleAuto(){
-  S.auto=!S.auto;
-  const b=document.getElementById("autoBtn"); if(b)b.textContent=S.auto?"[ AUTO: ON ]":"[ AUTO: OFF ]";
-  if(S._autoIv){clearInterval(S._autoIv);S._autoIv=null;}
-  if(S.auto) S._autoIv=setInterval(autoTick,650);
+  const p=S.players[S.cur]; if(!p||p.ai) return;
+  p.auto=!p.auto; updateAutoBtn();
+  if(!S._autoIv) S._autoIv=setInterval(autoTick,1000);       // slower, watchable
 }
 function autoTick(){
-  if(!S||!S.auto||S.over){ if(S&&S._autoIv){clearInterval(S._autoIv);S._autoIv=null;} return; }
+  if(!S||S.over){ if(S&&S._autoIv){clearInterval(S._autoIv);S._autoIv=null;} return; }
   const p=S.players[S.cur];
+  if(!p||p.ai||!p.auto||!p.alive) return;                    // only the current player, only if THEY enabled auto
   const modalOn=document.getElementById("modal").classList.contains("on");
   if(modalOn){
     const btns=[...document.querySelectorAll("#cardEl button")];
     if(!btns.length) return;
-    // a choice you can afford -> pause and let the human decide
-    const choice=btns.find(b=>/OPEN|BUY|CLAIM|HIRE|\bMAX\b|\+1|ATTACK|PICK YOUR JOB/i.test(b.textContent));
+    const lbl=(document.querySelector("#cardEl .lbl")||{}).textContent||"";
+    // ATTACK is aggressive/optional -> an auto player just stands down (never engages the picker)
+    if(/ATTACK/i.test(lbl)){
+      const sd=btns.find(b=>/STAND DOWN/i.test(b.textContent)); if(sd){sd.click();return;}
+      const bk=btns.find(b=>/BACK/i.test(b.textContent)); if(bk){bk.click();return;}
+      // (attack RESULT card has only CONTINUE -> falls through to resolver below)
+    }
+    // an affordable optional purchase -> pause and let the human decide
+    const choice=btns.find(b=>/OPEN|BUY|CLAIM|HIRE|\bMAX\b|\+1/i.test(b.textContent));
     if(choice){
       const m=choice.textContent.match(/\$([\d.]+)\s*([KM])/i);
       const cost=m?parseFloat(m[1])*(/M/i.test(m[2])?1000:1):0;
-      if(!m || (p && p.cash>=cost)) return;                 // affordable/unknown -> pause for player
-      const pass=btns.find(b=>/PASS|DONE|CLOSE|WALK|LEAVE|OK/i.test(b.textContent))||btns[btns.length-1];
-      pass.click(); return;                                 // can't afford -> auto-pass
+      if(!m || p.cash>=cost) return;                          // affordable/unknown -> pause
+      const pass=btns.find(b=>/PASS|DONE|CLOSE|LEAVE|OK/i.test(b.textContent))||btns[btns.length-1];
+      pass.click(); return;
     }
     const go=btns.find(b=>/OK|CONTINUE|COLLECT|CHECK OUT|DONE|CLOSE|PASS|WALK|LEAVE|NEXT|SERVE|BAIL/i.test(b.textContent))||btns[0];
     go.click(); return;
   }
-  if(p && !p.ai && !S.rolled && p.alive && !S.over) rollDice();
+  if(!S.rolled) rollDice();
 }
 function openColorPicker(){
   const el=document.getElementById("cardEl");
@@ -1589,30 +1643,45 @@ function recordNetwork(p,deck,c){
 /* ===== PROFILE (crime record) ===== */
 function showProfile(id){
   const p=S.players[id];const el=document.getElementById("cardEl");
-  // build charge list (handle both old string format and new object format)
   const list=p.crimes.filter(c=>typeof c==="object");
   const rebornCount=p.crimes.filter(c=>c==="(reborn)").length;
-  const crimeRows=list.length
-    ? list.map(ch=>`<div style="display:flex;justify-content:space-between;gap:8px"><span>▪ ${ch.name}${ch.lvl?" ("+ch.lvl+")":""}</span><span style="opacity:.8;white-space:nowrap">${ch.years===99?"LIFE":ch.years+"y"}</span></div>`).join("")
-    : "<div>clean record (so far)</div>";
-  const total=totalChargeYears(p);
-  const lifeTag=hasLifeCharge(p)?" + LIFE":"";
-  const joj=p.freeArrest>0?`<div style="color:var(--phos);margin-top:4px">★ ${p.freeArrest} get-out-of-jail card(s)</div>`:"";
-  const rebornTag=rebornCount>0?`<div style="opacity:.6;margin-top:4px">reborn ${rebornCount}×</div>`:"";
+  const total=totalChargeYears(p); const lifeTag=hasLifeCharge(p)?" +LIFE":"";
   const assets=assetValue(p);const worth=p.cash+assets;
-  const assetRows=p.owns.size
-    ? Array.from(p.owns.entries()).map(([idx,cnt])=>{const cell=OUTER[idx];const unit=cell.incomeBase||cell.price||cell.income||0;return `<div style="display:flex;justify-content:space-between;gap:8px"><span>◦ ${cell.t} ×${cnt}</span><span style="opacity:.85">${fmtK(unit*cnt)}</span></div>`;}).join("")
-    : "<div style='opacity:.6'>no businesses or property yet</div>";
-  el.innerHTML=`<div class="lbl" style="background:${p.color}">RAP SHEET</div>
-    <div class="ttl" style="color:${p.color}">${p.name}</div>
-    <div class="sub">${soldierIcons(p.color,p.crew)} soldiers · Turf ${p.owns.size} · Age ${p.age} · Health ${3-p.hosp}/3${p.ring==="inner"?" · "+p.packs+" packs":""}</div>
-    <div class="out" style="margin-bottom:2px;font-size:18px;color:var(--gold-lt)">NET WORTH: ${fmtK(worth)}</div>
-    <div class="out" style="margin-bottom:8px;opacity:.9">Cash ${fmtK(p.cash)} · Invested ${fmtK(assets)}</div>
-    <div class="out" style="max-height:110px;overflow:auto;background:#0d1510;border-left:4px solid var(--gold)"><div class="profile-crimes">${assetRows}</div></div>
-    <div class="out" style="margin-top:8px;margin-bottom:4px">CHARGES: ${list.length} · exposure ${total}y${lifeTag}</div>
-    <div class="out" style="max-height:100px;overflow:auto;background:#0d1510;border-left:4px solid ${p.color}"><div class="profile-crimes">${crimeRows}</div></div>
-    ${joj}${rebornTag}
-    <div class="go"><button onclick="closeModal()">[ CLOSE ]</button></div>`;
+  const loc=p.inJail?"AWAITING COURT":p.ring==="inner"?("PRISON — "+p.sentence+"y left"):(OUTER[p.pos]?OUTER[p.pos].t:"the street");
+  const holdings=p.owns.size
+    ? Array.from(p.owns.entries()).map(([idx,cnt])=>{const c=OUTER[idx];const u=c.incomeBase||c.price||c.income||0;return `<div class="cvrow"><span>${c.t} ×${cnt}</span><span>${fmtK(u*cnt)}</span></div>`;}).join("")
+    : `<div class="cvdim">no holdings yet</div>`;
+  const charges=list.length
+    ? list.map(ch=>`<div class="cvrow"><span>${ch.name}${ch.lvl?" ("+ch.lvl+")":""}</span><span>${ch.years===99?"LIFE":ch.years+"y"}</span></div>`).join("")
+    : `<div class="cvdim">clean record (so far)</div>`;
+  el.innerHTML=`
+  <div class="cv">
+    <div class="cvhead">
+      <div class="cvtitle"><span class="patchip pat-${p.pattern||'solid'}"></span> ${p.name}</div>
+      <div class="cvsub">CRIMINAL RÉSUMÉ · ${p.alive?"ACTIVE":"DECEASED"}</div>
+    </div>
+    <div class="cvgrid">
+      <div class="cvbox"><div class="cvh">VITALS</div>
+        <div class="cvrow"><span>Age</span><span>${p.age}</span></div>
+        <div class="cvrow"><span>Health</span><span>${3-p.hosp}/3</span></div>
+        <div class="cvrow"><span>Status</span><span>${loc}</span></div>
+        <div class="cvrow"><span>Years served</span><span>${p.yearsServed||0}y</span></div>
+        ${p.ring==="inner"?`<div class="cvrow"><span>Packs</span><span>${p.packs}</span></div>`:""}
+        ${p.freeArrest>0?`<div class="cvrow"><span>Get-out cards</span><span>★${p.freeArrest}</span></div>`:""}
+      </div>
+      <div class="cvbox"><div class="cvh">EMPIRE</div>
+        <div class="cvrow"><span>Net worth</span><span>${fmtK(worth)}</span></div>
+        <div class="cvrow"><span>Cash</span><span>${fmtK(p.cash)}</span></div>
+        <div class="cvrow"><span>Invested</span><span>${fmtK(assets)}</span></div>
+        <div class="cvrow"><span>Soldiers</span><span>${p.crew}</span></div>
+        <div class="cvrow"><span>Turf held</span><span>${p.owns.size}</span></div>
+      </div>
+      <div class="cvbox"><div class="cvh">HOLDINGS</div><div class="cvlist">${holdings}</div></div>
+      <div class="cvbox"><div class="cvh">RAP SHEET · ${list.length} chg · ${total}y${lifeTag}</div><div class="cvlist">${charges}</div></div>
+    </div>
+    ${rebornCount>0?`<div class="cvnote cvdim">reborn ${rebornCount}× — this cat's got lives</div>`:""}
+    <div class="go"><button onclick="closeModal()">[ CLOSE ]</button></div>
+  </div>`;
   openModal();
 }
 
@@ -1705,21 +1774,21 @@ function closeModal(){document.getElementById("modal").classList.remove("on");}
     if(x==="OK"){ if(code.length===3) submit(); return; }
     if(code.length<3){ code+=x; drawCode(); if(code.length===3) setTimeout(submit,220); }
   }
-  function drawCode(){ setLast("ENTER 3-DIGIT CODE: " + (code.replace(/./g,"* ").trim()||"_ _ _") + " " + CUR); }
+  function drawCode(){ setLast("ENTER ACCESS CODE: " + (code.replace(/./g,"* ").trim()||"_ _ _") + " " + CUR); }
   function submit(){
     keypad(false);
-    if(code===PASS){ phase="ok"; setLast("ENTER 3-DIGIT CODE: * * *"); nl(""); nl('<span class="dosbar">ACCESS GRANTED</span>'); nl(""); setTimeout(boot,700); }
+    if(code===PASS){ phase="ok"; setLast("ENTER ACCESS CODE: * * *"); nl(""); nl('<span class="dosbar">ACCESS GRANTED</span>'); nl(""); setTimeout(boot,700); }
     else { phase="prank"; prank(); }
   }
   function startLogin(){
     out.innerHTML="";
-    nl("CRIMINAL TERMINAL (R) SECURE SYSTEM   v7.3");
-    nl("(C) 1985 FAMILY SYSTEMS CORP.");
+    nl("CRIMINAL TERMINAL (R) v7.4");
+    nl("(C) 1987 SATAN SYSTEMS CORP. ALL RIGHTS RESERVED.");
     nl("");
-    nl("RESTRICTED SYSTEM \u2014 AUTHORIZED USERS ONLY.");
-    nl('<span style="opacity:.7">[ enter your 3-digit access code on the keypad ]</span>');
+    nl("RESTRICTED SYSTEM - AUTHORIZED USERS ONLY.");
+    nl('<span style="opacity:.7">tap the screen, then type a 3-character code</span>');
     nl("");
-    nl("ENTER 3-DIGIT CODE: " + CUR);
+    nl("ENTER ACCESS CODE: " + CUR);
     code=""; phase="login"; keypad(true);
   }
   /* ---- wrong code: fake "deep web" data-theft prank (pure theater) ---- */
@@ -1759,9 +1828,10 @@ function closeModal(){document.getElementById("modal").classList.remove("on");}
   function boot(){
     phase="boot"; out.innerHTML="";
     const L=[
-      ["FAMILY SYSTEMS BIOS v4.1    01/01/1985", 260],
-      ["CRIMINAL-PC  \u2014  8088 @ 4.77 MHz", 240],
-      ["MEMORY TEST : 640K OK", 460],
+      ["DEVIL SYSTEMS BIOS v1.8", 260],
+      ["CRIMINAL-PC - 3.6-18 @ 4.77 MHz", 240],
+      ["MEMORY TEST : 666K OK", 400],
+      ["06/03/1987", 320],
       ["", 120],
       ["C:\\> INITIATING SYSTEM LOAD...", 420],
       ["[                              ]   0%", 60],
