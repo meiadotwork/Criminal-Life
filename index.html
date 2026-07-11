@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CRIMINAL LIFE // terminal</title>
+<title>CRIMINAL TERMINAL</title>
 <style>
   :root{--phos:#39ff74;--phos-dim:#1c9c3c;--phos-dark:#0a3d18;--amber:#ffb642;--red:#ff5a52;--bg:#010602;--scan:rgba(0,0,0,.22)}
   *{box-sizing:border-box;margin:0;padding:0}
@@ -151,6 +151,14 @@
   /* board cells: pure black, single border, NO shading anywhere */
   .cell{border:1px solid var(--phos-dim) !important;border-radius:0 !important;}
   .cell.here{background:#000 !important;border:1px solid var(--phos) !important;}
+  /* remove non-playable filler cells entirely (no box) */
+  .cell.hollow{border:none !important;background:transparent !important;padding:0 !important;min-height:0 !important;}
+  /* bigger, readable cell text (scales up on tablet) */
+  .cell .nm{font-size:clamp(9px,1.6vw,19px) !important;line-height:1.12 !important;letter-spacing:.3px !important;}
+  .cell .ic{font-size:clamp(13px,2.1vw,26px) !important;}
+  .cell .own{font-size:clamp(9px,1.3vw,15px) !important;}
+  /* PRISON label much bigger */
+  #innerLabel{font-size:clamp(18px,3.8vw,48px) !important;letter-spacing:2px !important;font-weight:bold !important;color:var(--phos) !important;opacity:.9;}
   /* die = plain black box, lit pips */
   .pip{background:var(--phos) !important;border-radius:50% !important;}
   /* swatches -> uniform mono boxes (no color) */
@@ -186,6 +194,59 @@
   .card .sub{font-size:16px !important;font-style:normal !important;}
   .card .out{font-size:18px !important;font-style:normal !important;background:#000 !important;border:1px solid var(--phos) !important;border-left:3px solid var(--phos) !important;}
 </style>
+<style id="dos72">
+  /* touch keypad */
+  #doskeys{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);
+    display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:min(300px,78vw);z-index:10000;}
+  .doskey{font-size:24px;padding:16px 0;border:1px solid var(--phos)!important;background:#000!important;color:var(--phos)!important;cursor:pointer;font-family:inherit;}
+  .doskey:active,.doskey:hover{background:var(--phos)!important;color:#000!important;}
+  /* modal: always centered on the viewport; tall cards scroll inside */
+  #modal{z-index:9998!important;}
+  #cardWrap{position:relative;max-width:94vw;}
+  .card{max-height:88vh;overflow:auto;}
+  #cardTools{position:absolute;top:6px;right:8px;display:flex;gap:6px;z-index:3;}
+  #cardTools button{font-size:13px!important;padding:4px 9px!important;}
+  /* dice side by side */
+  #diceRow{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:4px;}
+  .die{width:58px;height:58px;border:1px solid var(--phos)!important;background:#000!important;display:grid;
+    grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);padding:9px;gap:3px;cursor:pointer;flex:0 0 auto;}
+  .die.rolling{opacity:.65;}
+  /* player roster as a bottom bar under the board */
+  #players{display:flex;flex-wrap:wrap;gap:8px;}
+  #players .pl{flex:1 1 160px;min-width:140px;}
+</style>
+<style id="dos73">
+  .bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .main{grid-template-columns:minmax(0,1fr) 360px !important;}
+  @media(max-width:900px){.main{grid-template-columns:1fr !important;}}
+  .side{display:flex;flex-direction:column;gap:9px;min-height:0;}
+  .board-panel{overflow:auto;display:flex;flex-direction:column;}
+  #boardWrap{position:relative;width:calc(100% * var(--bz,1));margin:0;}
+  #board{width:100%;}
+  .side .panel{overflow:auto;}
+  .zoombar{display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap;}
+  .zoombar button{font-size:12px;padding:5px 9px;}
+  .topbtns{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-left:auto;}
+  .topbtns button{font-size:13px;padding:6px 10px;}
+  /* player info: current player big, others beside */
+  #players{display:flex;flex-direction:column;gap:8px;}
+  .pl{border:1px solid var(--phos-dim);padding:7px;cursor:pointer;}
+  .pl.big{border:1px solid var(--phos) !important;padding:10px;}
+  .pl.big .nm{font-size:18px;}
+  .pl.active{border-color:var(--phos) !important;}
+  .others{display:flex;flex-wrap:wrap;gap:6px;}
+  .pl.mini{flex:1 1 130px;min-width:118px;font-size:12px;padding:6px;}
+  .pl .row{display:flex;justify-content:space-between;gap:6px;}
+  /* READ button top-left so it never covers the deck # (top-right) */
+  #cardTools{left:8px !important;right:auto !important;}
+</style>
+<style id="dos74">
+  /* keep player chips small + tidy inside board cells (no overflow) */
+  .cell .patchip{width:clamp(7px,1.2vw,12px) !important;height:clamp(7px,1.2vw,12px) !important;border-width:1px !important;vertical-align:middle;}
+  .toks{position:absolute;bottom:1px;right:2px;display:flex;gap:2px;align-items:center;line-height:1;font-size:9px;max-width:70%;flex-wrap:wrap;justify-content:flex-end;}
+  .toks .patchip.tok{margin-left:0 !important;}
+  .cell .own{position:absolute;top:1px;right:2px;display:flex;align-items:center;gap:2px;line-height:1;font-size:clamp(7px,1vw,11px) !important;}
+</style>
 </head>
 <body class="crt">
 <div id="dosgate"><pre id="dosout"></pre></div>
@@ -197,40 +258,49 @@
  ██     ██████  ██ ██ █ ██ ██ ██ █ ██ ███████ ██
  ██     ██   ██ ██ ██   ██ ██ ██  ███ ██   ██ ██
   ██████ ██  ██ ██ ██   ██ ██ ██   ██ ██   ██ ███████
-        L · I · F · E    //   crime terminal v7.1
+        T · E · R · M · I · N · A · L    //   v7.3
 </pre>
 <div id="setupStage"></div>
 </div>
 
-<div id="modal"><div class="card" id="cardEl"></div></div>
+<div id="modal"><div id="cardWrap"><div id="cardTools"><button onclick="speakCard()">[ READ ]</button></div><div class="card" id="cardEl"></div></div></div>
 
 <div id="screen" style="display:none">
   <div class="bar">
-    <h1>CRIMINAL&nbsp;LIFE</h1>
+    <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL</h1>
     <div id="turnBanner">TURN 1</div>
-    <a class="reset" onclick="location.reload()">[reset]</a>
+    <div class="topbtns">
+      <button onclick="openManual()">[ MANUAL ]</button>
+      <button id="followBtn" onclick="toggleFollow()">[ FOLLOW: OFF ]</button>
+      <button id="greenBtn" onclick="toggleGreenDos()">[ 87 ]</button>
+      <a class="reset" onclick="location.reload()">[reset]</a>
+    </div>
   </div>
   <div class="main">
-    <div class="panel">
+    <div class="panel board-panel">
       <h2>THE CITY</h2>
+      <div class="zoombar"><button onclick="boardZoom(-1)">[ ZOOM − ]</button><button onclick="boardZoom(0)">[ RESET ]</button><button onclick="boardZoom(1)">[ ZOOM + ]</button></div>
       <div id="boardWrap"><div id="board"></div><div id="innerLabel">P R I S O N</div></div>
     </div>
-    <div class="panel">
-      <h2>ROSTER — tap for record</h2>
-      <div id="players"></div>
-      <h2>DICE</h2>
-      <div id="diceBox"><div id="die" onclick="rollDice()" title="tap to roll"></div><div style="font-size:14px;opacity:.7" id="diceLbl">tap die to roll</div></div>
-      <h2>ACTIONS</h2>
-      <div class="controls" style="min-height:8px;flex-wrap:wrap">
-        <button id="commitCrimeBtn" onclick="commitCrime()" style="display:none">[ COMMIT CRIME ]</button>
-        <button id="buyWorkersBtn" onclick="openBuyWorkers()" style="display:none">[ HIRE WORKERS ]</button>
-        <button id="sellAssetsBtn" onclick="openSellAssets()" style="display:none">[ SELL ASSETS ]</button>
-        <button id="greenBtn" onclick="toggleGreenDos()">[ MODE: GREEN ]</button>
-        <button id="followBtn" onclick="toggleFollow()">[ FOLLOW: OFF ]</button>
+    <div class="side">
+      <div class="panel">
+        <h2>PLAYERS — tap for record</h2>
+        <div id="players"></div>
       </div>
-      <div class="ctx" id="ctxHint"></div>
-      <h2>CONSOLE — this round</h2>
-      <div id="log"></div>
+      <div class="panel">
+        <h2>DICE</h2>
+        <div id="diceBox"><div id="diceRow"><div class="die roller" onclick="rollDice()" title="tap to roll"></div></div><div style="font-size:14px;opacity:.7" id="diceLbl">tap die to roll</div></div>
+        <h2>ACTIONS</h2>
+        <div class="controls" style="min-height:8px;flex-wrap:wrap">
+          <button id="commitCrimeBtn" onclick="commitCrime()" style="display:none">[ COMMIT CRIME ]</button>
+          <button id="buyWorkersBtn" onclick="openBuyWorkers()" style="display:none">[ HIRE WORKERS ]</button>
+          <button id="sellAssetsBtn" onclick="openSellAssets()" style="display:none">[ SELL ASSETS ]</button>
+          <button id="autoBtn" onclick="toggleAuto()">[ AUTO: OFF ]</button>
+        </div>
+        <div class="ctx" id="ctxHint"></div>
+        <h2>CONSOLE — this round</h2>
+        <div id="log"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -394,6 +464,8 @@ function nextPlayerSetup(){
       <input id="pname" placeholder="${isAI?'CPU':'name'}" value="${isAI?'CPU':''}" maxlength="10" ${isAI?'disabled':''}>
       <div style="font-size:11px;opacity:.7">pick a pattern</div>
       <div class="swatches">${sw}</div>
+      <div style="font-size:11px;opacity:.7;margin-top:8px">your age (any — doesn't affect play)</div>
+      <input id="page" type="number" value="${isAI?21:25}" min="1" max="120" style="width:90px;text-align:center">
       <button onclick="confirmPlayer(${isAI})">[ CONFIRM ]</button>
     </div>`;
   window._pickColor=null;
@@ -403,17 +475,18 @@ function confirmPlayer(isAI){
   const name=document.getElementById("pname").value.trim()||(isAI?"CPU":("P"+(setupData.idx+1)));
   let pattern=window._pickColor;
   if(!pattern){ const used=setupData.players.map(p=>p.pattern); pattern=(PATTERNS.find(pt=>!used.includes(pt.k))||PATTERNS[0]).k; }
-  setupData.players.push({name,pattern,ai:isAI});
+  setupData.players.push({name,pattern,ai:isAI,age:(parseInt((document.getElementById("page")||{}).value)||25)});
   setupData.idx++; nextPlayerSetup();
 }
 function launch(){
   S={turn:1,cur:0,n:setupData.players.length,rolled:false,over:false,ai:setupData.ai,roundEvents:[],baseDice:(setupData.dice||1)};
   const startCash=(setupData.startCash??100);
-  S.players=setupData.players.map((p,i)=>{const pl=newPlayer(i,p.name,p.pattern);pl.ai=p.ai;pl.cash=startCash;return pl;});
+  S.players=setupData.players.map((p,i)=>{const pl=newPlayer(i,p.name,p.pattern);pl.ai=p.ai;pl.cash=startCash;pl.age=p.age||25;return pl;});
   document.getElementById("setup").style.display="none";
   document.getElementById("screen").style.display="flex";
   buildBoardGrid();
-  render();updateControls();drawDie(0);
+  render();updateControls();
+  setTimeout(fitBoard,60);
   newRound();
   log("SYSTEM ONLINE. "+setupData.difficulty+" mode — everyone starts with "+fmtK(startCash)+".","sys");
 }
@@ -462,18 +535,26 @@ function render(){
     cell.innerHTML=`${ownHtml}<span class="ic">${data.ic}</span><span class="nm">${data.t}</span>`+(toks?`<span class="toks">${toks}</span>`:"");
   });
   const pl=document.getElementById("players");pl.innerHTML="";
-  S.players.forEach(p=>{
-    const d=document.createElement("div");d.className="pl"+(p.id===S.cur?" active":"")+(p.alive?"":" dead");
-    d.style.borderColor=p.color;if(p.id===S.cur)d.style.boxShadow="0 0 10px "+hexA(p.color,.5);
+  const mkCard=(p,big)=>{
+    const d=document.createElement("div");d.className="pl"+(p.id===S.cur?" active":"")+(p.alive?"":" dead")+(big?" big":" mini");
     d.onclick=()=>showProfile(p.id);
     const hp=p.alive?("♥".repeat(Math.max(0,3-p.hosp))+"·".repeat(p.hosp)):"DEAD";
     let loc=p.inJail?"JAIL(await court)":p.ring==="inner"?("PRISON "+p.sentence+"y"):OUTER[p.pos].t;
     const joj=p.freeArrest>0?`<span class="tag">JOJ×${p.freeArrest}</span>`:"";
-    d.innerHTML=`<div class="row"><span class="nm"><span class="patchip pat-${p.pattern||'solid'}"></span> ${p.name}${joj}</span><span>${hp}</span></div>
+    if(big){
+      d.innerHTML=`<div class="row"><span class="nm"><span class="patchip pat-${p.pattern||'solid'}"></span> ${p.name}${joj}</span><span>${hp}</span></div>
       <div class="row"><span>${fmtK(p.cash)}</span><span>${p.ring==="inner"?("pk "+p.packs):soldierIcons(p.color,p.crew)}</span></div>
-      <div class="row" style="opacity:.6;font-size:10px"><span>${loc}</span><span>${p.age}yo</span></div>`;
-    pl.appendChild(d);
-  });
+      <div class="row" style="opacity:.6;font-size:11px"><span>${loc}</span><span>TURF ${p.owns.size} · ${p.age}yo</span></div>
+      <div class="row" style="opacity:.5;font-size:10px"><span>tap for record (CV)</span></div>`;
+    } else {
+      d.innerHTML=`<div class="row"><span class="nm"><span class="patchip pat-${p.pattern||'solid'}"></span> ${p.name}${joj}</span><span>${hp}</span></div>
+      <div class="row" style="font-size:11px"><span>${fmtK(p.cash)}</span><span>${p.ring==="inner"?("pk "+p.packs):("sol "+p.crew)}</span></div>`;
+    }
+    return d;
+  };
+  pl.appendChild(mkCard(S.players[S.cur],true));
+  const others=S.players.filter(p=>p.id!==S.cur);
+  if(others.length){ const w=document.createElement("div");w.className="others"; others.forEach(p=>w.appendChild(mkCard(p,false))); pl.appendChild(w); }
   document.getElementById("turnNo")&&(document.getElementById("turnNo").textContent=S.turn);
   const cp=S.players[S.cur];
   const tb=document.getElementById("turnBanner");
@@ -495,14 +576,15 @@ function log(m,cls=""){const d=document.createElement("div");d.className="l "+cl
 
 /* ===== DICE ===== */
 const PIPS={1:["p1"],2:["p2a","p2b"],3:["p3a","p3b","p3c"],4:["p4a","p4b","p4c","p4d"],5:["p5a","p5b","p5c","p5d","p5e"],6:["p6a","p6b","p6c","p6d","p6e","p6f"]};
-function drawDie(v){const die=document.getElementById("die");die.innerHTML="";if(v>=1)PIPS[v].forEach(cls=>{const p=document.createElement("div");p.className="pip "+cls;die.appendChild(p);});}
+function drawDie(v){const die=document.getElementById("die");if(!die)return;die.innerHTML="";if(v>=1)PIPS[v].forEach(cls=>{const p=document.createElement("div");p.className="pip "+cls;die.appendChild(p);});}
 
 function updateControls(){
   const p=S.players[S.cur];
-  const die=document.getElementById("die");
+  const row=document.getElementById("diceRow");
+  if(row && !S.rolled){ row.innerHTML='<div class="die roller" onclick="rollDice()" title="tap to roll"></div>'; }
+  const die=row?row.querySelector(".die"):null;
   const canRoll=!S.rolled&&p.alive&&!S.over&&!(p.ai);
-  die.style.cursor=canRoll?"pointer":"default";
-  die.style.opacity=canRoll?"1":".5";
+  if(die){ die.style.cursor=canRoll?"pointer":"default"; die.style.opacity=canRoll?"1":".5"; }
   const h=document.getElementById("ctxHint");
   if(!p.alive)h.textContent="";
   else if(p.ai)h.textContent="AI is thinking...";
@@ -551,17 +633,44 @@ function sellAssetFromMenu(idx){
 }
 
 /* ===== ROLL + STEP MOVEMENT (always visible) ===== */
+let _bz=1;
+function fitBoard(){ _bz=1; const w=document.getElementById("boardWrap"); if(w)w.style.setProperty("--bz",1); }
+function boardZoom(dir){ if(dir===0){fitBoard();return;} _bz=Math.max(0.5,Math.min(2.8,+(_bz+dir*0.2).toFixed(2))); const w=document.getElementById("boardWrap"); if(w)w.style.setProperty("--bz",_bz); }
+function drawDieEl(el,v){el.innerHTML="";if(v>=1)PIPS[v].forEach(cls=>{const p=document.createElement("div");p.className="pip "+cls;el.appendChild(p);});}
 function rollDice(){
   const p=S.players[S.cur];if(S.rolled||!p.alive)return;
-  const die=document.getElementById("die");die.classList.add("rolling");
   const bonus=(p.crew>=10)?1:0;                 // 10+ soldiers roll one extra die
   const n=Math.max(1,(S.baseDice||1)+bonus);
   const rolls=[];for(let i=0;i<n;i++)rolls.push(1+Math.floor(Math.random()*6));
   const total=rolls.reduce((a,b)=>a+b,0);
-  const label=(n>1?total+" ("+rolls.join("+")+")":""+total)+(bonus?" · +1 die (10+ soldiers)":"");
+  const row=document.getElementById("diceRow");row.innerHTML="";
+  const dice=[];for(let i=0;i<n;i++){const d=document.createElement("div");d.className="die rolling";if(i===0)d.onclick=rollDice;row.appendChild(d);dice.push(d);}
   let t=0;
-  const iv=setInterval(()=>{drawDie(1+Math.floor(Math.random()*6));if(++t>6){clearInterval(iv);drawDie(rolls[0]);die.classList.remove("rolling");afterRoll(total);}},60);
-  S.rolled=true;document.getElementById("diceLbl").textContent="rolled "+label;
+  const iv=setInterval(()=>{
+    dice.forEach(d=>drawDieEl(d,1+Math.floor(Math.random()*6)));
+    if(++t>6){clearInterval(iv);dice.forEach((d,i)=>{drawDieEl(d,rolls[i]);d.classList.remove("rolling");});afterRoll(total);}
+  },70);
+  S.rolled=true;
+  document.getElementById("diceLbl").textContent="rolled "+(n>1?total+" ("+rolls.join("+")+")":""+total)+(bonus?" · +1 die (10+ soldiers)":"");
+}
+function speakCard(){ try{ const raw=document.getElementById("cardEl").innerText||""; const t=raw.replace(/\[[^\]]*\]/g," ").replace(/\s+/g," ").trim(); if(!t)return; window.speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(t); u.rate=1; window.speechSynthesis.speak(u); }catch(e){} }
+function openManual(){ window.speechSynthesis&&window.speechSynthesis.cancel(); const el=document.getElementById("cardEl");
+  el.innerHTML=`<div class="lbl">MANUAL — HOW TO PLAY</div>
+  <div class="bd" style="text-align:left">
+  GOAL: be the last boss standing.<br><br>
+  \u25B8 OUTER RING is the street. One full lap = one YEAR (you collect income from what you own).<br>
+  \u25B8 Tap the die to move. With 2\u20133 dice they add up; 10+ soldiers roll a bonus die.<br>
+  \u25B8 Land on a business/street you can OPEN it, or land on a rival's and pay them.<br>
+  \u25B8 RECRUITING = hire soldiers. ATTACK = take a rival's turf by force.<br>
+  \u25B8 HEIST / DRUG / HITMAN = jobs for cash, with arrest risk.<br>
+  \u25B8 Arrested \u2192 JAIL \u2192 COURT \u2192 PRISON (inner ring). Escape re-adds your time later.<br>
+  \u25B8 Broke + hurt \u2192 HOSPITAL. Three visits and you're out.<br>
+  \u25B8 POKER NIGHT pays $1M/yr and collects rivals' bets.<br>
+  \u25B8 Can't pay a debt? Your turf, businesses, then soldiers get sold to cover it.<br><br>
+  Tap [ READ ] on any card to hear it out loud.
+  </div>
+  <div class="go"><button onclick="closeModal()">[ CLOSE ]</button></div>`;
+  openModal();
 }
 function afterRoll(r){
   const p=S.players[S.cur];p.stayCount=0;
@@ -618,7 +727,35 @@ function scrollToToken(){
   if(here) here.scrollIntoView({behavior:"smooth",block:"center",inline:"center"});
 }
 function toggleFollow(){ S.followAnim=!S.followAnim; const b=document.getElementById("followBtn"); if(b)b.textContent=S.followAnim?"[ FOLLOW: ON ]":"[ FOLLOW: OFF ]"; }
-function toggleGreenDos(){ const bw=document.body.classList.toggle("bw"); const b=document.getElementById("greenBtn"); if(b)b.textContent=bw?"[ MODE: B&W ]":"[ MODE: GREEN ]"; }
+function toggleGreenDos(){ const bw=document.body.classList.toggle("bw"); const b=document.getElementById("greenBtn"); if(b)b.textContent=bw?"[ 94 ]":"[ 87 ]"; }
+/* ===== AUTO-PLAY: auto-roll & auto-pass, pause when you can afford to buy/act ===== */
+function toggleAuto(){
+  S.auto=!S.auto;
+  const b=document.getElementById("autoBtn"); if(b)b.textContent=S.auto?"[ AUTO: ON ]":"[ AUTO: OFF ]";
+  if(S._autoIv){clearInterval(S._autoIv);S._autoIv=null;}
+  if(S.auto) S._autoIv=setInterval(autoTick,650);
+}
+function autoTick(){
+  if(!S||!S.auto||S.over){ if(S&&S._autoIv){clearInterval(S._autoIv);S._autoIv=null;} return; }
+  const p=S.players[S.cur];
+  const modalOn=document.getElementById("modal").classList.contains("on");
+  if(modalOn){
+    const btns=[...document.querySelectorAll("#cardEl button")];
+    if(!btns.length) return;
+    // a choice you can afford -> pause and let the human decide
+    const choice=btns.find(b=>/OPEN|BUY|CLAIM|HIRE|\bMAX\b|\+1|ATTACK|PICK YOUR JOB/i.test(b.textContent));
+    if(choice){
+      const m=choice.textContent.match(/\$([\d.]+)\s*([KM])/i);
+      const cost=m?parseFloat(m[1])*(/M/i.test(m[2])?1000:1):0;
+      if(!m || (p && p.cash>=cost)) return;                 // affordable/unknown -> pause for player
+      const pass=btns.find(b=>/PASS|DONE|CLOSE|WALK|LEAVE|OK/i.test(b.textContent))||btns[btns.length-1];
+      pass.click(); return;                                 // can't afford -> auto-pass
+    }
+    const go=btns.find(b=>/OK|CONTINUE|COLLECT|CHECK OUT|DONE|CLOSE|PASS|WALK|LEAVE|NEXT|SERVE|BAIL/i.test(b.textContent))||btns[0];
+    go.click(); return;
+  }
+  if(p && !p.ai && !S.rolled && p.alive && !S.over) rollDice();
+}
 function openColorPicker(){
   const el=document.getElementById("cardEl");
   const rows=S.players.map(p=>{
@@ -1145,7 +1282,15 @@ function applyCard(){
   recordCharge(p,deck,c);
   // PARTY poker bets
   if(deck==="party"&&c.tag==="poker"){ p.cash+=(c.win?c.bet:-c.bet); log(p.name+(c.win?" wins $"+c.bet+"K at "+(c.ttl):" loses $"+c.bet+"K at "+(c.ttl)),c.win?"good":"warn"); afterMoney(p); if(!c.raidArr){finish();return;} }
-  if(c.cut){p.cash+=c.cut;log(p.name+(c.cut>0?" gains $":" loses $")+Math.abs(c.cut)+"K.",c.cut>0?"good":"warn");}
+  if(c.cut){
+    let amt=c.cut;
+    if(deck==="court" && c.cut<0){                          // realistic fines = a slice of your net worth
+      const pct=Math.min(0.4, Math.abs(c.cut)/100);
+      const fine=Math.max(Math.abs(c.cut), Math.round(netWorth(p)*pct));
+      amt=-Math.min(fine, Math.max(0,netWorth(p)));
+    }
+    p.cash+=amt;log(p.name+(amt>0?" gains $":" loses $")+Math.abs(amt)+"K"+(deck==="court"&&amt<0?" (fine)":"")+".",amt>0?"good":"warn");
+  }
   if(c.packs){p.packs=Math.max(0,p.packs+c.packs);
     if(c.packs>0)log(p.name+" wins "+c.packs+" cigarette pack"+(c.packs>1?"s":"")+" (now "+p.packs+").","good");
     else log(p.name+" pays "+(-c.packs)+" cigarette pack"+((-c.packs)>1?"s":"")+" (now "+p.packs+").","warn");}
@@ -1172,7 +1317,7 @@ function applyCard(){
   if((deck==="pfight"||deck==="riot") && c.rounds){ toHospital(p, c.rounds>=4?2:1, deck==="pfight"?"a prison fight":"the prison riot"); return; }
   // HEIST/drug/hitman arrest chance
   if(c.arr!==undefined){
-    const caught=Math.random()<0.22;
+    const caught=Math.random()<0.30;
     if(caught){ p._pendingYears=(c.arr==="LIFE"?30:c.arr); arrestFlow(p); return; }
     else log("Clean getaway.","good");
   }
@@ -1491,7 +1636,7 @@ function endTurn(){ if(S.over)return; if(!S.rolled)return;
     if(np.alive&&np.skip>0){np.skip--;log(np.name+" sits out (recovering).");continue;}
     if(np.alive)break;
   }while(g<30);
-  S.rolled=false;drawDie(0);document.getElementById("diceLbl").textContent="roll to move";
+  S.rolled=false;document.getElementById("diceLbl").textContent="roll to move";
   render();updateControls();
   const np=S.players[S.cur];
   if(np.ai&&!S.over){ setTimeout(()=>rollDiceAI(),700); }
@@ -1535,28 +1680,81 @@ function closeModal(){document.getElementById("modal").classList.remove("on");}
   const gate=document.getElementById('dosgate');
   const out=document.getElementById('dosout');
   const CUR='<span class="blink">\u2588</span>';   // blinking block cursor
-  let pw="", phase="idle", inp=null;
+  let code="", phase="idle";
 
   const nl = s => { out.innerHTML += s + "\n"; out.scrollTop=out.scrollHeight; };
   function setLast(s){ const t=out.innerHTML; const i=t.lastIndexOf("\n", t.length-2); out.innerHTML=t.slice(0,i+1)+s+"\n"; }
 
+  const PASS="666";
+  function keypad(show){
+    let k=document.getElementById("doskeys");
+    if(!show){ if(k)k.style.display="none"; return; }
+    if(!k){
+      k=document.createElement("div"); k.id="doskeys";
+      ["1","2","3","4","5","6","7","8","9","CLR","0","OK"].forEach(x=>{
+        const b=document.createElement("button"); b.className="doskey"; b.textContent=x;
+        b.addEventListener("click",()=>press(x)); k.appendChild(b);
+      });
+      gate.appendChild(k);
+    }
+    k.style.display="grid";
+  }
+  function press(x){
+    if(phase!=="login")return;
+    if(x==="CLR"){ code=""; drawCode(); return; }
+    if(x==="OK"){ if(code.length===3) submit(); return; }
+    if(code.length<3){ code+=x; drawCode(); if(code.length===3) setTimeout(submit,220); }
+  }
+  function drawCode(){ setLast("ENTER 3-DIGIT CODE: " + (code.replace(/./g,"* ").trim()||"_ _ _") + " " + CUR); }
+  function submit(){
+    keypad(false);
+    if(code===PASS){ phase="ok"; setLast("ENTER 3-DIGIT CODE: * * *"); nl(""); nl('<span class="dosbar">ACCESS GRANTED</span>'); nl(""); setTimeout(boot,700); }
+    else { phase="prank"; prank(); }
+  }
   function startLogin(){
     out.innerHTML="";
-    nl("CRIMINAL LIFE (R) SECURE TERMINAL   v7.1");
-    nl("(C) 1985 FAMILY SYSTEMS CORP.  ALL RIGHTS RESERVED.");
+    nl("CRIMINAL TERMINAL (R) SECURE SYSTEM   v7.3");
+    nl("(C) 1985 FAMILY SYSTEMS CORP.");
     nl("");
     nl("RESTRICTED SYSTEM \u2014 AUTHORIZED USERS ONLY.");
+    nl('<span style="opacity:.7">[ enter your 3-digit access code on the keypad ]</span>');
     nl("");
-    nl('<span style="opacity:.7">[ tap the screen, then type a 4-character code ]</span>');
-    nl("");
-    nl("ENTER ACCESS CODE: " + CUR);
-    phase="login";
+    nl("ENTER 3-DIGIT CODE: " + CUR);
+    code=""; phase="login"; keypad(true);
   }
-  function drawPw(){ setLast("ENTER ACCESS CODE: " + "*".repeat(pw.length) + CUR); }
-  function granted(){
-    setLast("ENTER ACCESS CODE: " + "*".repeat(pw.length));
-    nl(""); nl('<span class="dosbar">ACCESS GRANTED</span>'); nl("");
-    setTimeout(boot, 750);
+  /* ---- wrong code: fake "deep web" data-theft prank (pure theater) ---- */
+  const STEAL=["IP address","Phone password","Sensitive photos","Hidden album","2FA tokens","Email password","Bank account","SSN","Government ID","Personal info","Medical history","Home address","Contacts","Family info","Cloning identity","Transferring savings","Transferring checking"];
+  function prank(){
+    out.innerHTML="";
+    nl('<span class="dosbar">ACCESS DENIED</span>'); nl("");
+    nl("you are not supposed to be here."); nl("");
+    setTimeout(()=>{ nl("Tracing your connection ...  LOCKED"); nl("Uploading to 7g4x2\u2026.onion \u2014 silent extraction:"); nl(""); stealChain(); }, 1200);
+  }
+  function stealChain(){
+    let i=0;
+    (function nextItem(){
+      if(i>=STEAL.length){ prankDone(); return; }
+      const name=STEAL[i]; i++;
+      const pad=(name+" ").padEnd(22,".");
+      nl(pad+" [          ] 0%");
+      let f=0; const frames=4;
+      const iv=setInterval(()=>{
+        f++; const pct=Math.min(100,Math.round(f/frames*100)); const fill="#".repeat(Math.round(f/frames*10));
+        setLast(pad+" ["+(fill+"          ").slice(0,10)+"] "+pct+"%"+(f>=frames?"  SENT":""));
+        if(f>=frames){ clearInterval(iv); setTimeout(nextItem,70); }
+      },45);
+    })();
+  }
+  function prankDone(){
+    nl(""); nl('<span class="dosbar">UPLOAD COMPLETE \u2014 100%</span>');
+    setTimeout(()=>{
+      nl(""); nl("..."); nl("");
+      nl("just kidding. relax \u2014 nothing actually left this screen.");
+      nl("it's only a game. your secrets are safe. probably.");
+      nl("");
+      nl('<span class="blink">Press any key to play CRIMINAL TERMINAL_</span>');
+      phase="ready";
+    }, 1000);
   }
   function boot(){
     phase="boot"; out.innerHTML="";
@@ -1594,27 +1792,19 @@ function closeModal(){document.getElementById("modal").classList.remove("on");}
       setTimeout(step, delay);
     })();
   }
-  function finish(){ if(phase==="done")return; phase="done"; gate.classList.add("hidden"); if(inp)inp.remove(); }
+  function finish(){ if(phase==="done")return; phase="done"; gate.classList.add("hidden"); const k=document.getElementById("doskeys"); if(k)k.remove(); }
 
   window.dosBoot=function(){
     gate.classList.remove("hidden");
-    inp=document.createElement("input");
-    inp.type="text"; inp.autocomplete="off"; inp.setAttribute("autocapitalize","off"); inp.spellcheck=false;
-    inp.style.cssText="position:fixed;opacity:0;left:0;bottom:0;width:1px;height:1px;border:0;padding:0;z-index:-1;";
-    document.body.appendChild(inp);
     startLogin();
-    inp.addEventListener("input", ()=>{
-      if(phase!=="login")return;
-      pw=inp.value.replace(/[^a-zA-Z0-9]/g,"").slice(0,4);
-      drawPw();
-      if(pw.length>=4){ phase="granted"; inp.blur(); setTimeout(granted,180); }
+    gate.addEventListener("click",(e)=>{ if(phase==="ready" && !e.target.closest("#doskeys")) finish(); });
+    document.addEventListener("keydown",(e)=>{
+      if(phase==="login"){ if(/^[0-9]$/.test(e.key)) press(e.key); else if(e.key==="Enter") press("OK"); else if(e.key==="Backspace") press("CLR"); }
+      else if(phase==="ready"){ finish(); }
     });
-    // tap anywhere: raise the keyboard during login, or begin once ready
-    gate.addEventListener("click", ()=>{ if(phase==="ready"){ finish(); } else if(phase==="login"){ inp.focus(); } });
-    document.addEventListener("keydown", (e)=>{ if(phase==="ready"){ finish(); } });
-    setTimeout(()=>inp.focus(), 120);
   };
 })();
+window.addEventListener("resize",()=>{try{if(typeof fitBoard==="function")fitBoard();}catch(e){}});
 renderSetupStart(); dosBoot();
 </script>
 </body>
