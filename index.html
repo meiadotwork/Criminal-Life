@@ -328,6 +328,12 @@
   .leafart{white-space:pre !important;word-break:normal !important;overflow:hidden;
     display:block;margin:0;line-height:1.02;letter-spacing:0;font-size:20px;}
 </style>
+<style id="dos82">
+  /* global text scale — affects players, dice, actions, console, and all cards */
+  .side{zoom:var(--uiz,1);}
+  #cardWrap{zoom:var(--uiz,1);}
+  .bar h1, #turnBanner{zoom:var(--uiz,1);}
+</style>
 </head>
 <body class="crt">
 <div id="dosgate"><pre id="dosout"></pre></div>
@@ -347,6 +353,9 @@
     <div id="turnBanner">TURN 1</div>
     <div class="topbtns">
       <button id="manualBtn" onclick="openManual()">[ MANUAL ]</button>
+      <button onclick="uiScale(-1)">[ A− ]</button>
+      <button id="uizBtn" onclick="uiScale(0)">[ 100% ]</button>
+      <button onclick="uiScale(1)">[ A+ ]</button>
       <button id="followBtn" onclick="toggleFollow()">[ FOLLOW: OFF ]</button>
       <button id="langBtn" onclick="toggleLang()">[ PT ]</button>
       <button id="greenBtn" onclick="toggleGreenDos()">[ 87 ]</button>
@@ -810,6 +819,14 @@ function scrollToToken(){
   if(!S||!S.followAnim) return;
   const here=document.querySelector("#board .cell.here");
   if(here) here.scrollIntoView({behavior:"smooth",block:"center",inline:"center"});
+}
+/* ===== GLOBAL TEXT SIZE: scales all info panels + cards (board has its own zoom) ===== */
+let _uiz=1;
+function uiScale(dir){
+  if(dir===0)_uiz=1; else _uiz=Math.max(0.6,Math.min(2.2,+(_uiz+dir*0.1).toFixed(2)));
+  document.documentElement.style.setProperty("--uiz",_uiz);
+  const b=document.getElementById("uizBtn"); if(b)b.textContent="[ "+Math.round(_uiz*100)+"% ]";
+  try{ if(typeof fitBoard==="function") setTimeout(fitBoard,60); }catch(e){}
 }
 function toggleFollow(){ S.followAnim=!S.followAnim; const b=document.getElementById("followBtn"); if(b)b.textContent=tr(S.followAnim?"[ FOLLOW: ON ]":"[ FOLLOW: OFF ]"); }
 /* ===== LANGUAGE: interface translation (EN / PT). Card text stays EN for now. ===== */
