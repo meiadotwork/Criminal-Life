@@ -334,6 +334,33 @@
   #cardWrap{zoom:var(--uiz,1);}
   .bar h1, #turnBanner{zoom:var(--uiz,1);}
 </style>
+<style id="dos83">
+  .topbtns button.tiny{padding:6px 9px !important;min-width:34px;letter-spacing:0;}
+  .topbtns{gap:6px;}
+</style>
+<style id="dos84">
+  @media(max-width:900px){
+    .bar{gap:6px;padding:5px 7px;}
+    .bar h1{font-size:15px !important;letter-spacing:1px;}
+    #turnBanner{font-size:12px;padding:2px 6px;}
+    .topbtns{gap:5px;}
+    .topbtns button{font-size:11px !important;padding:5px 7px !important;letter-spacing:0;}
+    .topbtns button.tiny{min-width:28px;padding:5px 6px !important;}
+    .topbtns a.reset{font-size:11px;}
+  }
+</style>
+<style id="dos85">
+  @media(max-width:900px){
+    .side>.panel:first-child{flex:0 0 auto;overflow:visible;}
+    #players{flex-direction:row !important;flex-wrap:wrap;align-items:flex-start;gap:6px;}
+    #players .pl{flex:1 1 46% !important;min-width:0;height:auto !important;align-self:flex-start;padding:6px !important;}
+    #players .pl.big{flex:1 1 100% !important;}
+    #players .pl.big .nm{font-size:15px !important;}
+    #players .pl.big .row:last-child{display:none;}     /* drop the "tap for record" hint line */
+    #players .others{flex:1 1 100%;display:flex;flex-wrap:wrap;gap:6px;margin:0;}
+    #players .others .pl{flex:1 1 46% !important;}
+  }
+</style>
 </head>
 <body class="crt">
 <div id="dosgate"><pre id="dosout"></pre></div>
@@ -353,11 +380,10 @@
     <div id="turnBanner">TURN 1</div>
     <div class="topbtns">
       <button id="manualBtn" onclick="openManual()">[ MANUAL ]</button>
-      <button onclick="uiScale(-1)">[ A− ]</button>
-      <button id="uizBtn" onclick="uiScale(0)">[ 100% ]</button>
-      <button onclick="uiScale(1)">[ A+ ]</button>
+      <button class="tiny" onclick="uiScale(-1)">−</button>
+      <button class="tiny" id="uizBtn" onclick="uiScale(0)">100%</button>
+      <button class="tiny" onclick="uiScale(1)">+</button>
       <button id="followBtn" onclick="toggleFollow()">[ FOLLOW: OFF ]</button>
-      <button id="langBtn" onclick="toggleLang()">[ PT ]</button>
       <button id="greenBtn" onclick="toggleGreenDos()">[ 87 ]</button>
       <a class="reset" onclick="location.reload()">[reset]</a>
     </div>
@@ -825,7 +851,7 @@ let _uiz=1;
 function uiScale(dir){
   if(dir===0)_uiz=1; else _uiz=Math.max(0.6,Math.min(2.2,+(_uiz+dir*0.1).toFixed(2)));
   document.documentElement.style.setProperty("--uiz",_uiz);
-  const b=document.getElementById("uizBtn"); if(b)b.textContent="[ "+Math.round(_uiz*100)+"% ]";
+  const b=document.getElementById("uizBtn"); if(b)b.textContent=Math.round(_uiz*100)+"%";
   try{ if(typeof fitBoard==="function") setTimeout(fitBoard,60); }catch(e){}
 }
 function toggleFollow(){ S.followAnim=!S.followAnim; const b=document.getElementById("followBtn"); if(b)b.textContent=tr(S.followAnim?"[ FOLLOW: ON ]":"[ FOLLOW: OFF ]"); }
