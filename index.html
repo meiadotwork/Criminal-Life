@@ -302,6 +302,32 @@
   .agestep button{font-size:20px;padding:4px 14px;line-height:1;}
   #pageval{font-size:20px;min-width:44px;text-align:center;}
 </style>
+<style id="dos79">
+  /* board-cell chips: tiny, so give each pattern a solid readable mark (no hollow squares) */
+  .cell .patchip{width:9px !important;height:9px !important;border:1px solid var(--phos) !important;background-color:#000 !important;background-image:none !important;flex:0 0 auto;}
+  .cell .pat-solid{background-color:var(--phos) !important;}
+  .cell .pat-inv{background-color:#000 !important;border-width:2px !important;}
+  .cell .pat-vstripe{background-image:repeating-linear-gradient(90deg,var(--phos) 0 2px,#000 2px 4px) !important;}
+  .cell .pat-hstripe{background-image:repeating-linear-gradient(0deg,var(--phos) 0 2px,#000 2px 4px) !important;}
+  .cell .pat-dots{background-image:radial-gradient(var(--phos) 45%,#000 47%) !important;background-size:4px 4px !important;}
+  .cell .pat-checker{background-image:conic-gradient(var(--phos) 90deg,#000 0 180deg,var(--phos) 0 270deg,#000 0) !important;background-size:5px 5px !important;}
+  .cell .own{gap:1px !important;font-size:9px !important;}
+</style>
+<style id="dos80">
+  .pat-diag{background:repeating-linear-gradient(45deg,var(--phos) 0 2px,#000 2px 4px) !important;}
+  .pat-cross{background:repeating-linear-gradient(0deg,var(--phos) 0 1px,#000 1px 4px),repeating-linear-gradient(90deg,var(--phos) 0 1px,#000 1px 4px) !important;}
+  .pat-half{background:linear-gradient(180deg,var(--phos) 0 50%,#000 50% 100%) !important;}
+  .pat-ring{background:radial-gradient(circle,#000 0 30%,var(--phos) 32% 62%,#000 64%) !important;}
+  .cell .pat-diag{background-image:repeating-linear-gradient(45deg,var(--phos) 0 2px,#000 2px 4px) !important;}
+  .cell .pat-cross{background-image:repeating-linear-gradient(0deg,var(--phos) 0 1px,#000 1px 4px),repeating-linear-gradient(90deg,var(--phos) 0 1px,#000 1px 4px) !important;}
+  .cell .pat-half{background-image:linear-gradient(180deg,var(--phos) 0 50%,#000 50% 100%) !important;}
+  .cell .pat-ring{background-image:radial-gradient(circle,#000 0 30%,var(--phos) 32% 62%,#000 64%) !important;}
+  .choice{flex-wrap:wrap;justify-content:center;}
+</style>
+<style id="dos81">
+  .leafart{white-space:pre !important;word-break:normal !important;overflow:hidden;
+    display:block;margin:0;line-height:1.02;letter-spacing:0;font-size:20px;}
+</style>
 </head>
 <body class="crt">
 <div id="dosgate"><pre id="dosout"></pre></div>
@@ -309,7 +335,7 @@
 <div id="setup">
 <div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
 <div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
-<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v7.5</div>
+<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v7.6</div>
 <div id="setupStage"></div>
 </div>
 
@@ -364,7 +390,8 @@ const COLORS=[
 ];
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
-  {k:"hstripe",label:"horizontal"},{k:"dots",label:"dots"},{k:"checker",label:"checker"}
+  {k:"hstripe",label:"horizontal"},{k:"dots",label:"dots"},{k:"checker",label:"checker"},
+  {k:"diag",label:"diagonal"},{k:"cross",label:"cross-hatch"},{k:"half",label:"half"},{k:"ring",label:"ring"}
 ];
 
 /* ===== BOARD: ~40 spaces, HEIST at bottom-left corner = START. Fewer streets, more events. ===== */
@@ -478,17 +505,12 @@ function chooseDifficulty(d){ selectDiff(d); }
 function afterDifficulty(){ /* difficulty + speed are now one screen */ }
 function chooseSpeed(n){ selectSpeed(n); }
 function afterSpeed(){
+  const btns=[`<button onclick="chooseCount(1)">[ 1 PLAYER (vs AI) ]</button>`]
+    .concat([2,3,4,5,6,7,8,9,10].map(n=>`<button onclick="chooseCount(${n})">[ ${n} PLAYERS ]</button>`)).join("");
   document.getElementById("setupStage").innerHTML=`
    <div style="font-size:15px;letter-spacing:1px">SELECT PLAYERS<span style="animation:none">_</span></div>
-   <div style="font-size:12px;opacity:.7;margin-bottom:4px">1 player = you vs the AI · 2-6 = pass & play</div>
-   <div class="choice">
-     <button onclick="chooseCount(1)">[ 1 PLAYER (vs AI) ]</button>
-     <button onclick="chooseCount(2)">[ 2 PLAYERS ]</button>
-     <button onclick="chooseCount(3)">[ 3 PLAYERS ]</button>
-     <button onclick="chooseCount(4)">[ 4 PLAYERS ]</button>
-     <button onclick="chooseCount(5)">[ 5 PLAYERS ]</button>
-     <button onclick="chooseCount(6)">[ 6 PLAYERS ]</button>
-   </div>`;
+   <div style="font-size:12px;opacity:.7;margin-bottom:4px">1 player = you vs the AI · 2-10 = pass & play</div>
+   <div class="choice">${btns}</div>`;
 }
 function chooseCount(n){setupData.n=n;setupData.players=[];setupData.idx=0;setupData.ai=(n===1);nextPlayerSetup();}
 function nextPlayerSetup(){
@@ -531,7 +553,7 @@ function confirmPlayer(isAI){
 function launch(){
   S={turn:1,cur:0,n:setupData.players.length,rolled:false,over:false,ai:setupData.ai,roundEvents:[],baseDice:(setupData.dice||1)};
   const startCash=(setupData.startCash??100);
-  S.players=setupData.players.map((p,i)=>{const pl=newPlayer(i,p.name,p.pattern);pl.ai=p.ai;pl.cash=startCash;pl.age=p.age||25;pl.startAge=pl.age;return pl;});
+  S.players=setupData.players.map((p,i)=>{const pl=newPlayer(i,p.name,p.pattern);pl.ai=p.ai;pl.cash=startCash;pl.age=p.age||25;pl.startAge=pl.age;pl.startCash=startCash;return pl;});
   document.getElementById("setup").style.display="none";
   document.getElementById("screen").style.display="flex";
   buildBoardGrid();
@@ -1558,7 +1580,7 @@ function showDeathAnnounce(p){
   el.innerHTML=`<div class="lbl" style="background:#7a0d0d">PLAYER DOWN</div>
     <div style="text-align:center;font-size:44px;line-height:1.1;margin:10px 0;letter-spacing:2px">x_x</div>
     <div class="ttl" style="color:${p.color};text-align:center;font-size:30px">${p.name} IS DEAD</div>
-    <div class="sub" style="text-align:center;font-size:16px">Gunned down at <b>${p.diedAt}</b> years old.<br>Started this life at 15. The game caught up with them.</div>
+    <div class="sub" style="text-align:center;font-size:16px">Gunned down at <b>${p.diedAt}</b> years old.<br>Started at ${p.startAge||p.age} with ${fmtK(p.startCash||0)}. The game caught up with them.</div>
     <div class="go"><button class="red" onclick="showRIP(${p.id})">[ MEMORIAL ]</button></div>`;
   openModal();
 }
@@ -1588,8 +1610,8 @@ function showRIP(id){
   el.innerHTML=`<div class="lbl" style="background:${p.color}">R · I · P</div>
     <div class="art">[ + ]</div>
     <div class="ttl" style="color:${p.color}">${p.name}</div>
-    <div class="sub">Age 15 – ${died} &nbsp;·&nbsp; Here lies ${e.kind}${e.spec}.</div>
-    <div class="out">Died at <b>${died}</b> years old\nRap sheet: ${e.n} charges · ${e.totalYears}y exposure\n${e.heists} robberies · ${e.hits} murders · ${e.drugs} drug charges\nThe streets will remember the name.</div>
+    <div class="sub">Age ${p.startAge||died} – ${died} &nbsp;·&nbsp; Here lies ${e.kind}${e.spec}.</div>
+    <div class="out">Died at <b>${died}</b> years old\nRap sheet: ${e.n} charges · ${e.totalYears}y exposure\n${e.heists} robberies · ${e.hits} murders · ${e.drugs} drug charges\nStarted with ${fmtK(p.startCash||0)}.\nThe streets will remember the name.</div>
     <div class="go"><button onclick="afterRIP()">[ LAY TO REST ]</button></div>`;
   openModal();
 }
@@ -1608,7 +1630,7 @@ function showGameOver(winner){
   el.innerHTML=`<div class="lbl" style="background:${w?w.color:'#888'}">LAST BOSS STANDING</div>
     <div style="text-align:center;font-size:40px;line-height:1.1;margin:8px 0;letter-spacing:2px">#1</div>
     <div class="ttl" style="color:${w?w.color:'#fff'};text-align:center;font-size:28px">${w?w.name+" WINS":"No survivors"}</div>
-    <div class="sub" style="text-align:center">${w?("Survived to <b>"+w.age+"</b> years old — started at "+(w.startAge||w.age)+" and outlived them all. The city is theirs."):"Everyone's dead. The streets win."}</div>
+    <div class="sub" style="text-align:center">${w?("Survived to <b>"+w.age+"</b> years old — started at "+(w.startAge||w.age)+" and outlived them all, starting with "+fmtK(w.startCash||0)+". The city is theirs."):"Everyone's dead. The streets win."}</div>
     <div class="out">${w?"Age "+w.age+" · Net worth "+fmtK(netWorth(w))+" · "+w.owns.size+" turf · "+soldierIcons(w.color,w.crew):"—"}</div>
     <div class="go"><button onclick="location.reload()">[ NEW GAME ]</button></div>`;
   openModal();
@@ -1708,6 +1730,7 @@ function showProfile(id){
         ${p.freeArrest>0?`<div class="cvrow"><span>Get-out cards</span><span>★${p.freeArrest}</span></div>`:""}
       </div>
       <div class="cvbox"><div class="cvh">EMPIRE</div>
+        <div class="cvrow"><span>Started with</span><span>${fmtK(p.startCash||0)}</span></div>
         <div class="cvrow"><span>Net worth</span><span>${fmtK(worth)}</span></div>
         <div class="cvrow"><span>Cash</span><span>${fmtK(p.cash)}</span></div>
         <div class="cvrow"><span>Invested</span><span>${fmtK(assets)}</span></div>
@@ -1813,14 +1836,59 @@ function closeModal(){document.getElementById("modal").classList.remove("on");}
     if(code.length<3){ code+=x; drawCode(); if(code.length===3) setTimeout(submit,220); }
   }
   function drawCode(){ setLast("ENTER ACCESS CODE: " + (code.replace(/./g,"* ").trim()||"_ _ _") + " " + CUR); }
+  const LEAF=[
+"                          █",
+"                         ███",
+"                         ███",
+"                        █████",
+"                       ███████",
+"                       ███████",
+"       ██               █████               ██",
+"       ████            ███████            ████",
+"        ██████         ███████         ██████",
+"         ██████        ███████        ██████",
+"         ███████        █████        ███████",
+"           ███████     ███████     ███████",
+"            ███████    ███████    ███████",
+"             ████████   █████   ████████",
+"   ██████      ███████  █████  ███████      ██████",
+"    ██████████  █████████████████████  ██████████",
+"       ███████████████████████████████████████",
+"          ██████████████  █  ██████████████",
+"              ████████ ███████ ████████",
+"         ██████████ █████████████ ██████████",
+"         ███████████████████████████████████",
+"                      █████████",
+"                        █████",
+"                          █"];
+  function weed(){
+    out.innerHTML="";
+    nl('<span class="dosbar">ACCESS GRANTED \u2014 CODE 420</span>'); nl("");
+    const box=document.createElement("pre"); box.className="leafart"; out.appendChild(box);
+    const fit=()=>{ let fs=20; box.style.fontSize=fs+"px";
+      while(box.scrollWidth>box.clientWidth && fs>5){ fs--; box.style.fontSize=fs+"px"; } };
+    let i=0;
+    (function line(){
+      if(i>=LEAF.length){
+        fit();
+        nl(""); nl("      B L A Z E   I T");
+        nl('<span style="opacity:.75">      the terminal is chill today.</span>');
+        setTimeout(boot,1500); return;
+      }
+      box.textContent += LEAF[i++] + "\n";
+      fit();
+      setTimeout(line,70);
+    })();
+  }
   function submit(){
     keypad(false);
+    if(code==="420"){ phase="ok"; setLast("ENTER ACCESS CODE: * * *"); setTimeout(weed,400); return; }
     if(code===PASS){ phase="ok"; setLast("ENTER ACCESS CODE: * * *"); nl(""); nl('<span class="dosbar">ACCESS GRANTED</span>'); nl(""); setTimeout(boot,700); }
     else { phase="prank"; prank(); }
   }
   function startLogin(){
     out.innerHTML="";
-    nl("CRIMINAL TERMINAL (R) v7.5");
+    nl("CRIMINAL TERMINAL (R) v7.6");
     nl("(C) 1987 SATAN SYSTEMS CORP. ALL RIGHTS RESERVED.");
     nl("");
     nl("RESTRICTED SYSTEM - AUTHORIZED USERS ONLY.");
