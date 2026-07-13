@@ -460,7 +460,7 @@
 <div id="setup">
 <div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
 <div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
-<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v9.5</div>
+<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v9.6</div>
 <div id="setupStage"></div>
 </div>
 
@@ -639,11 +639,12 @@ function renderSetupStart(){
      <button class="cfggo" ${ready?'':'disabled'} onclick="afterSpeed()">[ CONTINUE » ]</button>
      <div class="hint">Outer ring = the street (1 lap = 1 year). Arrested → JAIL → COURT → PRISON. Broke+hurt → HOSPITAL (3 = dead). 10+ soldiers = bonus die. Win: last boss standing, or retire with $10M at 65.</div>
    </div>
-   ${(()=>{try{const h=JSON.parse(localStorage.getItem("ct_hof_v1")||"[]").slice(0,5);
-     return h.length?`<div class="dosconfig" style="margin-top:16px">
+   ${(()=>{let h=[];try{h=JSON.parse(localStorage.getItem("ct_hof_v1")||"[]").slice(0,5);}catch(e){}
+     return `<div class="dosconfig" style="margin-top:16px">
        <div class="cfgline">C:\\> TYPE HALLOFFAME.TXT</div>
-       ${h.map((x,i)=>`<div class="cfgline">${i+1}. ${x.n} — ${fmtK(x.nw)} · age ${x.age} · ${x.how} · ${x.d}</div>`).join("")}
-     </div>`:""}catch(e){return ""}})()}`;
+       ${h.length?h.map((x,i)=>`<div class="cfgline">${i+1}. ${x.n} — ${fmtK(x.nw)} · age ${x.age} · ${x.how} · ${x.d}</div>`).join("")
+         :`<div class="cfgline" style="opacity:.6">NO BOSSES ON RECORD. Win a game — last boss standing, or retire with $10M at 65 — and your name gets carved here.</div>`}
+     </div>`})()}`;
 }
 function selectDiff(d){ setupData.difficulty=d; setupData.startCash=DIFFICULTY[d].cash; renderSetupStart(); }
 function selectSpeed(n){ setupData.dice0=n; setupData.dice=n; renderSetupStart(); }
@@ -2494,7 +2495,7 @@ function closeModal(){document.getElementById("modal").classList.remove("on");co
   }
   function startLogin(){
     out.innerHTML="";
-    nl("CRIMINAL TERMINAL (R) v9.5");
+    nl("CRIMINAL TERMINAL (R) v9.6");
     nl("(C) 1987 SATAN SYSTEMS CORP. ALL RIGHTS RESERVED.");
     nl('<span id="playCountBoot" style="opacity:.75">'+(typeof PLAYCOUNT!=="undefined"&&PLAYCOUNT!=null?"CRIMINALS SERVED WORLDWIDE: "+PLAYCOUNT:"CRIMINALS SERVED WORLDWIDE: ...")+'</span>');
     nl("");
