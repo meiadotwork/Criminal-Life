@@ -460,7 +460,7 @@
 <div id="setup">
 <div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
 <div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
-<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v9.2</div>
+<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v9.3</div>
 <div id="setupStage"></div>
 </div>
 
@@ -596,6 +596,16 @@ function newPlayer(i,name,pattern){return{id:i,name:name||("P"+(i+1)),color:"#33
   inJail:false,sentence:0,owns:new Map(),skip:0,freeArrest:0,freeRaid:0,
   crimes:[],network:[],stayCount:0,age:15,crimeOps:3,yearsServed:0,heat:0};}
 
+/* ===== GLOBAL PLAYER COUNTER: every person who starts a game, counted worldwide.
+   Uses the free abacus hit-counter API; fails silently offline — the game never depends on it. ===== */
+const CNT_URL="https://abacus.jasoncameron.dev", CNT_NS="criminal-terminal-meiado", CNT_KEY="players";
+let PLAYCOUNT=null;
+function _pcShow(){const el=document.getElementById("playCount");if(el&&PLAYCOUNT!=null)el.textContent="CRIMINALS SERVED WORLDWIDE: "+PLAYCOUNT;}
+function fetchPlayCount(){try{fetch(CNT_URL+"/get/"+CNT_NS+"/"+CNT_KEY).then(r=>r.json()).then(j=>{if(j&&typeof j.value==="number"){PLAYCOUNT=j.value;_pcShow();}}).catch(()=>{});}catch(e){}
+  setTimeout(()=>{const el=document.getElementById("playCount");if(el&&PLAYCOUNT==null)el.textContent="CRIME NETWORK: OFFLINE";},6000);}
+function bumpPlayCount(n){try{for(let i=0;i<(n||1);i++)fetch(CNT_URL+"/hit/"+CNT_NS+"/"+CNT_KEY).then(r=>r.json()).then(j=>{if(j&&typeof j.value==="number"){PLAYCOUNT=j.value;_pcShow();}}).catch(()=>{});}catch(e){}}
+fetchPlayCount();
+
 /* ===== SETUP FLOW ===== */
 let setupData={n:0,players:[],idx:0,difficulty:null,startCash:100,dice:1};
 const DIFFICULTY={
@@ -618,6 +628,7 @@ function renderSetupStart(){
    </div>`:''}
    <div class="dosconfig">
      <div class="cfgline">C:\\> CRIMELIFE.EXE /NEWGAME</div>
+     <div class="cfgline" id="playCount" style="opacity:.7">${PLAYCOUNT!=null?("CRIMINALS SERVED WORLDWIDE: "+PLAYCOUNT):"CONNECTING TO CRIME NETWORK..."}</div>
      <div class="cfgline">CONFIGURE SESSION_</div>
      <div class="cfghead">1. DIFFICULTY <span style="opacity:.55">(starting capital)</span></div>
      <div class="choice">${dB('EASY','EASY','$1M')}${dB('MEDIUM','MEDIUM','$250K')}${dB('HARD','HARD','$100K')}${dB('REALISTIC','REALISTIC','$0')}</div>
@@ -702,6 +713,7 @@ function launch(){
   [60,300,700,1400].forEach(t=>setTimeout(fitBoard,t));
   if(document.fonts&&document.fonts.ready){document.fonts.ready.then(()=>setTimeout(fitBoard,40));}
   newRound();
+  bumpPlayCount(S.players.filter(x=>!x.ai).length);   // every human who sits down counts, worldwide
   log("SYSTEM ONLINE. "+setupData.difficulty+" mode — everyone starts with "+fmtK(startCash)+".","sys");
   S.players.filter(x=>x.ai).forEach(x=>log(x.name+" sits down — plays "+(x.temper||"CAREFUL")+".","sys"));
   saveGame();
@@ -2463,7 +2475,7 @@ function closeModal(){document.getElementById("modal").classList.remove("on");co
   }
   function startLogin(){
     out.innerHTML="";
-    nl("CRIMINAL TERMINAL (R) v9.2");
+    nl("CRIMINAL TERMINAL (R) v9.3");
     nl("(C) 1987 SATAN SYSTEMS CORP. ALL RIGHTS RESERVED.");
     nl("");
     nl("RESTRICTED SYSTEM - AUTHORIZED USERS ONLY.");
