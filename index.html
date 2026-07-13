@@ -378,9 +378,9 @@
   .pfw.b{left:0;right:0;bottom:-1px;transform:translateY(50%);text-align:center;}
   .pfw.l{top:0;bottom:0;left:-1px;transform:translateX(-50%);writing-mode:vertical-rl;text-align:center;}
   .pfw.r{top:0;bottom:0;right:-1px;transform:translateX(50%);writing-mode:vertical-rl;text-align:center;}
-  #innerLabel{position:absolute !important;left:50% !important;top:25.9% !important;transform:translate(-50%,-52%) !important;
+  #innerLabel{position:absolute !important;left:50% !important;top:0 !important;transform:translate(-50%,-52%) !important;
     font-size:clamp(14px,3vw,38px) !important;letter-spacing:3px !important;font-weight:bold !important;color:var(--phos) !important;opacity:1;pointer-events:none;z-index:3;
-    background:var(--bg) !important;padding:0 14px;}
+    background:var(--bg) !important;padding:0 14px;white-space:nowrap;}
   body.colormode #prisonFence{border-color:#000 !important;}
   body.colormode .pfw,body.colormode #innerLabel{color:#000 !important;}
   body.colormode #innerLabel{background:#fff !important;}
@@ -460,7 +460,7 @@
 <div id="setup">
 <div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
 <div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
-<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v9.4</div>
+<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v9.5</div>
 <div id="setupStage"></div>
 </div>
 
@@ -485,7 +485,7 @@
     <div class="panel board-panel">
       <h2>THE CITY</h2>
       <div class="zoombar"><button onclick="boardZoom(-1)">−</button><button id="bzBtn" onclick="boardZoom(0)" title="tap to fit">100%</button><button onclick="boardZoom(1)">+</button></div>
-      <div id="boardWrap"><div id="board"></div><div id="prisonFence"><span class="pfw t">x x x x x x x x x x x x</span><span class="pfw b">x x x x x x x x x x x x</span><span class="pfw l">x x x x x x x x</span><span class="pfw r">x x x x x x x x</span></div><div id="innerLabel">P R I S O N</div></div>
+      <div id="boardWrap"><div id="board"></div><div id="prisonFence"><span class="pfw t">x x x x x x x x x x x x</span><span class="pfw b">x x x x x x x x x x x x</span><span class="pfw l">x x x x x x x x</span><span class="pfw r">x x x x x x x x</span><div id="innerLabel">P R I S O N</div></div></div>
     </div>
     <div class="side">
       <div class="panel">
@@ -880,6 +880,7 @@ function render(){
   const tb=document.getElementById("turnBanner");
   tb.textContent=`TURN ${S.turn} — ${cp.name}`+(cp.ring==="inner"?" [PRISON]":"");
   tb.style.background=cp.color;tb.style.borderColor=cp.color;
+  placeFence();
 }
 function hexA(hex,a){const n=parseInt(hex.slice(1),16);return`rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${a})`;}
 
@@ -955,6 +956,24 @@ function sellAssetFromMenu(idx){
 /* ===== ROLL + STEP MOVEMENT (always visible) ===== */
 let _bz=1,_fit=1;
 function applyBoardZoom(){ const bw=document.getElementById("boardWrap"); if(bw)bw.style.setProperty("--bzoom",+((_fit||1)*_bz).toFixed(3)); }
+/* Anchor the barbed-wire fence to the REAL prison cells (row heights vary by device/font — never trust percentages) */
+function placeFence(){
+  const bw=document.getElementById("boardWrap"),f=document.getElementById("prisonFence");
+  if(!bw||!f)return;
+  const cells=document.querySelectorAll('#board .cell[data-ring="inner"]');
+  if(!cells.length)return;
+  const z=parseFloat(getComputedStyle(bw).zoom)||1;
+  const br=bw.getBoundingClientRect();
+  let x1=1e9,y1=1e9,x2=-1e9,y2=-1e9;
+  cells.forEach(c=>{const r=c.getBoundingClientRect();if(!r.width)return;
+    x1=Math.min(x1,r.left);y1=Math.min(y1,r.top);x2=Math.max(x2,r.right);y2=Math.max(y2,r.bottom);});
+  if(x2<=x1||y2<=y1)return;
+  const pad=Math.max(5,(x2-x1)/z*0.02);
+  f.style.left=((x1-br.left)/z-pad)+"px";
+  f.style.top=((y1-br.top)/z-pad)+"px";
+  f.style.width=((x2-x1)/z+pad*2)+"px";
+  f.style.height=((y2-y1)/z+pad*2)+"px";
+}
 function fitBoard(){
   const bp=document.querySelector(".board-panel"), bw=document.getElementById("boardWrap"); if(!bp||!bw)return;
   bw.style.setProperty("--bzoom",1);                    // measure natural (unzoomed) size
@@ -968,6 +987,7 @@ function fitBoard(){
     if(!isFinite(fit)||fit<=0) fit=1;
     if(window.innerWidth>=900 && fit>1) fit=1;          // don't upscale past natural on desktop
     _fit=fit; applyBoardZoom();
+    placeFence();
   });
 }
 function boardZoom(dir){
@@ -1286,9 +1306,8 @@ function ownStreetOptions(idx){
     <div class="art">${ART.street}</div><div class="ttl">${c.t}</div>
     <div class="sub">You hold this with ${cur} soldier${cur>1?"s":""} (${fmtK(per*cur)}/yr). Add more, or sell.</div>
     <div class="out">Each extra soldier: ${fmtK(per)} · earns ${fmtK(per)}/yr</div>
-    <div class="go">
-      ${maxN>=1?`<button onclick="addSoldierTo(${idx},${per},1)">[ +1 · ${fmtK(per)} ]</button>`:''}
-      ${maxN>=5?`<button onclick="addSoldierTo(${idx},${per},5)">[ +5 · ${fmtK(per*5)} ]</button>`:''}
+    <div class="go" style="flex-wrap:wrap">
+      ${[1,5,25,100].filter(n=>maxN>=n).map(n=>`<button onclick="addSoldierTo(${idx},${per},${n})">[ +${n} · ${fmtK(per*n)} ]</button>`).join("")}
       ${maxN>=1?`<button class="amber" onclick="addSoldierTo(${idx},${per},${maxN})">[ MAX +${maxN} ]</button>`:''}
       <button class="red" onclick="sellProp(${idx})">[ SELL ]</button>
       <button onclick="closeModal();finish()">[ DONE ]</button></div>
@@ -1443,9 +1462,8 @@ function ownBizOptions(idx){
     <div class="art">${ART.biz}</div><div class="ttl">${c.t}</div>
     <div class="sub">${cur} worker${cur>1?"s":""} earning ${fmtK(per*cur)}/yr. Add workers, or sell the business (with workers).</div>
     <div class="out">Each extra worker: ${fmtK(per)}</div>
-    <div class="go">
-      ${maxN>=1?`<button onclick="addWorker(${idx},${per},1)">[ +1 · ${fmtK(per)} ]</button>`:''}
-      ${maxN>=5?`<button onclick="addWorker(${idx},${per},5)">[ +5 · ${fmtK(per*5)} ]</button>`:''}
+    <div class="go" style="flex-wrap:wrap">
+      ${[1,5,25,100].filter(n=>maxN>=n).map(n=>`<button onclick="addWorker(${idx},${per},${n})">[ +${n} · ${fmtK(per*n)} ]</button>`).join("")}
       ${maxN>=1?`<button class="amber" onclick="addWorker(${idx},${per},${maxN})">[ MAX +${maxN} ]</button>`:''}
       <button class="red" onclick="sellProp(${idx})">[ SELL ]</button>
       <button onclick="closeModal();finish()">[ DONE ]</button></div>
@@ -1487,7 +1505,7 @@ function openBuyWorkers(){
     const c=OUTER[idx];const per=c.incomeBase||c.income;const canAfford=p.cash>=per;
     return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin:3px 0;border-bottom:1px solid #1a2a1a;padding-bottom:4px">
       <span>${c.t} · ${cnt} worker${cnt>1?"s":""}<br><span style="opacity:.6;font-size:11px">${fmtK(per)} each · earns ${fmtK(per*cnt)}/yr</span></span>
-      ${canAfford?`<button onclick="addWorkerAnytime(${idx},${per})">[ +1 · ${fmtK(per)} ]</button>`:`<span style="opacity:.5;font-size:11px">need ${fmtK(per)}</span>`}</div>`;
+      ${canAfford?`<span style="display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-end">`+[1,5,25,100].filter(n=>p.cash>=per*n).map(n=>`<button style="padding:6px 8px;font-size:12px" onclick="addWorkerAnytime(${idx},${per},${n})">[ +${n} ]</button>`).join("")+`</span>`:`<span style="opacity:.5;font-size:11px">need ${fmtK(per)}</span>`}</div>`;
   }).join("") : "<div style='opacity:.6'>You don't own any businesses yet — land on a BUSINESS space to open one.</div>";
   el.innerHTML=`<div class="lbl" style="background:${p.color}">HIRE WORKERS</div>
     <div class="ttl">Staff your businesses</div>
@@ -1497,7 +1515,7 @@ function openBuyWorkers(){
     ${statusBar()}`;
   openModal();
 }
-function addWorkerAnytime(idx,per){const p=S.players[S.cur];if(p.cash<per)return;p.cash-=per;p.owns.set(idx,p.owns.get(idx)+1);log(p.name+" hires a worker at "+OUTER[idx].t+" (now "+p.owns.get(idx)+").","good");render();openBuyWorkers();}
+function addWorkerAnytime(idx,per,n){n=n||1;n=Math.min(n,Math.floor(S.players[S.cur].cash/per));const p=S.players[S.cur];if(n<1)return;p.cash-=per*n;p.owns.set(idx,p.owns.get(idx)+n);log(p.name+" hires "+n+" worker"+(n>1?"s":"")+" at "+OUTER[idx].t+" (now "+p.owns.get(idx)+").","good");render();openBuyWorkers();}
 function commitCrime(){
   const p=S.players[S.cur];
   if(p.ai||!p.alive||S.over||S.rolled||p.ring!=="outer"||p.inJail||p.crimeOps<=0)return;
@@ -1529,6 +1547,7 @@ function offerHire(){
     <div class="go" style="flex-wrap:wrap">
       ${slotsLeft>0?`<button onclick="hirePick(-1)" ${pick<=0?'disabled':''}>[ − ]</button>
       <button onclick="hirePick(1)" ${pick>=canBuy?'disabled':''}>[ + ]</button>
+      ${[5,25,100].filter(n=>canBuy>=n).map(n=>`<button onclick="hirePick(${n})">[ +${n} ]</button>`).join("")}
       <button onclick="hirePick('max')" ${canBuy<1?'disabled':''}>[ MAX ${canBuy} ]</button>
       <button onclick="hirePick('reset')">[ RESET ]</button>`:''}
     </div>
@@ -2475,7 +2494,7 @@ function closeModal(){document.getElementById("modal").classList.remove("on");co
   }
   function startLogin(){
     out.innerHTML="";
-    nl("CRIMINAL TERMINAL (R) v9.4");
+    nl("CRIMINAL TERMINAL (R) v9.5");
     nl("(C) 1987 SATAN SYSTEMS CORP. ALL RIGHTS RESERVED.");
     nl('<span id="playCountBoot" style="opacity:.75">'+(typeof PLAYCOUNT!=="undefined"&&PLAYCOUNT!=null?"CRIMINALS SERVED WORLDWIDE: "+PLAYCOUNT:"CRIMINALS SERVED WORLDWIDE: ...")+'</span>');
     nl("");
