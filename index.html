@@ -460,7 +460,7 @@
 <div id="setup">
 <div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
 <div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
-<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v9.6</div>
+<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v9.7</div>
 <div id="setupStage"></div>
 </div>
 
@@ -643,25 +643,34 @@ function renderSetupStart(){
      return `<div class="dosconfig" style="margin-top:16px">
        <div class="cfgline">C:\\> TYPE HALLOFFAME.TXT</div>
        ${h.length?h.map((x,i)=>`<div class="cfgline">${i+1}. ${x.n} — ${fmtK(x.nw)} · age ${x.age} · ${x.how} · ${x.d}</div>`).join("")
-         :`<div class="cfgline" style="opacity:.6">NO BOSSES ON RECORD. Win a game — last boss standing, or retire with $10M at 65 — and your name gets carved here.</div>`}
+         :`<div class="cfgline" style="opacity:.6">NO BOSSES ON RECORD. Beat the AI on REALISTIC — last boss standing, or retire with $10M at 65 — and your name gets carved here.</div>`}
      </div>`})()}`;
 }
 function selectDiff(d){ setupData.difficulty=d; setupData.startCash=DIFFICULTY[d].cash; renderSetupStart(); }
 function selectSpeed(n){ setupData.dice0=n; setupData.dice=n; renderSetupStart(); }
 function afterSpeed(){
-  const btns=[`<button onclick="chooseCount(1)">[ 1 PLAYER (vs AI) ]</button>`]
-    .concat([2,3,4,5,6,7,8,9,10].map(n=>`<button onclick="chooseCount(${n})">[ ${n} PLAYERS ]</button>`)).join("");
+  const aiB=[1,2,3,4,5,6,7,8,9].map(k=>`<button onclick="chooseAI(${k})">[ ${k} ]</button>`).join("");
+  const hB=[2,3,4,5,6,7,8,9,10].map(n=>`<button onclick="chooseCount(${n})">[ ${n} ]</button>`).join("");
   document.getElementById("setupStage").innerHTML=`
    <div style="font-size:15px;letter-spacing:1px">SELECT PLAYERS<span style="animation:none">_</span></div>
-   <div style="font-size:12px;opacity:.7;margin-bottom:4px">1 player = you vs the AI · 2-10 = pass & play</div>
-   <div class="choice">${btns}</div>`;
+   <div style="font-size:12px;opacity:.7;margin:6px 0 2px">SOLO — you vs the machine. How many AI bosses?</div>
+   <div class="choice">${aiB}</div>
+   <div style="font-size:12px;opacity:.7;margin:10px 0 2px">PASS &amp; PLAY — how many humans?</div>
+   <div class="choice">${hB}</div>`;
 }
-function chooseCount(n){setupData.n=n;setupData.players=[];setupData.idx=0;setupData.ai=(n===1);nextPlayerSetup();}
+function chooseAI(k){setupData.n=1;setupData.aiCount=k;setupData.players=[];setupData.idx=0;setupData.ai=true;nextPlayerSetup();}
+function chooseCount(n){setupData.n=n;setupData.players=[];setupData.idx=0;setupData.ai=(n===1);if(n===1)setupData.aiCount=setupData.aiCount||1;nextPlayerSetup();}
 function nextPlayerSetup(){
   const i=setupData.idx;
-  const total=setupData.ai?2:setupData.n; // 1p mode => you + 1 AI
+  const total=setupData.ai?1+(setupData.aiCount||1):setupData.n; // solo => you + N AI
   if(i>=total){ launch(); return; }
-  const isAI=setupData.ai && i===1;
+  const isAI=setupData.ai && i>=1;
+  if(isAI){ // CPU opponents are auto-generated — no setup screen each
+    const used=setupData.players.map(p=>p.pattern);
+    const pat=(PATTERNS.find(pt=>!used.includes(pt.k))||PATTERNS[i%PATTERNS.length]).k;
+    setupData.players.push({name:"CPU"+(i>1?i:""),pattern:pat,ai:true,age:21});
+    setupData.idx++; nextPlayerSetup(); return;
+  }
   const used=setupData.players.map(p=>p.pattern);
   const sw=PATTERNS.map(pt=>`<div class="sw pat-${pt.k}" style="${used.includes(pt.k)?'opacity:.2;pointer-events:none':''}" data-c="${pt.k}" title="${pt.label}" onclick="pickColor(this)"></div>`).join("");
   document.getElementById("setupStage").innerHTML=`
@@ -703,7 +712,7 @@ function confirmPlayer(isAI){
   setupData.idx++; nextPlayerSetup();
 }
 function launch(){
-  S={turn:1,cur:0,n:setupData.players.length,rolled:false,over:false,ai:setupData.ai,roundEvents:[],baseDice:(setupData.dice||6)};
+  S={turn:1,cur:0,n:setupData.players.length,rolled:false,over:false,ai:setupData.ai,roundEvents:[],baseDice:(setupData.dice||6),diff:setupData.difficulty};
   const startCash=(setupData.startCash??100);
   S.players=setupData.players.map((p,i)=>{const pl=newPlayer(i,p.name,p.pattern);pl.ai=p.ai;pl.cash=startCash;pl.age=p.age||25;pl.startAge=pl.age;pl.startCash=startCash;
     if(pl.ai)pl.temper=Math.random()<.5?"AGGRESSIVE":"CAREFUL";return pl;});
@@ -723,7 +732,7 @@ function launch(){
 /* ===== SAVE / RESUME (localStorage — written at every turn boundary) ===== */
 const SAVE_KEY="ct_save_v2"; // v2: board order changed in v8.6 — old saves index the old layout
 function snapshot(){
-  return {turn:S.turn,cur:S.cur,n:S.n,ai:S.ai,baseDice:S.baseDice,
+  return {turn:S.turn,cur:S.cur,n:S.n,ai:S.ai,baseDice:S.baseDice,diff:S.diff,
     players:S.players.map(p=>{const o={...p};o.owns=Array.from(p.owns.entries());delete o.auto;return o;})};
 }
 function saveGame(){ if(!S||S.over)return; try{localStorage.setItem(SAVE_KEY,JSON.stringify(snapshot()));}catch(e){} }
@@ -731,7 +740,7 @@ function clearSave(){ try{localStorage.removeItem(SAVE_KEY);}catch(e){} }
 function loadSave(){ try{const s=JSON.parse(localStorage.getItem(SAVE_KEY)); return (s&&s.players&&s.players.length)?s:null;}catch(e){return null;} }
 function resumeGame(){
   const sv=loadSave(); if(!sv)return;
-  S={turn:sv.turn,cur:sv.cur,n:sv.n,rolled:false,over:false,ai:sv.ai,roundEvents:[],baseDice:({1:6,2:8,3:10}[sv.baseDice]||sv.baseDice||6)};
+  S={turn:sv.turn,cur:sv.cur,n:sv.n,rolled:false,over:false,ai:sv.ai,roundEvents:[],baseDice:({1:6,2:8,3:10}[sv.baseDice]||sv.baseDice||6),diff:sv.diff};
   S.players=sv.players.map((sp,i)=>{const pl=newPlayer(i,sp.name,sp.pattern);Object.assign(pl,sp);pl.owns=new Map(sp.owns);return pl;});
   document.getElementById("setup").style.display="none";
   document.getElementById("screen").style.display="flex";
@@ -1029,7 +1038,7 @@ function openManual(){ window.speechSynthesis&&window.speechSynthesis.cancel(); 
   ${H("SETUP")}
   \u25B8 DIFFICULTY sets everyone's starting cash: EASY $1M \u00B7 MEDIUM $250K \u00B7 HARD $100K \u00B7 REALISTIC $0.<br>
   \u25B8 SPEED sets the die you roll: SLOW = D6, NORMAL = D8, FAST = D10. A bigger die moves you further each roll, so laps (years) pass faster \u2014 but you stop on fewer spaces per lap.<br>
-  \u25B8 1 PLAYER = you vs the AI. 2\u201310 = pass &amp; play. Pick a name, a pattern, and your age (number keys or \u25B2\u25BC).
+  \u25B8 SOLO = you vs 1\u20139 AI bosses. PASS &amp; PLAY = 2\u201310 humans. Pick a name, a pattern, and your age (number keys or \u25B2\u25BC).
 
   ${H("YOUR TURN")}
   You get ONE action: tap the die to roll and move, OR press [ COMMIT CRIME ] before rolling (3 chances per year) for a random heist, hit or drug run. You move around the board and resolve the space you LAND on. Everything that happens to you shows up as a card.
@@ -1067,7 +1076,7 @@ function openManual(){ window.speechSynthesis&&window.speechSynthesis.cancel(); 
   Three hospital visits = DEAD. Each stay draws a card: a bill, a complication (extra visit) or a recovery (one cleared). Can't pay a debt? Forced sale \u2014 cheapest property first, then soldiers. Broke with nothing left to sell = a beating and a hospital bed.
 
   ${H("DEATH & WINNING")}
-  Killed in prison or flatlined in the hospital: you get a death card, a memorial, and you're OUT. The game runs until one boss remains \u2014 or until someone RETIRES UNTOUCHABLE ($10M net worth + age 65, checked each time you pass START). Winners get carved into the HALL OF FAME on the title screen.
+  Killed in prison or flatlined in the hospital: you get a death card, a memorial, and you're OUT. The game runs until one boss remains \u2014 or until someone RETIRES UNTOUCHABLE ($10M net worth + age 65, checked each time you pass START). Beat the AI on REALISTIC difficulty and your name gets carved into the HALL OF FAME on the title screen \u2014 that's the only way in.
 
   ${H("SCREEN & CONTROLS")}
   \u25B8 [ 87 ] cycles the display: 1987 green phosphor \u2192 1994 mono \u2192 COLOR paper mode (white background, cards AND board cells color-coded by type).<br>
@@ -2135,7 +2144,7 @@ function prisonDeath(p,why){
   const el=document.getElementById("cardEl");
   el.dataset.deck="death";
   el.innerHTML=`<div class="lbl" style="background:#7a0d0d">DEATH IN PRISON</div>
-    <div style="text-align:center;font-size:44px;line-height:1.1;margin:10px 0;letter-spacing:2px">x_x</div>
+    <div style="text-align:center;font-size:40px;line-height:1.1;margin:10px 0;letter-spacing:4px">R.I.P</div>
     <div class="ttl" style="color:${p.color};text-align:center">${d.t}</div>
     ${why?`<div class="sub" style="text-align:center">${why}</div>`:""}
     <div class="bd">${d.bd}</div>
@@ -2156,7 +2165,7 @@ function showDeathAnnounce(p){
   const el=document.getElementById("cardEl");
   el.dataset.deck="death";
   el.innerHTML=`<div class="lbl" style="background:#7a0d0d">PLAYER DOWN</div>
-    <div style="text-align:center;font-size:44px;line-height:1.1;margin:10px 0;letter-spacing:2px">x_x</div>
+    <div style="text-align:center;font-size:40px;line-height:1.1;margin:10px 0;letter-spacing:4px">R.I.P</div>
     <div class="ttl" style="color:${p.color};text-align:center;font-size:30px">${p.name} IS DEAD</div>
     <div class="sub" style="text-align:center;font-size:16px">${p._deathCause?p._deathCause:"Gunned down"} at <b>${p.diedAt}</b> years old.<br>Started at ${p.startAge||p.age} with ${fmtK(p.startCash||0)}. The game caught up with them.</div>
     <div class="go"><button class="red" onclick="showRIP(${p.id})">[ MEMORIAL ]</button></div>`;
@@ -2204,13 +2213,14 @@ function afterRIP(){
 }
 /* ===== HALL OF FAME (kept between games) ===== */
 const HOF_KEY="ct_hof_v1";
+function hofEligible(p){ return p&&!p.ai&&S.ai&&S.diff==="REALISTIC"; } // legends only: humans who beat the AI on REALISTIC
 function recordHof(p,how){ try{ const h=JSON.parse(localStorage.getItem(HOF_KEY)||"[]");
   h.push({n:p.name,age:p.age,nw:netWorth(p),how:how,d:new Date().toISOString().slice(0,10)});
   h.sort((a,b)=>b.nw-a.nw); localStorage.setItem(HOF_KEY,JSON.stringify(h.slice(0,10))); }catch(e){} }
 
 /* ===== RETIRE UNTOUCHABLE: the second way to win ===== */
 function showRetire(p){
-  S.over=true; clearSave(); SFX.win(); recordHof(p,"RETIRED");
+  S.over=true; clearSave(); SFX.win(); if(hofEligible(p))recordHof(p,"RETIRED");
   render(); updateControls();
   const el=document.getElementById("cardEl");
   el.innerHTML=`<div class="lbl" style="background:${p.color}">RETIRED UNTOUCHABLE</div>
@@ -2223,7 +2233,7 @@ function showRetire(p){
 }
 function showGameOver(winner){
   clearSave();SFX.win();
-  if(winner)recordHof(winner,"LAST BOSS");
+  if(hofEligible(winner))recordHof(winner,"LAST BOSS");
   const el=document.getElementById("cardEl");
   const w=winner?winner:null;
   el.innerHTML=`<div class="lbl" style="background:${w?w.color:'#888'}">LAST BOSS STANDING</div>
@@ -2495,7 +2505,7 @@ function closeModal(){document.getElementById("modal").classList.remove("on");co
   }
   function startLogin(){
     out.innerHTML="";
-    nl("CRIMINAL TERMINAL (R) v9.6");
+    nl("CRIMINAL TERMINAL (R) v9.7");
     nl("(C) 1987 SATAN SYSTEMS CORP. ALL RIGHTS RESERVED.");
     nl('<span id="playCountBoot" style="opacity:.75">'+(typeof PLAYCOUNT!=="undefined"&&PLAYCOUNT!=null?"CRIMINALS SERVED WORLDWIDE: "+PLAYCOUNT:"CRIMINALS SERVED WORLDWIDE: ...")+'</span>');
     nl("");
