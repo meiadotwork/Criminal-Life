@@ -370,16 +370,20 @@
   /* die face shown as a number (D8/D10 rolls above 6 have no pip layout) */
   .die .dienum,#die .dienum{grid-column:1/4;grid-row:1/4;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:bold;color:var(--phos);}
 
-  /* ===== PRISON fence: simple barbed wire around the inner ring, script above it ===== */
-  #prisonFence{position:absolute;left:25.9%;top:25.9%;width:48.2%;height:48.2%;pointer-events:none;z-index:2;}
-  .pfw{position:absolute;color:var(--phos);font-weight:bold;font-size:clamp(8px,1.4vw,16px);letter-spacing:.55em;text-decoration:line-through;white-space:nowrap;overflow:hidden;opacity:.9;}
-  .pfw.t{left:3%;right:3%;top:0;transform:translateY(-55%);text-align:center;}
-  .pfw.b{left:3%;right:3%;bottom:0;transform:translateY(55%);text-align:center;}
-  .pfw.l{top:3%;bottom:3%;left:0;transform:translateX(-55%);writing-mode:vertical-rl;text-align:center;}
-  .pfw.r{top:3%;bottom:3%;right:0;transform:translateX(55%);writing-mode:vertical-rl;text-align:center;}
-  #innerLabel{position:absolute !important;left:50% !important;top:25.9% !important;transform:translate(-50%,-118%) !important;
-    font-size:clamp(14px,3vw,38px) !important;letter-spacing:3px !important;font-weight:bold !important;color:var(--phos) !important;opacity:.95;pointer-events:none;z-index:2;}
+  /* ===== PRISON fence: continuous barbed wire around the inner ring — the only break is the PRISON script ===== */
+  #prisonFence{position:absolute;left:25.9%;top:25.9%;width:48.2%;height:48.2%;pointer-events:none;z-index:2;
+    border:2px solid var(--phos) !important;}
+  .pfw{position:absolute;color:var(--phos);font-weight:bold;font-size:clamp(8px,1.4vw,16px);letter-spacing:.55em;white-space:nowrap;overflow:hidden;opacity:.95;}
+  .pfw.t{left:0;right:0;top:-1px;transform:translateY(-50%);text-align:center;}
+  .pfw.b{left:0;right:0;bottom:-1px;transform:translateY(50%);text-align:center;}
+  .pfw.l{top:0;bottom:0;left:-1px;transform:translateX(-50%);writing-mode:vertical-rl;text-align:center;}
+  .pfw.r{top:0;bottom:0;right:-1px;transform:translateX(50%);writing-mode:vertical-rl;text-align:center;}
+  #innerLabel{position:absolute !important;left:50% !important;top:25.9% !important;transform:translate(-50%,-52%) !important;
+    font-size:clamp(14px,3vw,38px) !important;letter-spacing:3px !important;font-weight:bold !important;color:var(--phos) !important;opacity:1;pointer-events:none;z-index:3;
+    background:var(--bg) !important;padding:0 14px;}
+  body.colormode #prisonFence{border-color:#000 !important;}
   body.colormode .pfw,body.colormode #innerLabel{color:#000 !important;}
+  body.colormode #innerLabel{background:#fff !important;}
 
   /* ===== COLOR MODE: white paper, black ink, one solid color per card type ===== */
   html:has(body.colormode){background:#fff !important;}
@@ -456,7 +460,7 @@
 <div id="setup">
 <div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
 <div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
-<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v8.6</div>
+<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v8.7</div>
 <div id="setupStage"></div>
 </div>
 
@@ -2268,7 +2272,7 @@ function closeModal(){document.getElementById("modal").classList.remove("on");co
   }
   function startLogin(){
     out.innerHTML="";
-    nl("CRIMINAL TERMINAL (R) v8.6");
+    nl("CRIMINAL TERMINAL (R) v8.7");
     nl("(C) 1987 SATAN SYSTEMS CORP. ALL RIGHTS RESERVED.");
     nl("");
     nl("RESTRICTED SYSTEM - AUTHORIZED USERS ONLY.");
