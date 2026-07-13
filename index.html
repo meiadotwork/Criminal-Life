@@ -460,7 +460,7 @@
 <div id="setup">
 <div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
 <div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
-<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v8.9</div>
+<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v9.0</div>
 <div id="setupStage"></div>
 </div>
 
@@ -484,7 +484,7 @@
   <div class="main">
     <div class="panel board-panel">
       <h2>THE CITY</h2>
-      <div class="zoombar"><button onclick="boardZoom(-1)">[ ZOOM − ]</button><button onclick="boardZoom(0)">[ RESET ]</button><button onclick="boardZoom(1)">[ ZOOM + ]</button></div>
+      <div class="zoombar"><button onclick="boardZoom(-1)">−</button><button id="bzBtn" onclick="boardZoom(0)" title="tap to fit">100%</button><button onclick="boardZoom(1)">+</button></div>
       <div id="boardWrap"><div id="board"></div><div id="prisonFence"><span class="pfw t">x x x x x x x x x x x x</span><span class="pfw b">x x x x x x x x x x x x</span><span class="pfw l">x x x x x x x x</span><span class="pfw r">x x x x x x x x</span></div><div id="innerLabel">P R I S O N</div></div>
     </div>
     <div class="side">
@@ -951,7 +951,11 @@ function fitBoard(){
     _fit=fit; applyBoardZoom();
   });
 }
-function boardZoom(dir){ if(dir===0){_bz=1;fitBoard();return;} _bz=Math.max(0.4,Math.min(3,+(_bz+dir*0.15).toFixed(2))); applyBoardZoom(); }
+function boardZoom(dir){
+  if(dir===0){_bz=1;fitBoard();}
+  else {_bz=Math.max(0.4,Math.min(3,+(_bz+dir*0.15).toFixed(2))); applyBoardZoom();}
+  const b=document.getElementById("bzBtn"); if(b)b.textContent=Math.round(_bz*100)+"%";  // 100% = fitted to your screen
+}
 function drawDieEl(el,v){el.innerHTML="";
   if(v>=1&&v<=6&&PIPS[v])PIPS[v].forEach(cls=>{const p=document.createElement("div");p.className="pip "+cls;el.appendChild(p);});
   else if(v>6){const d=document.createElement("div");d.className="dienum";d.textContent=v;el.appendChild(d);}}
@@ -1097,7 +1101,6 @@ let LANG='EN';
 const PT={
  'THE CITY':'A CIDADE','PLAYERS — tap for record':'JOGADORES — toque p/ ficha','DICE':'DADOS',
  'ACTIONS':'AÇÕES','CONSOLE — this round':'CONSOLE — esta rodada',
- '[ ZOOM − ]':'[ ZOOM − ]','[ RESET ]':'[ RESET ]','[ ZOOM + ]':'[ ZOOM + ]',
  '[ MANUAL ]':'[ MANUAL ]','[reset]':'[reiniciar]',
  '[ FOLLOW: OFF ]':'[ SEGUIR: NÃO ]','[ FOLLOW: ON ]':'[ SEGUIR: SIM ]',
  '[ AUTO: OFF ]':'[ AUTO: NÃO ]','[ AUTO: ON ]':'[ AUTO: SIM ]',
@@ -2272,7 +2275,7 @@ function closeModal(){document.getElementById("modal").classList.remove("on");co
   }
   function startLogin(){
     out.innerHTML="";
-    nl("CRIMINAL TERMINAL (R) v8.9");
+    nl("CRIMINAL TERMINAL (R) v9.0");
     nl("(C) 1987 SATAN SYSTEMS CORP. ALL RIGHTS RESERVED.");
     nl("");
     nl("RESTRICTED SYSTEM - AUTHORIZED USERS ONLY.");
