@@ -445,7 +445,7 @@
 <div id="setup">
 <div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
 <div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
-<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v8.4</div>
+<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v8.5</div>
 <div id="setupStage"></div>
 </div>
 
@@ -966,10 +966,10 @@ function openManual(){ window.speechSynthesis&&window.speechSynthesis.cancel(); 
   ${H("THE SPACES")}
   \u25B8 HEIST / HITMAN / DRUG \u2014 a job card: take the money, then survive the 20% arrest roll.<br>
   \u25B8 STREETS \u2014 buy turf. Land on a rival's and you pay THEM. Staff turf with soldiers to defend it.<br>
-  \u25B8 BUSINESSES \u2014 buy them, hire workers and move product to grow the income.<br>
+  \u25B8 BUSINESSES \u2014 open one for the price of 1 worker; every worker on staff earns that same amount per year. When a RIVAL lands on your business they buy PRODUCT: the shelf holds income \u00D7 workers, the buyer pays in and doubles their money \u2014 and the OWNER collects TWICE the buy. Everybody eats, but the house eats double. More workers = bigger deals for both sides.<br>
   \u25B8 RECRUITING \u2014 hire soldiers at $${SOLDIER_COST}K each.<br>
   \u25B8 ATTACK \u2014 send soldiers at a rival's turf. Send MORE than they have defending and it's yours.<br>
-  \u25B8 POKER NIGHT \u2014 buy the game, collect rivals' bets. Big money.<br>
+  \u25B8 POKER NIGHT \u2014 the casino. Land on an unowned house and you can BUY it: the house pays you $1M A YEAR as you come around, plus every bet a rival loses at the tables goes straight to you (and you never have to gamble). Land on a house you don't own and you can play: set any stake up to your whole roll, then roll the die \u2014 4\u20136 DOUBLES your bet, 1\u20133 LOSES it, and if a rival owns the house your lost bet lands in their pocket.<br>
   \u25B8 PARTY / FATE / COP \u2014 event cards: windfalls, trouble, shakedowns.<br>
   \u25B8 POLICE RAID \u2014 soldiers get swept up and you face the law (unless you were tipped off).<br>
   \u25B8 VISIT PRISON \u2014 mostly hustles and connections: fences, jobs, stashes, favors. Money in, sometimes money out \u2014 and a small chance the visit goes very wrong.<br>
@@ -2242,7 +2242,7 @@ function closeModal(){document.getElementById("modal").classList.remove("on");co
   }
   function startLogin(){
     out.innerHTML="";
-    nl("CRIMINAL TERMINAL (R) v8.4");
+    nl("CRIMINAL TERMINAL (R) v8.5");
     nl("(C) 1987 SATAN SYSTEMS CORP. ALL RIGHTS RESERVED.");
     nl("");
     nl("RESTRICTED SYSTEM - AUTHORIZED USERS ONLY.");
