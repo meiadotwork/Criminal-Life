@@ -373,7 +373,7 @@
   /* ===== PRISON fence: continuous barbed wire around the inner ring — the only break is the PRISON script ===== */
   #prisonFence{position:absolute;left:25.9%;top:25.9%;width:48.2%;height:48.2%;pointer-events:none;z-index:2;
     border:2px solid var(--phos) !important;}
-  .pfw{position:absolute;color:var(--phos);font-weight:bold;font-size:clamp(8px,1.4vw,16px);letter-spacing:.55em;white-space:nowrap;overflow:hidden;opacity:.95;}
+  .pfw{position:absolute;color:var(--phos);font-weight:bold;font-size:clamp(13px,2.4vw,26px);letter-spacing:1.1em;white-space:nowrap;overflow:hidden;opacity:.95;line-height:1;}
   .pfw.t{left:0;right:0;top:-1px;transform:translateY(-50%);text-align:center;}
   .pfw.b{left:0;right:0;bottom:-1px;transform:translateY(50%);text-align:center;}
   .pfw.l{top:0;bottom:0;left:-1px;transform:translateX(-50%);writing-mode:vertical-rl;text-align:center;}
@@ -460,7 +460,7 @@
 <div id="setup">
 <div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
 <div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
-<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v8.7</div>
+<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v8.8</div>
 <div id="setupStage"></div>
 </div>
 
@@ -2272,7 +2272,7 @@ function closeModal(){document.getElementById("modal").classList.remove("on");co
   }
   function startLogin(){
     out.innerHTML="";
-    nl("CRIMINAL TERMINAL (R) v8.7");
+    nl("CRIMINAL TERMINAL (R) v8.8");
     nl("(C) 1987 SATAN SYSTEMS CORP. ALL RIGHTS RESERVED.");
     nl("");
     nl("RESTRICTED SYSTEM - AUTHORIZED USERS ONLY.");
