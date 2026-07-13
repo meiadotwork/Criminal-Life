@@ -366,6 +366,58 @@
     #players .others .pl{flex:1 1 46% !important;}
   }
 </style>
+<style id="colorskin">
+  /* die face shown as a number (D8/D10 rolls above 6 have no pip layout) */
+  .die .dienum,#die .dienum{grid-column:1/4;grid-row:1/4;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:bold;color:var(--phos);}
+
+  /* ===== COLOR MODE: white paper, black ink, one solid color per card type ===== */
+  html:has(body.colormode){background:#fff !important;}
+  body.colormode{--phos:#000;--phos-dim:#333;--phos-dark:#777;--bg:#fff;background:#fff !important;background-image:none !important;}
+  body.colormode *{color:#000 !important;text-shadow:none !important;}
+  body.colormode #screen,body.colormode #setup,body.colormode .bar,body.colormode .panel,body.colormode #board,body.colormode .cell,body.colormode .card,body.colormode #log,body.colormode .psetup,body.colormode .choice,body.colormode .controls,body.colormode #players,body.colormode #diceBox,body.colormode #die,body.colormode .die,body.colormode .pill,body.colormode input,body.colormode button,body.colormode #dosgate{background:#fff !important;background-image:none !important;}
+  body.colormode *{border-color:#000 !important;}
+  body.colormode .cell{border:1px solid #000 !important;}
+  body.colormode .cell.hollow{border:none !important;background:transparent !important;}
+  body.colormode .cell.here{background:#ffe98a !important;}
+  body.colormode .pip{background:#000 !important;}
+  body.colormode .die .dienum,body.colormode #die .dienum{color:#000 !important;}
+  body.colormode button:hover,body.colormode button:focus,body.colormode button:active{background:#000 !important;color:#fff !important;}
+  body.colormode button:hover *,body.colormode button:focus *,body.colormode button:active *{color:#fff !important;}
+  body.colormode svg *{fill:#000 !important;stroke:#000 !important;}
+  /* inverted boxes: black bar, white text */
+  body.colormode .lbl,body.colormode .card .lbl,body.colormode .panel h2,body.colormode #turnBanner,body.colormode .dosbar,body.colormode .card .status{background:#000 !important;}
+  body.colormode .lbl,body.colormode .lbl *,body.colormode .card .lbl,body.colormode .card .lbl *,body.colormode .panel h2,body.colormode .panel h2 *,body.colormode #turnBanner,body.colormode #turnBanner *,body.colormode .dosbar,body.colormode .dosbar *,body.colormode .card .status,body.colormode .card .status *{color:#fff !important;}
+  body.colormode .card .out{background:#f2f2f2 !important;border:1px solid #000 !important;border-left:4px solid #000 !important;}
+  /* player patterns: black ink on white */
+  body.colormode .patchip{border-color:#000 !important;background-color:#fff;}
+  body.colormode .pat-solid{background:#000 !important;}
+  body.colormode .pat-inv{background:#fff !important;border:2px solid #000 !important;}
+  body.colormode .pat-vstripe{background:repeating-linear-gradient(90deg,#000 0 2px,#fff 2px 4px) !important;}
+  body.colormode .pat-hstripe{background:repeating-linear-gradient(0deg,#000 0 2px,#fff 2px 4px) !important;}
+  body.colormode .pat-dots{background:radial-gradient(#000 34%,#fff 36%) 0 0/5px 5px,#fff !important;}
+  body.colormode .pat-checker{background:conic-gradient(#000 90deg,#fff 0 180deg,#000 0 270deg,#fff 0) 0 0/6px 6px,#fff !important;}
+  body.colormode .pat-diag,body.colormode .cell .pat-diag{background:repeating-linear-gradient(45deg,#000 0 2px,#fff 2px 4px) !important;}
+  body.colormode .pat-cross,body.colormode .cell .pat-cross{background:repeating-linear-gradient(0deg,#000 0 1px,#fff 1px 4px),repeating-linear-gradient(90deg,#000 0 1px,#fff 1px 4px) !important;}
+  body.colormode .pat-half,body.colormode .cell .pat-half{background:linear-gradient(180deg,#000 0 50%,#fff 50% 100%) !important;}
+  body.colormode .pat-ring,body.colormode .cell .pat-ring{background:radial-gradient(circle,#fff 0 30%,#000 32% 62%,#fff 64%) !important;}
+  /* each card TYPE gets its own solid color (header bar + card frame) — no pink, no purple */
+  body.colormode .card[data-deck="heist"] .lbl{background:#b3261e !important;}   body.colormode .card[data-deck="heist"]{border-color:#b3261e !important;}
+  body.colormode .card[data-deck="hitman"] .lbl{background:#1a1a1a !important;}  body.colormode .card[data-deck="hitman"]{border-color:#1a1a1a !important;}
+  body.colormode .card[data-deck="drug"] .lbl{background:#1e7d32 !important;}    body.colormode .card[data-deck="drug"]{border-color:#1e7d32 !important;}
+  body.colormode .card[data-deck="party"] .lbl{background:#b8860b !important;}   body.colormode .card[data-deck="party"]{border-color:#b8860b !important;}
+  body.colormode .card[data-deck="fate"] .lbl{background:#1565c0 !important;}    body.colormode .card[data-deck="fate"]{border-color:#1565c0 !important;}
+  body.colormode .card[data-deck="cop"] .lbl{background:#0d47a1 !important;}     body.colormode .card[data-deck="cop"]{border-color:#0d47a1 !important;}
+  body.colormode .card[data-deck="raid"] .lbl{background:#7f1010 !important;}    body.colormode .card[data-deck="raid"]{border-color:#7f1010 !important;}
+  body.colormode .card[data-deck="court"] .lbl{background:#6d4c1f !important;}   body.colormode .card[data-deck="court"]{border-color:#6d4c1f !important;}
+  body.colormode .card[data-deck="hospital"] .lbl{background:#00796b !important;}body.colormode .card[data-deck="hospital"]{border-color:#00796b !important;}
+  body.colormode .card[data-deck="visit"] .lbl{background:#546e7a !important;}   body.colormode .card[data-deck="visit"]{border-color:#546e7a !important;}
+  body.colormode .card[data-deck="pday"] .lbl{background:#37474f !important;}    body.colormode .card[data-deck="pday"]{border-color:#37474f !important;}
+  body.colormode .card[data-deck="pfight"] .lbl{background:#bf5700 !important;}  body.colormode .card[data-deck="pfight"]{border-color:#bf5700 !important;}
+  body.colormode .card[data-deck="riot"] .lbl{background:#7a6400 !important;}    body.colormode .card[data-deck="riot"]{border-color:#7a6400 !important;}
+  body.colormode .card[data-deck="law"] .lbl{background:#002f6c !important;}     body.colormode .card[data-deck="law"]{border-color:#002f6c !important;}
+  body.colormode .card[data-deck="notice"] .lbl{background:#333 !important;}     body.colormode .card[data-deck="notice"]{border-color:#333 !important;}
+  body.colormode .card[data-deck="death"] .lbl{background:#000 !important;}      body.colormode .card[data-deck="death"]{border-color:#000 !important;}
+</style>
 </head>
 <body class="crt">
 <div id="dosgate"><pre id="dosout"></pre></div>
@@ -373,7 +425,7 @@
 <div id="setup">
 <div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
 <div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
-<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v8.2</div>
+<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v8.3</div>
 <div id="setupStage"></div>
 </div>
 
@@ -389,7 +441,7 @@
       <button class="tiny" id="uizBtn" onclick="uiScale(0)">100%</button>
       <button class="tiny" onclick="uiScale(1)">+</button>
       <button id="followBtn" onclick="toggleFollow()">[ FOLLOW: OFF ]</button>
-      <button id="greenBtn" onclick="toggleGreenDos()" title="phosphor: 1987 green / 1994 mono">[ 87 ]</button>
+      <button id="greenBtn" onclick="toggleGreenDos()" title="display: 1987 green / 1994 mono / color paper">[ 87 ]</button>
       <button id="sndBtn" onclick="toggleSnd()">[ SND ]</button>
       <a class="reset" onclick="askReset()">[reset]</a>
     </div>
@@ -534,8 +586,8 @@ function renderSetupStart(){
      <div class="cfghead">1. DIFFICULTY <span style="opacity:.55">(starting capital)</span></div>
      <div class="choice">${dB('EASY','EASY','$1M')}${dB('MEDIUM','MEDIUM','$250K')}${dB('HARD','HARD','$100K')}${dB('REALISTIC','REALISTIC','$0')}</div>
      ${d?`<div class="cfgflavor">&gt; ${DIFFICULTY[d].flavor}</div>`:''}
-     <div class="cfghead">2. SPEED <span style="opacity:.55">(dice per roll)</span></div>
-     <div class="choice">${sB(1,'SLOW · 1 die')}${sB(2,'NORMAL · 2 dice')}${sB(3,'FAST · 3 dice')}</div>
+     <div class="cfghead">2. SPEED <span style="opacity:.55">(die size — bigger die = years pass faster)</span></div>
+     <div class="choice">${sB(6,'SLOW · D6')}${sB(8,'NORMAL · D8')}${sB(10,'FAST · D10')}</div>
      <div class="cfghead">3. ${ready?'READY.':'&lt; select both above &gt;'}</div>
      <button class="cfggo" ${ready?'':'disabled'} onclick="afterSpeed()">[ CONTINUE » ]</button>
      <div class="hint">Outer ring = the street (1 lap = 1 year). Arrested → JAIL → COURT → PRISON. Broke+hurt → HOSPITAL (3 = dead). 10+ soldiers = bonus die. Last boss standing wins.</div>
@@ -568,29 +620,37 @@ function nextPlayerSetup(){
         `<div class="krow"><button type="button" class="kkey kwide" onclick="nameKey('SP')">SPACE</button><button type="button" class="kkey kwide" onclick="nameKey('DEL')">DEL</button></div></div>`}
       <div style="font-size:11px;opacity:.7">pick a pattern</div>
       <div class="swatches">${sw}</div>
-      <div style="font-size:11px;opacity:.7;margin-top:8px">your age (any — doesn't affect play)</div>
+      <div style="font-size:11px;opacity:.7;margin-top:8px">your age (1–120 — doesn't affect play)</div>
       <div class="agestep">
         <button type="button" onclick="ageStep(-1)">▼</button>
         <span id="pageval">${isAI?21:25}</span>
         <button type="button" onclick="ageStep(1)">▲</button>
       </div>
+      ${isAI?'':`<div class="namekeys"><div class="krow">`+
+        '1234567890'.split('').map(k=>`<button type="button" class="kkey" onclick="ageKey('${k}')">${k}</button>`).join('')+
+        `<button type="button" class="kkey kwide" onclick="ageKey('DEL')">DEL</button></div></div>`}
       <input type="hidden" id="page" value="${isAI?21:25}">
       <button onclick="confirmPlayer(${isAI})">[ CONFIRM ]</button>
     </div>`;
   window._pickColor=null;
+  window._ageTyped=false;
 }
-function ageStep(d){ const inp=document.getElementById("page"); if(!inp)return; let v=(parseInt(inp.value)||25)+d; v=Math.max(1,Math.min(120,v)); inp.value=v; const s=document.getElementById("pageval"); if(s)s.textContent=v; }
+function ageStep(d){ const inp=document.getElementById("page"); if(!inp)return; let v=(parseInt(inp.value)||25)+d; v=Math.max(1,Math.min(120,v)); inp.value=v; window._ageTyped=true; const s=document.getElementById("pageval"); if(s)s.textContent=v; }
+function ageKey(k){ const inp=document.getElementById("page"); if(!inp)return; let s=String(inp.value||"");
+  if(k==='DEL'){ s=s.slice(0,-1); window._ageTyped=true; }
+  else { if(!window._ageTyped){s="";window._ageTyped=true;} if(s.length<3)s+=k; }
+  inp.value=s; const sp=document.getElementById("pageval"); if(sp)sp.textContent=(s===""?"—":s); }
 function nameKey(k){ const inp=document.getElementById("pname"); if(!inp)return; if(k==='DEL')inp.value=inp.value.slice(0,-1); else if(k==='SP'){if(inp.value.length<10)inp.value+=' ';} else if(inp.value.length<10)inp.value+=k; }
 function pickColor(el){document.querySelectorAll('.sw').forEach(s=>s.classList.remove('sel'));el.classList.add('sel');window._pickColor=el.dataset.c;}
 function confirmPlayer(isAI){
   const name=document.getElementById("pname").value.trim()||(isAI?"CPU":("P"+(setupData.idx+1)));
   let pattern=window._pickColor;
   if(!pattern){ const used=setupData.players.map(p=>p.pattern); pattern=(PATTERNS.find(pt=>!used.includes(pt.k))||PATTERNS[0]).k; }
-  setupData.players.push({name,pattern,ai:isAI,age:(parseInt((document.getElementById("page")||{}).value)||25)});
+  setupData.players.push({name,pattern,ai:isAI,age:Math.max(1,Math.min(120,parseInt((document.getElementById("page")||{}).value)||25))});
   setupData.idx++; nextPlayerSetup();
 }
 function launch(){
-  S={turn:1,cur:0,n:setupData.players.length,rolled:false,over:false,ai:setupData.ai,roundEvents:[],baseDice:(setupData.dice||1)};
+  S={turn:1,cur:0,n:setupData.players.length,rolled:false,over:false,ai:setupData.ai,roundEvents:[],baseDice:(setupData.dice||6)};
   const startCash=(setupData.startCash??100);
   S.players=setupData.players.map((p,i)=>{const pl=newPlayer(i,p.name,p.pattern);pl.ai=p.ai;pl.cash=startCash;pl.age=p.age||25;pl.startAge=pl.age;pl.startCash=startCash;return pl;});
   document.getElementById("setup").style.display="none";
@@ -615,7 +675,7 @@ function clearSave(){ try{localStorage.removeItem(SAVE_KEY);}catch(e){} }
 function loadSave(){ try{const s=JSON.parse(localStorage.getItem(SAVE_KEY)); return (s&&s.players&&s.players.length)?s:null;}catch(e){return null;} }
 function resumeGame(){
   const sv=loadSave(); if(!sv)return;
-  S={turn:sv.turn,cur:sv.cur,n:sv.n,rolled:false,over:false,ai:sv.ai,roundEvents:[],baseDice:sv.baseDice||1};
+  S={turn:sv.turn,cur:sv.cur,n:sv.n,rolled:false,over:false,ai:sv.ai,roundEvents:[],baseDice:({1:6,2:8,3:10}[sv.baseDice]||sv.baseDice||6)};
   S.players=sv.players.map((sp,i)=>{const pl=newPlayer(i,sp.name,sp.pattern);Object.assign(pl,sp);pl.owns=new Map(sp.owns);return pl;});
   document.getElementById("setup").style.display="none";
   document.getElementById("screen").style.display="flex";
@@ -842,42 +902,78 @@ function fitBoard(){
   });
 }
 function boardZoom(dir){ if(dir===0){_bz=1;fitBoard();return;} _bz=Math.max(0.4,Math.min(3,+(_bz+dir*0.15).toFixed(2))); applyBoardZoom(); }
-function drawDieEl(el,v){el.innerHTML="";if(v>=1)PIPS[v].forEach(cls=>{const p=document.createElement("div");p.className="pip "+cls;el.appendChild(p);});}
+function drawDieEl(el,v){el.innerHTML="";
+  if(v>=1&&v<=6&&PIPS[v])PIPS[v].forEach(cls=>{const p=document.createElement("div");p.className="pip "+cls;el.appendChild(p);});
+  else if(v>6){const d=document.createElement("div");d.className="dienum";d.textContent=v;el.appendChild(d);}}
 function rollDice(){
   const p=S.players[S.cur];if(S.rolled||!p.alive)return;
+  const sides={1:6,2:8,3:10}[S.baseDice]||S.baseDice||6;   // die size set at game speed: D6 / D8 / D10
   const bonus=(p.crew>=10)?1:0;                 // 10+ soldiers roll one extra die
-  const n=Math.max(1,(S.baseDice||1)+bonus);
-  const rolls=[];for(let i=0;i<n;i++)rolls.push(1+Math.floor(Math.random()*6));
+  const n=1+bonus;
+  const rolls=[];for(let i=0;i<n;i++)rolls.push(1+Math.floor(Math.random()*sides));
   const total=rolls.reduce((a,b)=>a+b,0);
   const row=document.getElementById("diceRow");row.innerHTML="";
   const dice=[];for(let i=0;i<n;i++){const d=document.createElement("div");d.className="die rolling";if(i===0)d.onclick=rollDice;row.appendChild(d);dice.push(d);}
   let t=0;
   const iv=setInterval(()=>{
     SFX.tick();
-    dice.forEach(d=>drawDieEl(d,1+Math.floor(Math.random()*6)));
+    dice.forEach(d=>drawDieEl(d,1+Math.floor(Math.random()*sides)));
     if(++t>6){clearInterval(iv);dice.forEach((d,i)=>{drawDieEl(d,rolls[i]);d.classList.remove("rolling");});afterRoll(total);}
   },70);
   S.rolled=true;
-  document.getElementById("diceLbl").textContent="rolled "+(n>1?total+" ("+rolls.join("+")+")":""+total)+(bonus?" · +1 die (10+ soldiers)":"");
+  document.getElementById("diceLbl").textContent="rolled "+(n>1?total+" ("+rolls.join("+")+")":""+total)+" · D"+sides+(bonus?" · +1 die (10+ soldiers)":"");
 }
 function speakCard(){ try{ const raw=document.getElementById("cardEl").innerText||""; const t=raw.replace(/\[[^\]]*\]/g," ").replace(/\s+/g," ").trim(); if(!t)return; window.speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(t); u.rate=1; window.speechSynthesis.speak(u); }catch(e){} }
 function openManual(){ window.speechSynthesis&&window.speechSynthesis.cancel(); const el=document.getElementById("cardEl");
-  el.innerHTML=`<div class="lbl">MANUAL — HOW TO PLAY</div>
-  <div class="bd" style="text-align:left">
-  GOAL: be the last boss standing.<br><br>
-  \u25B8 OUTER RING is the street. One full lap = one YEAR (you collect income from what you own).<br>
-  \u25B8 Tap the die to move. With 2\u20133 dice they add up; 10+ soldiers roll a bonus die.<br>
-  \u25B8 Land on a business/street you can OPEN it, or land on a rival's and pay them.<br>
-  \u25B8 RECRUITING = hire soldiers. ATTACK = take a rival's turf by force.<br>
-  \u25B8 HEIST / DRUG / HITMAN = jobs for cash, with arrest risk.<br>
-  \u25B8 Arrested \u2192 JAIL \u2192 COURT \u2192 PRISON (inner ring). Escape re-adds your time later.<br>
-  \u25B8 Broke + hurt \u2192 HOSPITAL. Three visits and you're out.<br>
-  \u25B8 POKER NIGHT pays $1M/yr and collects rivals' bets.<br>
-  \u25B8 Can't pay a debt? Your turf, businesses, then soldiers get sold to cover it.<br>
-  \u25B8 COMMIT CRIME (3/year, before you roll): a random heist, hit or drug run — you take what the streets give you.<br>
-  \u25B8 Land on HOSPITAL while hurt? Pay ${fmtK(TREAT_COST)} to clear a visit.<br>
-  \u25B8 The game saves itself every turn — close the tab, come back later.<br><br>
-  Tap [ READ ] on any card to hear it out loud. [ SND ] toggles sound.
+  const H=t=>`<div style="margin:14px 0 4px;font-weight:bold;letter-spacing:2px;border-bottom:1px solid var(--phos-dim);padding-bottom:2px">${t}</div>`;
+  el.innerHTML=`<div class="lbl">MANUAL \u2014 HOW TO PLAY</div>
+  <div class="bd" style="text-align:left;font-size:16px !important">
+
+  ${H("THE GOAL")}
+  Be the LAST BOSS STANDING. Every other player has to die \u2014 in prison, in the hospital, or broke and bleeding. Survive them all and the city is yours.
+
+  ${H("SETUP")}
+  \u25B8 DIFFICULTY sets everyone's starting cash: EASY $1M \u00B7 MEDIUM $250K \u00B7 HARD $100K \u00B7 REALISTIC $0.<br>
+  \u25B8 SPEED sets the die you roll: SLOW = D6, NORMAL = D8, FAST = D10. A bigger die moves you further each roll, so laps (years) pass faster \u2014 but you stop on fewer spaces per lap.<br>
+  \u25B8 1 PLAYER = you vs the AI. 2\u201310 = pass &amp; play. Pick a name, a pattern, and your age (number keys or \u25B2\u25BC).
+
+  ${H("YOUR TURN")}
+  You get ONE action: tap the die to roll and move, OR press [ COMMIT CRIME ] before rolling (3 chances per year) for a random heist, hit or drug run. You move around the board and resolve the space you LAND on. Everything that happens to you shows up as a card.
+
+  ${H("THE STREET (outer ring)")}
+  One full lap = ONE YEAR. Every time you pass START: you age +1, your 3 crime chances refill, you pay soldier wages ($${SOLDIER_WAGE}K each), and every 2nd clean lap heals one hospital visit. Passing OVER a property you own collects its income \u2014 no need to land on it exactly.
+
+  ${H("THE SPACES")}
+  \u25B8 HEIST / HITMAN / DRUG \u2014 a job card: take the money, then survive the 20% arrest roll.<br>
+  \u25B8 STREETS \u2014 buy turf. Land on a rival's and you pay THEM. Staff turf with soldiers to defend it.<br>
+  \u25B8 BUSINESSES \u2014 buy them, hire workers and move product to grow the income.<br>
+  \u25B8 RECRUITING \u2014 hire soldiers at $${SOLDIER_COST}K each.<br>
+  \u25B8 ATTACK \u2014 send soldiers at a rival's turf. Send MORE than they have defending and it's yours.<br>
+  \u25B8 POKER NIGHT \u2014 buy the game, collect rivals' bets. Big money.<br>
+  \u25B8 PARTY / FATE / COP \u2014 event cards: windfalls, trouble, shakedowns.<br>
+  \u25B8 POLICE RAID \u2014 soldiers get swept up and you face the law (unless you were tipped off).<br>
+  \u25B8 VISIT PRISON \u2014 mostly hustles and connections: fences, jobs, stashes, favors. Money in, sometimes money out \u2014 and a small chance the visit goes very wrong.<br>
+  \u25B8 HOSPITAL space \u2014 hurt? Pay ${fmtK(TREAT_COST)} to clear one visit.
+
+  ${H("SOLDIERS")}
+  $${SOLDIER_COST}K to hire, $${SOLDIER_WAGE}K/yr wages. They defend and take turf, take the FALL (prison in your place), take the BEATING (hospital in your place) \u2014 and with 10+ soldiers you roll a BONUS die.
+
+  ${H("THE LAW")}
+  Caught after a job (20%)? In order: a banked get-out-of-jail card saves you \u2192 a soldier can take the fall \u2192 a crooked CO sells cigarette packs at $1K \u2192 you go to JAIL. In jail, tap the die: post BAIL (set by the charge and your net worth) or face COURT, where a card decides \u2014 walk free, pay a fine that scales with your fortune, do the years, or catch LIFE (30y) for murder.
+
+  ${H("PRISON (inner ring)")}
+  One inner lap = one year served. CIGARETTE PACKS are protection: with no packs on a prison day the block beats you into the hospital \u2014 or worse, there's a 1-in-4 chance they just kill you. Prison fights and riots can hospitalize you, and the worst ones turn fatal. MOST DEATHS HAPPEN IN PRISON \u2014 there are 50 different ways to die inside. ESCAPE frees you now, but the skipped years (+5) come back if you're busted again.
+
+  ${H("HOSPITAL & DEBT")}
+  Three hospital visits = DEAD. Each stay draws a card: a bill, a complication (extra visit) or a recovery (one cleared). Can't pay a debt? Forced sale \u2014 cheapest property first, then soldiers. Broke with nothing left to sell = a beating and a hospital bed.
+
+  ${H("DEATH & WINNING")}
+  Killed in prison or flatlined in the hospital: you get a death card, a memorial, and you're OUT. The game continues until one boss remains.
+
+  ${H("SCREEN & CONTROLS")}
+  \u25B8 [ 87 ] cycles the display: 1987 green phosphor \u2192 1994 mono \u2192 COLOR paper mode (white background, color-coded cards).<br>
+  \u25B8 [ SND ] toggles sound \u00B7 [ READ ] on any card reads it aloud \u00B7 zoom buttons resize the board.<br>
+  \u25B8 The game saves itself every turn \u2014 close the tab, come back later.
   </div>
   <div class="go"><button onclick="closeModal()">[ CLOSE ]</button></div>`;
   openModal();
@@ -903,6 +999,7 @@ function offerBail(){
     p.inJail=false; drawCourt(); return;
   }
   const el=document.getElementById("cardEl");
+  el.dataset.deck="law";
   el.innerHTML=`<div class="lbl" style="background:${p.color}">ARRESTED</div>
     <div class="art">PD</div><div class="ttl">Post bail?</div>
     <div class="bd">You're facing about <b>${years} years</b>. The judge sets bail from the charge and what you're worth — the more you've built, the more they ask. Post it to walk free and skip court, or take your chances with the judge.</div>
@@ -957,7 +1054,15 @@ const PT={
  'tap die to roll':'toque no dado para rolar','roll to move':'role para andar','landed':'chegou'
 };
 function tr(s){ return (LANG==='PT'&&PT[s])?PT[s]:s; }
-function toggleGreenDos(){ const bw=document.body.classList.toggle("bw"); const b=document.getElementById("greenBtn"); if(b)b.textContent=bw?"[ 94 ]":"[ 87 ]"; }
+function toggleGreenDos(){
+  const b=document.body;
+  const next=b.classList.contains("colormode")?"green":(b.classList.contains("bw")?"color":"bw");
+  b.classList.remove("bw","colormode");
+  if(next==="bw")b.classList.add("bw");
+  else if(next==="color")b.classList.add("colormode");
+  const btn=document.getElementById("greenBtn");
+  if(btn)btn.textContent=next==="bw"?"[ 94 ]":next==="color"?"[ COLOR ]":"[ 87 ]";
+}
 /* ===== AUTO-PLAY: per-player. Auto-rolls & resolves; pauses on an affordable buy; skips attacks ===== */
 function updateAutoBtn(){ const p=S&&S.players?S.players[S.cur]:null; const b=document.getElementById("autoBtn"); if(b)b.textContent=tr((p&&p.auto)?"[ AUTO: ON ]":"[ AUTO: OFF ]"); }
 function toggleAuto(){
@@ -1439,6 +1544,7 @@ function aiAutoApply(card){
 }
 function renderStoryCard(card,deck,isAI){
   const p=S.players[S.cur];const el=document.getElementById("cardEl");
+  el.dataset.deck=deck;
   const art=ART[deck]||"[?]";
   const {text,btn}=outcomeAndButton(card,deck);
   const num=(typeof DECKS!=="undefined"&&DECKS[deck])?DECKS[deck].indexOf(card)+1:0;
@@ -1581,6 +1687,7 @@ function showNotice(lbl,art,ttl,bd,next,danger){
   if(p.ai){ if(next)next(); return; }
   _noticeNext=next||null;
   const el=document.getElementById("cardEl");
+  el.dataset.deck=danger?"law":"notice";
   el.innerHTML=`<div class="lbl" style="background:${danger?'#7a0d0d':p.color}">${lbl}</div>
     <div class="art">${art}</div>
     <div class="ttl">${ttl}</div>
@@ -1605,6 +1712,7 @@ function arrestFlow(p){
     doArrest(p,years);return;
   }
   const el=document.getElementById("cardEl");
+  el.dataset.deck="law";
   const hasSoldier=p.crew>0;
   el.innerHTML=`<div class="lbl" style="background:${p.color}">BUSTED</div>
     <div class="art">PD</div><div class="ttl">You're going down</div>
@@ -1624,6 +1732,7 @@ function goToJailWithCigs(years){
   const maxPacks=Math.min(30,Math.floor(p.cash/1));
   if(maxPacks<1){ doArrest(p,years); return; }
   const el=document.getElementById("cardEl");
+  el.dataset.deck="law";
   el.innerHTML=`<div class="lbl" style="background:${p.color}">CROOKED CO</div>
     <div class="art">~/~</div><div class="ttl">One last deal</div>
     <div class="bd">A crooked corrections officer slides up before you're processed. "Packs keep you breathing in there. $1K each. How many?"</div>
@@ -1693,6 +1802,7 @@ function doHospital(p,visits){
                : "— Stable. Just the bill and some rest.";
   if(p.ai){ p.cash-=bill; if(settle)p.cash+=settle; applyHospOutcome(p,oc); if(!p.alive)return; log(p.name+" checks out (-$"+bill+"K"+(settle?", settlement +$"+settle+"K":"")+").","warn"); finish(); return; }
   const el=document.getElementById("cardEl");
+  el.dataset.deck="hospital";
   const hnum=(typeof DECKS!=="undefined"&&DECKS.hospital)?DECKS.hospital.indexOf(card)+1:0;
   el.innerHTML=`<div class="lbl" style="background:${p.color}">${hnum?`<span style="float:right;font-weight:normal;opacity:.8">hospital#${hnum}</span>`:""}HOSPITAL</div><div class="art">${ART.hospital}</div>
     <div class="ttl">${card.ttl}</div>
@@ -1771,6 +1881,7 @@ function prisonDeath(p,why){
   log(p.name+" is KILLED IN PRISON — "+d.t+". OUT.","bad");
   render();
   const el=document.getElementById("cardEl");
+  el.dataset.deck="death";
   el.innerHTML=`<div class="lbl" style="background:#7a0d0d">DEATH IN PRISON</div>
     <div style="text-align:center;font-size:44px;line-height:1.1;margin:10px 0;letter-spacing:2px">x_x</div>
     <div class="ttl" style="color:${p.color};text-align:center">${d.t}</div>
@@ -1791,6 +1902,7 @@ function killPlayer(p){
 }
 function showDeathAnnounce(p){
   const el=document.getElementById("cardEl");
+  el.dataset.deck="death";
   el.innerHTML=`<div class="lbl" style="background:#7a0d0d">PLAYER DOWN</div>
     <div style="text-align:center;font-size:44px;line-height:1.1;margin:10px 0;letter-spacing:2px">x_x</div>
     <div class="ttl" style="color:${p.color};text-align:center;font-size:30px">${p.name} IS DEAD</div>
@@ -1821,6 +1933,7 @@ function showRIP(id){
   const e=ripEpitaph(p);
   const died=(p.diedAt!==undefined?p.diedAt:p.age);
   const el=document.getElementById("cardEl");
+  el.dataset.deck="death";
   el.innerHTML=`<div class="lbl" style="background:${p.color}">R · I · P</div>
     <div class="art">[ + ]</div>
     <div class="ttl" style="color:${p.color}">${p.name}</div>
@@ -2023,7 +2136,7 @@ function rentCard(p,owner,amt,reason){
 function statusBar(){const p=S.players[S.cur];const wealth=p.ring==="inner"?`<span>PACKS: ${p.packs}</span>`:`<span>${fmtK(p.cash)}</span>`;
   return `<div class="status"><span>${p.name}</span>${wealth}<span>SOL: ${p.crew}</span><span>TURF: ${p.owns.size}</span></div>`;}
 function openModal(){document.getElementById("modal").classList.add("on");}
-function closeModal(){document.getElementById("modal").classList.remove("on");try{window.speechSynthesis&&window.speechSynthesis.cancel();}catch(e){}}
+function closeModal(){document.getElementById("modal").classList.remove("on");const ce=document.getElementById("cardEl");if(ce)ce.dataset.deck="";try{window.speechSynthesis&&window.speechSynthesis.cancel();}catch(e){}}
 
 /* ===== BOOT ===== */
 /* ===== DOS TERMINAL FRONT-END: password gate + MS-DOS boot ===== */
@@ -2109,7 +2222,7 @@ function closeModal(){document.getElementById("modal").classList.remove("on");tr
   }
   function startLogin(){
     out.innerHTML="";
-    nl("CRIMINAL TERMINAL (R) v8.2");
+    nl("CRIMINAL TERMINAL (R) v8.3");
     nl("(C) 1987 SATAN SYSTEMS CORP. ALL RIGHTS RESERVED.");
     nl("");
     nl("RESTRICTED SYSTEM - AUTHORIZED USERS ONLY.");
