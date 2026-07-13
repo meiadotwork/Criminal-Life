@@ -460,7 +460,7 @@
 <div id="setup">
 <div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
 <div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
-<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v9.1</div>
+<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v9.2</div>
 <div id="setupStage"></div>
 </div>
 
@@ -626,8 +626,13 @@ function renderSetupStart(){
      <div class="choice">${sB(6,'SLOW · D6')}${sB(8,'NORMAL · D8')}${sB(10,'FAST · D10')}</div>
      <div class="cfghead">3. ${ready?'READY.':'&lt; select both above &gt;'}</div>
      <button class="cfggo" ${ready?'':'disabled'} onclick="afterSpeed()">[ CONTINUE » ]</button>
-     <div class="hint">Outer ring = the street (1 lap = 1 year). Arrested → JAIL → COURT → PRISON. Broke+hurt → HOSPITAL (3 = dead). 10+ soldiers = bonus die. Last boss standing wins.</div>
-   </div>`;
+     <div class="hint">Outer ring = the street (1 lap = 1 year). Arrested → JAIL → COURT → PRISON. Broke+hurt → HOSPITAL (3 = dead). 10+ soldiers = bonus die. Win: last boss standing, or retire with $10M at 65.</div>
+   </div>
+   ${(()=>{try{const h=JSON.parse(localStorage.getItem("ct_hof_v1")||"[]").slice(0,5);
+     return h.length?`<div class="dosconfig" style="margin-top:16px">
+       <div class="cfgline">C:\\> TYPE HALLOFFAME.TXT</div>
+       ${h.map((x,i)=>`<div class="cfgline">${i+1}. ${x.n} — ${fmtK(x.nw)} · age ${x.age} · ${x.how} · ${x.d}</div>`).join("")}
+     </div>`:""}catch(e){return ""}})()}`;
 }
 function selectDiff(d){ setupData.difficulty=d; setupData.startCash=DIFFICULTY[d].cash; renderSetupStart(); }
 function selectSpeed(n){ setupData.dice0=n; setupData.dice=n; renderSetupStart(); }
@@ -688,7 +693,8 @@ function confirmPlayer(isAI){
 function launch(){
   S={turn:1,cur:0,n:setupData.players.length,rolled:false,over:false,ai:setupData.ai,roundEvents:[],baseDice:(setupData.dice||6)};
   const startCash=(setupData.startCash??100);
-  S.players=setupData.players.map((p,i)=>{const pl=newPlayer(i,p.name,p.pattern);pl.ai=p.ai;pl.cash=startCash;pl.age=p.age||25;pl.startAge=pl.age;pl.startCash=startCash;return pl;});
+  S.players=setupData.players.map((p,i)=>{const pl=newPlayer(i,p.name,p.pattern);pl.ai=p.ai;pl.cash=startCash;pl.age=p.age||25;pl.startAge=pl.age;pl.startCash=startCash;
+    if(pl.ai)pl.temper=Math.random()<.5?"AGGRESSIVE":"CAREFUL";return pl;});
   document.getElementById("setup").style.display="none";
   document.getElementById("screen").style.display="flex";
   buildBoardGrid();
@@ -697,6 +703,7 @@ function launch(){
   if(document.fonts&&document.fonts.ready){document.fonts.ready.then(()=>setTimeout(fitBoard,40));}
   newRound();
   log("SYSTEM ONLINE. "+setupData.difficulty+" mode — everyone starts with "+fmtK(startCash)+".","sys");
+  S.players.filter(x=>x.ai).forEach(x=>log(x.name+" sits down — plays "+(x.temper||"CAREFUL")+".","sys"));
   saveGame();
 }
 
@@ -984,7 +991,7 @@ function openManual(){ window.speechSynthesis&&window.speechSynthesis.cancel(); 
   <div class="bd" style="text-align:left;font-size:16px !important">
 
   ${H("THE GOAL")}
-  Be the LAST BOSS STANDING. Every other player has to die \u2014 in prison, in the hospital, or broke and bleeding. Survive them all and the city is yours.
+  Two ways to win. Be the LAST BOSS STANDING \u2014 every other player dies in prison, in the hospital, or broke and bleeding. Or RETIRE UNTOUCHABLE: reach $10M net worth and make it to age 65, and you walk away the winner while the city keeps fighting over what's left.
 
   ${H("SETUP")}
   \u25B8 DIFFICULTY sets everyone's starting cash: EASY $1M \u00B7 MEDIUM $250K \u00B7 HARD $100K \u00B7 REALISTIC $0.<br>
@@ -999,11 +1006,12 @@ function openManual(){ window.speechSynthesis&&window.speechSynthesis.cancel(); 
 
   ${H("THE SPACES")}
   \u25B8 HEIST / HITMAN / DRUG \u2014 a job card: take the money, then survive the arrest roll (10% base + your HEAT).<br>
+  \u25B8 The HITMAN also takes CONTRACTS \u2014 pay $150K to put a hit on a rival: 1/3 they dodge it, 1/3 their soldiers eat the bullets, 1/3 they land in the HOSPITAL. Ordering a hit adds +10 HEAT.<br>
   \u25B8 STREETS \u2014 buy turf. Land on a rival's and you pay THEM. Staff turf with soldiers to defend it.<br>
   \u25B8 BUSINESSES \u2014 open one for the price of 1 worker; every worker on staff earns that same amount per year. When a RIVAL lands on your business they buy PRODUCT: the shelf holds income \u00D7 workers, the buyer pays in and doubles their money \u2014 and the OWNER collects TWICE the buy. Everybody eats, but the house eats double. More workers = bigger deals for both sides.<br>
   \u25B8 RECRUITING \u2014 hire soldiers at $${SOLDIER_COST}K each.<br>
   \u25B8 ATTACK \u2014 send soldiers at a rival's turf. Send MORE than they have defending and it's yours.<br>
-  \u25B8 POKER NIGHT \u2014 the casino. Land on an unowned house and you can BUY it: the house pays you $1M A YEAR as you come around, plus every bet a rival loses at the tables goes straight to you (and you never have to gamble). Land on a house you don't own and you can play: set any stake up to your whole roll, then roll the die \u2014 4\u20136 DOUBLES your bet, 1\u20133 LOSES it, and if a rival owns the house your lost bet lands in their pocket.<br>
+  \u25B8 POKER NIGHT \u2014 the casino. Land on an unowned house and you can BUY it: the house pays you $1M A YEAR as you come around, plus every bet a rival loses at the tables goes straight to you (and you never have to gamble). Land on a house you don't own and you can play: set any stake up to your whole roll, then roll the die \u2014 4\u20136 DOUBLES your bet, 1\u20133 LOSES it, and if a rival owns the house your lost bet lands in their pocket. With another human at the table you can also go HEADS-UP: one roll each, high roll takes the stake.<br>
   \u25B8 PARTY / FATE \u2014 event cards: windfalls, trouble, shakedowns.<br>
   \u25B8 CROOKED COP \u2014 he can make your file disappear: pay $3K per point of HEAT to wipe it to zero, or hear him out for an event card.<br>
   \u25B8 POLICE RAID \u2014 soldiers get swept up and you face the law (unless you were tipped off).<br>
@@ -1026,7 +1034,7 @@ function openManual(){ window.speechSynthesis&&window.speechSynthesis.cancel(); 
   Three hospital visits = DEAD. Each stay draws a card: a bill, a complication (extra visit) or a recovery (one cleared). Can't pay a debt? Forced sale \u2014 cheapest property first, then soldiers. Broke with nothing left to sell = a beating and a hospital bed.
 
   ${H("DEATH & WINNING")}
-  Killed in prison or flatlined in the hospital: you get a death card, a memorial, and you're OUT. The game continues until one boss remains.
+  Killed in prison or flatlined in the hospital: you get a death card, a memorial, and you're OUT. The game runs until one boss remains \u2014 or until someone RETIRES UNTOUCHABLE ($10M net worth + age 65, checked each time you pass START). Winners get carved into the HALL OF FAME on the title screen.
 
   ${H("SCREEN & CONTROLS")}
   \u25B8 [ 87 ] cycles the display: 1987 green phosphor \u2192 1994 mono \u2192 COLOR paper mode (white background, cards AND board cells color-coded by type).<br>
@@ -1081,7 +1089,8 @@ function stepMove(p,left){
   if(ring==="outer"&&p.pos===0){p.age++;p.crimeOps=3;log(p.name+" makes it another year (now "+p.age+" yo). Crime chances refilled.","");
     if(p.heat>0){p.heat=Math.max(0,p.heat-5);log(p.name+"'s heat cools a little (now "+p.heat+"%).","");}
     if(p.crew>0){const wages=p.crew*SOLDIER_WAGE;p.cash-=wages;log(p.name+" pays soldier wages: "+fmtK(wages)+" ("+p.crew+" × $"+SOLDIER_WAGE+"K/yr).","warn");}
-    p.cleanLaps++;if(p.hosp>0&&p.cleanLaps%2===0){p.hosp--;log(p.name+" recovers — 1 hospital visit cleared.","good");}}
+    p.cleanLaps++;if(p.hosp>0&&p.cleanLaps%2===0){p.hosp--;log(p.name+" recovers — 1 hospital visit cleared.","good");}
+    if(p.age>=65&&netWorth(p)>=10000){showRetire(p);return;}}   // RETIRE UNTOUCHABLE: $10M net worth + age 65
   render();
   scrollToToken();
   document.getElementById("diceLbl").textContent="…moving ("+left+")";
@@ -1188,7 +1197,7 @@ function resolveOuter(){
     case "attack": doAttack(); break;
     case "visitjail": drawStory("visit"); break;
     case "heist": drawStory("heist"); break;
-    case "hitman": drawStory("hitman"); break;
+    case "hitman": hitmanStop(); break;
     case "party": drawStory("party"); break;
     case "fate": drawStory("fate"); break;
     case "drug": drawStory("drug"); break;
@@ -1299,7 +1308,7 @@ function pokerNight(){
   }
   // AI never gambles at the tables (too swingy) - it may buy the house if flush, else walks away. (No modal = no freeze.)
   if(p.ai){
-    if(!owner && p.cash>=c.price*2){ pokerBuy(idx); } else { finish(); }
+    if(!owner && p.cash>=c.price*(p.temper==="AGGRESSIVE"?1.5:2)){ pokerBuy(idx); } else { finish(); }
     return;
   }
   const ownerName=owner?owner.name:null;
@@ -1325,10 +1334,41 @@ function pokerNight(){
     </div>
     <div class="go">
       ${bet>0?`<button class="amber" onclick="pokerRoll(${idx})">[ ROLL THE DICE ]</button>`:'<span style="opacity:.6">set a bet to play</span>'}
+      ${(bet>0&&S.players.some(o=>o.alive&&o.id!==p.id&&!o.ai&&o.cash>0))?`<button onclick="pokerDuelMenu()">[ HEADS-UP vs A RIVAL ]</button>`:""}
       ${buyBtn}
       <button onclick="closeModal();finish()">[ WALK AWAY ]</button></div>
     ${statusBar()}`;
   openModal();
+}
+/* heads-up poker: bet against another human at the table — one roll each, high roll takes the pot */
+function pokerDuelMenu(){
+  const p=S.players[S.cur];const bet=p._pokerBet||0;
+  const rivals=S.players.filter(o=>o.alive&&o.id!==p.id&&!o.ai&&o.cash>0);
+  if(!rivals.length||bet<=0){pokerNight();return;}
+  const el=document.getElementById("cardEl");
+  el.innerHTML=`<div class="lbl" style="background:${p.color}">HEADS-UP POKER</div>
+    <div class="ttl">Pick your opponent</div>
+    <div class="bd">Table stakes: ${fmtK(bet)} (or as much as they can cover). One roll each — high roll takes the pot, tie pushes.</div>
+    <div class="go" style="flex-direction:column">
+      ${rivals.map(o=>`<button onclick="pokerDuel(${o.id})">[ ${o.name} — can cover ${fmtK(Math.min(bet,o.cash))} ]</button>`).join("")}
+      <button onclick="pokerNight()">[ ‹ BACK ]</button>
+    </div>${statusBar()}`;
+}
+function pokerDuel(oid){
+  const p=S.players[S.cur];const o=S.players[oid];
+  const stake=Math.min(p._pokerBet||0,p.cash,o.cash); if(stake<=0){pokerNight();return;}
+  const a=1+Math.floor(Math.random()*6), b=1+Math.floor(Math.random()*6);
+  let res,cls;
+  if(a>b){p.cash+=stake;o.cash-=stake;SFX.cash();res=p.name+" WINS the pot: +"+fmtK(stake)+" from "+o.name+".";cls="good";}
+  else if(b>a){p.cash-=stake;o.cash+=stake;SFX.bad();res=o.name+" takes "+fmtK(stake)+" off "+p.name+".";cls="warn";}
+  else {res="Push — dead even. Stakes go back.";cls="";}
+  log("Heads-up poker: "+p.name+" rolls "+a+", "+o.name+" rolls "+b+". "+res,cls);
+  const el=document.getElementById("cardEl");
+  el.innerHTML=`<div class="lbl" style="background:${p.color}">HEADS-UP POKER</div>
+    <div style="text-align:center;font-size:28px;font-weight:bold;margin:10px 0">${p.name}: ${a} &nbsp;·&nbsp; ${o.name}: ${b}</div>
+    <div class="out">${res}</div>
+    <div class="go"><button onclick="closeModal();render();finish()">[ CONTINUE ]</button></div>${statusBar()}`;
+  render();
 }
 function pokerBetAdj(idx,d){
   const p=S.players[S.cur];const max=Math.max(0,p.cash);
@@ -1458,7 +1498,7 @@ function commitCrime(){
 }
 function offerHire(){
   const p=S.players[S.cur];
-  if(p.ai){ const aiCap=4; while(p.crew<aiCap && p.cash>=SOLDIER_COST*3){p.cash-=SOLDIER_COST;p.crew++;} log(p.name+" recruits soldiers.","good"); finish(); return; }
+  if(p.ai){ const agg=p.temper==="AGGRESSIVE"; const aiCap=agg?7:4; while(p.crew<aiCap && p.cash>=SOLDIER_COST*(agg?2:3)){p.cash-=SOLDIER_COST;p.crew++;} log(p.name+" recruits soldiers.","good"); finish(); return; }
   const slotsLeft=MAX_SOLDIERS-p.crew;
   const affordable=Math.floor(p.cash/SOLDIER_COST);
   const canBuy=Math.min(slotsLeft,affordable);
@@ -1503,6 +1543,59 @@ function hireConfirm(){
   finish();
 }
 
+/* ===== HITMAN SPACE: take a job yourself, or put a contract on a rival boss ===== */
+const HIT_COST=150;
+function hitmanStop(){
+  const p=S.players[S.cur];
+  const rivals=S.players.filter(o=>o.alive&&o.id!==p.id);
+  if(p.ai||!rivals.length||p.cash<HIT_COST){ drawStory("hitman"); return; }
+  const el=document.getElementById("cardEl");
+  el.dataset.deck="hitman";
+  el.innerHTML=`<div class="lbl" style="background:${p.color}">HITMAN</div>
+    <div class="art">x</div><div class="ttl">The man takes contracts</div>
+    <div class="bd">"Two kinds of business at this table. You need work — I have work. You need someone GONE — that's ${fmtK(HIT_COST)}, half now, half after. No names on paper."</div>
+    <div class="out">Order a hit: 1/3 they dodge it · 1/3 their soldiers eat the bullets · 1/3 they wake up in the HOSPITAL.\nOrdering a hit adds +10 HEAT.</div>
+    <div class="go" style="flex-direction:column">
+      <button onclick="closeModal();drawStory('hitman')">[ TAKE A JOB YOURSELF ]</button>
+      <button class="red" onclick="orderHitMenu()">[ ORDER A HIT · ${fmtK(HIT_COST)} ]</button>
+    </div>${statusBar()}`;
+  openModal();
+}
+function orderHitMenu(){
+  const p=S.players[S.cur];
+  const rivals=S.players.filter(o=>o.alive&&o.id!==p.id);
+  const el=document.getElementById("cardEl");
+  el.innerHTML=`<div class="lbl" style="background:${p.color}">ORDER A HIT</div>
+    <div class="ttl">Who's the target?</div>
+    <div class="bd">He slides a napkin across the table. You write one name.</div>
+    <div class="go" style="flex-direction:column">
+      ${rivals.map(o=>`<button class="red" onclick="orderHit(${o.id})">[ ${o.name} — ${o.ring==="inner"?"IN PRISON":OUTER[o.pos].t} · ${o.crew} sol · ${3-o.hosp}/3 hp ]</button>`).join("")}
+      <button onclick="hitmanStop()">[ ‹ BACK ]</button>
+    </div>${statusBar()}`;
+}
+function orderHit(oid){
+  const p=S.players[S.cur];const o=S.players[oid];
+  if(p.cash<HIT_COST)return;
+  p.cash-=HIT_COST; p.heat=Math.min(70,(p.heat||0)+10);
+  closeModal(); SFX.shots();
+  const r=Math.random();
+  if(r<1/3){
+    log(p.name+"'s contract on "+o.name+" goes cold — the target went to ground.","warn");
+    showNotice("THE HIT","x","The target went to ground",o.name+" changed cars, changed routes, slept somewhere new. The shooter waited three nights and walked. Money spent, nothing to show — and the streets are whispering your name (+10 HEAT).",()=>{render();finish();});
+  } else if(r<2/3 && o.crew>0){
+    const loss=Math.min(o.crew,1+Math.floor(Math.random()*3));
+    o.crew-=loss; SFX.soldierDown();
+    log("A hit ordered by "+p.name+" kills "+loss+" of "+o.name+"'s soldiers.","bad");
+    showNotice("THE HIT","x","The bodyguards ate the bullets",`The shooter caught ${o.name}'s people outside the spot. ${loss} soldier${loss>1?"s":""} down, but ${o.name} made it out alive. They'll figure out who paid for it. (+10 HEAT)`,()=>{render();finish();});
+  } else {
+    o.hosp++; o.cleanLaps=0;
+    if(o.ring==="outer"&&!o.inJail){const hi=OUTER.findIndex(c=>c.k==="hospital");if(hi>=0)o.pos=hi;}
+    log(p.name+"'s hit puts "+o.name+" in the HOSPITAL ("+o.hosp+"/3).","bad");
+    if(o.hosp>=3){ o._deathCause="Taken out by a contract hit"; render(); killPlayer(o); return; }
+    showNotice("THE HIT","x","Direct hit",o.name+" took two in the ribs getting into the car. Rushed to the HOSPITAL (visit "+o.hosp+"/3) — one more bad day and it's over for them. (+10 HEAT)",()=>{render();finish();});
+  }
+}
+
 /* ===== ATTACK (reworked) ===== */
 function doAttack(){
   const p=S.players[S.cur];
@@ -1511,8 +1604,8 @@ function doAttack(){
   if(p.crew<1){log(p.name+" has no soldiers to attack with."); finish(); return;}
   if(targets.length===0){log("No rival turf to attack."); finish(); return;}
   if(p.ai){
-    // take the richest turf it can actually win, send just enough, keep one in reserve
-    const winnable=targets.filter(t=>t.s+1<=p.crew-1);
+    // take the richest turf it can actually win; CAREFUL keeps one in reserve, AGGRESSIVE goes all in
+    const winnable=targets.filter(t=>t.s+1<=(p.temper==="AGGRESSIVE"?p.crew:p.crew-1));
     if(!winnable.length){ log(p.name+" sizes up the rivals and stands down."); finish(); return; }
     winnable.sort((a,b)=>cellUnit(b.idx)*b.s-cellUnit(a.idx)*a.s);
     const t=winnable[0]; resolveAttack(p,t.o,t.idx,Math.min(p.crew,t.s+1)); return;
@@ -1746,7 +1839,7 @@ function arrestChance(p){return Math.min(.6,(10+(p.heat||0))/100);}
 function copStop(){
   const p=S.players[S.cur];
   const cost=(p.heat||0)*3; // $3K per point of heat
-  if(p.ai){ if(p.heat>=25&&p.cash>=cost*2){p.cash-=cost;p.heat=0;log(p.name+" pays off a crooked cop (-"+fmtK(cost)+") — heat wiped.","warn");render();finish();} else drawStory("cop"); return; }
+  if(p.ai){ const th=p.temper==="AGGRESSIVE"?40:15; if(p.heat>=th&&p.cash>=cost*2){p.cash-=cost;p.heat=0;log(p.name+" pays off a crooked cop (-"+fmtK(cost)+") — heat wiped.","warn");render();finish();} else drawStory("cop"); return; }
   if(!p.heat||p.cash<cost){ drawStory("cop"); return; }
   const el=document.getElementById("cardEl");
   el.dataset.deck="cop";
@@ -2077,8 +2170,28 @@ function afterRIP(){
   S.rolled=true; // allow endTurn to proceed
   endTurn();
 }
+/* ===== HALL OF FAME (kept between games) ===== */
+const HOF_KEY="ct_hof_v1";
+function recordHof(p,how){ try{ const h=JSON.parse(localStorage.getItem(HOF_KEY)||"[]");
+  h.push({n:p.name,age:p.age,nw:netWorth(p),how:how,d:new Date().toISOString().slice(0,10)});
+  h.sort((a,b)=>b.nw-a.nw); localStorage.setItem(HOF_KEY,JSON.stringify(h.slice(0,10))); }catch(e){} }
+
+/* ===== RETIRE UNTOUCHABLE: the second way to win ===== */
+function showRetire(p){
+  S.over=true; clearSave(); SFX.win(); recordHof(p,"RETIRED");
+  render(); updateControls();
+  const el=document.getElementById("cardEl");
+  el.innerHTML=`<div class="lbl" style="background:${p.color}">RETIRED UNTOUCHABLE</div>
+    <div style="text-align:center;font-size:40px;line-height:1.1;margin:8px 0;letter-spacing:2px">$$$</div>
+    <div class="ttl" style="color:${p.color};text-align:center;font-size:26px">${p.name} WINS — THE SMART WAY</div>
+    <div class="sub" style="text-align:center">${fmtK(netWorth(p))} net worth at <b>${p.age}</b> years old. Nobody retires from this life. ${p.name} just did — villa, new name, clean paper. The city keeps fighting over what's left.</div>
+    <div class="out">Age ${p.age} · Net worth ${fmtK(netWorth(p))} · ${p.owns.size} turf · ${p.crew} soldiers · started with ${fmtK(p.startCash||0)}</div>
+    <div class="go"><button onclick="location.reload()">[ NEW GAME ]</button></div>`;
+  openModal();
+}
 function showGameOver(winner){
   clearSave();SFX.win();
+  if(winner)recordHof(winner,"LAST BOSS");
   const el=document.getElementById("cardEl");
   const w=winner?winner:null;
   el.innerHTML=`<div class="lbl" style="background:${w?w.color:'#888'}">LAST BOSS STANDING</div>
@@ -2350,7 +2463,7 @@ function closeModal(){document.getElementById("modal").classList.remove("on");co
   }
   function startLogin(){
     out.innerHTML="";
-    nl("CRIMINAL TERMINAL (R) v9.1");
+    nl("CRIMINAL TERMINAL (R) v9.2");
     nl("(C) 1987 SATAN SYSTEMS CORP. ALL RIGHTS RESERVED.");
     nl("");
     nl("RESTRICTED SYSTEM - AUTHORIZED USERS ONLY.");
