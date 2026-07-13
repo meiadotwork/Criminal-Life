@@ -370,6 +370,17 @@
   /* die face shown as a number (D8/D10 rolls above 6 have no pip layout) */
   .die .dienum,#die .dienum{grid-column:1/4;grid-row:1/4;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:bold;color:var(--phos);}
 
+  /* ===== PRISON fence: simple barbed wire around the inner ring, script above it ===== */
+  #prisonFence{position:absolute;left:25.9%;top:25.9%;width:48.2%;height:48.2%;pointer-events:none;z-index:2;}
+  .pfw{position:absolute;color:var(--phos);font-weight:bold;font-size:clamp(8px,1.4vw,16px);letter-spacing:.55em;text-decoration:line-through;white-space:nowrap;overflow:hidden;opacity:.9;}
+  .pfw.t{left:3%;right:3%;top:0;transform:translateY(-55%);text-align:center;}
+  .pfw.b{left:3%;right:3%;bottom:0;transform:translateY(55%);text-align:center;}
+  .pfw.l{top:3%;bottom:3%;left:0;transform:translateX(-55%);writing-mode:vertical-rl;text-align:center;}
+  .pfw.r{top:3%;bottom:3%;right:0;transform:translateX(55%);writing-mode:vertical-rl;text-align:center;}
+  #innerLabel{position:absolute !important;left:50% !important;top:25.9% !important;transform:translate(-50%,-118%) !important;
+    font-size:clamp(14px,3vw,38px) !important;letter-spacing:3px !important;font-weight:bold !important;color:var(--phos) !important;opacity:.95;pointer-events:none;z-index:2;}
+  body.colormode .pfw,body.colormode #innerLabel{color:#000 !important;}
+
   /* ===== COLOR MODE: white paper, black ink, one solid color per card type ===== */
   html:has(body.colormode){background:#fff !important;}
   body.colormode{--phos:#000;--phos-dim:#333;--phos-dark:#777;--bg:#fff;background:#fff !important;background-image:none !important;}
@@ -445,7 +456,7 @@
 <div id="setup">
 <div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
 <div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
-<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v8.5</div>
+<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v8.6</div>
 <div id="setupStage"></div>
 </div>
 
@@ -470,7 +481,7 @@
     <div class="panel board-panel">
       <h2>THE CITY</h2>
       <div class="zoombar"><button onclick="boardZoom(-1)">[ ZOOM − ]</button><button onclick="boardZoom(0)">[ RESET ]</button><button onclick="boardZoom(1)">[ ZOOM + ]</button></div>
-      <div id="boardWrap"><div id="board"></div><div id="innerLabel">P R I S O N</div></div>
+      <div id="boardWrap"><div id="board"></div><div id="prisonFence"><span class="pfw t">x x x x x x x x x x x x</span><span class="pfw b">x x x x x x x x x x x x</span><span class="pfw l">x x x x x x x x</span><span class="pfw r">x x x x x x x x</span></div><div id="innerLabel">P R I S O N</div></div>
     </div>
     <div class="side">
       <div class="panel">
@@ -506,46 +517,47 @@ const PATTERNS=[
 /* Order runs so index 0 = HEIST (bottom-left). We'll place it at the bottom-left of the grid. */
 const OUTER = [
   {t:"HEIST · START",ic:"$!",k:"heist"},            // 0 bottom-left corner START
-  {t:"Marcy Proj",ic:"#",k:"street",price:20},
-  {t:"POLICE RAID",ic:"*",k:"raid"},
+  {t:"Marcy Proj",ic:"#",k:"street",price:20},      // left side, going up
+  {t:"RECRUITING",ic:"@",k:"crew"},
   {t:"cocaine",ic:"co",k:"biz",income:200},
-  {t:"HITMAN",ic:"x",k:"hitman"},
+  {t:"Fordham Rd",ic:"#",k:"street",price:45},
   {t:"ATTACK",ic:"><",k:"attack"},
   {t:"DRUG DEAL",ic:"~",k:"drug"},
-  {t:"RECRUITING",ic:"@",k:"crew"},
+  {t:"POLICE RAID",ic:"*",k:"raid"},
   {t:"CROOKED COP",ic:"$b",k:"cop"},
   {t:"weed",ic:"wd",k:"biz",income:80},
-  {t:"ATTACK",ic:"><",k:"attack"},                  // bottom-right-ish
-  {t:"PARTY",ic:"?",k:"party"},                     // corner
-  {t:"Fordham Rd",ic:"#",k:"street",price:45},
+  {t:"ATTACK",ic:"><",k:"attack"},                  // 10 top-left corner
+  {t:"PARTY",ic:"?",k:"party"},                     // top row, left to right
+  {t:"Flatbush Av",ic:"#",k:"street",price:60},
   {t:"RECRUITING",ic:"@",k:"crew"},
   {t:"guns",ic:"gn",k:"biz",income:150},
   {t:"POLICE RAID",ic:"*",k:"raid"},
   {t:"Bedford Ave",ic:"#",k:"street",price:100},
   {t:"HEIST",ic:"!",k:"heist"},
   {t:"meth",ic:"me",k:"biz",income:170},
-  {t:"POLICE RAID",ic:"*",k:"raid"},
-  {t:"HOSPITAL",ic:"+",k:"hospital"},               // corner (top-left)
-  {t:"heroine",ic:"he",k:"biz",income:180},
+  {t:"CROOKED COP",ic:"$b",k:"cop"},
+  {t:"ATTACK",ic:"><",k:"attack"},                  // 20 top-right corner
+  {t:"heroine",ic:"he",k:"biz",income:180},         // right side, going down
   {t:"RECRUITING",ic:"@",k:"crew"},
   {t:"Fifth Ave",ic:"#",k:"street",price:225},
-  {t:"ATTACK",ic:"><",k:"attack"},
+  {t:"HOSPITAL",ic:"+",k:"hospital"},
+  {t:"POLICE RAID",ic:"*",k:"raid"},
   {t:"money laundering",ic:"$$",k:"biz",income:120},
-  {t:"CROOKED COP",ic:"$b",k:"cop"},
-  {t:"Wall St",ic:"#",k:"street",price:300},
+  {t:"Madison Ave",ic:"#",k:"street",price:250},
   {t:"HITMAN",ic:"x",k:"hitman"},
   {t:"fake documents",ic:"id",k:"biz",income:70},
-  {t:"VISIT/JAIL",ic:"[]",k:"visitjail"},           // corner (top-right)
-  {t:"RECRUITING",ic:"@",k:"crew"},
+  {t:"ATTACK",ic:"><",k:"attack"},                  // 30 bottom-right corner
+  {t:"RECRUITING",ic:"@",k:"crew"},                 // bottom row, right to left
   {t:"garage GTA",ic:"gt",k:"biz",income:90},
-  {t:"Madison Ave",ic:"#",k:"street",price:250},
+  {t:"Wall St",ic:"#",k:"street",price:300},
+  {t:"HITMAN",ic:"x",k:"hitman"},
   {t:"POLICE RAID",ic:"*",k:"raid"},
-  {t:"ATTACK",ic:"><",k:"attack"},
   {t:"FATE",ic:"?",k:"fate"},
   {t:"pills",ic:"Rx",k:"biz",income:110},
-  {t:"Flatbush Av",ic:"#",k:"street",price:60},
   {t:"POKER NIGHT",ic:"AK",k:"poker",price:1000},
+  {t:"VISIT/JAIL",ic:"[]",k:"visitjail"},           // 39 right before START
 ];
+const JAIL_POS=OUTER.findIndex(c=>c.k==="visitjail");
 const INNER = [
   {t:"prison entry",ic:">",k:"pentry"},{t:"prison day",ic:".",k:"pday"},{t:"prison fight",ic:"vs",k:"pfight"},
   {t:"prison day",ic:".",k:"pday"},{t:"prison day",ic:".",k:"pday"},{t:"riot",ic:"!!",k:"riot"},
@@ -685,7 +697,7 @@ function launch(){
 }
 
 /* ===== SAVE / RESUME (localStorage — written at every turn boundary) ===== */
-const SAVE_KEY="ct_save_v1";
+const SAVE_KEY="ct_save_v2"; // v2: board order changed in v8.6 — old saves index the old layout
 function snapshot(){
   return {turn:S.turn,cur:S.cur,n:S.n,ai:S.ai,baseDice:S.baseDice,
     players:S.players.map(p=>{const o={...p};o.owns=Array.from(p.owns.entries());delete o.auto;return o;})};
@@ -747,6 +759,19 @@ function noiseBurst(dur,vol,when,cutoff){ // filtered white noise: gunshots, sla
     s.connect(f);f.connect(g);g.connect(_ac.destination);s.start(t);s.stop(t+(dur||.15)+.02);
   }catch(e){}
 }
+function sirenWail(start,cycles){ // smooth up-down frequency glide — a real siren wail
+  if(!SND)return;
+  try{
+    _ac=_ac||new (window.AudioContext||window.webkitAudioContext)();
+    if(_ac.state==="suspended")_ac.resume();
+    const t0=_ac.currentTime+(start||0);const per=.55;const n=cycles||3;
+    const o=_ac.createOscillator(),g=_ac.createGain();
+    o.type="sawtooth";o.frequency.setValueAtTime(620,t0);
+    for(let i=0;i<n;i++){o.frequency.linearRampToValueAtTime(1150,t0+i*per+per/2);o.frequency.linearRampToValueAtTime(620,t0+(i+1)*per);}
+    g.gain.setValueAtTime(.04,t0);g.gain.setValueAtTime(.04,t0+n*per-.08);g.gain.exponentialRampToValueAtTime(.0001,t0+n*per);
+    o.connect(g);g.connect(_ac.destination);o.start(t0);o.stop(t0+n*per+.05);
+  }catch(e){}
+}
 const SFX={
   tick:()=>beep(880,.03,.025),
   step:()=>beep(440,.04,.02),
@@ -754,7 +779,8 @@ const SFX={
   good:()=>{beep(523,.07,.045);beep(784,.09,.045,.08);},
   bad:()=>{beep(220,.12,.05);beep(165,.16,.05,.1);},
   siren:()=>{beep(700,.14,.045);beep(500,.14,.045,.15);beep(700,.14,.045,.3);},
-  raid:()=>{for(let i=0;i<3;i++){beep(880,.18,.05,i*.36);beep(660,.18,.05,i*.36+.18);}}, // wailing police siren
+  raid:()=>{noiseBurst(.28,.3,0,350);sirenWail(.15,3);},                                  // door breach BOOM + wailing sirens
+  soldierDown:()=>{noiseBurst(.12,.24,0,1100);noiseBurst(.12,.24,.32,1050);noiseBurst(.16,.26,.64,950);}, // three deliberate shots — a soldier dies
   cash:()=>{beep(1245,.05,.045);beep(1568,.12,.05,.06);},                                 // register cha-ching
   shots:()=>{noiseBurst(.14,.2,0,1200);noiseBurst(.14,.2,.22,1000);noiseBurst(.18,.22,.44,900);}, // firefight
   clang:()=>{beep(120,.3,.08);noiseBurst(.25,.12,.02,400);},                              // cell door slams
@@ -1639,7 +1665,7 @@ function applyCard(){
   if(c.crew){p.crew+=c.crew;log(p.name+" gains "+c.crew+" soldier.","good");}
   if(c.respect)log(p.name+" earns respect inside.","good");
   if(c.freeArrest){p.freeArrest++;log(p.name+" AVOIDS PRISON — banks a get-out-of-jail card ("+p.freeArrest+").","good");}
-  if(c.loseCrew){p.crew=Math.max(0,p.crew-c.loseCrew);log(p.name+" loses "+c.loseCrew+" soldier.","bad");}
+  if(c.loseCrew){SFX.soldierDown();p.crew=Math.max(0,p.crew-c.loseCrew);log(p.name+" loses "+c.loseCrew+" soldier.","bad");}
   if(c.skip){p.skip=(p.skip||0)+c.skip;log(p.name+" will lose "+c.skip+" turn.","warn");}
   if(c.freeRaid){p.freeRaid=(p.freeRaid||0)+1;log(p.name+" dodges the next raid.","good");}
   if(c.note&&!c.cut&&!c.crew)log(p.name+": "+c.note);
@@ -1719,7 +1745,7 @@ function showNotice(lbl,art,ttl,bd,next,danger){
 function noticeOK(){ closeModal(); const f=_noticeNext; _noticeNext=null; if(f)f(); }
 
 /* ===== LAW ===== */
-function crewSave(p,type){if(p.crew>0){p.crew--;log(p.name+" burns a soldier — they take the "+(type==="arrest"?"cuffs":"bullet")+".","good");return true;}return false;}
+function crewSave(p,type){if(p.crew>0){p.crew--;if(type!=="arrest")SFX.soldierDown();log(p.name+" burns a soldier — they take the "+(type==="arrest"?"cuffs":"bullet")+".","good");return true;}return false;}
 
 /* Arrest flow: get-out card > soldier takes your place > buy cigs from crooked CO > jail */
 function arrestFlow(p){
@@ -1769,7 +1795,7 @@ function goToJailWithCigs(years){
 function buyCigs(n,years){const p=S.players[S.cur];n=Math.min(n,Math.floor(p.cash/1));p.cash-=n;p.packs+=n;if(n>0)log(p.name+" buys "+n+" cigarette packs from the CO (-$"+n+"K).","warn");closeModal();doArrest(p,years);}
 function doArrest(p,years){
   SFX.siren();
-  p.inJail=true;p.ring="outer";p.pos=30;p.sentence=0;p._pendingYears=years;
+  p.inJail=true;p.ring="outer";p.pos=JAIL_POS;p.sentence=0;p._pendingYears=years;
   log(p.name+" ARRESTED → JAIL. Awaiting court.","bad");
   render();
   showNotice("ARRESTED","[=]","You're in JAIL",
@@ -1782,7 +1808,7 @@ function drawCourt(){ const p=S.players[S.cur]; log(p.name+"'s court day.","warn
   const card=draw("court"); document.getElementById("cardEl")._card=card;document.getElementById("cardEl")._deck="court";
   renderStoryCard(card,"court",p.ai); SFX.card(); openModal(); aiAutoApply(card); }
 function sendToPrison(p){SFX.clang();p.inJail=false;p.ring="inner";p.pos=0;log(p.name+" enters PRISON. Serve "+p.sentence+"y (1 lap = 1 year). Packs: "+p.packs,"warn");}
-function releaseFromPrison(p){p.ring="outer";p.pos=30;p.packs=0;log(p.name+" walks out of prison.","good");render();showNotice("OUT OF PRISON","\\o/","Back on the street","The gate rolls open and the street takes you back. Any cigarette packs stay behind — currency of a world you just left.",()=>finish());}
+function releaseFromPrison(p){p.ring="outer";p.pos=JAIL_POS;p.packs=0;log(p.name+" walks out of prison.","good");render();showNotice("OUT OF PRISON","\\o/","Back on the street","The gate rolls open and the street takes you back. Any cigarette packs stay behind — currency of a world you just left.",()=>finish());}
 
 /* ===== HOSPITAL (death only here) ===== */
 function toHospital(p,visits,cause){
@@ -2242,7 +2268,7 @@ function closeModal(){document.getElementById("modal").classList.remove("on");co
   }
   function startLogin(){
     out.innerHTML="";
-    nl("CRIMINAL TERMINAL (R) v8.5");
+    nl("CRIMINAL TERMINAL (R) v8.6");
     nl("(C) 1987 SATAN SYSTEMS CORP. ALL RIGHTS RESERVED.");
     nl("");
     nl("RESTRICTED SYSTEM - AUTHORIZED USERS ONLY.");
