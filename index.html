@@ -378,7 +378,27 @@
   body.colormode *{border-color:#000 !important;}
   body.colormode .cell{border:1px solid #000 !important;}
   body.colormode .cell.hollow{border:none !important;background:transparent !important;}
-  body.colormode .cell.here{background:#ffe98a !important;}
+  /* board cells: light tint + strong colored edge per card type — black text stays readable */
+  body.colormode .cell.k-heist{background:#f5d0bd !important;box-shadow:inset 4px 0 0 #b3261e !important;}
+  body.colormode .cell.k-hitman{background:#e6e6e6 !important;box-shadow:inset 4px 0 0 #1a1a1a !important;}
+  body.colormode .cell.k-attack{background:#fbe6d7 !important;box-shadow:inset 4px 0 0 #e65100 !important;}
+  body.colormode .cell.k-drug{background:#e0efe1 !important;box-shadow:inset 4px 0 0 #1e7d32 !important;}
+  body.colormode .cell.k-biz{background:#f0f0d9 !important;box-shadow:inset 4px 0 0 #827717 !important;}
+  body.colormode .cell.k-street{background:#f0e9e4 !important;box-shadow:inset 4px 0 0 #8d6e63 !important;}
+  body.colormode .cell.k-party{background:#f6ecd2 !important;box-shadow:inset 4px 0 0 #b8860b !important;}
+  body.colormode .cell.k-poker{background:#ede3d3 !important;box-shadow:inset 4px 0 0 #6d4c1f !important;}
+  body.colormode .cell.k-fate{background:#dfeafa !important;box-shadow:inset 4px 0 0 #1565c0 !important;}
+  body.colormode .cell.k-cop{background:#dbe5f6 !important;box-shadow:inset 4px 0 0 #0d47a1 !important;}
+  body.colormode .cell.k-raid{background:#e9c3b2 !important;box-shadow:inset 4px 0 0 #7f1010 !important;}
+  body.colormode .cell.k-crew{background:#e4e9eb !important;box-shadow:inset 4px 0 0 #37474f !important;}
+  body.colormode .cell.k-visitjail{background:#e3ebef !important;box-shadow:inset 4px 0 0 #546e7a !important;}
+  body.colormode .cell.k-hospital{background:#d9efec !important;box-shadow:inset 4px 0 0 #00796b !important;}
+  body.colormode .cell.k-pentry{background:#e2e6e8 !important;box-shadow:inset 4px 0 0 #263238 !important;}
+  body.colormode .cell.k-pday{background:#ececec !important;box-shadow:inset 4px 0 0 #616161 !important;}
+  body.colormode .cell.k-pfight{background:#f8e6d6 !important;box-shadow:inset 4px 0 0 #bf5700 !important;}
+  body.colormode .cell.k-riot{background:#f0ead0 !important;box-shadow:inset 4px 0 0 #7a6400 !important;}
+  /* current position highlight must beat the type tints (declared after them) */
+  body.colormode .cell.here{background:#ffe98a !important;border:2px solid #000 !important;}
   body.colormode .pip{background:#000 !important;}
   body.colormode .die .dienum,body.colormode #die .dienum{color:#000 !important;}
   body.colormode button:hover,body.colormode button:focus,body.colormode button:active{background:#000 !important;color:#fff !important;}
@@ -425,7 +445,7 @@
 <div id="setup">
 <div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
 <div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
-<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v8.3</div>
+<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v8.4</div>
 <div id="setupStage"></div>
 </div>
 
@@ -971,7 +991,7 @@ function openManual(){ window.speechSynthesis&&window.speechSynthesis.cancel(); 
   Killed in prison or flatlined in the hospital: you get a death card, a memorial, and you're OUT. The game continues until one boss remains.
 
   ${H("SCREEN & CONTROLS")}
-  \u25B8 [ 87 ] cycles the display: 1987 green phosphor \u2192 1994 mono \u2192 COLOR paper mode (white background, color-coded cards).<br>
+  \u25B8 [ 87 ] cycles the display: 1987 green phosphor \u2192 1994 mono \u2192 COLOR paper mode (white background, cards AND board cells color-coded by type).<br>
   \u25B8 [ SND ] toggles sound \u00B7 [ READ ] on any card reads it aloud \u00B7 zoom buttons resize the board.<br>
   \u25B8 The game saves itself every turn \u2014 close the tab, come back later.
   </div>
@@ -2222,7 +2242,7 @@ function closeModal(){document.getElementById("modal").classList.remove("on");co
   }
   function startLogin(){
     out.innerHTML="";
-    nl("CRIMINAL TERMINAL (R) v8.3");
+    nl("CRIMINAL TERMINAL (R) v8.4");
     nl("(C) 1987 SATAN SYSTEMS CORP. ALL RIGHTS RESERVED.");
     nl("");
     nl("RESTRICTED SYSTEM - AUTHORIZED USERS ONLY.");
