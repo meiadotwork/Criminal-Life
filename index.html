@@ -3,7 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="CRIMINAL TERMINAL — a retro DOS crime-life board game. Build an empire on the street, survive prison, be the last boss standing.">
 <title>CRIMINAL TERMINAL</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' fill='%23000'/><text x='8' y='12.5' font-size='12' text-anchor='middle' fill='%2333ff44' font-family='monospace'>$</text></svg>">
 <style>
   :root{--phos:#39ff74;--phos-dim:#1c9c3c;--phos-dark:#0a3d18;--amber:#ffb642;--red:#ff5a52;--bg:#010602;--scan:rgba(0,0,0,.22)}
   *{box-sizing:border-box;margin:0;padding:0}
@@ -119,9 +121,12 @@
   .profile-crimes{font-size:11px;text-align:left;margin-top:6px;max-height:120px;overflow:auto}
   .profile-crimes div{padding:1px 0;border-bottom:1px solid var(--phos-dark)}
 </style>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+<style id="pcfont">
+/* "IBM VGA 8x16" from The Ultimate Oldschool PC Font Pack v2.2 by VileR
+   (int10h.org/oldschool-pc-fonts) — license CC BY-SA 4.0.
+   Embedded as base64 so the game is one self-contained file and works offline. */
+@font-face{font-family:'IBM VGA 437';src:url(data:font/woff;base64,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) format('woff');font-weight:normal;font-style:normal;font-display:swap;}
+</style>
 <style id="dosskin">
   :root{
     --phos:#33ff44; --phos-dim:#1f9e2a; --phos-dark:#0c3f14;
@@ -129,7 +134,7 @@
   }
   body.bw{--phos:#e8e8e8; --phos-dim:#8a8a8a; --phos-dark:#3a3a3a; --amber:#e8e8e8; --red:#e8e8e8;}
   /* ONE font everywhere — logo, setup, board, cards, boot */
-  *{font-family:'VT323','Perfect DOS VGA 437','PxPlus IBM VGA8',Consolas,'Courier New',monospace !important;}
+  *{font-family:'IBM VGA 437','Perfect DOS VGA 437','PxPlus IBM VGA8',Consolas,'Courier New',monospace !important;}
   #setup pre{font-size:clamp(14px,4vw,22px) !important;line-height:1.2 !important;}
   /* ONE color for ALL text — kills every player color / red / amber */
   *{color:var(--phos) !important; text-shadow:none !important; box-shadow:none !important;}
@@ -368,7 +373,7 @@
 <div id="setup">
 <div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
 <div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
-<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v7.6</div>
+<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v8.1</div>
 <div id="setupStage"></div>
 </div>
 
@@ -384,8 +389,9 @@
       <button class="tiny" id="uizBtn" onclick="uiScale(0)">100%</button>
       <button class="tiny" onclick="uiScale(1)">+</button>
       <button id="followBtn" onclick="toggleFollow()">[ FOLLOW: OFF ]</button>
-      <button id="greenBtn" onclick="toggleGreenDos()">[ 87 ]</button>
-      <a class="reset" onclick="location.reload()">[reset]</a>
+      <button id="greenBtn" onclick="toggleGreenDos()" title="phosphor: 1987 green / 1994 mono">[ 87 ]</button>
+      <button id="sndBtn" onclick="toggleSnd()">[ SND ]</button>
+      <a class="reset" onclick="askReset()">[reset]</a>
     </div>
   </div>
   <div class="main">
@@ -418,11 +424,6 @@
 </div>
 
 <script>
-/* ===== COLORS ===== */
-const COLORS=[
-  {n:"white",c:"#f5f5f5"},{n:"red",c:"#e01e1e"},{n:"green",c:"#1fb84a"},
-  {n:"yellow",c:"#e6c200"},{n:"orange",c:"#e8720c"},{n:"blue",c:"#2f6fe0"}
-];
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
   {k:"hstripe",label:"horizontal"},{k:"dots",label:"dots"},{k:"checker",label:"checker"},
@@ -520,7 +521,13 @@ function renderSetupStart(){
   const dB=(k,lbl,cash)=>`<button class="cfg${d===k?' sel':''}" onclick="selectDiff('${k}')">[ ${lbl} · ${cash} ]</button>`;
   const sB=(n,lbl)=>`<button class="cfg${sp===n?' sel':''}" onclick="selectSpeed(${n})">[ ${lbl} ]</button>`;
   const ready=d&&sp;
+  const sv=loadSave();
   document.getElementById("setupStage").innerHTML=`
+   ${sv?`<div class="dosconfig" style="margin-bottom:16px">
+     <div class="cfgline">C:\\> CRIMELIFE.EXE /RESUME</div>
+     <div class="cfgline">SAVED SESSION FOUND — turn ${sv.turn} · ${sv.players.filter(p=>p.alive).length} of ${sv.players.length} still breathing</div>
+     <button class="cfggo" onclick="resumeGame()">[ CONTINUE SESSION » ]</button>
+   </div>`:''}
    <div class="dosconfig">
      <div class="cfgline">C:\\> CRIMELIFE.EXE /NEWGAME</div>
      <div class="cfgline">CONFIGURE SESSION_</div>
@@ -536,9 +543,6 @@ function renderSetupStart(){
 }
 function selectDiff(d){ setupData.difficulty=d; setupData.startCash=DIFFICULTY[d].cash; renderSetupStart(); }
 function selectSpeed(n){ setupData.dice0=n; setupData.dice=n; renderSetupStart(); }
-function chooseDifficulty(d){ selectDiff(d); }
-function afterDifficulty(){ /* difficulty + speed are now one screen */ }
-function chooseSpeed(n){ selectSpeed(n); }
 function afterSpeed(){
   const btns=[`<button onclick="chooseCount(1)">[ 1 PLAYER (vs AI) ]</button>`]
     .concat([2,3,4,5,6,7,8,9,10].map(n=>`<button onclick="chooseCount(${n})">[ ${n} PLAYERS ]</button>`)).join("");
@@ -597,7 +601,87 @@ function launch(){
   if(document.fonts&&document.fonts.ready){document.fonts.ready.then(()=>setTimeout(fitBoard,40));}
   newRound();
   log("SYSTEM ONLINE. "+setupData.difficulty+" mode — everyone starts with "+fmtK(startCash)+".","sys");
+  saveGame();
 }
+
+/* ===== SAVE / RESUME (localStorage — written at every turn boundary) ===== */
+const SAVE_KEY="ct_save_v1";
+function snapshot(){
+  return {turn:S.turn,cur:S.cur,n:S.n,ai:S.ai,baseDice:S.baseDice,
+    players:S.players.map(p=>{const o={...p};o.owns=Array.from(p.owns.entries());delete o.auto;return o;})};
+}
+function saveGame(){ if(!S||S.over)return; try{localStorage.setItem(SAVE_KEY,JSON.stringify(snapshot()));}catch(e){} }
+function clearSave(){ try{localStorage.removeItem(SAVE_KEY);}catch(e){} }
+function loadSave(){ try{const s=JSON.parse(localStorage.getItem(SAVE_KEY)); return (s&&s.players&&s.players.length)?s:null;}catch(e){return null;} }
+function resumeGame(){
+  const sv=loadSave(); if(!sv)return;
+  S={turn:sv.turn,cur:sv.cur,n:sv.n,rolled:false,over:false,ai:sv.ai,roundEvents:[],baseDice:sv.baseDice||1};
+  S.players=sv.players.map((sp,i)=>{const pl=newPlayer(i,sp.name,sp.pattern);Object.assign(pl,sp);pl.owns=new Map(sp.owns);return pl;});
+  document.getElementById("setup").style.display="none";
+  document.getElementById("screen").style.display="flex";
+  buildBoardGrid();
+  render();updateControls();
+  [60,300,700,1400].forEach(t=>setTimeout(fitBoard,t));
+  if(document.fonts&&document.fonts.ready){document.fonts.ready.then(()=>setTimeout(fitBoard,40));}
+  newRound();
+  log("SESSION RESTORED — turn "+S.turn+". "+S.players[S.cur].name+" is up.","sys");
+  if(S.players[S.cur].ai) setTimeout(()=>rollDiceAI(),900);
+}
+function askReset(){
+  const el=document.getElementById("cardEl");
+  el.innerHTML=`<div class="lbl">RESET</div>
+    <div class="ttl">Abandon this session?</div>
+    <div class="bd">The saved game will be wiped and you'll go back to the boot screen.</div>
+    <div class="go"><button class="red" onclick="clearSave();location.reload()">[ WIPE &amp; RESTART ]</button><button onclick="closeModal()">[ KEEP PLAYING ]</button></div>`;
+  openModal();
+}
+
+/* ===== SOUND — tiny retro PC-speaker beeper (square wave), toggleable ===== */
+let SND=(function(){try{return localStorage.getItem("ct_snd")!=="off";}catch(e){return true;}})();
+let _ac=null;
+function beep(freq,dur,vol,when){
+  if(!SND)return;
+  try{
+    _ac=_ac||new (window.AudioContext||window.webkitAudioContext)();
+    if(_ac.state==="suspended")_ac.resume();
+    const t=_ac.currentTime+(when||0);
+    const o=_ac.createOscillator(),g=_ac.createGain();
+    o.type="square";o.frequency.value=freq;
+    g.gain.setValueAtTime(vol||.04,t);g.gain.exponentialRampToValueAtTime(.0001,t+(dur||.06));
+    o.connect(g);g.connect(_ac.destination);o.start(t);o.stop(t+(dur||.06)+.02);
+  }catch(e){}
+}
+function noiseBurst(dur,vol,when,cutoff){ // filtered white noise: gunshots, slams
+  if(!SND)return;
+  try{
+    _ac=_ac||new (window.AudioContext||window.webkitAudioContext)();
+    if(_ac.state==="suspended")_ac.resume();
+    const t=_ac.currentTime+(when||0);
+    const n=Math.floor(_ac.sampleRate*(dur||.15));
+    const buf=_ac.createBuffer(1,n,_ac.sampleRate);
+    const d=buf.getChannelData(0);
+    for(let i=0;i<n;i++)d[i]=(Math.random()*2-1)*(1-i/n);
+    const s=_ac.createBufferSource();s.buffer=buf;
+    const f=_ac.createBiquadFilter();f.type="lowpass";f.frequency.value=cutoff||900;
+    const g=_ac.createGain();g.gain.setValueAtTime(vol||.15,t);g.gain.exponentialRampToValueAtTime(.0001,t+(dur||.15));
+    s.connect(f);f.connect(g);g.connect(_ac.destination);s.start(t);s.stop(t+(dur||.15)+.02);
+  }catch(e){}
+}
+const SFX={
+  tick:()=>beep(880,.03,.025),
+  step:()=>beep(440,.04,.02),
+  card:()=>beep(660,.06,.035),
+  good:()=>{beep(523,.07,.045);beep(784,.09,.045,.08);},
+  bad:()=>{beep(220,.12,.05);beep(165,.16,.05,.1);},
+  siren:()=>{beep(700,.14,.045);beep(500,.14,.045,.15);beep(700,.14,.045,.3);},
+  raid:()=>{for(let i=0;i<3;i++){beep(880,.18,.05,i*.36);beep(660,.18,.05,i*.36+.18);}}, // wailing police siren
+  cash:()=>{beep(1245,.05,.045);beep(1568,.12,.05,.06);},                                 // register cha-ching
+  shots:()=>{noiseBurst(.14,.2,0,1200);noiseBurst(.14,.2,.22,1000);noiseBurst(.18,.22,.44,900);}, // firefight
+  clang:()=>{beep(120,.3,.08);noiseBurst(.25,.12,.02,400);},                              // cell door slams
+  flatline:()=>{beep(1000,.09,.05);beep(1000,.09,.05,.4);beep(1000,.09,.05,.8);beep(1000,1.3,.055,1.2);}, // heart monitor
+  win:()=>{[523,659,784,1047].forEach((f,i)=>beep(f,.12,.045,i*.13));},
+};
+function toggleSnd(){ SND=!SND; try{localStorage.setItem("ct_snd",SND?"on":"off");}catch(e){} const b=document.getElementById("sndBtn"); if(b)b.textContent=SND?"[ SND ]":"[ MUTE ]"; if(SND)SFX.card(); }
 
 /* ===== BOARD GRID (HEIST at bottom-left) ===== */
 function buildBoardGrid(){
@@ -683,7 +767,6 @@ function log(m,cls=""){const d=document.createElement("div");d.className="l "+cl
 
 /* ===== DICE ===== */
 const PIPS={1:["p1"],2:["p2a","p2b"],3:["p3a","p3b","p3c"],4:["p4a","p4b","p4c","p4d"],5:["p5a","p5b","p5c","p5d","p5e"],6:["p6a","p6b","p6c","p6d","p6e","p6f"]};
-function drawDie(v){const die=document.getElementById("die");if(!die)return;die.innerHTML="";if(v>=1)PIPS[v].forEach(cls=>{const p=document.createElement("div");p.className="pip "+cls;die.appendChild(p);});}
 
 function updateControls(){
   const p=S.players[S.cur];
@@ -748,7 +831,10 @@ function fitBoard(){
   bw.style.setProperty("--bzoom",1);                    // measure natural (unzoomed) size
   requestAnimationFrame(()=>{
     const natW=bw.offsetWidth||1, natH=bw.offsetHeight||1;
-    const availW=bp.clientWidth-6, availH=bp.clientHeight-6;
+    bp.scrollTop=0;
+    const availW=bp.clientWidth-6;
+    // available height = what's actually left below the panel header + zoom bar
+    const availH=bp.getBoundingClientRect().bottom-bw.getBoundingClientRect().top-8;
     let fit = (window.innerWidth>=900) ? Math.min(availW/natW, availH/natH) : (availW/natW);
     if(!isFinite(fit)||fit<=0) fit=1;
     if(window.innerWidth>=900 && fit>1) fit=1;          // don't upscale past natural on desktop
@@ -767,6 +853,7 @@ function rollDice(){
   const dice=[];for(let i=0;i<n;i++){const d=document.createElement("div");d.className="die rolling";if(i===0)d.onclick=rollDice;row.appendChild(d);dice.push(d);}
   let t=0;
   const iv=setInterval(()=>{
+    SFX.tick();
     dice.forEach(d=>drawDieEl(d,1+Math.floor(Math.random()*6)));
     if(++t>6){clearInterval(iv);dice.forEach((d,i)=>{drawDieEl(d,rolls[i]);d.classList.remove("rolling");});afterRoll(total);}
   },70);
@@ -786,8 +873,11 @@ function openManual(){ window.speechSynthesis&&window.speechSynthesis.cancel(); 
   \u25B8 Arrested \u2192 JAIL \u2192 COURT \u2192 PRISON (inner ring). Escape re-adds your time later.<br>
   \u25B8 Broke + hurt \u2192 HOSPITAL. Three visits and you're out.<br>
   \u25B8 POKER NIGHT pays $1M/yr and collects rivals' bets.<br>
-  \u25B8 Can't pay a debt? Your turf, businesses, then soldiers get sold to cover it.<br><br>
-  Tap [ READ ] on any card to hear it out loud.
+  \u25B8 Can't pay a debt? Your turf, businesses, then soldiers get sold to cover it.<br>
+  \u25B8 COMMIT CRIME (3/year, before you roll): a random heist, hit or drug run — you take what the streets give you.<br>
+  \u25B8 Land on HOSPITAL while hurt? Pay ${fmtK(TREAT_COST)} to clear a visit.<br>
+  \u25B8 The game saves itself every turn — close the tab, come back later.<br><br>
+  Tap [ READ ] on any card to hear it out loud. [ SND ] toggles sound.
   </div>
   <div class="go"><button onclick="closeModal()">[ CLOSE ]</button></div>`;
   openModal();
@@ -828,7 +918,7 @@ function faceCourt(){const p=S.players[S.cur];p.inJail=false;closeModal();drawCo
 function stepMove(p,left){
   if(left<=0){arriveCell(p);return;}
   const ring=p.ring;const len=ring==="inner"?INNER.length:OUTER.length;
-  p.pos=(p.pos+1)%len;
+  p.pos=(p.pos+1)%len;SFX.step();
   // passing OVER one of your own businesses = you've lapped it (a year) → collect its profit
   if(ring==="outer" && left>1 && p.owns.has(p.pos)) collectOne(p,p.pos);
   if(ring==="inner"&&p.pos===0){p.sentence-=1;p.age++;p.yearsServed=(p.yearsServed||0)+1;log(p.name+" finishes a prison lap. 1 year done (now "+p.age+" yo). "+(p.sentence>0?p.sentence+"y left":"TIME SERVED"),p.sentence>0?"":"good");
@@ -867,15 +957,6 @@ const PT={
  'tap die to roll':'toque no dado para rolar','roll to move':'role para andar','landed':'chegou'
 };
 function tr(s){ return (LANG==='PT'&&PT[s])?PT[s]:s; }
-function applyLang(){
-  const P=LANG==='PT';
-  document.querySelectorAll('.panel h2, .zoombar button, #manualBtn, #followBtn, a.reset').forEach(el=>{
-    if(el.dataset.en===undefined)el.dataset.en=el.textContent;
-    const pt=PT[el.dataset.en]; el.textContent=(P&&pt)?pt:el.dataset.en;
-  });
-}
-function updateLangBtn(){ const b=document.getElementById("langBtn"); if(b)b.textContent=LANG==='EN'?"[ PT ]":"[ EN ]"; }
-function toggleLang(){ LANG=(LANG==='EN')?'PT':'EN'; if(S&&S.players){render();updateControls();} applyLang(); updateLangBtn(); }
 function toggleGreenDos(){ const bw=document.body.classList.toggle("bw"); const b=document.getElementById("greenBtn"); if(b)b.textContent=bw?"[ 94 ]":"[ 87 ]"; }
 /* ===== AUTO-PLAY: per-player. Auto-rolls & resolves; pauses on an affordable buy; skips attacks ===== */
 function updateAutoBtn(){ const p=S&&S.players?S.players[S.cur]:null; const b=document.getElementById("autoBtn"); if(b)b.textContent=tr((p&&p.auto)?"[ AUTO: ON ]":"[ AUTO: OFF ]"); }
@@ -913,36 +994,20 @@ function autoTick(){
   }
   if(!S.rolled) rollDice();
 }
-function openColorPicker(){
-  const el=document.getElementById("cardEl");
-  const rows=S.players.map(p=>{
-    const used=S.players.filter(x=>x.id!==p.id).map(x=>x.color);
-    const sw=COLORS.map(c=>{const taken=used.includes(c.c);
-      return `<button ${taken?'disabled':''} onclick="setPlayerColor(${p.id},'${c.c}')" style="background:${c.c};width:30px;height:30px;border:3px solid ${p.color===c.c?'#fff':'#0a0a0a'};border-radius:6px;margin:3px;opacity:${taken?0.25:1}" title="${c.n}"></button>`;}).join("");
-    return `<div style="margin:8px 0;border-bottom:1px solid #1a2a1a;padding-bottom:6px"><div style="color:${p.color};font-weight:bold">${p.name}</div><div>${sw}</div></div>`;
-  }).join("");
-  el.innerHTML=`<div class="lbl" style="background:#2f6fe0">TEAM COLORS</div>
-    <div class="ttl">Recolor the teams</div>
-    <div class="bd">Tap a swatch to change a player's color. Colors already in use are dimmed.</div>
-    <div class="out" style="max-height:300px;overflow:auto">${rows}</div>
-    <div class="go"><button onclick="closeModal()">[ DONE ]</button></div>`;
-  openModal();
-}
-function setPlayerColor(id,c){ S.players[id].color=c; render(); openColorPicker(); }
 function arriveCell(p){
   document.getElementById("diceLbl").textContent="landed";
   if(p.ring==="inner"){log(p.name+" (prison) → "+INNER[p.pos].t);resolveInner();}
   else{log(p.name+" → "+OUTER[p.pos].t);resolveOuter();}
 }
-function collectIncome(p){let inc=0;p.owns.forEach((s,idx)=>{inc+=(OUTER[idx].incomeBase||0)*s;});if(inc>0){p.cash+=inc;log(p.name+" collects "+fmtK(inc)+" from turf.","good");}return inc;}
 /* one business/property pays a full year's profit when you lap back around to it */
 function collectOne(p,idx){
   if(!p.owns.has(idx))return 0;
   const cell=OUTER[idx];const unit=cell.incomeBase||cell.price||cell.income||0;
   const inc=unit*p.owns.get(idx);
-  if(inc>0){p.cash+=inc;log(p.name+" collects "+fmtK(inc)+" — a year's profit from "+cell.t+".","good");}
+  if(inc>0){p.cash+=inc;SFX.cash();log(p.name+" collects "+fmtK(inc)+" — a year's profit from "+cell.t+".","good");}
   return inc;
 }
+function cellUnit(idx){const c=OUTER[idx];return c.incomeBase||c.price||c.income||0;}
 function fmtK(v){
   const neg=v<0?"-":""; v=Math.abs(v);
   if(v>=1000){ const m=v/1000; return neg+"$"+(m%1===0?m:m.toFixed(m>=10?0:1))+"M"; }
@@ -953,7 +1018,7 @@ function fmtK(v){
 function resolveOuter(){
   const p=S.players[S.cur];const c=OUTER[p.pos];
   switch(c.k){
-    case "hospital": log("Hospital. You're healthy — just passing."); finish(); break;
+    case "hospital": hospitalStop(); break;
     case "street": tryStreet(c); break;
     case "biz": tryBiz(c); break;
     case "crew": offerHire(); break;
@@ -984,6 +1049,25 @@ function resolveInner(){
     default:finish();
   }
 }
+
+/* ===== HOSPITAL SPACE: pay to patch yourself up ===== */
+const TREAT_COST=50;
+function hospitalStop(){
+  const p=S.players[S.cur];
+  if(p.hosp<=0){ log("Hospital. You're healthy — just passing."); finish(); return; }
+  if(p.ai){ if(p.cash>=TREAT_COST*3){p.cash-=TREAT_COST;p.hosp--;log(p.name+" pays "+fmtK(TREAT_COST)+" for treatment — 1 hospital visit cleared ("+p.hosp+"/3).","good");} finish(); return; }
+  const el=document.getElementById("cardEl");
+  el.innerHTML=`<div class="lbl" style="background:${p.color}">HOSPITAL</div>
+    <div class="art">${ART.hospital}</div><div class="ttl">Walk-in clinic</div>
+    <div class="bd">You're carrying ${p.hosp} hospital visit${p.hosp>1?"s":""} on your record (3 = dead). A discreet doctor will patch one up — cash up front, no questions asked.</div>
+    <div class="out">Treatment: ${fmtK(TREAT_COST)} clears 1 visit</div>
+    <div class="go">
+      ${p.cash>=TREAT_COST?`<button class="amber" onclick="payTreatment()">[ TREAT · ${fmtK(TREAT_COST)} ]</button>`:'<span style="opacity:.6">need '+fmtK(TREAT_COST)+'</span>'}
+      <button onclick="closeModal();finish()">[ WALK ON ]</button></div>
+    ${statusBar()}`;
+  openModal();
+}
+function payTreatment(){const p=S.players[S.cur];if(p.cash<TREAT_COST||p.hosp<=0)return;p.cash-=TREAT_COST;p.hosp--;SFX.good();log(p.name+" pays "+fmtK(TREAT_COST)+" for treatment — 1 hospital visit cleared ("+p.hosp+"/3).","good");closeModal();render();finish();}
 
 /* ===== STREET ===== */
 function tryStreet(c){
@@ -1065,7 +1149,7 @@ function pokerNight(){
     <div class="ttl">Place your bet</div>
     <div class="bd">Choose your stake, then roll: <b>4-6 you WIN your bet</b> (double it), <b>1-3 you LOSE your bet</b>.</div>
     ${ownLine}
-    <div style="text-align:center;font-size:24px;font-weight:bold;margin:6px 0;color:var(--gold-lt)">Bet: ${fmtK(bet)}</div>
+    <div style="text-align:center;font-size:24px;font-weight:bold;margin:6px 0">Bet: ${fmtK(bet)}</div>
     <div class="out">Win = +${fmtK(bet)} &nbsp;·&nbsp; Lose = -${fmtK(bet)}</div>
     <div class="go" style="flex-wrap:wrap">
       <button onclick="pokerBetAdj(${idx},-1)" ${bet<=0?'disabled':''}>[ - ]</button>
@@ -1096,9 +1180,11 @@ function pokerRoll(idx){
   const r=1+Math.floor(Math.random()*6);
   const win=r>=4;
   if(win){
+    SFX.good();
     p.cash+=stake;
     log(p.name+" rolled a "+r+" - WINS the bet! +"+fmtK(stake)+" (now "+fmtK(p.cash)+").","good");
   }else{
+    SFX.bad();
     p.cash-=stake;
     log(p.name+" rolled a "+r+" - LOSES the bet ("+fmtK(stake)+").","bad");
     if(owner&&owner.id!==p.id){ owner.cash+=stake; log("The house takes it - "+fmtK(stake)+" goes to "+owner.name+".","warn"); }
@@ -1194,12 +1280,6 @@ function openBuyWorkers(){
   openModal();
 }
 function addWorkerAnytime(idx,per){const p=S.players[S.cur];if(p.cash<per)return;p.cash-=per;p.owns.set(idx,p.owns.get(idx)+1);log(p.name+" hires a worker at "+OUTER[idx].t+" (now "+p.owns.get(idx)+").","good");render();openBuyWorkers();}
-function openBuySoldiers(){
-  const p=S.players[S.cur];
-  if(p.ai||!p.alive||S.over||p.ring!=="outer"||p.inJail)return;
-  p._hireAnytime=true; p._hirePick=0;
-  offerHire();
-}
 function commitCrime(){
   const p=S.players[S.cur];
   if(p.ai||!p.alive||S.over||S.rolled||p.ring!=="outer"||p.inJail||p.crimeOps<=0)return;
@@ -1207,7 +1287,8 @@ function commitCrime(){
   log(p.name+" goes looking for a score ("+p.crimeOps+" crime chances left).","warn");
   S.rolled=true;               // this is your action for the turn
   updateControls();
-  drawStory("heist");          // random heist card → applyCard → finish() ends the turn
+  const jobs=["heist","hitman","drug"];               // the streets decide what the job is
+  drawStory(jobs[Math.floor(Math.random()*jobs.length)]);
 }
 function offerHire(){
   const p=S.players[S.cur];
@@ -1224,7 +1305,7 @@ function offerHire(){
     <div class="ttl">Hire soldiers</div>
     <div class="bd">Soldiers take the fall for you (one goes to prison in your place if you're arrested) and fight in attacks. Buy as many as you can afford — $${SOLDIER_COST}K each, then $${SOLDIER_WAGE}K/yr wages each.</div>
     <div class="out">You have ${p.crew} soldier${p.crew===1?"":"s"} · $${SOLDIER_COST}K each</div>
-    <div style="text-align:center;font-size:26px;font-weight:bold;margin:6px 0;font-family:'Lora',serif;color:var(--gold-lt)">
+    <div style="text-align:center;font-size:26px;font-weight:bold;margin:6px 0">
       Hiring: ${pick} &nbsp;(${fmtK(pick*SOLDIER_COST)})
     </div>
     <div class="go" style="flex-wrap:wrap">
@@ -1253,10 +1334,8 @@ function hireConfirm(){
   const buy=Math.min(n,canBuy);
   if(buy>0){p.cash-=SOLDIER_COST*buy;p.crew+=buy;log(p.name+" hires "+buy+" soldier"+(buy>1?"s":"")+" (now "+p.crew+").","good");}
   p._hirePick=0;render();closeModal();
-  if(p._hireAnytime){ p._hireAnytime=false; return; } // bought via ACTIONS button mid-turn — don't end the turn
   finish();
 }
-function hireCancel(){const p=S.players[S.cur];p._hirePick=0;closeModal();finish();}
 
 /* ===== ATTACK (reworked) ===== */
 function doAttack(){
@@ -1265,7 +1344,13 @@ function doAttack(){
   S.players.forEach(o=>{if(o.id!==p.id&&o.alive){o.owns.forEach((s,idx)=>targets.push({o,idx,s}));}});
   if(p.crew<1){log(p.name+" has no soldiers to attack with."); finish(); return;}
   if(targets.length===0){log("No rival turf to attack."); finish(); return;}
-  if(p.ai){ const t=targets[0]; resolveAttack(p,t.o,t.idx,p.crew); return; }
+  if(p.ai){
+    // take the richest turf it can actually win, send just enough, keep one in reserve
+    const winnable=targets.filter(t=>t.s+1<=p.crew-1);
+    if(!winnable.length){ log(p.name+" sizes up the rivals and stands down."); finish(); return; }
+    winnable.sort((a,b)=>cellUnit(b.idx)*b.s-cellUnit(a.idx)*a.s);
+    const t=winnable[0]; resolveAttack(p,t.o,t.idx,Math.min(p.crew,t.s+1)); return;
+  }
   const el=document.getElementById("cardEl");
   let btns=targets.map(t=>`<button onclick="attackTarget(${t.o.id},${t.idx})">[ ${t.o.name}: ${OUTER[t.idx].t} (${t.s} def) ]</button>`).join("");
   el.innerHTML=`<div class="lbl" style="background:${p.color}">ATTACK</div>
@@ -1286,7 +1371,7 @@ function attackTarget(oid,idx){
   el.innerHTML=`<div class="lbl" style="background:${p.color}">ATTACK</div>
     <div class="art">)|(</div><div class="ttl">Send how many?</div>
     <div class="sub">Target: <b>${o.name}'s ${OUTER[idx].t}</b> — defended by ${def} soldier${def===1?"":"s"}. You have ${p.crew}. Win if you send more than ${def}.</div>
-    <div style="text-align:center;font-size:26px;font-weight:bold;margin:6px 0;font-family:'Lora',serif;color:var(--gold-lt)">Sending: ${pick} of ${p.crew}</div>
+    <div style="text-align:center;font-size:26px;font-weight:bold;margin:6px 0">Sending: ${pick} of ${p.crew}</div>
     <div class="go" style="flex-wrap:wrap">
       <button onclick="atkPick(-1)" ${pick<=1?'disabled':''}>[ − ]</button>
       <button onclick="atkPick(1)" ${pick>=p.crew?'disabled':''}>[ + ]</button>
@@ -1303,10 +1388,11 @@ function atkPick(d){const p=S.players[S.cur];if(d==='max')p._atkPick=p.crew;else
 function confirmAttack(){const p=S.players[S.cur];const t=p._atkTarget;const n=p._atkPick||1;p._atkPick=undefined;p._atkTarget=undefined;resolveAttack(p,S.players[t.oid],t.idx,n);}
 function resolveAttack(p,o,idx,atk){
   closeModal();
+  SFX.shots();
   const def=o.owns.get(idx)||0;
   atk=Math.max(1,Math.min(atk||p.crew,p.crew));
   let title,body;
-  if(atk>def){ p.crew-=def; o.owns.delete(idx); p.owns.set(idx,Math.max(1,atk-def));
+  if(atk>def){ p.crew-=atk; o.owns.delete(idx); p.owns.set(idx,Math.max(1,atk-def));
     title="TURF TAKEN";
     body=p.name+" sent "+atk+" against "+o.name+"'s "+def+" at "+OUTER[idx].t+". Lost "+def+" in the fight, wiped their crew, and seized the block with "+Math.max(1,atk-def)+" left standing.";
     log(p.name+" takes "+OUTER[idx].t+" from "+o.name+" ("+atk+" vs "+def+").","good"); }
@@ -1330,59 +1416,23 @@ function resolveAttack(p,o,idx,atk){
 }
 
 /* ===== STORY CARDS ===== */
-/* ===== HEIST LEVEL PICKER (player chooses risk) ===== */
-const HEIST_LEVELS={
-  EASY:  {payouts:[1000], jailChance:0.55, arr:[6,8], label:"EASY · big score, high heat"},
-  MEDIUM:{payouts:[250],  jailChance:0.40, arr:[5,10],label:"MEDIUM · solid score"},
-  HARD:  {payouts:[100],  jailChance:0.25, arr:[3,4], label:"HARD · low take, low risk"},
-  REAL:  {payouts:[0],    jailChance:0.15, arr:[2,5], label:"REAL · nothing, but you tried"},
-};
-const HEIST_FLAVOR={
-  EASY:["Bank vault, months of planning. The alarm never made a sound.","Casino count room. You were in the ceiling before anyone blinked."],
-  MEDIUM:["Jewelry smash-and-grab. Cases empty in ninety seconds.","Armored truck at the blind corner. Two minutes of chaos, doors open."],
-  HARD:["ATM ripped out with a stolen truck. Cracked in a field at dawn.","Corner store register and the safe under the counter."],
-  REAL:["Dye pack blew. Alarm screamed. You ran with a story and nothing else.","The whole thing was bait. Out clean, empty-handed."],
-};
-function heistPicker(){
-  const p=S.players[S.cur];
-  if(p.ai){ // AI picks by cash: rich=go big
-    const lvl = p.cash>400?"EASY":p.cash>150?"MEDIUM":"HARD";
-    runHeist(lvl); return;
-  }
-  const el=document.getElementById("cardEl");
-  const rows=Object.entries(HEIST_LEVELS).map(([k,v])=>
-    `<button onclick="runHeist('${k}')" style="display:block;width:100%;margin:4px 0;text-align:left">[ ${k} · ${fmtK(v.payouts[0])} ] ${v.label}</button>`).join("");
-  el.innerHTML=`<div class="lbl" style="background:${p.color}">HEIST · PICK YOUR JOB</div>
-    <div class="art">$$$</div><div class="ttl">Choose the level</div>
-    <div class="sub">Bigger score = bigger heat. Pick your risk.</div>
-    <div class="go" style="flex-direction:column">${rows}<button onclick="closeModal();finish()">[ WALK AWAY ]</button></div>
-    ${statusBar()}`;
-  openModal();
-}
-function runHeist(lvl){
-  const p=S.players[S.cur];const L=HEIST_LEVELS[lvl];closeModal();
-  const cut=L.payouts[0];
-  const flav=HEIST_FLAVOR[lvl][Math.floor(Math.random()*HEIST_FLAVOR[lvl].length)];
-  const arrYears=L.arr[Math.floor(Math.random()*L.arr.length)];
-  p.crimes.push({name:CHARGES.heist[Math.floor(Math.random()*CHARGES.heist.length)],years:arrYears,lvl});
-  if(cut>0){p.cash+=cut;log(p.name+" pulls a "+lvl+" heist: +"+fmtK(cut)+".","good");}
-  else log(p.name+" pulls a "+lvl+" heist: nothing.","warn");
-  // risk of getting caught
-  if(Math.random()<L.jailChance){
-    log("The job went hot!","bad");
-    if(!crewSave(p,"arrest")){ p._pendingYears=arrYears; arrestFlow(p); return; }
-  } else log(p.name+" gets away clean.","good");
-  render();finish();
-}
-
-/* ===== HEIST LEVEL PICKER end ===== */
 function drawStory(deck){
   const p=S.players[S.cur];const card=draw(deck);
   if(deck==="raid" && card.raidArr){ card._sLoss = card.takesAll ? "all" : (1+Math.floor(Math.random()*10)); }
   document.getElementById("cardEl")._card=card;document.getElementById("cardEl")._deck=deck;
   renderStoryCard(card,deck,p.ai);
+  if(deck==="raid")SFX.raid(); else SFX.card();
   openModal();
   scrollToToken();
+  aiAutoApply(card);
+}
+/* AI story cards resolve themselves after a readable pause (a human tap still works) */
+function aiAutoApply(card){
+  const p=S.players[S.cur]; if(!p.ai)return;
+  setTimeout(()=>{
+    const el=document.getElementById("cardEl");
+    if(el._card===card && document.getElementById("modal").classList.contains("on")) applyCard();
+  },2400);
 }
 function renderStoryCard(card,deck,isAI){
   const p=S.players[S.cur];const el=document.getElementById("cardEl");
@@ -1425,18 +1475,23 @@ function outcomeAndButton(c,deck){
   if(deck==="raid"&&!c.raidArr){lines.push("✓ YOU DODGE THE RAID — no arrest, you stay FREE");btn="[ WALK FREE ]";}
   if(c.safe)lines.push("✓ You get away clean — NO arrest");
   if(c.freeArrest)lines.push("★ AVOID PRISON — get-out-of-jail card SAVED");
+  if(c.life){lines.push("★ CONVICTED — LIFE SENTENCE");btn="[ FACE IT ]";}
   if(c.dyears!==undefined)lines.push(c.dyears>0?"Sentence +"+c.dyears+"y":c.dyears<0?"Sentence "+c.dyears+"y":"No change");
   if(c.escape)lines.push("ESCAPE — you're free");
   if(c.ryears!==undefined)lines.push(c.ryears>0?"+"+c.ryears+"y":c.ryears+"y");
-  if(c.cost!==undefined)lines.push("Medical bill: $"+c.cost+"K");
+  if(c.cost!==undefined&&c.cut===undefined)lines.push("Medical bill: $"+c.cost+"K");
   return {text:lines.join("\n")||"...",btn};
 }
 
 /* ===== APPLY CARD ===== */
 function applyCard(){
-  const c=document.getElementById("cardEl")._card;const deck=document.getElementById("cardEl")._deck;const p=S.players[S.cur];closeModal();
+  const el=document.getElementById("cardEl");
+  const c=el._card;const deck=el._deck;const p=S.players[S.cur];
+  if(!c)return; el._card=null;
+  closeModal();
   // record crime for profile with real charge name + years exposure
   recordCharge(p,deck,c);
+  recordNetwork(p,deck,c);
   // PARTY poker bets
   if(deck==="party"&&c.tag==="poker"){ p.cash+=(c.win?c.bet:-c.bet); log(p.name+(c.win?" wins $"+c.bet+"K at "+(c.ttl):" loses $"+c.bet+"K at "+(c.ttl)),c.win?"good":"warn"); afterMoney(p); if(!c.raidArr){finish();return;} }
   if(c.cut){
@@ -1446,7 +1501,8 @@ function applyCard(){
       const fine=Math.max(Math.abs(c.cut), Math.round(netWorth(p)*pct));
       amt=-Math.min(fine, Math.max(0,netWorth(p)));
     }
-    p.cash+=amt;log(p.name+(amt>0?" gains $":" loses $")+Math.abs(amt)+"K"+(deck==="court"&&amt<0?" (fine)":"")+".",amt>0?"good":"warn");
+    p.cash+=amt;if(amt>0)SFX.cash();log(p.name+(amt>0?" gains $":" loses $")+Math.abs(amt)+"K"+(deck==="court"&&amt<0?" (fine)":"")+".",amt>0?"good":"warn");
+    if(deck==="court"&&p.cash<0){ settleDebts(p); if(p.cash<0){p.cash=0;log("The court cleans "+p.name+" out completely.","bad");} }
   }
   if(c.packs){p.packs=Math.max(0,p.packs+c.packs);
     if(c.packs>0)log(p.name+" wins "+c.packs+" cigarette pack"+(c.packs>1?"s":"")+" (now "+p.packs+").","good");
@@ -1492,9 +1548,23 @@ function applyCard(){
   if(!p._sentToHospital) finish();
   p._sentToHospital=false;
 }
+/* Forced liquidation: holdings get sold off (cheapest first), then soldiers get cut
+   loose — only when there's truly nothing left does the street collect in blood. */
+function settleDebts(p){
+  if(p.cash>=0)return true;
+  const items=Array.from(p.owns.entries())
+    .map(([idx,cnt])=>({idx,val:cellUnit(idx)*cnt}))
+    .sort((a,b)=>a.val-b.val);
+  for(const it of items){ if(p.cash>=0)break;
+    p.cash+=it.val; p.owns.delete(it.idx);
+    log(p.name+" is forced to sell "+OUTER[it.idx].t+" for "+fmtK(it.val)+" to cover debts.","warn"); }
+  while(p.cash<0&&p.crew>0){ p.crew--; p.cash+=SOLDIER_COST; log(p.name+" cuts a soldier loose for "+fmtK(SOLDIER_COST)+".","warn"); }
+  render();
+  return p.cash>=0;
+}
 function afterMoney(p){
-  // Being broke sends you to the hospital (broke = you get hurt). The hospital BILL is what's allowed to go negative (handled in leaveHospital).
-  if(p.cash<0){ log(p.name+" is broke — rushed to the HOSPITAL.","bad"); p._sentToHospital=true; p.cash=0; toHospital(p,1,"broke — couldn't cover their debts"); }
+  // Broke with nothing left to sell → you get hurt. The hospital BILL is what's allowed to go negative (handled in leaveHospital).
+  if(p.cash<0 && !settleDebts(p)){ log(p.name+" is broke with nothing left to sell — rushed to the HOSPITAL.","bad"); p._sentToHospital=true; p.cash=0; toHospital(p,1,"broke — couldn't cover their debts"); }
 }
 
 /* ===== LAW ===== */
@@ -1545,6 +1615,7 @@ function goToJailWithCigs(years){
 }
 function buyCigs(n,years){const p=S.players[S.cur];n=Math.min(n,Math.floor(p.cash/1));p.cash-=n;p.packs+=n;if(n>0)log(p.name+" buys "+n+" cigarette packs from the CO (-$"+n+"K).","warn");closeModal();doArrest(p,years);}
 function doArrest(p,years){
+  SFX.siren();
   p.inJail=true;p.ring="outer";p.pos=30;p.sentence=0;p._pendingYears=years;
   log(p.name+" ARRESTED → JAIL. Awaiting court.","bad");
   render();finish();
@@ -1553,8 +1624,8 @@ function drawCourt(){ const p=S.players[S.cur]; log(p.name+"'s court day.","warn
   p.sentence = p._pendingYears || 5; p._pendingYears=null;
   if(p._escapedYears){ p.sentence+=p._escapedYears; log(p.name+" still owes "+p._escapedYears+"y from the last escape — added on top.","bad"); p._escapedYears=0; }
   const card=draw("court"); document.getElementById("cardEl")._card=card;document.getElementById("cardEl")._deck="court";
-  renderStoryCard(card,"court",p.ai); openModal(); }
-function sendToPrison(p){p.inJail=false;p.ring="inner";p.pos=0;log(p.name+" enters PRISON. Serve "+p.sentence+"y (1 lap = 1 year). Packs: "+p.packs,"warn");}
+  renderStoryCard(card,"court",p.ai); SFX.card(); openModal(); aiAutoApply(card); }
+function sendToPrison(p){SFX.clang();p.inJail=false;p.ring="inner";p.pos=0;log(p.name+" enters PRISON. Serve "+p.sentence+"y (1 lap = 1 year). Packs: "+p.packs,"warn");}
 function releaseFromPrison(p){p.ring="outer";p.pos=30;p.packs=0;log(p.name+" walks out of prison.","good");render();finish();}
 
 /* ===== HOSPITAL (death only here) ===== */
@@ -1614,6 +1685,7 @@ function leaveHospital(cost,oc,settle){cost=cost||0;settle=settle||0;const p=S.p
 
 /* ===== DEATH / WIN ===== */
 function killPlayer(p){
+  SFX.flatline();
   p.alive=false;p.diedAt=p.age;log(p.name+" DIES for good at "+p.age+". OUT.","bad");
   render();
   showDeathAnnounce(p); // big announcement → RIP memorial
@@ -1666,8 +1738,8 @@ function afterRIP(){
   S.rolled=true; // allow endTurn to proceed
   endTurn();
 }
-function checkWin(){const alive=S.players.filter(p=>p.alive);if(alive.length<=1){S.over=true;setTimeout(()=>showGameOver(alive[0]),300);updateControls();}}
 function showGameOver(winner){
+  clearSave();SFX.win();
   const el=document.getElementById("cardEl");
   const w=winner?winner:null;
   el.innerHTML=`<div class="lbl" style="background:${w?w.color:'#888'}">LAST BOSS STANDING</div>
@@ -1757,6 +1829,9 @@ function showProfile(id){
   const charges=list.length
     ? list.map(ch=>`<div class="cvrow"><span>${ch.name}${ch.lvl?" ("+ch.lvl+")":""}</span><span>${ch.years===99?"LIFE":ch.years+"y"}</span></div>`).join("")
     : `<div class="cvdim">clean record (so far)</div>`;
+  const network=(p.network&&p.network.length)
+    ? p.network.map(n=>`<div class="cvrow"><span>${n.role}</span><span>×${n.n}</span></div>`).join("")
+    : `<div class="cvdim">no contacts yet — favors from cops, prison visits and fate build your network</div>`;
   el.innerHTML=`
   <div class="cv">
     <div class="cvhead">
@@ -1782,6 +1857,7 @@ function showProfile(id){
       </div>
       <div class="cvbox"><div class="cvh">HOLDINGS</div><div class="cvlist">${holdings}</div></div>
       <div class="cvbox"><div class="cvh">RAP SHEET · ${list.length} chg · ${total}y${lifeTag}</div><div class="cvlist">${charges}</div></div>
+      <div class="cvbox" style="grid-column:1/-1"><div class="cvh">NETWORK · ${(p.network||[]).length} contact${(p.network||[]).length===1?"":"s"}</div><div class="cvlist">${network}</div></div>
     </div>
     ${rebornCount>0?`<div class="cvnote cvdim">reborn ${rebornCount}× — this cat's got lives</div>`:""}
     <div class="go"><button onclick="closeModal()">[ CLOSE ]</button></div>
@@ -1811,6 +1887,7 @@ function endTurn(){ if(S.over)return; if(!S.rolled)return;
   }while(g<30);
   S.rolled=false;document.getElementById("diceLbl").textContent="roll to move";
   render();updateControls();
+  saveGame();
   const np=S.players[S.cur];
   if(np.ai&&!S.over){ setTimeout(()=>rollDiceAI(),700); }
 }
@@ -1821,11 +1898,13 @@ function aiBuyStreet(idx,c){const p=S.players[S.cur];if(p.cash>=c.price*2){p.cas
 function aiBuyBiz(idx,c){const p=S.players[S.cur];if(p.cash>=c.income*1.5){p.cash-=c.income;p.owns.set(idx,1);log(p.name+" opens "+c.t+".","good");}else log(p.name+" passes on "+c.t+".");render();finish();}
 
 /* ===== helpers ===== */
-function payTo(p,owner,amt,reason){if(p.cash>=amt){p.cash-=amt;owner.cash+=amt;log(p.name+" pays "+fmtK(amt)+" to "+owner.name+" ("+reason+").","warn");}else{log(p.name+" can't cover "+reason+".","warn");p.cash-=amt;afterMoney(p);}}
 function rentCard(p,owner,amt,reason){
   const covered=p.cash>=amt;
-  if(!covered){ // can't pay — pay what you can, go broke → hospital (old behavior)
+  if(!covered){ // can't pay — assets get liquidated; whatever is raised goes to the owner
     p.cash-=amt; log(p.name+" can't cover "+reason+" to "+owner.name+".","warn");
+    settleDebts(p);
+    const paid=amt+Math.min(0,p.cash);
+    if(paid>0){ owner.cash+=paid; log(owner.name+" collects "+fmtK(paid)+(p.cash<0?" — all "+p.name+" could raise.":" after the sell-off."),"warn"); }
     afterMoney(p); if(!p._sentToHospital) finish(); p._sentToHospital=false; return;
   }
   p.cash-=amt; owner.cash+=amt;
@@ -1845,7 +1924,7 @@ function rentCard(p,owner,amt,reason){
 function statusBar(){const p=S.players[S.cur];const wealth=p.ring==="inner"?`<span>PACKS: ${p.packs}</span>`:`<span>${fmtK(p.cash)}</span>`;
   return `<div class="status"><span>${p.name}</span>${wealth}<span>SOL: ${p.crew}</span><span>TURF: ${p.owns.size}</span></div>`;}
 function openModal(){document.getElementById("modal").classList.add("on");}
-function closeModal(){document.getElementById("modal").classList.remove("on");}
+function closeModal(){document.getElementById("modal").classList.remove("on");try{window.speechSynthesis&&window.speechSynthesis.cancel();}catch(e){}}
 
 /* ===== BOOT ===== */
 /* ===== DOS TERMINAL FRONT-END: password gate + MS-DOS boot ===== */
@@ -1931,7 +2010,7 @@ function closeModal(){document.getElementById("modal").classList.remove("on");}
   }
   function startLogin(){
     out.innerHTML="";
-    nl("CRIMINAL TERMINAL (R) v7.6");
+    nl("CRIMINAL TERMINAL (R) v8.1");
     nl("(C) 1987 SATAN SYSTEMS CORP. ALL RIGHTS RESERVED.");
     nl("");
     nl("RESTRICTED SYSTEM - AUTHORIZED USERS ONLY.");
@@ -2026,6 +2105,7 @@ function closeModal(){document.getElementById("modal").classList.remove("on");}
 window.addEventListener("resize",()=>{try{if(typeof fitBoard==="function")fitBoard();}catch(e){}});
 try{ if(window.ResizeObserver){ let _rt; const _ro=new ResizeObserver(()=>{ clearTimeout(_rt); _rt=setTimeout(()=>{try{fitBoard();}catch(e){}},120); }); const _bp=document.querySelector(".board-panel"); if(_bp)_ro.observe(_bp); else document.addEventListener("DOMContentLoaded",()=>{const p=document.querySelector(".board-panel");if(p)_ro.observe(p);}); } }catch(e){}
 renderSetupStart(); dosBoot();
+(function(){ const b=document.getElementById("sndBtn"); if(b&&!SND)b.textContent="[ MUTE ]"; })();
 </script>
 </body>
 </html>
