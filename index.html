@@ -460,7 +460,7 @@
 <div id="setup">
 <div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
 <div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
-<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v9.0</div>
+<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v9.1</div>
 <div id="setupStage"></div>
 </div>
 
@@ -594,7 +594,7 @@ let S=null;
 function newPlayer(i,name,pattern){return{id:i,name:name||("P"+(i+1)),color:"#33ff44",pattern:pattern||"solid",ring:"outer",pos:0,
   cash:100,crew:0,packs:0,alive:true,respawns:0,hosp:0,cleanLaps:0,
   inJail:false,sentence:0,owns:new Map(),skip:0,freeArrest:0,freeRaid:0,
-  crimes:[],network:[],stayCount:0,age:15,crimeOps:3,yearsServed:0};}
+  crimes:[],network:[],stayCount:0,age:15,crimeOps:3,yearsServed:0,heat:0};}
 
 /* ===== SETUP FLOW ===== */
 let setupData={n:0,players:[],idx:0,difficulty:null,startCash:100,dice:1};
@@ -846,7 +846,7 @@ function render(){
     if(big){
       d.innerHTML=`<div class="row"><span class="nm"><span class="patchip pat-${p.pattern||'solid'}"></span> ${p.name}${joj}</span><span>${hp}</span></div>
       <div class="row"><span>${fmtK(p.cash)}</span><span>${p.ring==="inner"?("pk "+p.packs):soldierIcons(p.color,p.crew)}</span></div>
-      <div class="row" style="opacity:.6;font-size:11px"><span>${loc}</span><span>TURF ${p.owns.size} · ${p.age}yo</span></div>
+      <div class="row" style="opacity:.6;font-size:11px"><span>${loc}</span><span>${p.ring==="inner"?"":"HEAT "+(p.heat||0)+"% · "}TURF ${p.owns.size} · ${p.age}yo</span></div>
       <div class="row" style="opacity:.5;font-size:10px"><span>tap for record (CV)</span></div>`;
     } else {
       d.innerHTML=`<div class="row"><span class="nm" style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><span class="patchip pat-${p.pattern||'solid'}"></span> ${p.name}</span><span style="white-space:nowrap;font-size:11px">${fmtK(p.cash)} · ${p.ring==="inner"?("pk"+p.packs):("s"+p.crew)} · ${hp}</span></div>`;
@@ -998,13 +998,14 @@ function openManual(){ window.speechSynthesis&&window.speechSynthesis.cancel(); 
   One full lap = ONE YEAR. Every time you pass START: you age +1, your 3 crime chances refill, you pay soldier wages ($${SOLDIER_WAGE}K each), and every 2nd clean lap heals one hospital visit. Passing OVER a property you own collects its income \u2014 no need to land on it exactly.
 
   ${H("THE SPACES")}
-  \u25B8 HEIST / HITMAN / DRUG \u2014 a job card: take the money, then survive the 20% arrest roll.<br>
+  \u25B8 HEIST / HITMAN / DRUG \u2014 a job card: take the money, then survive the arrest roll (10% base + your HEAT).<br>
   \u25B8 STREETS \u2014 buy turf. Land on a rival's and you pay THEM. Staff turf with soldiers to defend it.<br>
   \u25B8 BUSINESSES \u2014 open one for the price of 1 worker; every worker on staff earns that same amount per year. When a RIVAL lands on your business they buy PRODUCT: the shelf holds income \u00D7 workers, the buyer pays in and doubles their money \u2014 and the OWNER collects TWICE the buy. Everybody eats, but the house eats double. More workers = bigger deals for both sides.<br>
   \u25B8 RECRUITING \u2014 hire soldiers at $${SOLDIER_COST}K each.<br>
   \u25B8 ATTACK \u2014 send soldiers at a rival's turf. Send MORE than they have defending and it's yours.<br>
   \u25B8 POKER NIGHT \u2014 the casino. Land on an unowned house and you can BUY it: the house pays you $1M A YEAR as you come around, plus every bet a rival loses at the tables goes straight to you (and you never have to gamble). Land on a house you don't own and you can play: set any stake up to your whole roll, then roll the die \u2014 4\u20136 DOUBLES your bet, 1\u20133 LOSES it, and if a rival owns the house your lost bet lands in their pocket.<br>
-  \u25B8 PARTY / FATE / COP \u2014 event cards: windfalls, trouble, shakedowns.<br>
+  \u25B8 PARTY / FATE \u2014 event cards: windfalls, trouble, shakedowns.<br>
+  \u25B8 CROOKED COP \u2014 he can make your file disappear: pay $3K per point of HEAT to wipe it to zero, or hear him out for an event card.<br>
   \u25B8 POLICE RAID \u2014 soldiers get swept up and you face the law (unless you were tipped off).<br>
   \u25B8 VISIT PRISON \u2014 mostly hustles and connections: fences, jobs, stashes, favors. Money in, sometimes money out \u2014 and a small chance the visit goes very wrong.<br>
   \u25B8 HOSPITAL space \u2014 hurt? Pay ${fmtK(TREAT_COST)} to clear one visit.
@@ -1012,11 +1013,14 @@ function openManual(){ window.speechSynthesis&&window.speechSynthesis.cancel(); 
   ${H("SOLDIERS")}
   $${SOLDIER_COST}K to hire, $${SOLDIER_WAGE}K/yr wages. They defend and take turf, take the FALL (prison in your place), take the BEATING (hospital in your place) \u2014 and with 10+ soldiers you roll a BONUS die.
 
+  ${H("HEAT")}
+  Every job you pull adds +5% HEAT, and your arrest risk is 10% + HEAT (capped at 60%) \u2014 the more you work, the harder the law looks at you. Heat cools \u22125% every year you make it around the board, a CROOKED COP payoff wipes it instantly, and serving out a prison sentence resets it to 0 (posting bail does NOT \u2014 you bought your way out, the file stays open). Your current heat shows on your player panel and on every job card.
+
   ${H("THE LAW")}
-  Caught after a job (20%)? In order: a banked get-out-of-jail card saves you \u2192 a soldier can take the fall \u2192 a crooked CO sells cigarette packs at $1K \u2192 you go to JAIL. In jail, tap the die: post BAIL (set by the charge and your net worth) or face COURT, where a card decides \u2014 walk free, pay a fine that scales with your fortune, do the years, or catch LIFE (30y) for murder.
+  Caught after a job? In order: a banked get-out-of-jail card saves you \u2192 a soldier can take the fall \u2192 a crooked CO sells cigarette packs at $1K \u2192 you go to JAIL. In jail, tap the die: post BAIL (set by the charge and your net worth) or face COURT, where a card decides \u2014 walk free, pay a fine that scales with your fortune, do the years, or catch LIFE (30y) for murder.
 
   ${H("PRISON (inner ring)")}
-  One inner lap = one year served. CIGARETTE PACKS are protection: with no packs on a prison day the block beats you into the hospital \u2014 or worse, there's a 1-in-4 chance they just kill you. Prison fights and riots can hospitalize you, and the worst ones turn fatal. MOST DEATHS HAPPEN IN PRISON \u2014 there are 50 different ways to die inside. ESCAPE frees you now, but the skipped years (+5) come back if you're busted again.
+  One inner lap = one year served. CIGARETTE PACKS are protection: with no packs on a prison day the block beats you into the hospital \u2014 or worse, there's a 1-in-4 chance they just kill you. Prison fights and riots can hospitalize you, and the worst ones turn fatal. MOST DEATHS HAPPEN IN PRISON \u2014 there are 50 different ways to die inside. On every PRISON DAY you choose how to spend it: LAY LOW and draw the day's card (dangerous with no packs), hit the COMMISSARY (5 packs for $10K), BRIBE A CO to shave a year off your sentence ($40K), or RUN THE YARD \u2014 a hustle that usually earns 1\u20134 packs but can end in a brawl and a hospital bed. ESCAPE frees you now, but the skipped years (+5) come back if you're busted again.
 
   ${H("HOSPITAL & DEBT")}
   Three hospital visits = DEAD. Each stay draws a card: a bill, a complication (extra visit) or a recovery (one cleared). Can't pay a debt? Forced sale \u2014 cheapest property first, then soldiers. Broke with nothing left to sell = a beating and a hospital bed.
@@ -1075,6 +1079,7 @@ function stepMove(p,left){
   if(ring==="inner"&&p.pos===0){p.sentence-=1;p.age++;p.yearsServed=(p.yearsServed||0)+1;log(p.name+" finishes a prison lap. 1 year done (now "+p.age+" yo). "+(p.sentence>0?p.sentence+"y left":"TIME SERVED"),p.sentence>0?"":"good");
     if(p.sentence<=0){render();setTimeout(()=>releaseFromPrison(p),300);return;}}
   if(ring==="outer"&&p.pos===0){p.age++;p.crimeOps=3;log(p.name+" makes it another year (now "+p.age+" yo). Crime chances refilled.","");
+    if(p.heat>0){p.heat=Math.max(0,p.heat-5);log(p.name+"'s heat cools a little (now "+p.heat+"%).","");}
     if(p.crew>0){const wages=p.crew*SOLDIER_WAGE;p.cash-=wages;log(p.name+" pays soldier wages: "+fmtK(wages)+" ("+p.crew+" × $"+SOLDIER_WAGE+"K/yr).","warn");}
     p.cleanLaps++;if(p.hosp>0&&p.cleanLaps%2===0){p.hosp--;log(p.name+" recovers — 1 hospital visit cleared.","good");}}
   render();
@@ -1187,7 +1192,7 @@ function resolveOuter(){
     case "party": drawStory("party"); break;
     case "fate": drawStory("fate"); break;
     case "drug": drawStory("drug"); break;
-    case "cop": drawStory("cop"); break;
+    case "cop": copStop(); break;
     case "raid": drawStory("raid"); break;
     case "poker": pokerNight(); break;
     default: finish();
@@ -1198,12 +1203,12 @@ function resolveInner(){
   switch(c.k){
     case "pentry":log("Prison entry. Do your time.");finish();break;
     case "pday":
-      // No cigarettes on a regular prison day = you're unprotected. Most men die inside.
-      if(p.packs<=0){
-        if(Math.random()<0.25){ prisonDeath(p,"No cigarettes — no protection, no warning."); break; }
-        log(p.name+" has no cigarettes — the block beats him down.","bad"); toHospital(p,1,"beaten down on the block");
+      if(p.ai){
+        // AI restocks protection when low, else does its time
+        if(p.packs<=1&&p.cash>=10){p.cash-=10;p.packs+=5;log(p.name+" buys 5 packs at the commissary (-$10K).","warn");render();finish();break;}
+        pdayResolve(p);break;
       }
-      else drawStory("pday");
+      prisonDayMenu();
       break;
     case "pfight":drawStory("pfight");break;
     case "riot":drawStory("riot");break;
@@ -1629,7 +1634,7 @@ function outcomeAndButton(c,deck){
   if(c.packs<0){lines.push("Lose "+(-c.packs)+" packs");btn="[ PAY ]";}
   if(c.respect)lines.push("Respect earned");
   if(c.crew)lines.push("Gain "+c.crew+" soldier");
-  if(c.arr!==undefined)lines.push("If arrested: "+(c.arr==="LIFE"?"LIFE":c.arr+" yrs"));
+  if(c.arr!==undefined)lines.push("If arrested: "+(c.arr==="LIFE"?"LIFE":c.arr+" yrs")+" · risk "+Math.round(arrestChance(S.players[S.cur])*100)+"%");
   if(c.hosp){lines.push("Hurt bad — HOSPITAL");}
   if(c.raidArr){lines.push("ARRESTED");
     if(c._sLoss!==undefined) lines.push(c._sLoss==="all"?"⚑ The WHOLE crew is swept up — ALL soldiers arrested":"⚑ "+c._sLoss+" of your soldiers get arrested");
@@ -1692,9 +1697,11 @@ function applyCard(){
   if((deck==="pfight"||deck==="riot") && c.rounds){
     if(c.rounds>=4 && Math.random()<0.20){ prisonDeath(p, deck==="pfight"?"The fight went past the point of no return.":"The riot took its toll."); return; }
     toHospital(p, c.rounds>=4?2:1, deck==="pfight"?"a prison fight":"the prison riot"); return; }
-  // HEIST/drug/hitman arrest chance
+  // HEIST/drug/hitman arrest chance: 10% base + your HEAT (every job makes you hotter)
   if(c.arr!==undefined){
-    const caught=Math.random()<0.20;
+    const chance=arrestChance(p);
+    p.heat=Math.min(70,(p.heat||0)+5);
+    const caught=Math.random()<chance;
     if(caught){ p._pendingYears=(c.arr==="LIFE"?30:c.arr); arrestFlow(p); return; }
     log("Clean getaway.","good");
     showNotice("CLEAN GETAWAY","$-$","You got away clean","No heat, no tail, no charges. The job is done and nobody is coming for you — this time.",()=>{afterMoney(p);if(!p._sentToHospital)finish();p._sentToHospital=false;});
@@ -1732,6 +1739,28 @@ function afterMoney(p){
   // Broke with nothing left to sell → you get hurt. The hospital BILL is what's allowed to go negative (handled in leaveHospital).
   if(p.cash<0 && !settleDebts(p)){ log(p.name+" is broke with nothing left to sell — rushed to the HOSPITAL.","bad"); p._sentToHospital=true; p.cash=0; toHospital(p,1,"broke — couldn't cover their debts"); }
 }
+
+/* ===== HEAT: how hot the law is on you. Base arrest risk 10% + heat; jobs add +5, quiet years cool it ===== */
+function arrestChance(p){return Math.min(.6,(10+(p.heat||0))/100);}
+/* CROOKED COP space: pay him off to wipe your heat, or hear what he has to say (story card) */
+function copStop(){
+  const p=S.players[S.cur];
+  const cost=(p.heat||0)*3; // $3K per point of heat
+  if(p.ai){ if(p.heat>=25&&p.cash>=cost*2){p.cash-=cost;p.heat=0;log(p.name+" pays off a crooked cop (-"+fmtK(cost)+") — heat wiped.","warn");render();finish();} else drawStory("cop"); return; }
+  if(!p.heat||p.cash<cost){ drawStory("cop"); return; }
+  const el=document.getElementById("cardEl");
+  el.dataset.deck="cop";
+  el.innerHTML=`<div class="lbl" style="background:${p.color}">CROOKED COP</div>
+    <div class="art">$b</div><div class="ttl">He can make it go away</div>
+    <div class="bd">The detective slides into the booth across from you. "Your name comes up a lot lately. Files get lost all the time — for a price."</div>
+    <div class="out">Your HEAT: ${p.heat}% (arrest risk ${Math.round(arrestChance(p)*100)}%)\nPay ${fmtK(cost)} → heat wiped to 0%</div>
+    <div class="go">
+      <button class="amber" onclick="copPayoff(${cost})">[ PAY ${fmtK(cost)} — WIPE HEAT ]</button>
+      <button onclick="closeModal();drawStory('cop')">[ HEAR HIM OUT ]</button></div>
+    ${statusBar()}`;
+  openModal();
+}
+function copPayoff(cost){const p=S.players[S.cur];p.cash-=cost;p.heat=0;log(p.name+" pays off the cop (-"+fmtK(cost)+"). Files disappear — heat wiped.","good");closeModal();render();finish();}
 
 /* ===== EVENT NOTICE CARDS: anything that happens to a player shows as a card ===== */
 let _noticeNext=null;
@@ -1815,7 +1844,7 @@ function drawCourt(){ const p=S.players[S.cur]; log(p.name+"'s court day.","warn
   const card=draw("court"); document.getElementById("cardEl")._card=card;document.getElementById("cardEl")._deck="court";
   renderStoryCard(card,"court",p.ai); SFX.card(); openModal(); aiAutoApply(card); }
 function sendToPrison(p){SFX.clang();p.inJail=false;p.ring="inner";p.pos=0;log(p.name+" enters PRISON. Serve "+p.sentence+"y (1 lap = 1 year). Packs: "+p.packs,"warn");}
-function releaseFromPrison(p){p.ring="outer";p.pos=JAIL_POS;p.packs=0;log(p.name+" walks out of prison.","good");render();showNotice("OUT OF PRISON","\\o/","Back on the street","The gate rolls open and the street takes you back. Any cigarette packs stay behind — currency of a world you just left.",()=>finish());}
+function releaseFromPrison(p){p.ring="outer";p.pos=JAIL_POS;p.packs=0;p.heat=0;log(p.name+" walks out of prison.","good");render();showNotice("OUT OF PRISON","\\o/","Back on the street","The gate rolls open and the street takes you back. Any cigarette packs stay behind — currency of a world you just left.",()=>finish());}
 
 /* ===== HOSPITAL (death only here) ===== */
 function toHospital(p,visits,cause){
@@ -1872,6 +1901,51 @@ function applyHospOutcome(p,oc){
     if(p.hosp>=3){ log(p.name+" doesn't pull through — 3 visits.","bad"); killPlayer(p); } }
 }
 function leaveHospital(cost,oc,settle){cost=cost||0;settle=settle||0;const p=S.players[S.cur];p.cash-=cost;if(settle)p.cash+=settle;closeModal();log(p.name+" checks out (-$"+cost+"K"+(settle?", settlement +$"+settle+"K":"")+")"+(p.cash<0?" — now "+fmtK(p.cash)+" in the red":"")+".","warn");applyHospOutcome(p,oc||"neutral");if(!p.alive)return;finish();}
+
+/* ===== PRISON DAY: you have choices inside — lay low, buy protection, bribe, or hustle the yard ===== */
+function pdayResolve(p){
+  // No cigarettes on a regular prison day = you're unprotected. Most men die inside.
+  if(p.packs<=0){
+    if(Math.random()<0.25){ prisonDeath(p,"No cigarettes — no protection, no warning."); return; }
+    log(p.name+" has no cigarettes — the block beats him down.","bad"); toHospital(p,1,"beaten down on the block");
+  }
+  else drawStory("pday");
+}
+function prisonDayMenu(){
+  const p=S.players[S.cur];
+  const el=document.getElementById("cardEl");
+  el.dataset.deck="pday";
+  const packCost=2; // $2K/pack — commissary markup over the CO's $1K
+  const canPacks=p.cash>=packCost*5;
+  const canBribe=p.cash>=40&&p.sentence>1;
+  el.innerHTML=`<div class="lbl" style="background:${p.color}">PRISON DAY</div>
+    <div class="art">.</div><div class="ttl">Another day inside</div>
+    <div class="bd">Count clears at dawn. You have ${p.packs} pack${p.packs===1?"":"s"} and ${p.sentence}y left on the clock. How do you spend the day?</div>
+    <div class="out">${p.packs<=0?"⚠ NO PACKS — laying low unprotected can get you beaten or killed.":"Packs keep the block off your back."}</div>
+    <div class="go" style="flex-direction:column">
+      <button onclick="pdayLayLow()">[ LAY LOW — do your time ]</button>
+      ${canPacks?`<button onclick="pdayPacks()">[ COMMISSARY — 5 packs · $10K ]</button>`:""}
+      ${canBribe?`<button class="amber" onclick="pdayBribe()">[ BRIBE A CO — −1 YEAR · $40K ]</button>`:""}
+      <button class="red" onclick="pdayYard()">[ RUN THE YARD — hustle for packs, risk a brawl ]</button>
+    </div>
+    ${statusBar()}`;
+  openModal();
+}
+function pdayLayLow(){const p=S.players[S.cur];closeModal();pdayResolve(p);}
+function pdayPacks(){const p=S.players[S.cur];if(p.cash<10)return;p.cash-=10;p.packs+=5;log(p.name+" stocks up at the commissary: +5 packs (-$10K). Quiet day.","good");closeModal();render();finish();}
+function pdayBribe(){const p=S.players[S.cur];if(p.cash<40||p.sentence<=1)return;p.cash-=40;p.sentence--;log(p.name+" slips a CO $40K — paperwork shifts, sentence now "+p.sentence+"y.","good");closeModal();render();finish();}
+function pdayYard(){
+  const p=S.players[S.cur];closeModal();
+  if(Math.random()<0.55){
+    const won=1+Math.floor(Math.random()*4);
+    p.packs+=won;render();
+    log(p.name+" runs the yard and hustles "+won+" pack"+(won>1?"s":"")+".","good");
+    showNotice("YARD HUSTLE","::","The yard pays out","You moved between the cliques all day — favors, bets, errands. It adds up to "+won+" pack"+(won>1?"s":"")+" in your pocket.",()=>finish());
+  } else {
+    log(p.name+"'s yard hustle goes wrong — a brawl breaks out.","bad");
+    toHospital(p,1,"a yard brawl");
+  }
+}
 
 /* ===== DEATH IN PRISON: where most men meet their end — 50 ways to die inside ===== */
 const PRISON_DEATHS=[
@@ -2187,7 +2261,8 @@ function rentCard(p,owner,amt,reason){
   openModal();
 }
 function statusBar(){const p=S.players[S.cur];const wealth=p.ring==="inner"?`<span>PACKS: ${p.packs}</span>`:`<span>${fmtK(p.cash)}</span>`;
-  return `<div class="status"><span>${p.name}</span>${wealth}<span>SOL: ${p.crew}</span><span>TURF: ${p.owns.size}</span></div>`;}
+  const heat=p.ring==="inner"?"":`<span>HEAT: ${p.heat||0}%</span>`;
+  return `<div class="status"><span>${p.name}</span>${wealth}${heat}<span>SOL: ${p.crew}</span><span>TURF: ${p.owns.size}</span></div>`;}
 function openModal(){document.getElementById("modal").classList.add("on");}
 function closeModal(){document.getElementById("modal").classList.remove("on");const ce=document.getElementById("cardEl");if(ce)ce.dataset.deck="";try{window.speechSynthesis&&window.speechSynthesis.cancel();}catch(e){}}
 
@@ -2275,7 +2350,7 @@ function closeModal(){document.getElementById("modal").classList.remove("on");co
   }
   function startLogin(){
     out.innerHTML="";
-    nl("CRIMINAL TERMINAL (R) v9.0");
+    nl("CRIMINAL TERMINAL (R) v9.1");
     nl("(C) 1987 SATAN SYSTEMS CORP. ALL RIGHTS RESERVED.");
     nl("");
     nl("RESTRICTED SYSTEM - AUTHORIZED USERS ONLY.");
