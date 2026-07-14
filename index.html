@@ -542,7 +542,7 @@
 <div id="setup">
 <div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
 <div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
-<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v10.2</div>
+<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v10.3</div>
 <div id="setupStage"></div>
 </div>
 
@@ -827,8 +827,8 @@ function launch(){
   if(document.fonts&&document.fonts.ready){document.fonts.ready.then(()=>setTimeout(fitBoard,40));}
   newRound();
   bumpPlayCount(S.players.filter(x=>!x.ai).length);   // every human who sits down counts, worldwide
-  log("SYSTEM ONLINE. "+setupData.difficulty+" mode — everyone starts with "+fmtK(startCash)+".","sys");
-  S.players.filter(x=>x.ai).forEach(x=>log(x.name+" sits down — plays "+(x.temper||"CAREFUL")+".","sys"));
+  log(L("SYSTEM ONLINE. ","SISTEMA ONLINE. Modo ")+(LANG==='PT'?({EASY:"FÁCIL",MEDIUM:"MÉDIO",HARD:"DIFÍCIL",REALISTIC:"REALISTA"}[setupData.difficulty]||setupData.difficulty):setupData.difficulty)+L(" mode — everyone starts with "," — todos começam com ")+fmtK(startCash)+".","sys");
+  S.players.filter(x=>x.ai).forEach(x=>log(x.name+L(" sits down — plays "," senta na mesa — joga ")+(x.temper==="AGGRESSIVE"?L("AGGRESSIVE","AGRESSIVO"):L("CAREFUL","CAUTELOSO"))+".","sys"));
   saveGame();
 }
 
@@ -852,7 +852,7 @@ function resumeGame(){
   [60,300,700,1400].forEach(t=>setTimeout(fitBoard,t));
   if(document.fonts&&document.fonts.ready){document.fonts.ready.then(()=>setTimeout(fitBoard,40));}
   newRound();
-  log("SESSION RESTORED — turn "+S.turn+". "+S.players[S.cur].name+" is up.","sys");
+  log(L("SESSION RESTORED — turn ","SESSÃO RESTAURADA — turno ")+S.turn+". "+S.players[S.cur].name+L(" is up."," é a vez."),"sys");
   if(S.players[S.cur].ai) setTimeout(()=>rollDiceAI(),900);
 }
 function askReset(){
@@ -978,13 +978,13 @@ function render(){
     const d=document.createElement("div");d.className="pl"+(p.id===S.cur?" active":"")+(p.alive?"":" dead")+(big?" big":" mini");
     d.onclick=()=>showProfile(p.id);
     const hp=p.alive?("♥".repeat(Math.max(0,3-p.hosp))+"·".repeat(p.hosp)):"DEAD";
-    let loc=p.inJail?"JAIL(await court)":p.ring==="inner"?("PRISON "+p.sentence+"y"):OUTER[p.pos].t;
+    let loc=p.inJail?L("JAIL(await court)","CADEIA(aguarda tribunal)"):p.ring==="inner"?(L("PRISON ","PRISÃO ")+p.sentence+L("y","a")):(LANG==='PT'?(CELL_PT[OUTER[p.pos].t]||OUTER[p.pos].t):OUTER[p.pos].t);
     const joj=p.freeArrest>0?`<span class="tag">JOJ×${p.freeArrest}</span>`:"";
     if(big){
       d.innerHTML=`<div class="row"><span class="nm"><span class="patchip pat-${p.pattern||'solid'}"></span> ${p.name}${joj}</span><span>${hp}</span></div>
       <div class="row"><span>${fmtK(p.cash)}</span><span>${p.ring==="inner"?("pk "+p.packs):soldierIcons(p.color,p.crew)}</span></div>
-      <div class="row" style="opacity:.6;font-size:11px"><span>${loc}</span><span>${p.ring==="inner"?"":"HEAT "+(p.heat||0)+"% · "}TURF ${p.owns.size} · ${p.age}yo</span></div>
-      <div class="row" style="opacity:.5;font-size:10px"><span>tap for record (CV)</span></div>`;
+      <div class="row" style="opacity:.6;font-size:11px"><span>${loc}</span><span>${p.ring==="inner"?"":L("HEAT ","RISCO ")+(p.heat||0)+"% · "}${L("TURF ","ÁREA ")}${p.owns.size} · ${p.age}${L("yo","a")}</span></div>
+      <div class="row" style="opacity:.5;font-size:10px"><span>${L("tap for record (CV)","toque para a ficha (CV)")}</span></div>`;
     } else {
       d.innerHTML=`<div class="row"><span class="nm" style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><span class="patchip pat-${p.pattern||'solid'}"></span> ${p.name}</span><span style="white-space:nowrap;font-size:11px">${fmtK(p.cash)} · ${p.ring==="inner"?("pk"+p.packs):("s"+p.crew)} · ${hp}</span></div>`;
     }
@@ -1005,7 +1005,7 @@ function hexA(hex,a){const n=parseInt(hex.slice(1),16);return`rgba(${(n>>16)&255
 function newRound(){
   const box=document.getElementById("log");
   const rd=document.createElement("div");rd.className="rd";rd.id="round-"+S.turn;
-  rd.innerHTML=`<b>ROUND ${S.turn}</b>`;
+  rd.innerHTML=`<b>${L("ROUND","RODADA")} ${S.turn}</b>`;
   box.insertBefore(rd,box.firstChild);
   S.roundEl=rd;
 }
@@ -1066,7 +1066,7 @@ function sellAssetFromMenu(idx){
   const p=S.players[S.cur];const c=OUTER[idx];const cnt=p.owns.get(idx);if(!cnt)return;
   const per=c.incomeBase||c.price||c.income||0;const val=Math.round(per*cnt);
   p.cash+=val;p.owns.delete(idx);
-  log(p.name+" sells "+c.t+" (x"+cnt+") for "+fmtK(val)+".","warn");
+  log(p.name+L(" sells "," vende ")+c.t+" (x"+cnt+L(") for ",") por ")+fmtK(val)+".","warn");
   render();openSellAssets();
 }
 
@@ -1248,7 +1248,7 @@ function offerBail(){
   const years=p._pendingYears||5;
   const bail=bailAmount(p);
   if(p.ai){
-    if(p.cash>=bail*2 && years>=4){ p.cash-=bail; p.inJail=false; p._pendingYears=null; log(p.name+" posts bail ("+fmtK(bail)+") and walks.","warn"); render(); finish(); return; }
+    if(p.cash>=bail*2 && years>=4){ p.cash-=bail; p.inJail=false; p._pendingYears=null; log(p.name+L(" posts bail ("," paga fiança (")+fmtK(bail)+L(") and walks.",") e sai andando."),"warn"); render(); finish(); return; }
     p.inJail=false; drawCourt(); return;
   }
   const el=document.getElementById("cardEl");
@@ -1263,7 +1263,7 @@ function offerBail(){
     ${statusBar()}`;
   openModal();
 }
-function payBail(bail){const p=S.players[S.cur];p.cash-=bail;p.inJail=false;p._pendingYears=null;log(p.name+" posts bail ("+fmtK(bail)+") and walks free — no court.","good");closeModal();render();finish();}
+function payBail(bail){const p=S.players[S.cur];p.cash-=bail;p.inJail=false;p._pendingYears=null;log(p.name+L(" posts bail ("," paga fiança (")+fmtK(bail)+L(") and walks free — no court.",") e sai livre — sem tribunal."),"good");closeModal();render();finish();}
 function faceCourt(){const p=S.players[S.cur];p.inJail=false;closeModal();drawCourt();}
 function stepMove(p,left){
   if(left<=0){arriveCell(p);return;}
@@ -1271,12 +1271,12 @@ function stepMove(p,left){
   p.pos=(p.pos+1)%len;SFX.step();
   // passing OVER one of your own businesses = you've lapped it (a year) → collect its profit
   if(ring==="outer" && left>1 && p.owns.has(p.pos)) collectOne(p,p.pos);
-  if(ring==="inner"&&p.pos===0){p.sentence-=1;p.age++;p.yearsServed=(p.yearsServed||0)+1;log(p.name+" finishes a prison lap. 1 year done (now "+p.age+" yo). "+(p.sentence>0?p.sentence+"y left":"TIME SERVED"),p.sentence>0?"":"good");
+  if(ring==="inner"&&p.pos===0){p.sentence-=1;p.age++;p.yearsServed=(p.yearsServed||0)+1;log(p.name+L(" finishes a prison lap. 1 year done (now "," completa uma volta na prisão. 1 ano cumprido (agora ")+p.age+L(" yo). "," anos). ")+(p.sentence>0?p.sentence+L("y left","a restantes"):L("TIME SERVED","PENA CUMPRIDA")),p.sentence>0?"":"good");
     if(p.sentence<=0){render();setTimeout(()=>releaseFromPrison(p),300);return;}}
-  if(ring==="outer"&&p.pos===0){p.age++;p.crimeOps=3;log(p.name+" makes it another year (now "+p.age+" yo). Crime chances refilled.","");
-    if(p.heat>0){p.heat=Math.max(0,p.heat-5);log(p.name+"'s heat cools a little (now "+p.heat+"%).","");}
-    if(p.crew>0){const wages=p.crew*SOLDIER_WAGE;p.cash-=wages;log(p.name+" pays soldier wages: "+fmtK(wages)+" ("+p.crew+" × $"+SOLDIER_WAGE+"K/yr).","warn");}
-    p.cleanLaps++;if(p.hosp>0&&p.cleanLaps%2===0){p.hosp--;log(p.name+" recovers — 1 hospital visit cleared.","good");}
+  if(ring==="outer"&&p.pos===0){p.age++;p.crimeOps=3;log(p.name+L(" makes it another year (now "," sobrevive mais um ano (agora ")+p.age+L(" yo). Crime chances refilled."," anos). Chances de crime renovadas."),"");
+    if(p.heat>0){p.heat=Math.max(0,p.heat-5);log(p.name+L("'s heat cools a little (now ",": o risco esfria um pouco (agora ")+p.heat+"%).","");}
+    if(p.crew>0){const wages=p.crew*SOLDIER_WAGE;p.cash-=wages;log(p.name+L(" pays soldier wages: "," paga salário dos soldados: ")+fmtK(wages)+" ("+p.crew+" × $"+SOLDIER_WAGE+L("K/yr).","K/ano)."),"warn");}
+    p.cleanLaps++;if(p.hosp>0&&p.cleanLaps%2===0){p.hosp--;log(p.name+L(" recovers — 1 hospital visit cleared."," se recupera — 1 visita de hospital limpa."),"good");}
     if(p.age>=65&&netWorth(p)>=10000){showRetire(p);return;}}   // RETIRE UNTOUCHABLE: $10M net worth + age 65
   render();
   scrollToToken();
@@ -1328,6 +1328,17 @@ function applyDisplayMode(){
 }
 function toggleGreenDos(){ _dispMode=(_dispMode+1)%DISPLAY_MODES.length; applyDisplayMode(); }
 applyDisplayMode();
+/* static chrome translation: panel headers and default widget texts */
+function applyStaticLang(){
+  if(LANG!=='PT')return;
+  const map={"THE CITY":"A CIDADE","DICE":"DADOS","ACTIONS":"AÇÕES","CONSOLE — this round":"CONSOLE — esta rodada","PLAYERS — tap for record":"JOGADORES — toque para a ficha"};
+  document.querySelectorAll("h2").forEach(h=>{const k=h.textContent.trim();if(map[k])h.textContent=map[k];});
+  const dl=document.getElementById("diceLbl"); if(dl&&/tap die/.test(dl.textContent))dl.textContent="toque no dado para rolar";
+  const fb=document.getElementById("followBtn"); if(fb&&/OFF/.test(fb.textContent))fb.textContent="[ SEGUIR: NÃO ]";
+  const ab=document.getElementById("autoBtn"); if(ab&&/OFF/.test(ab.textContent))ab.textContent="[ AUTO: NÃO ]";
+  const rs=document.querySelector("a.reset"); if(rs)rs.textContent="[reiniciar]";
+}
+applyStaticLang();
 /* ===== AUTO-PLAY: per-player. Auto-rolls & resolves; pauses on an affordable buy; skips attacks ===== */
 function updateAutoBtn(){ const p=S&&S.players?S.players[S.cur]:null; const b=document.getElementById("autoBtn"); if(b)b.textContent=tr((p&&p.auto)?"[ AUTO: ON ]":"[ AUTO: OFF ]"); }
 function toggleAuto(){
@@ -1366,15 +1377,15 @@ function autoTick(){
 }
 function arriveCell(p){
   document.getElementById("diceLbl").textContent="landed";
-  if(p.ring==="inner"){log(p.name+" (prison) → "+INNER[p.pos].t);resolveInner();}
-  else{log(p.name+" → "+OUTER[p.pos].t);resolveOuter();}
+  if(p.ring==="inner"){log(p.name+L(" (prison) → "," (prisão) → ")+(LANG==='PT'?(CELL_PT[INNER[p.pos].t]||INNER[p.pos].t):INNER[p.pos].t));resolveInner();}
+  else{log(p.name+" → "+(LANG==='PT'?(CELL_PT[OUTER[p.pos].t]||OUTER[p.pos].t):OUTER[p.pos].t));resolveOuter();}
 }
 /* one business/property pays a full year's profit when you lap back around to it */
 function collectOne(p,idx){
   if(!p.owns.has(idx))return 0;
   const cell=OUTER[idx];const unit=cell.incomeBase||cell.price||cell.income||0;
   const inc=unit*p.owns.get(idx);
-  if(inc>0){p.cash+=inc;SFX.cash();log(p.name+" collects "+fmtK(inc)+" — a year's profit from "+cell.t+".","good");}
+  if(inc>0){p.cash+=inc;SFX.cash();log(p.name+L(" collects "," coleta ")+fmtK(inc)+L(" — a year's profit from "," — o lucro do ano de ")+cell.t+".","good");}
   return inc;
 }
 function cellUnit(idx){const c=OUTER[idx];return c.incomeBase||c.price||c.income||0;}
@@ -1408,11 +1419,11 @@ function resolveOuter(){
 function resolveInner(){
   const p=S.players[S.cur];const c=INNER[p.pos];
   switch(c.k){
-    case "pentry":log("Prison entry. Do your time.");finish();break;
+    case "pentry":log(L("Prison entry. Do your time.","Entrada da prisão. Cumpra sua pena."));finish();break;
     case "pday":
       if(p.ai){
         // AI restocks protection when low, else does its time
-        if(p.packs<=1&&p.cash>=10){p.cash-=10;p.packs+=5;log(p.name+" buys 5 packs at the commissary (-$10K).","warn");render();finish();break;}
+        if(p.packs<=1&&p.cash>=10){p.cash-=10;p.packs+=5;log(p.name+L(" buys 5 packs at the commissary (-$10K)."," compra 5 maços na cantina (-$10K)."),"warn");render();finish();break;}
         pdayResolve(p);break;
       }
       prisonDayMenu();
@@ -1427,8 +1438,8 @@ function resolveInner(){
 const TREAT_COST=50;
 function hospitalStop(){
   const p=S.players[S.cur];
-  if(p.hosp<=0){ log("Hospital. You're healthy — just passing."); finish(); return; }
-  if(p.ai){ if(p.cash>=TREAT_COST*3){p.cash-=TREAT_COST;p.hosp--;log(p.name+" pays "+fmtK(TREAT_COST)+" for treatment — 1 hospital visit cleared ("+p.hosp+"/3).","good");} finish(); return; }
+  if(p.hosp<=0){ log(L("Hospital. You're healthy — just passing.","Hospital. Você está saudável — só de passagem.")); finish(); return; }
+  if(p.ai){ if(p.cash>=TREAT_COST*3){p.cash-=TREAT_COST;p.hosp--;log(p.name+L(" pays "," paga ")+fmtK(TREAT_COST)+L(" for treatment — 1 hospital visit cleared ("," pelo tratamento — 1 visita de hospital limpa (")+p.hosp+"/3).","good");} finish(); return; }
   const el=document.getElementById("cardEl");
   el.innerHTML=`<div class="lbl" style="background:${p.color}">HOSPITAL</div>
     <div class="art">${ART.hospital}</div><div class="ttl">${L('Walk-in clinic','Cl\u00ednica sem agendamento')}</div>
@@ -1440,7 +1451,7 @@ function hospitalStop(){
     ${statusBar()}`;
   openModal();
 }
-function payTreatment(){const p=S.players[S.cur];if(p.cash<TREAT_COST||p.hosp<=0)return;p.cash-=TREAT_COST;p.hosp--;SFX.good();log(p.name+" pays "+fmtK(TREAT_COST)+" for treatment — 1 hospital visit cleared ("+p.hosp+"/3).","good");closeModal();render();finish();}
+function payTreatment(){const p=S.players[S.cur];if(p.cash<TREAT_COST||p.hosp<=0)return;p.cash-=TREAT_COST;p.hosp--;SFX.good();log(p.name+L(" pays "," paga ")+fmtK(TREAT_COST)+L(" for treatment — 1 hospital visit cleared ("," pelo tratamento — 1 visita de hospital limpa (")+p.hosp+"/3).","good");closeModal();render();finish();}
 
 /* ===== STREET ===== */
 function tryStreet(c){
@@ -1449,7 +1460,7 @@ function tryStreet(c){
   if(owner&&owner.id===p.id){ collectOne(p,idx); if(p.ai){render();finish();return;} ownStreetOptions(idx); return; }
   if(owner&&owner.id!==p.id){
     const toll=Math.round((OUTER[idx].incomeBase)*owner.owns.get(idx)/2);
-    rentCard(p,owner,toll,"toll on "+c.t);return;
+    rentCard(p,owner,toll,L("toll on ","pedágio em ")+c.t);return;
   }
   if(p.ai){ aiBuyStreet(idx,c); return; }
   const ladder=soldierLadder(c.price);
@@ -1480,12 +1491,12 @@ function ownStreetOptions(idx){
     ${statusBar()}`;
   openModal();
 }
-function addSoldierTo(idx,per,n){const p=S.players[S.cur];n=Math.min(n,Math.floor(p.cash/per));if(n<1)return;p.cash-=per*n;p.owns.set(idx,p.owns.get(idx)+n);log(p.name+" adds "+n+" soldier"+(n>1?"s":"")+" to "+OUTER[idx].t+" (now "+p.owns.get(idx)+").","good");render();ownStreetOptions(idx);}
-function buyStreet(idx,n,v){const p=S.players[S.cur];p.cash-=v;p.owns.set(idx,n);log(p.name+" claims "+OUTER[idx].t+" ("+fmtK(v)+").","good");render();ownStreetOptions(idx);}
+function addSoldierTo(idx,per,n){const p=S.players[S.cur];n=Math.min(n,Math.floor(p.cash/per));if(n<1)return;p.cash-=per*n;p.owns.set(idx,p.owns.get(idx)+n);log(p.name+L(" adds "," adiciona ")+n+L(" soldier"+""," soldado")+(n>1?"s":"")+L(" to "," a ")+OUTER[idx].t+L(" (now "," (agora ")+p.owns.get(idx)+").","good");render();ownStreetOptions(idx);}
+function buyStreet(idx,n,v){const p=S.players[S.cur];p.cash-=v;p.owns.set(idx,n);log(p.name+L(" claims "," toma ")+OUTER[idx].t+" ("+fmtK(v)+").","good");render();ownStreetOptions(idx);}
 function soldierLadder(b){return[{n:1,v:b},{n:4,v:b*4},{n:10,v:b*10},{n:25,v:b*25},{n:100,v:b*100}];}
 function sellProp(idx){const p=S.players[S.cur];const c=OUTER[idx];const per=OUTER[idx].incomeBase||c.price;const sold=p.owns.get(idx);
   const val=Math.round(per*sold);p.cash+=val;p.owns.delete(idx);
-  log(p.name+" sells "+c.t+" (with "+sold+" workers) for "+fmtK(val)+".","warn");closeModal();render();finish();}
+  log(p.name+L(" sells "," vende ")+c.t+L(" (with "," (com ")+sold+L(" workers) for "," funcionários) por ")+fmtK(val)+".","warn");closeModal();render();finish();}
 
 /* ===== POKER NIGHT (casino) ===== */
 function pokerNight(){
@@ -1559,7 +1570,7 @@ function pokerDuel(oid){
   if(a>b){p.cash+=stake;o.cash-=stake;SFX.cash();res=p.name+L(" WINS the pot: +"," GANHA o pote: +")+fmtK(stake)+L(" from "," de ")+o.name+".";cls="good";}
   else if(b>a){p.cash-=stake;o.cash+=stake;SFX.bad();res=o.name+L(" takes "," leva ")+fmtK(stake)+L(" off "," de ")+p.name+".";cls="warn";}
   else {res=L("Push — dead even. Stakes go back.","Empate — tudo igual. Apostas devolvidas.");cls="";}
-  log("Heads-up poker: "+p.name+" rolls "+a+", "+o.name+" rolls "+b+". "+res,cls);
+  log(L("Heads-up poker: ","Pôquer mão a mão: ")+p.name+L(" rolls "," tira ")+a+", "+o.name+L(" rolls "," tira ")+b+". "+res,cls);
   const el=document.getElementById("cardEl");
   el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('HEADS-UP POKER','P\u00d4QUER M\u00c3O A M\u00c3O')}</div>
     <div style="text-align:center;font-size:28px;font-weight:bold;margin:10px 0">${p.name}: ${a} &nbsp;·&nbsp; ${o.name}: ${b}</div>
@@ -1575,8 +1586,8 @@ function pokerBetAdj(idx,d){
   else p._pokerBet=Math.min(max,Math.max(0,(p._pokerBet||0)+d*step));
   pokerNight();
 }
-function pokerBuy(idx){const p=S.players[S.cur];const c=OUTER[idx];p.cash-=c.price;p.owns.set(idx,1);OUTER[idx].incomeBase=c.price;log(p.name+" buys the POKER NIGHT house ("+fmtK(c.price)+").","good");render();closeModal();finish();}
-function sellPoker(idx){const p=S.players[S.cur];const c=OUTER[idx];const val=c.price;p.cash+=val;p.owns.delete(idx);log(p.name+" sells the POKER NIGHT house ("+fmtK(val)+").","warn");closeModal();render();finish();}
+function pokerBuy(idx){const p=S.players[S.cur];const c=OUTER[idx];p.cash-=c.price;p.owns.set(idx,1);OUTER[idx].incomeBase=c.price;log(p.name+L(" buys the POKER NIGHT house ("," compra a casa da NOITE DE PÔQUER (")+fmtK(c.price)+").","good");render();closeModal();finish();}
+function sellPoker(idx){const p=S.players[S.cur];const c=OUTER[idx];const val=c.price;p.cash+=val;p.owns.delete(idx);log(p.name+L(" sells the POKER NIGHT house ("," vende a casa da NOITE DE PÔQUER (")+fmtK(val)+").","warn");closeModal();render();finish();}
 function pokerRoll(idx){
   const p=S.players[S.cur];const owner=S.players.find(x=>x.owns.has(idx));
   const stake=Math.min(Math.max(0,p._pokerBet||0),Math.max(0,p.cash));
@@ -1585,12 +1596,12 @@ function pokerRoll(idx){
   if(win){
     SFX.good();
     p.cash+=stake;
-    log(p.name+" rolled a "+r+" - WINS the bet! +"+fmtK(stake)+" (now "+fmtK(p.cash)+").","good");
+    log(p.name+L(" rolled a "," tirou ")+r+L(" - WINS the bet! +"," - GANHA a aposta! +")+fmtK(stake)+L(" (now "," (agora ")+fmtK(p.cash)+").","good");
   }else{
     SFX.bad();
     p.cash-=stake;
-    log(p.name+" rolled a "+r+" - LOSES the bet ("+fmtK(stake)+").","bad");
-    if(owner&&owner.id!==p.id){ owner.cash+=stake; log("The house takes it - "+fmtK(stake)+" goes to "+owner.name+".","warn"); }
+    log(p.name+L(" rolled a "," tirou ")+r+L(" - LOSES the bet ("," - PERDE a aposta (")+fmtK(stake)+").","bad");
+    if(owner&&owner.id!==p.id){ owner.cash+=stake; log(L("The house takes it - ","A casa recolhe - ")+fmtK(stake)+L(" goes to "," vai para ")+owner.name+".","warn"); }
   }
   p._pokerBet=0;
   if(p.ai){render();finish();return;}
@@ -1619,7 +1630,7 @@ function tryBiz(c){
     ${statusBar()}`;
   openModal();
 }
-function buyBiz(idx,cost){const p=S.players[S.cur];p.cash-=cost;p.owns.set(idx,1);log(p.name+" opens "+OUTER[idx].t+" ("+fmtK(cost)+").","good");render();ownBizOptions(idx);}
+function buyBiz(idx,cost){const p=S.players[S.cur];p.cash-=cost;p.owns.set(idx,1);log(p.name+L(" opens "," abre ")+OUTER[idx].t+" ("+fmtK(cost)+").","good");render();ownBizOptions(idx);}
 function ownBizOptions(idx){
   const p=S.players[S.cur];const c=OUTER[idx];const per=OUTER[idx].incomeBase||c.income;const cur=p.owns.get(idx);
   const maxN=Math.floor(p.cash/per);
@@ -1636,11 +1647,11 @@ function ownBizOptions(idx){
     ${statusBar()}`;
   openModal();
 }
-function addWorker(idx,per,n){const p=S.players[S.cur];n=Math.min(n,Math.floor(p.cash/per));if(n<1)return;p.cash-=per*n;p.owns.set(idx,p.owns.get(idx)+n);log(p.name+" adds "+n+" worker"+(n>1?"s":"")+" to "+OUTER[idx].t+" (now "+p.owns.get(idx)+").","good");render();ownBizOptions(idx);}
+function addWorker(idx,per,n){const p=S.players[S.cur];n=Math.min(n,Math.floor(p.cash/per));if(n<1)return;p.cash-=per*n;p.owns.set(idx,p.owns.get(idx)+n);log(p.name+L(" adds "," adiciona ")+n+L(" worker"+""," funcionário")+(n>1?"s":"")+L(" to "," a ")+OUTER[idx].t+L(" (now "," (agora ")+p.owns.get(idx)+").","good");render();ownBizOptions(idx);}
 function buyProduct(p,owner,idx,c){
   const workers=owner.owns.get(idx)||1;         // charge for the WHOLE staffed business
   const capacity=c.income*workers;
-  if(p.ai){ const amt=Math.min(capacity,Math.floor(p.cash/2)); if(amt>0){p.cash-=amt;owner.cash+=amt*2;p.cash+=amt*2;log(p.name+" buys "+fmtK(amt)+" product at "+owner.name+"'s "+c.t+" ("+workers+" staff).","good");} render();finish();return; }
+  if(p.ai){ const amt=Math.min(capacity,Math.floor(p.cash/2)); if(amt>0){p.cash-=amt;owner.cash+=amt*2;p.cash+=amt*2;log(p.name+L(" buys "," compra ")+fmtK(amt)+L(" product at "," de produto em ")+c.t+L(" of "," de ")+owner.name+" ("+workers+L(" staff)."," funcionários)."),"good");} render();finish();return; }
   const maxBuy=Math.min(capacity, p.cash);
   const el=document.getElementById("cardEl");
   el.innerHTML=`<div class="lbl" style="background:${owner.color}">${c.t.toUpperCase()} ${L('OF','DE')} ${owner.name.toUpperCase()}</div>
@@ -1656,7 +1667,7 @@ function buyProduct(p,owner,idx,c){
   openModal();
 }
 function doProduct(pid,oid,amt){const p=S.players[pid],o=S.players[oid];p.cash-=amt;o.cash+=amt*2;p.cash+=amt*2;
-  log(p.name+" buys "+fmtK(amt)+" product from "+o.name+". You net +"+fmtK(amt)+", "+o.name+" +"+fmtK(amt*2)+".","good");closeModal();render();finish();}
+  log(p.name+L(" buys "," compra ")+fmtK(amt)+L(" product from "," de produto de ")+o.name+L(". You net +",". Você lucra +")+fmtK(amt)+", "+o.name+" +"+fmtK(amt*2)+".","good");closeModal();render();finish();}
 
 /* ===== RECRUITING (bulk) ===== */
 const SOLDIER_COST=100; // $100K per soldier
@@ -1681,12 +1692,12 @@ function openBuyWorkers(){
     ${statusBar()}`;
   openModal();
 }
-function addWorkerAnytime(idx,per,n){n=n||1;n=Math.min(n,Math.floor(S.players[S.cur].cash/per));const p=S.players[S.cur];if(n<1)return;p.cash-=per*n;p.owns.set(idx,p.owns.get(idx)+n);log(p.name+" hires "+n+" worker"+(n>1?"s":"")+" at "+OUTER[idx].t+" (now "+p.owns.get(idx)+").","good");render();openBuyWorkers();}
+function addWorkerAnytime(idx,per,n){n=n||1;n=Math.min(n,Math.floor(S.players[S.cur].cash/per));const p=S.players[S.cur];if(n<1)return;p.cash-=per*n;p.owns.set(idx,p.owns.get(idx)+n);log(p.name+L(" hires "," contrata ")+n+L(" worker"+""," funcionário")+(n>1?"s":"")+L(" at "," em ")+OUTER[idx].t+L(" (now "," (agora ")+p.owns.get(idx)+").","good");render();openBuyWorkers();}
 function commitCrime(){
   const p=S.players[S.cur];
   if(p.ai||!p.alive||S.over||S.rolled||p.ring!=="outer"||p.inJail||p.crimeOps<=0)return;
   p.crimeOps--;
-  log(p.name+" goes looking for a score ("+p.crimeOps+" crime chances left).","warn");
+  log(p.name+L(" goes looking for a score ("," sai atrás de um golpe (")+p.crimeOps+L(" crime chances left)."," chances de crime restantes)."),"warn");
   S.rolled=true;               // this is your action for the turn
   updateControls();
   const jobs=["heist","hitman","drug"];               // the streets decide what the job is
@@ -1694,7 +1705,7 @@ function commitCrime(){
 }
 function offerHire(){
   const p=S.players[S.cur];
-  if(p.ai){ const agg=p.temper==="AGGRESSIVE"; const aiCap=agg?7:4; while(p.crew<aiCap && p.cash>=SOLDIER_COST*(agg?2:3)){p.cash-=SOLDIER_COST;p.crew++;} log(p.name+" recruits soldiers.","good"); finish(); return; }
+  if(p.ai){ const agg=p.temper==="AGGRESSIVE"; const aiCap=agg?7:4; while(p.crew<aiCap && p.cash>=SOLDIER_COST*(agg?2:3)){p.cash-=SOLDIER_COST;p.crew++;} log(p.name+L(" recruits soldiers."," recruta soldados."),"good"); finish(); return; }
   const slotsLeft=MAX_SOLDIERS-p.crew;
   const affordable=Math.floor(p.cash/SOLDIER_COST);
   const canBuy=Math.min(slotsLeft,affordable);
@@ -1735,7 +1746,7 @@ function hireConfirm(){
   const p=S.players[S.cur];const n=p._hirePick||0;
   const canBuy=Math.min(MAX_SOLDIERS-p.crew,Math.floor(p.cash/SOLDIER_COST));
   const buy=Math.min(n,canBuy);
-  if(buy>0){p.cash-=SOLDIER_COST*buy;p.crew+=buy;log(p.name+" hires "+buy+" soldier"+(buy>1?"s":"")+" (now "+p.crew+").","good");}
+  if(buy>0){p.cash-=SOLDIER_COST*buy;p.crew+=buy;log(p.name+L(" hires "," contrata ")+buy+L(" soldier"+""," soldado")+(buy>1?"s":"")+L(" (now "," (agora ")+p.crew+").","good");}
   p._hirePick=0;render();closeModal();
   finish();
 }
@@ -1777,17 +1788,17 @@ function orderHit(oid){
   closeModal(); SFX.shots();
   const r=Math.random();
   if(r<1/3){
-    log(p.name+"'s contract on "+o.name+" goes cold — the target went to ground.","warn");
+    log(L("","O contrato de ")+p.name+L("'s contract on "," em ")+o.name+L(" goes cold — the target went to ground."," esfria — o alvo sumiu do mapa."),"warn");
     showNotice(L("THE HIT","O SERVI\u00c7O"),"x",L("The target went to ground","O alvo sumiu do mapa"),o.name+L(" changed cars, changed routes, slept somewhere new. The shooter waited three nights and walked. Money spent, nothing to show — and the streets are whispering your name (+10 HEAT)."," trocou de carro, trocou de rota, dormiu em outro canto. O atirador esperou tr\u00eas noites e foi embora. Dinheiro gasto, nada em troca — e a rua sussurra seu nome (+10 RISCO)."),()=>{render();finish();});
   } else if(r<2/3 && o.crew>0){
     const loss=Math.min(o.crew,1+Math.floor(Math.random()*3));
     o.crew-=loss; SFX.soldierDown();
-    log("A hit ordered by "+p.name+" kills "+loss+" of "+o.name+"'s soldiers.","bad");
+    log(L("A hit ordered by ","Um serviço encomendado por ")+p.name+L(" kills "," mata ")+loss+L(" of "," soldados de ")+o.name+L("'s soldiers.","."),"bad");
     showNotice(L("THE HIT","O SERVI\u00c7O"),"x",L("The bodyguards ate the bullets","Os seguran\u00e7as comeram as balas"),LANG==='PT'?`O atirador pegou a equipe de ${o.name} na porta do ponto. ${loss} soldado(s) no ch\u00e3o, mas ${o.name} saiu vivo. V\u00e3o descobrir quem pagou. (+10 RISCO)`:`The shooter caught ${o.name}'s people outside the spot. ${loss} soldier${loss>1?"s":""} down, but ${o.name} made it out alive. They'll figure out who paid for it. (+10 HEAT)`,()=>{render();finish();});
   } else {
     o.hosp++; o.cleanLaps=0;
     if(o.ring==="outer"&&!o.inJail){const hi=OUTER.findIndex(c=>c.k==="hospital");if(hi>=0)o.pos=hi;}
-    log(p.name+"'s hit puts "+o.name+" in the HOSPITAL ("+o.hosp+"/3).","bad");
+    log(L("","O serviço de ")+p.name+L("'s hit puts "," coloca ")+o.name+L(" in the HOSPITAL ("," no HOSPITAL (")+o.hosp+"/3).","bad");
     if(o.hosp>=3){ o._deathCause="Taken out by a contract hit"; render(); killPlayer(o); return; }
     showNotice(L("THE HIT","O SERVI\u00c7O"),"x",L("Direct hit","Acerto direto"),o.name+L(" took two in the ribs getting into the car. Rushed to the HOSPITAL (visit "," levou dois tiros nas costelas entrando no carro. Correu pro HOSPITAL (visita ")+o.hosp+L("/3) — one more bad day and it's over for them. (+10 HEAT)","/3) — mais um dia ruim e acabou para ele. (+10 RISCO)"),()=>{render();finish();});
   }
@@ -1798,12 +1809,12 @@ function doAttack(){
   const p=S.players[S.cur];
   const targets=[];
   S.players.forEach(o=>{if(o.id!==p.id&&o.alive){o.owns.forEach((s,idx)=>targets.push({o,idx,s}));}});
-  if(p.crew<1){log(p.name+" has no soldiers to attack with."); finish(); return;}
-  if(targets.length===0){log("No rival turf to attack."); finish(); return;}
+  if(p.crew<1){log(p.name+L(" has no soldiers to attack with."," não tem soldados para atacar.")); finish(); return;}
+  if(targets.length===0){log(L("No rival turf to attack.","Nenhuma área rival para atacar.")); finish(); return;}
   if(p.ai){
     // take the richest turf it can actually win; CAREFUL keeps one in reserve, AGGRESSIVE goes all in
     const winnable=targets.filter(t=>t.s+1<=(p.temper==="AGGRESSIVE"?p.crew:p.crew-1));
-    if(!winnable.length){ log(p.name+" sizes up the rivals and stands down."); finish(); return; }
+    if(!winnable.length){ log(p.name+L(" sizes up the rivals and stands down."," avalia os rivais e recua.")); finish(); return; }
     winnable.sort((a,b)=>cellUnit(b.idx)*b.s-cellUnit(a.idx)*a.s);
     const t=winnable[0]; resolveAttack(p,t.o,t.idx,Math.min(p.crew,t.s+1)); return;
   }
@@ -1851,15 +1862,15 @@ function resolveAttack(p,o,idx,atk){
   if(atk>def){ p.crew-=atk; o.owns.delete(idx); p.owns.set(idx,Math.max(1,atk-def));
     title=L("TURF TAKEN","\u00c1REA TOMADA");
     body=LANG==='PT'?p.name+" mandou "+atk+" contra "+def+" de "+o.name+" em "+OUTER[idx].t+". Perdeu "+def+" na briga, varreu a equipe deles e tomou o quarteir\u00e3o com "+Math.max(1,atk-def)+" de p\u00e9.":p.name+" sent "+atk+" against "+o.name+"'s "+def+" at "+OUTER[idx].t+". Lost "+def+" in the fight, wiped their crew, and seized the block with "+Math.max(1,atk-def)+" left standing.";
-    log(p.name+" takes "+OUTER[idx].t+" from "+o.name+" ("+atk+" vs "+def+").","good"); }
+    log(p.name+L(" takes "," toma ")+OUTER[idx].t+L(" from "," de ")+o.name+" ("+atk+" vs "+def+").","good"); }
   else if(atk===def){ p.crew-=atk; o.owns.set(idx,0);
     title=L("STALEMATE","EMPATE");
     body=LANG==='PT'?"As duas equipes se destru\u00edram em "+OUTER[idx].t+" \u2014 "+atk+" por "+atk+". "+o.name+" fica com a escritura, mas ela fica vazia e n\u00e3o rende nada at\u00e9 repor a equipe.":"Both crews wiped each other out at "+OUTER[idx].t+" \u2014 "+atk+" for "+atk+". "+o.name+" keeps the deed, but it sits empty and earns nothing until re-staffed.";
-    log(p.name+" and "+o.name+" trade full crews at "+OUTER[idx].t+".","warn"); }
+    log(p.name+L(" and "," e ")+o.name+L(" trade full crews at "," trocam equipes inteiras em ")+OUTER[idx].t+".","warn"); }
   else { p.crew-=atk; o.owns.set(idx,Math.max(1,def-atk));
     title=L("ATTACK FAILED","ATAQUE FALHOU");
     body=LANG==='PT'?p.name+" jogou "+atk+" em "+OUTER[idx].t+" e perdeu todos. "+o.name+" segurou a linha e ainda tem "+o.owns.get(idx)+" entrincheirados.":p.name+" threw "+atk+" at "+OUTER[idx].t+" and lost every last one. "+o.name+" held the line and still has "+o.owns.get(idx)+" dug in.";
-    log(p.name+"'s attack on "+OUTER[idx].t+" fails.","bad"); }
+    log(L("","O ataque de ")+p.name+L("'s attack on "," a ")+OUTER[idx].t+L(" fails."," falha."),"bad"); }
   render();
   if(p.ai){ finish(); return; }
   const el=document.getElementById("cardEl");
@@ -1951,7 +1962,7 @@ function applyCard(){
   recordCharge(p,deck,c);
   recordNetwork(p,deck,c);
   // PARTY poker bets
-  if(deck==="party"&&c.tag==="poker"){ p.cash+=(c.win?c.bet:-c.bet); log(p.name+(c.win?" wins $"+c.bet+"K at "+(c.ttl):" loses $"+c.bet+"K at "+(c.ttl)),c.win?"good":"warn"); afterMoney(p); if(!c.raidArr){finish();return;} }
+  if(deck==="party"&&c.tag==="poker"){ p.cash+=(c.win?c.bet:-c.bet); log(p.name+(c.win?L(" wins $"," ganha $"):L(" loses $"," perde $"))+c.bet+L("K at ","K em ")+(LANG==='PT'?(TTL_PT[c.ttl]||c.ttl):c.ttl),c.win?"good":"warn"); afterMoney(p); if(!c.raidArr){finish();return;} }
   if(c.cut){
     let amt=c.cut;
     if(deck==="court" && c.cut<0){                          // realistic fines = a slice of your net worth
@@ -1959,55 +1970,55 @@ function applyCard(){
       const fine=Math.max(Math.abs(c.cut), Math.round(netWorth(p)*pct));
       amt=-Math.min(fine, Math.max(0,netWorth(p)));
     }
-    p.cash+=amt;if(amt>0)SFX.cash();log(p.name+(amt>0?" gains $":" loses $")+Math.abs(amt)+"K"+(deck==="court"&&amt<0?" (fine)":"")+".",amt>0?"good":"warn");
-    if(deck==="court"&&p.cash<0){ settleDebts(p); if(p.cash<0){p.cash=0;log("The court cleans "+p.name+" out completely.","bad");} }
+    p.cash+=amt;if(amt>0)SFX.cash();log(p.name+(amt>0?L(" gains $"," ganha $"):L(" loses $"," perde $"))+Math.abs(amt)+"K"+(deck==="court"&&amt<0?L(" (fine)"," (multa)"):"")+".",amt>0?"good":"warn");
+    if(deck==="court"&&p.cash<0){ settleDebts(p); if(p.cash<0){p.cash=0;log(L("The court cleans ","O tribunal limpa ")+p.name+L(" out completely."," por completo."),"bad");} }
   }
   if(c.packs){p.packs=Math.max(0,p.packs+c.packs);
-    if(c.packs>0)log(p.name+" wins "+c.packs+" cigarette pack"+(c.packs>1?"s":"")+" (now "+p.packs+").","good");
-    else log(p.name+" pays "+(-c.packs)+" cigarette pack"+((-c.packs)>1?"s":"")+" (now "+p.packs+").","warn");}
-  if(c.crew){p.crew+=c.crew;log(p.name+" gains "+c.crew+" soldier.","good");}
-  if(c.respect)log(p.name+" earns respect inside.","good");
-  if(c.freeArrest){p.freeArrest++;log(p.name+" AVOIDS PRISON — banks a get-out-of-jail card ("+p.freeArrest+").","good");}
-  if(c.loseCrew){SFX.soldierDown();p.crew=Math.max(0,p.crew-c.loseCrew);log(p.name+" loses "+c.loseCrew+" soldier.","bad");}
-  if(c.skip){p.skip=(p.skip||0)+c.skip;log(p.name+" will lose "+c.skip+" turn.","warn");}
-  if(c.freeRaid){p.freeRaid=(p.freeRaid||0)+1;log(p.name+" dodges the next raid.","good");}
+    if(c.packs>0)log(p.name+L(" wins "," ganha ")+c.packs+L(" cigarette pack"+""," maço")+(c.packs>1?"s":"")+L(" (now "," (agora ")+p.packs+").","good");
+    else log(p.name+L(" pays "," paga ")+(-c.packs)+L(" cigarette pack"+""," maço")+((-c.packs)>1?"s":"")+L(" (now "," (agora ")+p.packs+").","warn");}
+  if(c.crew){p.crew+=c.crew;log(p.name+L(" gains "," ganha ")+c.crew+L(" soldier."," soldado."),"good");}
+  if(c.respect)log(p.name+L(" earns respect inside."," ganha respeito lá dentro."),"good");
+  if(c.freeArrest){p.freeArrest++;log(p.name+L(" AVOIDS PRISON — banks a get-out-of-jail card ("," EVITA A PRISÃO — guarda uma carta de saída (")+p.freeArrest+").","good");}
+  if(c.loseCrew){SFX.soldierDown();p.crew=Math.max(0,p.crew-c.loseCrew);log(p.name+L(" loses "," perde ")+c.loseCrew+L(" soldier."," soldado."),"bad");}
+  if(c.skip){p.skip=(p.skip||0)+c.skip;log(p.name+L(" will lose "," vai perder ")+c.skip+L(" turn."," turno."),"warn");}
+  if(c.freeRaid){p.freeRaid=(p.freeRaid||0)+1;log(p.name+L(" dodges the next raid."," escapa da próxima batida."),"good");}
   if(c.note&&!c.cut&&!c.crew)log(p.name+": "+c.note);
   // COURT
   // COURT — DEADLY = life sentence
-  if(c.life){ p.sentence=30; log(p.name+" is convicted of MURDER — LIFE SENTENCE (30y).","bad"); sendToPrison(p); render(); finish(); return; }
+  if(c.life){ p.sentence=30; log(p.name+L(" is convicted of MURDER — LIFE SENTENCE (30y)."," é condenado por HOMICÍDIO — PENA PERPÉTUA (30a)."),"bad"); sendToPrison(p); render(); finish(); return; }
   if(c.dyears!==undefined){p.sentence=Math.max(0,p.sentence+c.dyears);
-    if(p.sentence<=0){log(p.name+" walks free from court!","good");render();finish();return;}
-    log(p.name+" sentenced: "+p.sentence+"y. To prison.","warn");sendToPrison(p);render();finish();return;}
+    if(p.sentence<=0){log(p.name+L(" walks free from court!"," sai livre do tribunal!"),"good");render();finish();return;}
+    log(p.name+L(" sentenced: "," sentenciado: ")+p.sentence+L("y. To prison.","a. Para a prisão."),"warn");sendToPrison(p);render();finish();return;}
   // RIOT sentence changes
-  if(c.ryears!==undefined){p.sentence=Math.max(0,p.sentence+c.ryears);log(p.name+"'s sentence now "+p.sentence+"y.",c.ryears>0?"bad":"good");
+  if(c.ryears!==undefined){p.sentence=Math.max(0,p.sentence+c.ryears);log(L("","A pena de ")+p.name+L("'s sentence now "," agora é ")+p.sentence+L("y.","a."),c.ryears>0?"bad":"good");
     if(p.sentence<=0)releaseFromPrison(p);else{render();finish();}return;}
-  if(c.escape){ p._escapedYears=(p._escapedYears||0)+Math.max(0,p.sentence)+5; p.sentence=0; log(p.name+" ESCAPES in the chaos! (the law still wants the "+p._escapedYears+"y you skipped, plus more)","good"); releaseFromPrison(p); return; }
+  if(c.escape){ p._escapedYears=(p._escapedYears||0)+Math.max(0,p.sentence)+5; p.sentence=0; log(p.name+L(" ESCAPES in the chaos! (the law still wants the "," FOGE no caos! (a lei ainda quer os ")+p._escapedYears+L("y you skipped, plus more)","a que você pulou, e mais)"),"good"); releaseFromPrison(p); return; }
   // HOSPITAL card (from prison fight etc.)
-  if(c.hosp){toHospital(p,c.hosp,"a beating");return;}
+  if(c.hosp){toHospital(p,c.hosp,L("a beating","uma surra"));return;}
   // PRISON FIGHT / RIOT beating — cards carry `rounds` = how bad the beating was; the worst ones turn fatal
   if((deck==="pfight"||deck==="riot") && c.rounds){
     if(c.rounds>=4 && Math.random()<0.20){ prisonDeath(p, deck==="pfight"?"The fight went past the point of no return.":"The riot took its toll."); return; }
-    toHospital(p, c.rounds>=4?2:1, deck==="pfight"?"a prison fight":"the prison riot"); return; }
+    toHospital(p, c.rounds>=4?2:1, deck==="pfight"?L("a prison fight","uma briga na prisão"):L("the prison riot","a rebelião na prisão")); return; }
   // HEIST/drug/hitman arrest chance: 10% base + your HEAT (every job makes you hotter)
   if(c.arr!==undefined){
     const chance=arrestChance(p);
     p.heat=Math.min(70,(p.heat||0)+5);
     const caught=Math.random()<chance;
     if(caught){ p._pendingYears=(c.arr==="LIFE"?30:c.arr); arrestFlow(p); return; }
-    log("Clean getaway.","good");
+    log(L("Clean getaway.","Fuga limpa."),"good");
     showNotice(L("CLEAN GETAWAY","FUGA LIMPA"),"$-$",L("You got away clean","Voc\u00ea escapou limpo"),L("No heat, no tail, no charges. The job is done and nobody is coming for you — this time.","Sem pol\u00edcia, sem rabo, sem acusa\u00e7\u00e3o. O servi\u00e7o foi feito e ningu\u00e9m vem atr\u00e1s de voc\u00ea — desta vez."),()=>{afterMoney(p);if(!p._sentToHospital)finish();p._sentToHospital=false;});
     return;
   }
   if(c.raidArr){
-    if(p.freeRaid>0){p.freeRaid--;log(p.name+" was tipped off — dodges the raid (crew safe).","good");afterMoney(p);if(!p._sentToHospital)finish();p._sentToHospital=false;return;}
+    if(p.freeRaid>0){p.freeRaid--;log(p.name+L(" was tipped off — dodges the raid (crew safe)."," foi avisado — escapa da batida (equipe a salvo)."),"good");afterMoney(p);if(!p._sentToHospital)finish();p._sentToHospital=false;return;}
     if(p.crew>0){
       const loss = (c._sLoss==="all") ? p.crew : Math.min(p.crew, c._sLoss||1);
       p.crew-=loss;
-      log(loss+" of "+p.name+"'s soldier"+(loss>1?"s":"")+" arrested in the raid"+(c._sLoss==="all"?" — the whole crew":"")+". "+p.crew+" left.","bad");
+      log(loss+L(" of "," soldado(s) de ")+p.name+L("'s soldier"+(1?"":"")," presos na batida")+(LANG==='PT'?"":( (loss>1?"s":"")+" arrested in the raid"))+(c._sLoss==="all"?L(" — the whole crew"," — a equipe inteira"):"")+". "+p.crew+L(" left."," restando."),"bad");
     }
     p._pendingYears=2; arrestFlow(p); return;
   }
-  if(c.safe)log(p.name+" gets away clean.","good");
+  if(c.safe)log(p.name+L(" gets away clean."," escapa limpo."),"good");
   afterMoney(p);
   if(!p._sentToHospital) finish();
   p._sentToHospital=false;
@@ -2021,14 +2032,14 @@ function settleDebts(p){
     .sort((a,b)=>a.val-b.val);
   for(const it of items){ if(p.cash>=0)break;
     p.cash+=it.val; p.owns.delete(it.idx);
-    log(p.name+" is forced to sell "+OUTER[it.idx].t+" for "+fmtK(it.val)+" to cover debts.","warn"); }
-  while(p.cash<0&&p.crew>0){ p.crew--; p.cash+=SOLDIER_COST; log(p.name+" cuts a soldier loose for "+fmtK(SOLDIER_COST)+".","warn"); }
+    log(p.name+L(" is forced to sell "," é forçado a vender ")+OUTER[it.idx].t+L(" for "," por ")+fmtK(it.val)+L(" to cover debts."," para cobrir dívidas."),"warn"); }
+  while(p.cash<0&&p.crew>0){ p.crew--; p.cash+=SOLDIER_COST; log(p.name+L(" cuts a soldier loose for "," dispensa um soldado por ")+fmtK(SOLDIER_COST)+".","warn"); }
   render();
   return p.cash>=0;
 }
 function afterMoney(p){
   // Broke with nothing left to sell → you get hurt. The hospital BILL is what's allowed to go negative (handled in leaveHospital).
-  if(p.cash<0 && !settleDebts(p)){ log(p.name+" is broke with nothing left to sell — rushed to the HOSPITAL.","bad"); p._sentToHospital=true; p.cash=0; toHospital(p,1,"broke — couldn't cover their debts"); }
+  if(p.cash<0 && !settleDebts(p)){ log(p.name+L(" is broke with nothing left to sell — rushed to the HOSPITAL."," está quebrado sem nada para vender — levado às pressas ao HOSPITAL."),"bad"); p._sentToHospital=true; p.cash=0; toHospital(p,1,L("broke — couldn't cover their debts","quebrado — não cobriu as dívidas")); }
 }
 
 /* ===== HEAT: how hot the law is on you. Base arrest risk 10% + heat; jobs add +5, quiet years cool it ===== */
@@ -2037,7 +2048,7 @@ function arrestChance(p){return Math.min(.6,(10+(p.heat||0))/100);}
 function copStop(){
   const p=S.players[S.cur];
   const cost=(p.heat||0)*3; // $3K per point of heat
-  if(p.ai){ const th=p.temper==="AGGRESSIVE"?40:15; if(p.heat>=th&&p.cash>=cost*2){p.cash-=cost;p.heat=0;log(p.name+" pays off a crooked cop (-"+fmtK(cost)+") — heat wiped.","warn");render();finish();} else drawStory("cop"); return; }
+  if(p.ai){ const th=p.temper==="AGGRESSIVE"?40:15; if(p.heat>=th&&p.cash>=cost*2){p.cash-=cost;p.heat=0;log(p.name+L(" pays off a crooked cop (-"," paga um policial corrupto (-")+fmtK(cost)+L(") — heat wiped.",") — risco zerado."),"warn");render();finish();} else drawStory("cop"); return; }
   if(!p.heat||p.cash<cost){ drawStory("cop"); return; }
   const el=document.getElementById("cardEl");
   el.dataset.deck="cop";
@@ -2051,7 +2062,7 @@ function copStop(){
     ${statusBar()}`;
   openModal();
 }
-function copPayoff(cost){const p=S.players[S.cur];p.cash-=cost;p.heat=0;log(p.name+" pays off the cop (-"+fmtK(cost)+"). Files disappear — heat wiped.","good");closeModal();render();finish();}
+function copPayoff(cost){const p=S.players[S.cur];p.cash-=cost;p.heat=0;log(p.name+L(" pays off the cop (-"," paga o policial (-")+fmtK(cost)+L("). Files disappear — heat wiped.","). Arquivos somem — risco zerado."),"good");closeModal();render();finish();}
 
 /* ===== EVENT NOTICE CARDS: anything that happens to a player shows as a card ===== */
 let _noticeNext=null;
@@ -2072,15 +2083,15 @@ function showNotice(lbl,art,ttl,bd,next,danger){
 function noticeOK(){ closeModal(); const f=_noticeNext; _noticeNext=null; if(f)f(); }
 
 /* ===== LAW ===== */
-function crewSave(p,type){if(p.crew>0){p.crew--;if(type!=="arrest")SFX.soldierDown();log(p.name+" burns a soldier — they take the "+(type==="arrest"?"cuffs":"bullet")+".","good");return true;}return false;}
+function crewSave(p,type){if(p.crew>0){p.crew--;if(type!=="arrest")SFX.soldierDown();log(p.name+L(" burns a soldier — they take the "," queima um soldado — ele leva ")+(type==="arrest"?L("cuffs","as algemas"):L("bullet","a bala"))+".","good");return true;}return false;}
 
 /* Arrest flow: get-out card > soldier takes your place > buy cigs from crooked CO > jail */
 function arrestFlow(p){
   const years=p._pendingYears||5;
-  if(p.freeArrest>0){p.freeArrest--;log(p.name+" uses a get-out-of-jail card. Walks free.","good");p._pendingYears=null;showNotice(L("GET OUT OF JAIL","SAIU DA CADEIA"),"***",L("The favor gets called in","O favor \u00e9 cobrado"),L("The cuffs were already out — but your banked get-out-of-jail card burns instead. Charges evaporate. You walk free.","As algemas j\u00e1 estavam na m\u00e3o — mas sua carta de sa\u00edda guardada \u00e9 queimada. As acusa\u00e7\u00f5es evaporam. Voc\u00ea sai livre."),()=>finish());return;}
+  if(p.freeArrest>0){p.freeArrest--;log(p.name+L(" uses a get-out-of-jail card. Walks free."," usa uma carta de saída. Sai livre."),"good");p._pendingYears=null;showNotice(L("GET OUT OF JAIL","SAIU DA CADEIA"),"***",L("The favor gets called in","O favor \u00e9 cobrado"),L("The cuffs were already out — but your banked get-out-of-jail card burns instead. Charges evaporate. You walk free.","As algemas j\u00e1 estavam na m\u00e3o — mas sua carta de sa\u00edda guardada \u00e9 queimada. As acusa\u00e7\u00f5es evaporam. Voc\u00ea sai livre."),()=>finish());return;}
   if(p.ai){
     // AI: soldier takes the fall if available, else just go in (buys a few packs if rich)
-    if(p.crew>0){p.crew--;log(p.name+"'s soldier takes the fall and goes to prison. "+p.name+" stays free.","good");p._pendingYears=null;finish();return;}
+    if(p.crew>0){p.crew--;log(L("","O soldado de ")+p.name+L("'s soldier takes the fall and goes to prison. "," assume a culpa e vai preso. ")+p.name+L(" stays free."," continua livre."),"good");p._pendingYears=null;finish();return;}
     const packs=Math.min(20,Math.floor(p.cash/1)); if(packs>0){p.cash-=packs;p.packs=packs;}
     doArrest(p,years);return;
   }
@@ -2098,7 +2109,7 @@ function arrestFlow(p){
     ${statusBar()}`;
   openModal();
 }
-function soldierTakesFall(){const p=S.players[S.cur];p.crew--;log(p.name+"'s soldier takes the fall and goes to prison. "+p.name+" stays free.","good");p._pendingYears=null;closeModal();render();finish();}
+function soldierTakesFall(){const p=S.players[S.cur];p.crew--;log(L("","O soldado de ")+p.name+L("'s soldier takes the fall and goes to prison. "," assume a culpa e vai preso. ")+p.name+L(" stays free."," continua livre."),"good");p._pendingYears=null;closeModal();render();finish();}
 function goToJailWithCigs(years){
   const p=S.players[S.cur];closeModal();
   // one chance to buy cigarette packs from crooked CO at $1K/pack
@@ -2119,31 +2130,31 @@ function goToJailWithCigs(years){
     ${statusBar()}`;
   openModal();
 }
-function buyCigs(n,years){const p=S.players[S.cur];n=Math.min(n,Math.floor(p.cash/1));p.cash-=n;p.packs+=n;if(n>0)log(p.name+" buys "+n+" cigarette packs from the CO (-$"+n+"K).","warn");closeModal();doArrest(p,years);}
+function buyCigs(n,years){const p=S.players[S.cur];n=Math.min(n,Math.floor(p.cash/1));p.cash-=n;p.packs+=n;if(n>0)log(p.name+L(" buys "," compra ")+n+L(" cigarette packs from the CO (-$"," maços do agente (-$")+n+"K).","warn");closeModal();doArrest(p,years);}
 function doArrest(p,years){
   SFX.siren();
   p.inJail=true;p.ring="outer";p.pos=JAIL_POS;p.sentence=0;p._pendingYears=years;
-  log(p.name+" ARRESTED → JAIL. Awaiting court.","bad");
+  log(p.name+L(" ARRESTED → JAIL. Awaiting court."," PRESO → CADEIA. Aguardando tribunal."),"bad");
   render();
   showNotice(L("ARRESTED","PRESO"),"[=]",L("You're in JAIL","Voc\u00ea est\u00e1 na CADEIA"),
     L("The cell door slams behind you. You're locked up awaiting your court date with ","A porta da cela bate atr\u00e1s de voc\u00ea. Voc\u00ea aguarda o julgamento com ")+(years==30?L("a LIFE sentence","uma pena PERP\u00c9TUA"):years+L(" years"," anos"))+L(" hanging over your head. Next stop: the judge."," pesando na sua cabe\u00e7a. Pr\u00f3xima parada: o juiz."),
     ()=>finish(),true);
 }
-function drawCourt(){ const p=S.players[S.cur]; log(p.name+"'s court day.","warn");
+function drawCourt(){ const p=S.players[S.cur]; log(L("","Dia de tribunal de ")+p.name+L("'s court day.","."),"warn");
   p.sentence = p._pendingYears || 5; p._pendingYears=null;
-  if(p._escapedYears){ p.sentence+=p._escapedYears; log(p.name+" still owes "+p._escapedYears+"y from the last escape — added on top.","bad"); p._escapedYears=0; }
+  if(p._escapedYears){ p.sentence+=p._escapedYears; log(p.name+L(" still owes "," ainda deve ")+p._escapedYears+L("y from the last escape — added on top.","a da última fuga — somados por cima."),"bad"); p._escapedYears=0; }
   const card=draw("court"); document.getElementById("cardEl")._card=card;document.getElementById("cardEl")._deck="court";
   renderStoryCard(card,"court",p.ai); SFX.card(); openModal(); aiAutoApply(card); }
-function sendToPrison(p){SFX.clang();p.inJail=false;p.ring="inner";p.pos=0;log(p.name+" enters PRISON. Serve "+p.sentence+"y (1 lap = 1 year). Packs: "+p.packs,"warn");}
-function releaseFromPrison(p){p.ring="outer";p.pos=JAIL_POS;p.packs=0;p.heat=0;log(p.name+" walks out of prison.","good");render();showNotice(L("OUT OF PRISON","FORA DA PRIS\u00c3O"),"\\o/",L("Back on the street","De volta \u00e0 rua"),L("The gate rolls open and the street takes you back. Any cigarette packs stay behind — currency of a world you just left.","O port\u00e3o abre e a rua te recebe de volta. Os ma\u00e7os ficam para tr\u00e1s — moeda de um mundo que voc\u00ea acabou de deixar."),()=>finish());}
+function sendToPrison(p){SFX.clang();p.inJail=false;p.ring="inner";p.pos=0;log(p.name+L(" enters PRISON. Serve "," entra na PRISÃO. Cumprir ")+p.sentence+L("y (1 lap = 1 year). Packs: ","a (1 volta = 1 ano). Maços: ")+p.packs,"warn");}
+function releaseFromPrison(p){p.ring="outer";p.pos=JAIL_POS;p.packs=0;p.heat=0;log(p.name+L(" walks out of prison."," sai da prisão."),"good");render();showNotice(L("OUT OF PRISON","FORA DA PRIS\u00c3O"),"\\o/",L("Back on the street","De volta \u00e0 rua"),L("The gate rolls open and the street takes you back. Any cigarette packs stay behind — currency of a world you just left.","O port\u00e3o abre e a rua te recebe de volta. Os ma\u00e7os ficam para tr\u00e1s — moeda de um mundo que voc\u00ea acabou de deixar."),()=>finish());}
 
 /* ===== HOSPITAL (death only here) ===== */
 function toHospital(p,visits,cause){
-  p._hospCause=cause||"their injuries";
+  p._hospCause=cause||L("their injuries","ferimentos");
   // Soldiers act as bodyguards: when you're FREE (not in prison) and have a soldier,
   // one can take the beating and go to the hospital in your place.
   if(p.ring!=="inner" && p.crew>0){
-    if(p.ai){ p.crew--; log(p.name+"'s soldier takes the beating and goes to the hospital. "+p.name+" walks away.","good"); render(); finish(); return; }
+    if(p.ai){ p.crew--; log(L("","O soldado de ")+p.name+L("'s soldier takes the beating and goes to the hospital. "," leva a surra e vai pro hospital. ")+p.name+L(" walks away."," sai ileso."),"good"); render(); finish(); return; }
     p._hospPending=visits;
     const el=document.getElementById("cardEl");
     el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('JUMPED!','EMBOSCADA!')}</div>
@@ -2157,15 +2168,15 @@ function toHospital(p,visits,cause){
   }
   doHospital(p,visits);
 }
-function soldierTakesBeating(){const p=S.players[S.cur];p.crew--;p._hospPending=null;log(p.name+"'s soldier takes the beating and goes to the hospital. "+p.name+" walks away.","good");closeModal();render();finish();}
+function soldierTakesBeating(){const p=S.players[S.cur];p.crew--;p._hospPending=null;log(L("","O soldado de ")+p.name+L("'s soldier takes the beating and goes to the hospital. "," leva a surra e vai pro hospital. ")+p.name+L(" walks away."," sai ileso."),"good");closeModal();render();finish();}
 function hospProceed(){const p=S.players[S.cur];const v=p._hospPending||1;p._hospPending=null;closeModal();doHospital(p,v);}
 function doHospital(p,visits){
   p.hosp+=visits;p.cleanLaps=0;
   // move the player's token onto the HOSPITAL space so it's visible where they are (outer ring only; in prison they stay inside)
   if(p.ring!=="inner"){ const hi=OUTER.findIndex(c=>c.k==="hospital"); if(hi>=0){p.ring="outer";p.pos=hi;} }
   render();
-  log(p.name+" HOSPITALIZED — "+(p._hospCause||"injuries")+" (visit "+p.hosp+"/3).","bad");
-  if(p.hosp>=3){log(p.name+" flatlines — 3 visits.","bad");killPlayer(p);return;}
+  log(p.name+L(" HOSPITALIZED — "," HOSPITALIZADO — ")+(p._hospCause||L("injuries","ferimentos"))+L(" (visit "," (visita ")+p.hosp+"/3).","bad");
+  if(p.hosp>=3){log(p.name+L(" flatlines — 3 visits."," apaga de vez — 3 visitas."),"bad");killPlayer(p);return;}
   const card=draw("hospital");
   const oc=card.outcome||"neutral";
   const bill=(card.cost!=null?card.cost:0);        // some hospital cards have no bill
@@ -2173,7 +2184,7 @@ function doHospital(p,visits){
   const ocLine = oc==="good" ? L("✓ Good news — you're healing well. This visit is cleared.","✓ Boa not\u00edcia — voc\u00ea est\u00e1 se recuperando bem. Esta visita foi zerada.")
                : oc==="bad" ? L("✗ Complication — this counts as an EXTRA hospital visit.","✗ Complica\u00e7\u00e3o — conta como uma visita EXTRA ao hospital.")
                : L("— Stable. Just the bill and some rest.","— Est\u00e1vel. S\u00f3 a conta e um descanso.");
-  if(p.ai){ p.cash-=bill; if(settle)p.cash+=settle; applyHospOutcome(p,oc); if(!p.alive)return; log(p.name+" checks out (-$"+bill+"K"+(settle?", settlement +$"+settle+"K":"")+").","warn"); finish(); return; }
+  if(p.ai){ p.cash-=bill; if(settle)p.cash+=settle; applyHospOutcome(p,oc); if(!p.alive)return; log(p.name+L(" checks out (-$"," recebe alta (-$")+bill+"K"+(settle?L(", settlement +$",", indenização +$")+settle+"K":"")+").","warn"); finish(); return; }
   const el=document.getElementById("cardEl");
   el.dataset.deck="hospital";
   const hnum=(typeof DECKS!=="undefined"&&DECKS.hospital)?DECKS.hospital.indexOf(card)+1:0;
@@ -2188,18 +2199,18 @@ function doHospital(p,visits){
   openModal();
 }
 function applyHospOutcome(p,oc){
-  if(oc==="good"){ if(p.hosp>0){p.hosp--; log(p.name+" recovers well — a hospital visit is cleared (now "+p.hosp+"/3).","good");} }
-  else if(oc==="bad"){ p.hosp++; log(p.name+" takes a turn for the worse — extra hospital visit (now "+p.hosp+"/3).","bad");
-    if(p.hosp>=3){ log(p.name+" doesn't pull through — 3 visits.","bad"); killPlayer(p); } }
+  if(oc==="good"){ if(p.hosp>0){p.hosp--; log(p.name+L(" recovers well — a hospital visit is cleared (now "," se recupera bem — uma visita é limpa (agora ")+p.hosp+"/3).","good");} }
+  else if(oc==="bad"){ p.hosp++; log(p.name+L(" takes a turn for the worse — extra hospital visit (now "," piora — visita extra de hospital (agora ")+p.hosp+"/3).","bad");
+    if(p.hosp>=3){ log(p.name+L(" doesn't pull through — 3 visits."," não resiste — 3 visitas."),"bad"); killPlayer(p); } }
 }
-function leaveHospital(cost,oc,settle){cost=cost||0;settle=settle||0;const p=S.players[S.cur];p.cash-=cost;if(settle)p.cash+=settle;closeModal();log(p.name+" checks out (-$"+cost+"K"+(settle?", settlement +$"+settle+"K":"")+")"+(p.cash<0?" — now "+fmtK(p.cash)+" in the red":"")+".","warn");applyHospOutcome(p,oc||"neutral");if(!p.alive)return;finish();}
+function leaveHospital(cost,oc,settle){cost=cost||0;settle=settle||0;const p=S.players[S.cur];p.cash-=cost;if(settle)p.cash+=settle;closeModal();log(p.name+L(" checks out (-$"," recebe alta (-$")+cost+"K"+(settle?L(", settlement +$",", indenização +$")+settle+"K":"")+")"+(p.cash<0?L(" — now "," — agora ")+fmtK(p.cash)+L(" in the red"," no vermelho"):"")+".","warn");applyHospOutcome(p,oc||"neutral");if(!p.alive)return;finish();}
 
 /* ===== PRISON DAY: you have choices inside — lay low, buy protection, bribe, or hustle the yard ===== */
 function pdayResolve(p){
   // No cigarettes on a regular prison day = you're unprotected. Most men die inside.
   if(p.packs<=0){
     if(Math.random()<0.25){ prisonDeath(p,"No cigarettes — no protection, no warning."); return; }
-    log(p.name+" has no cigarettes — the block beats him down.","bad"); toHospital(p,1,"beaten down on the block");
+    log(p.name+L(" has no cigarettes — the block beats him down."," está sem cigarros — o pavilhão o espanca."),"bad"); toHospital(p,1,L("beaten down on the block","espancado no pavilhão"));
   }
   else drawStory("pday");
 }
@@ -2224,18 +2235,18 @@ function prisonDayMenu(){
   openModal();
 }
 function pdayLayLow(){const p=S.players[S.cur];closeModal();pdayResolve(p);}
-function pdayPacks(){const p=S.players[S.cur];if(p.cash<10)return;p.cash-=10;p.packs+=5;log(p.name+" stocks up at the commissary: +5 packs (-$10K). Quiet day.","good");closeModal();render();finish();}
-function pdayBribe(){const p=S.players[S.cur];if(p.cash<40||p.sentence<=1)return;p.cash-=40;p.sentence--;log(p.name+" slips a CO $40K — paperwork shifts, sentence now "+p.sentence+"y.","good");closeModal();render();finish();}
+function pdayPacks(){const p=S.players[S.cur];if(p.cash<10)return;p.cash-=10;p.packs+=5;log(p.name+L(" stocks up at the commissary: +5 packs (-$10K). Quiet day."," se abastece na cantina: +5 maços (-$10K). Dia tranquilo."),"good");closeModal();render();finish();}
+function pdayBribe(){const p=S.players[S.cur];if(p.cash<40||p.sentence<=1)return;p.cash-=40;p.sentence--;log(p.name+L(" slips a CO $40K — paperwork shifts, sentence now "," passa $40K a um agente — a papelada muda, pena agora ")+p.sentence+L("y.","a."),"good");closeModal();render();finish();}
 function pdayYard(){
   const p=S.players[S.cur];closeModal();
   if(Math.random()<0.55){
     const won=1+Math.floor(Math.random()*4);
     p.packs+=won;render();
-    log(p.name+" runs the yard and hustles "+won+" pack"+(won>1?"s":"")+".","good");
+    log(p.name+L(" runs the yard and hustles "," corre o pátio e fatura ")+won+L(" pack"+""," maço")+(won>1?"s":"")+".","good");
     showNotice(L("YARD HUSTLE","CORRE DO P\u00c1TIO"),"::",L("The yard pays out","O p\u00e1tio paga"),L("You moved between the cliques all day — favors, bets, errands. It adds up to ","Voc\u00ea circulou entre as fac\u00e7\u00f5es o dia todo — favores, apostas, corres. No fim deu ")+won+L(" pack"+"","")+(LANG==='PT'?" ma\u00e7o(s) no seu bolso.":(won>1?"s":"")+" in your pocket."),()=>finish());
   } else {
-    log(p.name+"'s yard hustle goes wrong — a brawl breaks out.","bad");
-    toHospital(p,1,"a yard brawl");
+    log(L("","O corre de ")+p.name+L("'s yard hustle goes wrong — a brawl breaks out."," no pátio dá errado — sai briga."),"bad");
+    toHospital(p,1,L("a yard brawl","uma briga de pátio"));
   }
 }
 
@@ -2298,7 +2309,7 @@ function prisonDeath(p,why){
   p._deathCause=d.t;
   SFX.flatline();
   p.alive=false;p.diedAt=p.age;
-  log(p.name+" is KILLED IN PRISON — "+d.t+". OUT.","bad");
+  log(p.name+L(" is KILLED IN PRISON — "," é MORTO NA PRISÃO — ")+d.t+L(". OUT.",". FORA."),"bad");
   render();
   const el=document.getElementById("cardEl");
   el.dataset.deck="death";
@@ -2315,8 +2326,8 @@ function prisonDeath(p,why){
 /* ===== DEATH / WIN ===== */
 function killPlayer(p){
   SFX.flatline();
-  if(!p._deathCause&&p._hospCause)p._deathCause="Flatlined in the hospital after "+p._hospCause;
-  p.alive=false;p.diedAt=p.age;log(p.name+" DIES for good at "+p.age+". OUT.","bad");
+  if(!p._deathCause&&p._hospCause)p._deathCause=L("Flatlined in the hospital after ","Apagou no hospital depois de ")+p._hospCause;
+  p.alive=false;p.diedAt=p.age;log(p.name+L(" DIES for good at "," MORRE de vez aos ")+p.age+L(". OUT.",". FORA."),"bad");
   render();
   showDeathAnnounce(p); // big announcement → RIP memorial
 }
@@ -2535,7 +2546,7 @@ function endTurn(){ if(S.over)return; if(!S.rolled)return;
   let g=0;
   do{ S.cur=(S.cur+1)%S.n; if(S.cur===0){S.turn++;newRound();} g++;
     const np=S.players[S.cur];
-    if(np.alive&&np.skip>0){np.skip--;log(np.name+" sits out (recovering).");continue;}
+    if(np.alive&&np.skip>0){np.skip--;log(np.name+L(" sits out (recovering)."," fica de fora (se recuperando)."));continue;}
     if(np.alive)break;
   }while(g<30);
   S.rolled=false;document.getElementById("diceLbl").textContent="roll to move";
@@ -2547,21 +2558,21 @@ function endTurn(){ if(S.over)return; if(!S.rolled)return;
 function rollDiceAI(){ if(S.players[S.cur].ai&&!S.rolled){ rollDice(); } }
 
 /* ===== AI helpers ===== */
-function aiBuyStreet(idx,c){const p=S.players[S.cur];if(p.cash>=c.price*2){p.cash-=c.price;p.owns.set(idx,1);log(p.name+" claims "+c.t+".","good");}else log(p.name+" passes on "+c.t+".");render();finish();}
-function aiBuyBiz(idx,c){const p=S.players[S.cur];if(p.cash>=c.income*1.5){p.cash-=c.income;p.owns.set(idx,1);log(p.name+" opens "+c.t+".","good");}else log(p.name+" passes on "+c.t+".");render();finish();}
+function aiBuyStreet(idx,c){const p=S.players[S.cur];if(p.cash>=c.price*2){p.cash-=c.price;p.owns.set(idx,1);log(p.name+L(" claims "," toma ")+c.t+".","good");}else log(p.name+L(" passes on "," dispensa ")+c.t+".");render();finish();}
+function aiBuyBiz(idx,c){const p=S.players[S.cur];if(p.cash>=c.income*1.5){p.cash-=c.income;p.owns.set(idx,1);log(p.name+L(" opens "," abre ")+c.t+".","good");}else log(p.name+L(" passes on "," dispensa ")+c.t+".");render();finish();}
 
 /* ===== helpers ===== */
 function rentCard(p,owner,amt,reason){
   const covered=p.cash>=amt;
   if(!covered){ // can't pay — assets get liquidated; whatever is raised goes to the owner
-    p.cash-=amt; log(p.name+" can't cover "+reason+" to "+owner.name+".","warn");
+    p.cash-=amt; log(p.name+L(" can't cover "," não consegue pagar ")+reason+L(" to "," a ")+owner.name+".","warn");
     settleDebts(p);
     const paid=amt+Math.min(0,p.cash);
-    if(paid>0){ owner.cash+=paid; log(owner.name+" collects "+fmtK(paid)+(p.cash<0?" — all "+p.name+" could raise.":" after the sell-off."),"warn"); }
+    if(paid>0){ owner.cash+=paid; log(owner.name+L(" collects "," recolhe ")+fmtK(paid)+(p.cash<0?L(" — all "," — tudo que ")+p.name+L(" could raise."," conseguiu levantar."):L(" after the sell-off."," depois da liquidação.")),"warn"); }
     afterMoney(p); if(!p._sentToHospital) finish(); p._sentToHospital=false; return;
   }
   p.cash-=amt; owner.cash+=amt;
-  log(p.name+" pays "+fmtK(amt)+" to "+owner.name+" ("+reason+").","warn");
+  log(p.name+L(" pays "," paga ")+fmtK(amt)+L(" to "," a ")+owner.name+" ("+reason+").","warn");
   if(p.ai){ render(); finish(); return; }
   render();
   const el=document.getElementById("cardEl");
@@ -2664,7 +2675,7 @@ function closeModal(){document.getElementById("modal").classList.remove("on");co
   }
   function startLogin(){
     out.innerHTML="";
-    nl("CRIMINAL TERMINAL (R) v10.2");
+    nl("CRIMINAL TERMINAL (R) v10.3");
     nl("(C) 1987 SATAN SYSTEMS CORP. ALL RIGHTS RESERVED.");
     nl('<span id="playCountBoot" style="opacity:.75">'+(typeof PLAYCOUNT!=="undefined"&&PLAYCOUNT!=null?L("CRIMINALS SERVED WORLDWIDE: ","CRIMINOSOS ATENDIDOS NO MUNDO: ")+PLAYCOUNT:L("CRIMINALS SERVED WORLDWIDE: ...","CRIMINOSOS ATENDIDOS NO MUNDO: ..."))+'</span>');
     nl("");
@@ -2747,10 +2758,10 @@ function closeModal(){document.getElementById("modal").classList.remove("on");co
   }
   function finish(){ if(phase==="done")return; phase="done"; gate.classList.add("hidden"); const k=document.getElementById("doskeys"); if(k)k.remove(); }
 
-  window._pickLang=function(l){ setLang(l); startLogin(); };
+  window._pickLang=function(l){ setLang(l); try{applyStaticLang();}catch(e){} startLogin(); };
   function langScreen(){
     out.innerHTML="";
-    nl("CRIMINAL TERMINAL (R) v10.2");
+    nl("CRIMINAL TERMINAL (R) v10.3");
     nl("(C) 1987 SATAN SYSTEMS CORP.");
     nl("");
     nl("SELECT LANGUAGE / ESCOLHA O IDIOMA:");
