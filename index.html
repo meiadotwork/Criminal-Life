@@ -462,48 +462,44 @@
   body.colormode.mono .card[data-deck] .lbl{background:#000 !important;}
   body.colormode.mono .card[data-deck]{border-color:#000 !important;}
 
-  /* ===== CRT COLOR MODE: the original phosphor CRT look with its color accents back ===== */
-  body.crtcolor{--amber:#ffb642;--red:#ff5a52;}
-  body.crtcolor button.amber{color:var(--amber) !important;border-color:var(--amber) !important;}
-  body.crtcolor button.red{color:var(--red) !important;border-color:var(--red) !important;}
-  body.crtcolor button.amber:hover{background:var(--amber) !important;color:#000 !important;}
-  body.crtcolor button.red:hover{background:var(--red) !important;color:#000 !important;}
-  body.crtcolor #log .l.warn{color:var(--amber) !important;}
-  body.crtcolor #log .l.bad{color:var(--red) !important;}
-  body.crtcolor .cell.k-heist{box-shadow:inset 4px 0 0 #ff5a52 !important;}
-  body.crtcolor .cell.k-hitman{box-shadow:inset 4px 0 0 #e8e8e8 !important;}
-  body.crtcolor .cell.k-attack{box-shadow:inset 4px 0 0 #ff8c42 !important;}
-  body.crtcolor .cell.k-drug{box-shadow:inset 4px 0 0 #52e07c !important;}
-  body.crtcolor .cell.k-biz{box-shadow:inset 4px 0 0 #cddc39 !important;}
-  body.crtcolor .cell.k-street{box-shadow:inset 4px 0 0 #d7a86e !important;}
-  body.crtcolor .cell.k-party{box-shadow:inset 4px 0 0 #ffd166 !important;}
-  body.crtcolor .cell.k-poker{box-shadow:inset 4px 0 0 #c8a165 !important;}
-  body.crtcolor .cell.k-fate{box-shadow:inset 4px 0 0 #4fc3f7 !important;}
-  body.crtcolor .cell.k-cop{box-shadow:inset 4px 0 0 #5c9dff !important;}
-  body.crtcolor .cell.k-raid{box-shadow:inset 4px 0 0 #ff6e40 !important;}
-  body.crtcolor .cell.k-crew{box-shadow:inset 4px 0 0 #9fb4c0 !important;}
-  body.crtcolor .cell.k-visitjail{box-shadow:inset 4px 0 0 #8fb3c7 !important;}
-  body.crtcolor .cell.k-hospital{box-shadow:inset 4px 0 0 #4db6ac !important;}
-  body.crtcolor .cell.k-pentry{box-shadow:inset 4px 0 0 #b0bec5 !important;}
-  body.crtcolor .cell.k-pday{box-shadow:inset 4px 0 0 #cfd8dc !important;}
-  body.crtcolor .cell.k-pfight{box-shadow:inset 4px 0 0 #ffb74d !important;}
-  body.crtcolor .cell.k-riot{box-shadow:inset 4px 0 0 #dce775 !important;}
-  body.crtcolor .card[data-deck="heist"] .lbl{background:#ff5a52 !important;}
-  body.crtcolor .card[data-deck="hitman"] .lbl{background:#e8e8e8 !important;}
-  body.crtcolor .card[data-deck="drug"] .lbl{background:#52e07c !important;}
-  body.crtcolor .card[data-deck="party"] .lbl{background:#ffd166 !important;}
-  body.crtcolor .card[data-deck="fate"] .lbl{background:#4fc3f7 !important;}
-  body.crtcolor .card[data-deck="cop"] .lbl{background:#5c9dff !important;}
-  body.crtcolor .card[data-deck="raid"] .lbl{background:#ff6e40 !important;}
-  body.crtcolor .card[data-deck="court"] .lbl{background:#e0b060 !important;}
-  body.crtcolor .card[data-deck="hospital"] .lbl{background:#4db6ac !important;}
-  body.crtcolor .card[data-deck="visit"] .lbl{background:#8fb3c7 !important;}
-  body.crtcolor .card[data-deck="pday"] .lbl{background:#cfd8dc !important;}
-  body.crtcolor .card[data-deck="pfight"] .lbl{background:#ffb74d !important;}
-  body.crtcolor .card[data-deck="riot"] .lbl{background:#dce775 !important;}
-  body.crtcolor .card[data-deck="law"] .lbl{background:#7aa2ff !important;}
-  body.crtcolor .card[data-deck="notice"] .lbl{background:#bdbdbd !important;}
-  body.crtcolor .card[data-deck="death"] .lbl{background:#ff5a52 !important;}
+  /* ===== WIN MODE: Windows 95 — teal desktop, silver windows, navy title bars, 3D bevels ===== */
+  html:has(body.win95){background:#008080 !important;}
+  body.win95{--phos:#000;--phos-dim:#404040;--phos-dark:#808080;--bg:#c0c0c0;background:#008080 !important;background-image:none !important;}
+  body.win95 *{color:#000 !important;text-shadow:none !important;}
+  body.win95 #screen,body.win95 #setup{background:#008080 !important;background-image:none !important;}
+  body.win95 .bar,body.win95 .panel,body.win95 .card,body.win95 .psetup,body.win95 .dosconfig,body.win95 #dosgate,body.win95 .pl{
+    background:#c0c0c0 !important;background-image:none !important;
+    border:2px solid !important;border-color:#fff #404040 #404040 #fff !important;border-radius:0 !important;}
+  body.win95 #board,body.win95 #diceBox,body.win95 .choice,body.win95 .controls,body.win95 #players{background:transparent !important;background-image:none !important;}
+  body.win95 .cell{background:#fff !important;border:1px solid #808080 !important;box-shadow:none !important;}
+  body.win95 .cell.hollow{background:transparent !important;border:none !important;}
+  body.win95 .cell.here{background:#000080 !important;border:1px solid #000 !important;}
+  body.win95 .cell.here *{color:#fff !important;}
+  body.win95 button{background:#c0c0c0 !important;background-image:none !important;border:2px solid !important;border-color:#fff #404040 #404040 #fff !important;border-radius:0 !important;}
+  body.win95 button:hover,body.win95 button:focus{background:#c0c0c0 !important;color:#000 !important;}
+  body.win95 button:hover *,body.win95 button:focus *{color:#000 !important;}
+  body.win95 button:active{border-color:#404040 #fff #fff #404040 !important;background:#b0b0b0 !important;}
+  body.win95 .lbl,body.win95 .card .lbl,body.win95 .panel h2,body.win95 #turnBanner,body.win95 .dosbar,body.win95 .card .status{background:#000080 !important;border:none !important;}
+  body.win95 .lbl,body.win95 .lbl *,body.win95 .card .lbl,body.win95 .card .lbl *,body.win95 .panel h2,body.win95 .panel h2 *,body.win95 #turnBanner,body.win95 #turnBanner *,body.win95 .dosbar,body.win95 .dosbar *,body.win95 .card .status,body.win95 .card .status *{color:#fff !important;}
+  body.win95 .card .out,body.win95 #log,body.win95 input{background:#fff !important;background-image:none !important;border:2px solid !important;border-color:#404040 #fff #fff #404040 !important;}
+  body.win95 #die,body.win95 .die{background:#fff !important;border:2px solid !important;border-color:#404040 #fff #fff #404040 !important;}
+  body.win95 .pip{background:#000 !important;}
+  body.win95 .die .dienum,body.win95 #die .dienum{color:#000 !important;}
+  body.win95 svg *{fill:#000 !important;stroke:#000 !important;}
+  body.win95 #innerLabel{background:#c0c0c0 !important;}
+  body.win95 #innerLabel,body.win95 .pfw{color:#000 !important;}
+  body.win95 #prisonFence{border-color:#000 !important;}
+  body.win95 .patchip{border-color:#000 !important;background-color:#fff;}
+  body.win95 .pat-solid{background:#000 !important;}
+  body.win95 .pat-inv{background:#fff !important;border:2px solid #000 !important;}
+  body.win95 .pat-vstripe{background:repeating-linear-gradient(90deg,#000 0 2px,#fff 2px 4px) !important;}
+  body.win95 .pat-hstripe{background:repeating-linear-gradient(0deg,#000 0 2px,#fff 2px 4px) !important;}
+  body.win95 .pat-dots{background:radial-gradient(#000 34%,#fff 36%) 0 0/5px 5px,#fff !important;}
+  body.win95 .pat-checker{background:conic-gradient(#000 90deg,#fff 0 180deg,#000 0 270deg,#fff 0) 0 0/6px 6px,#fff !important;}
+  body.win95 .pat-diag,body.win95 .cell .pat-diag{background:repeating-linear-gradient(45deg,#000 0 2px,#fff 2px 4px) !important;}
+  body.win95 .pat-cross,body.win95 .cell .pat-cross{background:repeating-linear-gradient(0deg,#000 0 1px,#fff 1px 4px),repeating-linear-gradient(90deg,#000 0 1px,#fff 1px 4px) !important;}
+  body.win95 .pat-half,body.win95 .cell .pat-half{background:linear-gradient(180deg,#000 0 50%,#fff 50% 100%) !important;}
+  body.win95 .pat-ring,body.win95 .cell .pat-ring{background:radial-gradient(circle,#fff 0 30%,#000 32% 62%,#fff 64%) !important;}
 </style>
 </head>
 <body class="crt">
@@ -512,7 +508,7 @@
 <div id="setup">
 <div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
 <div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
-<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v9.8</div>
+<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v9.9</div>
 <div id="setupStage"></div>
 </div>
 
@@ -528,7 +524,7 @@
       <button class="tiny" id="uizBtn" onclick="uiScale(0)">100%</button>
       <button class="tiny" onclick="uiScale(1)">+</button>
       <button id="followBtn" onclick="toggleFollow()">[ FOLLOW: OFF ]</button>
-      <button id="greenBtn" onclick="toggleGreenDos()" title="display: 87 green / 94 mono / INK paper mono / COLOR paper / CRT color">[ 87 ]</button>
+      <button id="greenBtn" onclick="toggleGreenDos()" title="display: 87 green / 94 mono / INK paper mono / COLOR paper / WIN 95">[ 87 ]</button>
       <button id="sndBtn" onclick="toggleSnd()">[ SND ]</button>
       <a class="reset" onclick="askReset()">[reset]</a>
     </div>
@@ -1115,7 +1111,7 @@ function openManual(){ window.speechSynthesis&&window.speechSynthesis.cancel(); 
   Killed in prison or flatlined in the hospital: you get a death card, a memorial, and you're OUT. The game runs until one boss remains \u2014 or until someone RETIRES UNTOUCHABLE ($10M net worth + age 65, checked each time you pass START). Beat the AI on REALISTIC difficulty and your name gets carved into the HALL OF FAME on the title screen \u2014 that's the only way in.
 
   ${H("SCREEN & CONTROLS")}
-  \u25B8 [ 87 ] cycles 5 displays: 87 green phosphor \u2192 94 white-on-black mono \u2192 INK black-on-white mono \u2192 COLOR paper (cards and cells color-coded) \u2192 CRT phosphor with color accents. Your pick is remembered.<br>
+  \u25B8 [ 87 ] cycles 5 displays: 87 green phosphor \u2192 94 white-on-black mono \u2192 INK black-on-white mono \u2192 COLOR paper (cards and cells color-coded) \u2192 WIN, a Windows-95 desktop (teal wallpaper, silver windows, navy title bars). Your pick is remembered.<br>
   \u25B8 [ SND ] toggles sound \u00B7 [ READ ] on any card reads it aloud \u00B7 zoom buttons resize the board.<br>
   \u25B8 The game saves itself every turn \u2014 close the tab, come back later.
   </div>
@@ -1200,19 +1196,19 @@ const PT={
 };
 function tr(s){ return (LANG==='PT'&&PT[s])?PT[s]:s; }
 /* 5 display modes: 87 green phosphor · 94 white-on-black mono · INK black-on-white mono ·
-   COLOR paper with color-coded cards/cells · CRT phosphor with color accents */
+   COLOR paper with color-coded cards/cells · WIN Windows-95 desktop */
 const DISPLAY_MODES=[
   {cls:[],              lbl:"[ 87 ]"},
   {cls:["bw"],          lbl:"[ 94 ]"},
   {cls:["colormode","mono"], lbl:"[ INK ]"},
   {cls:["colormode"],   lbl:"[ COLOR ]"},
-  {cls:["crtcolor"],    lbl:"[ CRT ]"},
+  {cls:["win95"],       lbl:"[ WIN ]"},
 ];
 let _dispMode=0;
 try{_dispMode=Math.min(DISPLAY_MODES.length-1,parseInt(localStorage.getItem("ct_disp"))||0);}catch(e){}
 function applyDisplayMode(){
   const b=document.body;
-  b.classList.remove("bw","colormode","mono","crtcolor");
+  b.classList.remove("bw","colormode","mono","win95");
   DISPLAY_MODES[_dispMode].cls.forEach(c=>b.classList.add(c));
   const btn=document.getElementById("greenBtn");
   if(btn)btn.textContent=DISPLAY_MODES[_dispMode].lbl;
@@ -2553,7 +2549,7 @@ function closeModal(){document.getElementById("modal").classList.remove("on");co
   }
   function startLogin(){
     out.innerHTML="";
-    nl("CRIMINAL TERMINAL (R) v9.8");
+    nl("CRIMINAL TERMINAL (R) v9.9");
     nl("(C) 1987 SATAN SYSTEMS CORP. ALL RIGHTS RESERVED.");
     nl('<span id="playCountBoot" style="opacity:.75">'+(typeof PLAYCOUNT!=="undefined"&&PLAYCOUNT!=null?"CRIMINALS SERVED WORLDWIDE: "+PLAYCOUNT:"CRIMINALS SERVED WORLDWIDE: ...")+'</span>');
     nl("");
