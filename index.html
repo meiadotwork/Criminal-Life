@@ -542,7 +542,7 @@
 <div id="setup">
 <div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
 <div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
-<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v10.3</div>
+<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v10.4</div>
 <div id="setupStage"></div>
 </div>
 
@@ -1133,7 +1133,7 @@ function openManual(){ window.speechSynthesis&&window.speechSynthesis.cancel(); 
   Voc\u00ea tem UMA a\u00e7\u00e3o: toque no dado para rolar e andar, OU aperte [ COMETER CRIME ] antes de rolar (3 chances por ano) para um assalto, morte encomendada ou tr\u00e1fico aleat\u00f3rio. Voc\u00ea anda pelo tabuleiro e resolve a casa onde CAIR. Tudo o que acontece aparece como uma carta.
 
   ${H("A RUA (anel externo)")}
-  Uma volta completa = UM ANO. Toda vez que passa pelo IN\u00cdCIO: voc\u00ea envelhece +1, suas 3 chances de crime renovam, paga o sal\u00e1rio dos soldados ($${SOLDIER_WAGE}K cada), e a cada 2 voltas limpas cura uma visita de hospital. Passar POR CIMA de uma propriedade sua coleta a renda \u2014 n\u00e3o precisa cair exatamente nela.
+  Uma volta completa = UM ANO. Toda vez que passa pelo IN\u00cdCIO: voc\u00ea envelhece +1, suas 3 chances de crime renovam, paga o sal\u00e1rio dos soldados ($${SOLDIER_WAGE}K cada), os LAVADORES levam 30% do seu dinheiro para limpar o caixa do ano, e a cada 2 voltas limpas cura uma visita de hospital. Passar POR CIMA de uma propriedade sua coleta a renda \u2014 n\u00e3o precisa cair exatamente nela.
 
   ${H("AS CASAS")}
   \u25B8 ASSALTO / MATADOR / TR\u00c1FICO \u2014 uma carta de servi\u00e7o: pegue o dinheiro e sobreviva ao teste de pris\u00e3o (10% base + seu RISCO).<br>
@@ -1189,7 +1189,7 @@ function openManual(){ window.speechSynthesis&&window.speechSynthesis.cancel(); 
   You get ONE action: tap the die to roll and move, OR press [ COMMIT CRIME ] before rolling (3 chances per year) for a random heist, hit or drug run. You move around the board and resolve the space you LAND on. Everything that happens to you shows up as a card.
 
   ${H("THE STREET (outer ring)")}
-  One full lap = ONE YEAR. Every time you pass START: you age +1, your 3 crime chances refill, you pay soldier wages ($${SOLDIER_WAGE}K each), and every 2nd clean lap heals one hospital visit. Passing OVER a property you own collects its income \u2014 no need to land on it exactly.
+  One full lap = ONE YEAR. Every time you pass START: you age +1, your 3 crime chances refill, you pay soldier wages ($${SOLDIER_WAGE}K each), the LAUNDERERS take 30% of your cash to clean the year's money, and every 2nd clean lap heals one hospital visit. Passing OVER a property you own collects its income \u2014 no need to land on it exactly.
 
   ${H("THE SPACES")}
   \u25B8 HEIST / HITMAN / DRUG \u2014 a job card: take the money, then survive the arrest roll (10% base + your HEAT).<br>
@@ -1276,6 +1276,7 @@ function stepMove(p,left){
   if(ring==="outer"&&p.pos===0){p.age++;p.crimeOps=3;log(p.name+L(" makes it another year (now "," sobrevive mais um ano (agora ")+p.age+L(" yo). Crime chances refilled."," anos). Chances de crime renovadas."),"");
     if(p.heat>0){p.heat=Math.max(0,p.heat-5);log(p.name+L("'s heat cools a little (now ",": o risco esfria um pouco (agora ")+p.heat+"%).","");}
     if(p.crew>0){const wages=p.crew*SOLDIER_WAGE;p.cash-=wages;log(p.name+L(" pays soldier wages: "," paga salário dos soldados: ")+fmtK(wages)+" ("+p.crew+" × $"+SOLDIER_WAGE+L("K/yr).","K/ano)."),"warn");}
+    if(p.cash>0){const laund=Math.round(p.cash*0.30);if(laund>0){p.cash-=laund;log(p.name+L(" pays "," paga ")+fmtK(laund)+L(" — the launderers take 30% to clean the year's money."," — os lavadores levam 30% para limpar o dinheiro do ano."),"warn");}}
     p.cleanLaps++;if(p.hosp>0&&p.cleanLaps%2===0){p.hosp--;log(p.name+L(" recovers — 1 hospital visit cleared."," se recupera — 1 visita de hospital limpa."),"good");}
     if(p.age>=65&&netWorth(p)>=10000){showRetire(p);return;}}   // RETIRE UNTOUCHABLE: $10M net worth + age 65
   render();
@@ -2675,7 +2676,7 @@ function closeModal(){document.getElementById("modal").classList.remove("on");co
   }
   function startLogin(){
     out.innerHTML="";
-    nl("CRIMINAL TERMINAL (R) v10.3");
+    nl("CRIMINAL TERMINAL (R) v10.4");
     nl("(C) 1987 SATAN SYSTEMS CORP. ALL RIGHTS RESERVED.");
     nl('<span id="playCountBoot" style="opacity:.75">'+(typeof PLAYCOUNT!=="undefined"&&PLAYCOUNT!=null?L("CRIMINALS SERVED WORLDWIDE: ","CRIMINOSOS ATENDIDOS NO MUNDO: ")+PLAYCOUNT:L("CRIMINALS SERVED WORLDWIDE: ...","CRIMINOSOS ATENDIDOS NO MUNDO: ..."))+'</span>');
     nl("");
@@ -2761,7 +2762,7 @@ function closeModal(){document.getElementById("modal").classList.remove("on");co
   window._pickLang=function(l){ setLang(l); try{applyStaticLang();}catch(e){} startLogin(); };
   function langScreen(){
     out.innerHTML="";
-    nl("CRIMINAL TERMINAL (R) v10.3");
+    nl("CRIMINAL TERMINAL (R) v10.4");
     nl("(C) 1987 SATAN SYSTEMS CORP.");
     nl("");
     nl("SELECT LANGUAGE / ESCOLHA O IDIOMA:");
