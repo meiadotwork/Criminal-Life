@@ -370,9 +370,12 @@
   /* die face shown as a number (D8/D10 rolls above 6 have no pip layout) */
   .die .dienum,#die .dienum{grid-column:1/4;grid-row:1/4;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:bold;color:var(--phos);}
 
-  /* ===== PRISON fence: continuous barbed wire around the inner ring — the only break is the PRISON script ===== */
-  #prisonFence{position:absolute;left:25.9%;top:25.9%;width:48.2%;height:48.2%;pointer-events:none;z-index:2;
-    border:2px solid var(--phos) !important;}
+  /* ===== PRISON fence: continuous barbed wire around the inner ring — the only break is the PRISON script.
+     Positioned as an absolute grid child of #board pinned to grid tracks 4-8, so it hugs the prison
+     cells exactly on every browser and zoom level. ===== */
+  #board{position:relative;}
+  #prisonFence{position:absolute;grid-row:4/9;grid-column:4/9;top:-7px;left:-7px;right:-7px;bottom:-7px;
+    pointer-events:none;z-index:2;border:2px solid var(--phos) !important;}
   .pfw{position:absolute;color:var(--phos);font-weight:bold;font-size:clamp(13px,2.4vw,26px);letter-spacing:1.1em;white-space:nowrap;overflow:hidden;opacity:.95;line-height:1;}
   .pfw.t{left:0;right:0;top:-1px;transform:translateY(-50%);text-align:center;}
   .pfw.b{left:0;right:0;bottom:-1px;transform:translateY(50%);text-align:center;}
@@ -452,6 +455,55 @@
   body.colormode .card[data-deck="law"] .lbl{background:#002f6c !important;}     body.colormode .card[data-deck="law"]{border-color:#002f6c !important;}
   body.colormode .card[data-deck="notice"] .lbl{background:#333 !important;}     body.colormode .card[data-deck="notice"]{border-color:#333 !important;}
   body.colormode .card[data-deck="death"] .lbl{background:#000 !important;}      body.colormode .card[data-deck="death"]{border-color:#000 !important;}
+
+  /* ===== INK MODE (colormode + mono): pure black-on-white — the exact inverse of 94 ===== */
+  body.colormode.mono .cell{background:#fff !important;box-shadow:none !important;}
+  body.colormode.mono .cell.here{background:#e6e6e6 !important;border:2px solid #000 !important;}
+  body.colormode.mono .card[data-deck] .lbl{background:#000 !important;}
+  body.colormode.mono .card[data-deck]{border-color:#000 !important;}
+
+  /* ===== CRT COLOR MODE: the original phosphor CRT look with its color accents back ===== */
+  body.crtcolor{--amber:#ffb642;--red:#ff5a52;}
+  body.crtcolor button.amber{color:var(--amber) !important;border-color:var(--amber) !important;}
+  body.crtcolor button.red{color:var(--red) !important;border-color:var(--red) !important;}
+  body.crtcolor button.amber:hover{background:var(--amber) !important;color:#000 !important;}
+  body.crtcolor button.red:hover{background:var(--red) !important;color:#000 !important;}
+  body.crtcolor #log .l.warn{color:var(--amber) !important;}
+  body.crtcolor #log .l.bad{color:var(--red) !important;}
+  body.crtcolor .cell.k-heist{box-shadow:inset 4px 0 0 #ff5a52 !important;}
+  body.crtcolor .cell.k-hitman{box-shadow:inset 4px 0 0 #e8e8e8 !important;}
+  body.crtcolor .cell.k-attack{box-shadow:inset 4px 0 0 #ff8c42 !important;}
+  body.crtcolor .cell.k-drug{box-shadow:inset 4px 0 0 #52e07c !important;}
+  body.crtcolor .cell.k-biz{box-shadow:inset 4px 0 0 #cddc39 !important;}
+  body.crtcolor .cell.k-street{box-shadow:inset 4px 0 0 #d7a86e !important;}
+  body.crtcolor .cell.k-party{box-shadow:inset 4px 0 0 #ffd166 !important;}
+  body.crtcolor .cell.k-poker{box-shadow:inset 4px 0 0 #c8a165 !important;}
+  body.crtcolor .cell.k-fate{box-shadow:inset 4px 0 0 #4fc3f7 !important;}
+  body.crtcolor .cell.k-cop{box-shadow:inset 4px 0 0 #5c9dff !important;}
+  body.crtcolor .cell.k-raid{box-shadow:inset 4px 0 0 #ff6e40 !important;}
+  body.crtcolor .cell.k-crew{box-shadow:inset 4px 0 0 #9fb4c0 !important;}
+  body.crtcolor .cell.k-visitjail{box-shadow:inset 4px 0 0 #8fb3c7 !important;}
+  body.crtcolor .cell.k-hospital{box-shadow:inset 4px 0 0 #4db6ac !important;}
+  body.crtcolor .cell.k-pentry{box-shadow:inset 4px 0 0 #b0bec5 !important;}
+  body.crtcolor .cell.k-pday{box-shadow:inset 4px 0 0 #cfd8dc !important;}
+  body.crtcolor .cell.k-pfight{box-shadow:inset 4px 0 0 #ffb74d !important;}
+  body.crtcolor .cell.k-riot{box-shadow:inset 4px 0 0 #dce775 !important;}
+  body.crtcolor .card[data-deck="heist"] .lbl{background:#ff5a52 !important;}
+  body.crtcolor .card[data-deck="hitman"] .lbl{background:#e8e8e8 !important;}
+  body.crtcolor .card[data-deck="drug"] .lbl{background:#52e07c !important;}
+  body.crtcolor .card[data-deck="party"] .lbl{background:#ffd166 !important;}
+  body.crtcolor .card[data-deck="fate"] .lbl{background:#4fc3f7 !important;}
+  body.crtcolor .card[data-deck="cop"] .lbl{background:#5c9dff !important;}
+  body.crtcolor .card[data-deck="raid"] .lbl{background:#ff6e40 !important;}
+  body.crtcolor .card[data-deck="court"] .lbl{background:#e0b060 !important;}
+  body.crtcolor .card[data-deck="hospital"] .lbl{background:#4db6ac !important;}
+  body.crtcolor .card[data-deck="visit"] .lbl{background:#8fb3c7 !important;}
+  body.crtcolor .card[data-deck="pday"] .lbl{background:#cfd8dc !important;}
+  body.crtcolor .card[data-deck="pfight"] .lbl{background:#ffb74d !important;}
+  body.crtcolor .card[data-deck="riot"] .lbl{background:#dce775 !important;}
+  body.crtcolor .card[data-deck="law"] .lbl{background:#7aa2ff !important;}
+  body.crtcolor .card[data-deck="notice"] .lbl{background:#bdbdbd !important;}
+  body.crtcolor .card[data-deck="death"] .lbl{background:#ff5a52 !important;}
 </style>
 </head>
 <body class="crt">
@@ -460,7 +512,7 @@
 <div id="setup">
 <div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
 <div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
-<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v9.7</div>
+<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v9.8</div>
 <div id="setupStage"></div>
 </div>
 
@@ -476,7 +528,7 @@
       <button class="tiny" id="uizBtn" onclick="uiScale(0)">100%</button>
       <button class="tiny" onclick="uiScale(1)">+</button>
       <button id="followBtn" onclick="toggleFollow()">[ FOLLOW: OFF ]</button>
-      <button id="greenBtn" onclick="toggleGreenDos()" title="display: 1987 green / 1994 mono / color paper">[ 87 ]</button>
+      <button id="greenBtn" onclick="toggleGreenDos()" title="display: 87 green / 94 mono / INK paper mono / COLOR paper / CRT color">[ 87 ]</button>
       <button id="sndBtn" onclick="toggleSnd()">[ SND ]</button>
       <a class="reset" onclick="askReset()">[reset]</a>
     </div>
@@ -485,7 +537,7 @@
     <div class="panel board-panel">
       <h2>THE CITY</h2>
       <div class="zoombar"><button onclick="boardZoom(-1)">−</button><button id="bzBtn" onclick="boardZoom(0)" title="tap to fit">100%</button><button onclick="boardZoom(1)">+</button></div>
-      <div id="boardWrap"><div id="board"></div><div id="prisonFence"><span class="pfw t">x x x x x x x x x x x x</span><span class="pfw b">x x x x x x x x x x x x</span><span class="pfw l">x x x x x x x x</span><span class="pfw r">x x x x x x x x</span><div id="innerLabel">P R I S O N</div></div></div>
+      <div id="boardWrap"><div id="board"></div></div>
     </div>
     <div class="side">
       <div class="panel">
@@ -849,6 +901,10 @@ function buildBoardGrid(){
     else cell.className="cell hollow";
     board.appendChild(cell);
   }
+  // barbed-wire fence: an absolutely-positioned grid child pinned to the prison's own grid tracks
+  // (rows/cols 4-8 of the 11-grid) — aligns on every browser with zero pixel math
+  board.insertAdjacentHTML("beforeend",
+    `<div id="prisonFence"><span class="pfw t">x x x x x x x x x x x x</span><span class="pfw b">x x x x x x x x x x x x</span><span class="pfw l">x x x x x x x x</span><span class="pfw r">x x x x x x x x</span><div id="innerLabel">P R I S O N</div></div>`);
 }
 
 function render(){
@@ -890,7 +946,6 @@ function render(){
   const tb=document.getElementById("turnBanner");
   tb.textContent=`TURN ${S.turn} — ${cp.name}`+(cp.ring==="inner"?" [PRISON]":"");
   tb.style.background=cp.color;tb.style.borderColor=cp.color;
-  placeFence();
 }
 function hexA(hex,a){const n=parseInt(hex.slice(1),16);return`rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${a})`;}
 
@@ -966,24 +1021,6 @@ function sellAssetFromMenu(idx){
 /* ===== ROLL + STEP MOVEMENT (always visible) ===== */
 let _bz=1,_fit=1;
 function applyBoardZoom(){ const bw=document.getElementById("boardWrap"); if(bw)bw.style.setProperty("--bzoom",+((_fit||1)*_bz).toFixed(3)); }
-/* Anchor the barbed-wire fence to the REAL prison cells (row heights vary by device/font — never trust percentages) */
-function placeFence(){
-  const bw=document.getElementById("boardWrap"),f=document.getElementById("prisonFence");
-  if(!bw||!f)return;
-  const cells=document.querySelectorAll('#board .cell[data-ring="inner"]');
-  if(!cells.length)return;
-  const z=parseFloat(getComputedStyle(bw).zoom)||1;
-  const br=bw.getBoundingClientRect();
-  let x1=1e9,y1=1e9,x2=-1e9,y2=-1e9;
-  cells.forEach(c=>{const r=c.getBoundingClientRect();if(!r.width)return;
-    x1=Math.min(x1,r.left);y1=Math.min(y1,r.top);x2=Math.max(x2,r.right);y2=Math.max(y2,r.bottom);});
-  if(x2<=x1||y2<=y1)return;
-  const pad=Math.max(5,(x2-x1)/z*0.02);
-  f.style.left=((x1-br.left)/z-pad)+"px";
-  f.style.top=((y1-br.top)/z-pad)+"px";
-  f.style.width=((x2-x1)/z+pad*2)+"px";
-  f.style.height=((y2-y1)/z+pad*2)+"px";
-}
 function fitBoard(){
   const bp=document.querySelector(".board-panel"), bw=document.getElementById("boardWrap"); if(!bp||!bw)return;
   bw.style.setProperty("--bzoom",1);                    // measure natural (unzoomed) size
@@ -997,7 +1034,6 @@ function fitBoard(){
     if(!isFinite(fit)||fit<=0) fit=1;
     if(window.innerWidth>=900 && fit>1) fit=1;          // don't upscale past natural on desktop
     _fit=fit; applyBoardZoom();
-    placeFence();
   });
 }
 function boardZoom(dir){
@@ -1079,7 +1115,7 @@ function openManual(){ window.speechSynthesis&&window.speechSynthesis.cancel(); 
   Killed in prison or flatlined in the hospital: you get a death card, a memorial, and you're OUT. The game runs until one boss remains \u2014 or until someone RETIRES UNTOUCHABLE ($10M net worth + age 65, checked each time you pass START). Beat the AI on REALISTIC difficulty and your name gets carved into the HALL OF FAME on the title screen \u2014 that's the only way in.
 
   ${H("SCREEN & CONTROLS")}
-  \u25B8 [ 87 ] cycles the display: 1987 green phosphor \u2192 1994 mono \u2192 COLOR paper mode (white background, cards AND board cells color-coded by type).<br>
+  \u25B8 [ 87 ] cycles 5 displays: 87 green phosphor \u2192 94 white-on-black mono \u2192 INK black-on-white mono \u2192 COLOR paper (cards and cells color-coded) \u2192 CRT phosphor with color accents. Your pick is remembered.<br>
   \u25B8 [ SND ] toggles sound \u00B7 [ READ ] on any card reads it aloud \u00B7 zoom buttons resize the board.<br>
   \u25B8 The game saves itself every turn \u2014 close the tab, come back later.
   </div>
@@ -1163,15 +1199,27 @@ const PT={
  'tap die to roll':'toque no dado para rolar','roll to move':'role para andar','landed':'chegou'
 };
 function tr(s){ return (LANG==='PT'&&PT[s])?PT[s]:s; }
-function toggleGreenDos(){
+/* 5 display modes: 87 green phosphor · 94 white-on-black mono · INK black-on-white mono ·
+   COLOR paper with color-coded cards/cells · CRT phosphor with color accents */
+const DISPLAY_MODES=[
+  {cls:[],              lbl:"[ 87 ]"},
+  {cls:["bw"],          lbl:"[ 94 ]"},
+  {cls:["colormode","mono"], lbl:"[ INK ]"},
+  {cls:["colormode"],   lbl:"[ COLOR ]"},
+  {cls:["crtcolor"],    lbl:"[ CRT ]"},
+];
+let _dispMode=0;
+try{_dispMode=Math.min(DISPLAY_MODES.length-1,parseInt(localStorage.getItem("ct_disp"))||0);}catch(e){}
+function applyDisplayMode(){
   const b=document.body;
-  const next=b.classList.contains("colormode")?"green":(b.classList.contains("bw")?"color":"bw");
-  b.classList.remove("bw","colormode");
-  if(next==="bw")b.classList.add("bw");
-  else if(next==="color")b.classList.add("colormode");
+  b.classList.remove("bw","colormode","mono","crtcolor");
+  DISPLAY_MODES[_dispMode].cls.forEach(c=>b.classList.add(c));
   const btn=document.getElementById("greenBtn");
-  if(btn)btn.textContent=next==="bw"?"[ 94 ]":next==="color"?"[ COLOR ]":"[ 87 ]";
+  if(btn)btn.textContent=DISPLAY_MODES[_dispMode].lbl;
+  try{localStorage.setItem("ct_disp",_dispMode);}catch(e){}
 }
+function toggleGreenDos(){ _dispMode=(_dispMode+1)%DISPLAY_MODES.length; applyDisplayMode(); }
+applyDisplayMode();
 /* ===== AUTO-PLAY: per-player. Auto-rolls & resolves; pauses on an affordable buy; skips attacks ===== */
 function updateAutoBtn(){ const p=S&&S.players?S.players[S.cur]:null; const b=document.getElementById("autoBtn"); if(b)b.textContent=tr((p&&p.auto)?"[ AUTO: ON ]":"[ AUTO: OFF ]"); }
 function toggleAuto(){
@@ -2505,7 +2553,7 @@ function closeModal(){document.getElementById("modal").classList.remove("on");co
   }
   function startLogin(){
     out.innerHTML="";
-    nl("CRIMINAL TERMINAL (R) v9.7");
+    nl("CRIMINAL TERMINAL (R) v9.8");
     nl("(C) 1987 SATAN SYSTEMS CORP. ALL RIGHTS RESERVED.");
     nl('<span id="playCountBoot" style="opacity:.75">'+(typeof PLAYCOUNT!=="undefined"&&PLAYCOUNT!=null?"CRIMINALS SERVED WORLDWIDE: "+PLAYCOUNT:"CRIMINALS SERVED WORLDWIDE: ...")+'</span>');
     nl("");
