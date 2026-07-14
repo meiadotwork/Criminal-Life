@@ -542,7 +542,7 @@
 <div id="setup">
 <div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
 <div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
-<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v10.5</div>
+<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v10.6</div>
 <div id="setupStage"></div>
 </div>
 
@@ -698,7 +698,7 @@ let S=null;
 function newPlayer(i,name,pattern){return{id:i,name:name||("P"+(i+1)),color:"#33ff44",pattern:pattern||"solid",ring:"outer",pos:0,
   cash:100,crew:0,packs:0,alive:true,respawns:0,hosp:0,cleanLaps:0,
   inJail:false,sentence:0,owns:new Map(),skip:0,freeArrest:0,freeRaid:0,
-  crimes:[],network:[],stayCount:0,age:15,crimeOps:3,yearsServed:0,heat:0};}
+  crimes:[],network:[],stayCount:0,age:15,crimeOps:3,yearsServed:0,heat:0,dirty:0};}
 
 /* ===== GLOBAL PLAYER COUNTER: every person who starts a game, counted worldwide.
    Uses the free abacus hit-counter API; fails silently offline — the game never depends on it. ===== */
@@ -983,7 +983,7 @@ function render(){
     const joj=p.freeArrest>0?`<span class="tag">JOJ×${p.freeArrest}</span>`:"";
     if(big){
       d.innerHTML=`<div class="row"><span class="nm"><span class="patchip pat-${p.pattern||'solid'}"></span> ${p.name}${joj}</span><span>${hp}</span></div>
-      <div class="row"><span>${fmtK(p.cash)}</span><span>${p.ring==="inner"?("pk "+p.packs):soldierIcons(p.color,p.crew)}</span></div>
+      <div class="row"><span>${fmtK(p.cash)}${(p.dirty||0)>0?` <span style="opacity:.6;font-size:11px">(${L("dirty","sujo")} ${fmtK(Math.min(p.dirty,p.cash))})</span>`:""}</span><span>${p.ring==="inner"?("pk "+p.packs):soldierIcons(p.color,p.crew)}</span></div>
       <div class="row" style="opacity:.6;font-size:11px"><span>${loc}</span><span>${p.ring==="inner"?"":L("HEAT ","RISCO ")+(p.heat||0)+"% · "}${L("TURF ","ÁREA ")}${p.owns.size} · ${p.age}${L("yo","a")}</span></div>
       <div class="row" style="opacity:.5;font-size:10px"><span>${L("tap for record (CV)","toque para a ficha (CV)")}</span></div>`;
     } else {
@@ -1134,7 +1134,7 @@ function openManual(){ window.speechSynthesis&&window.speechSynthesis.cancel(); 
   Voc\u00ea tem UMA a\u00e7\u00e3o: toque no dado para rolar e andar, OU aperte [ COMETER CRIME ] antes de rolar (3 chances por ano) para um assalto, morte encomendada ou tr\u00e1fico aleat\u00f3rio. Voc\u00ea anda pelo tabuleiro e resolve a casa onde CAIR. Tudo o que acontece aparece como uma carta.
 
   ${H("A RUA (anel externo)")}
-  Uma volta completa = UM ANO. Toda vez que passa pelo IN\u00cdCIO: voc\u00ea envelhece +1, suas 3 chances de crime renovam, paga o sal\u00e1rio dos soldados ($${SOLDIER_WAGE}K cada), os LAVADORES levam 30% do seu dinheiro para limpar o caixa do ano (s\u00f3 10% se voc\u00ea for DONO do neg\u00f3cio de lavagem de dinheiro), e a cada 2 voltas limpas cura uma visita de hospital. Passar POR CIMA de uma propriedade sua coleta a renda \u2014 n\u00e3o precisa cair exatamente nela.
+  Uma volta completa = UM ANO. Toda vez que passa pelo IN\u00cdCIO: voc\u00ea envelhece +1, suas 3 chances de crime renovam, paga o sal\u00e1rio dos soldados ($${SOLDIER_WAGE}K cada), os LAVADORES limpam o dinheiro SUJO que voc\u00ea ganhou naquele ano — um corte \u00fanico de 30% (s\u00f3 10% se voc\u00ea for DONO do neg\u00f3cio de lavagem). Dinheiro limpo nunca \u00e9 cobrado de novo; o caixa inicial e vendas de bens j\u00e1 s\u00e3o limpos. A cada 2 voltas limpas voc\u00ea tamb\u00e9m cura uma visita de hospital. Passar POR CIMA de uma propriedade sua coleta a renda \u2014 n\u00e3o precisa cair exatamente nela.
 
   ${H("AS CASAS")}
   \u25B8 ASSALTO / MATADOR / TR\u00c1FICO \u2014 uma carta de servi\u00e7o: pegue o dinheiro e sobreviva ao teste de pris\u00e3o (10% base + seu RISCO).<br>
@@ -1190,7 +1190,7 @@ function openManual(){ window.speechSynthesis&&window.speechSynthesis.cancel(); 
   You get ONE action: tap the die to roll and move, OR press [ COMMIT CRIME ] before rolling (3 chances per year) for a random heist, hit or drug run. You move around the board and resolve the space you LAND on. Everything that happens to you shows up as a card.
 
   ${H("THE STREET (outer ring)")}
-  One full lap = ONE YEAR. Every time you pass START: you age +1, your 3 crime chances refill, you pay soldier wages ($${SOLDIER_WAGE}K each), the LAUNDERERS take 30% of your cash to clean the year's money (only 10% if you OWN the money laundering business), and every 2nd clean lap heals one hospital visit. Passing OVER a property you own collects its income \u2014 no need to land on it exactly.
+  One full lap = ONE YEAR. Every time you pass START: you age +1, your 3 crime chances refill, you pay soldier wages ($${SOLDIER_WAGE}K each), the LAUNDERERS clean the DIRTY money you earned that year — a one-time 30% cut (only 10% if you OWN the money laundering business). Once cleaned, money is never charged again; your starting cash and asset sales are already clean. Every 2nd clean lap also heals one hospital visit. Passing OVER a property you own collects its income \u2014 no need to land on it exactly.
 
   ${H("THE SPACES")}
   \u25B8 HEIST / HITMAN / DRUG \u2014 a job card: take the money, then survive the arrest roll (10% base + your HEAT).<br>
@@ -1277,10 +1277,15 @@ function stepMove(p,left){
   if(ring==="outer"&&p.pos===0){p.age++;p.crimeOps=3;log(p.name+L(" makes it another year (now "," sobrevive mais um ano (agora ")+p.age+L(" yo). Crime chances refilled."," anos). Chances de crime renovadas."),"");
     if(p.heat>0){p.heat=Math.max(0,p.heat-5);log(p.name+L("'s heat cools a little (now ",": o risco esfria um pouco (agora ")+p.heat+"%).","");}
     if(p.crew>0){const wages=p.crew*SOLDIER_WAGE;p.cash-=wages;log(p.name+L(" pays soldier wages: "," paga salário dos soldados: ")+fmtK(wages)+" ("+p.crew+" × $"+SOLDIER_WAGE+L("K/yr).","K/ano)."),"warn");}
-    if(p.cash>0){const ownML=p.owns.has(ML_POS);const rate=ownML?0.10:0.30;const laund=Math.round(p.cash*rate);
+    if((p.dirty||0)>0&&p.cash>0){
+      const base=Math.min(p.dirty,p.cash);
+      const ownML=p.owns.has(ML_POS);const rate=ownML?0.10:0.30;
+      const laund=Math.round(base*rate);
       if(laund>0){p.cash-=laund;
-        if(ownML)log(p.name+L(" launders through their own operation: only "," lava pela própria operação: só ")+fmtK(laund)+" (10%).","good");
-        else log(p.name+L(" pays "," paga ")+fmtK(laund)+L(" — the launderers take 30% to clean the year's money."," — os lavadores levam 30% para limpar o dinheiro do ano."),"warn");}}
+        if(ownML)log(p.name+L(" launders "," lava ")+fmtK(base)+L(" of dirty money through their own operation — only "," de dinheiro sujo pela própria operação — só ")+fmtK(laund)+" (10%).","good");
+        else log(p.name+L(" launders "," lava ")+fmtK(base)+L(" of dirty money — the launderers take "," de dinheiro sujo — os lavadores levam ")+fmtK(laund)+" (30%).","warn");}
+    }
+    p.dirty=0;   // whatever you hold now is clean; the new year starts fresh
     p.cleanLaps++;if(p.hosp>0&&p.cleanLaps%2===0){p.hosp--;log(p.name+L(" recovers — 1 hospital visit cleared."," se recupera — 1 visita de hospital limpa."),"good");}
     if(p.age>=65&&netWorth(p)>=10000){showRetire(p);return;}}   // RETIRE UNTOUCHABLE: $10M net worth + age 65
   render();
@@ -1390,7 +1395,7 @@ function collectOne(p,idx){
   if(!p.owns.has(idx))return 0;
   const cell=OUTER[idx];const unit=cell.incomeBase||cell.price||cell.income||0;
   const inc=unit*p.owns.get(idx);
-  if(inc>0){p.cash+=inc;SFX.cash();log(p.name+L(" collects "," coleta ")+fmtK(inc)+L(" — a year's profit from "," — o lucro do ano de ")+cell.t+".","good");}
+  if(inc>0){p.cash+=inc;mkDirty(p,inc);SFX.cash();log(p.name+L(" collects "," coleta ")+fmtK(inc)+L(" — a year's profit from "," — o lucro do ano de ")+cell.t+".","good");}
   return inc;
 }
 function cellUnit(idx){const c=OUTER[idx];return c.incomeBase||c.price||c.income||0;}
@@ -1572,8 +1577,8 @@ function pokerDuel(oid){
   const stake=Math.min(p._pokerBet||0,p.cash,o.cash); if(stake<=0){pokerNight();return;}
   const a=1+Math.floor(Math.random()*6), b=1+Math.floor(Math.random()*6);
   let res,cls;
-  if(a>b){p.cash+=stake;o.cash-=stake;SFX.cash();res=p.name+L(" WINS the pot: +"," GANHA o pote: +")+fmtK(stake)+L(" from "," de ")+o.name+".";cls="good";}
-  else if(b>a){p.cash-=stake;o.cash+=stake;SFX.bad();res=o.name+L(" takes "," leva ")+fmtK(stake)+L(" off "," de ")+p.name+".";cls="warn";}
+  if(a>b){p.cash+=stake;mkDirty(p,stake);o.cash-=stake;SFX.cash();res=p.name+L(" WINS the pot: +"," GANHA o pote: +")+fmtK(stake)+L(" from "," de ")+o.name+".";cls="good";}
+  else if(b>a){p.cash-=stake;o.cash+=stake;mkDirty(o,stake);SFX.bad();res=o.name+L(" takes "," leva ")+fmtK(stake)+L(" off "," de ")+p.name+".";cls="warn";}
   else {res=L("Push — dead even. Stakes go back.","Empate — tudo igual. Apostas devolvidas.");cls="";}
   log(L("Heads-up poker: ","Pôquer mão a mão: ")+p.name+L(" rolls "," tira ")+a+", "+o.name+L(" rolls "," tira ")+b+". "+res,cls);
   const el=document.getElementById("cardEl");
@@ -1600,13 +1605,13 @@ function pokerRoll(idx){
   const win=r>=4;
   if(win){
     SFX.good();
-    p.cash+=stake;
+    p.cash+=stake;mkDirty(p,stake);
     log(p.name+L(" rolled a "," tirou ")+r+L(" - WINS the bet! +"," - GANHA a aposta! +")+fmtK(stake)+L(" (now "," (agora ")+fmtK(p.cash)+").","good");
   }else{
     SFX.bad();
     p.cash-=stake;
     log(p.name+L(" rolled a "," tirou ")+r+L(" - LOSES the bet ("," - PERDE a aposta (")+fmtK(stake)+").","bad");
-    if(owner&&owner.id!==p.id){ owner.cash+=stake; log(L("The house takes it - ","A casa recolhe - ")+fmtK(stake)+L(" goes to "," vai para ")+owner.name+".","warn"); }
+    if(owner&&owner.id!==p.id){ owner.cash+=stake;mkDirty(owner,stake); log(L("The house takes it - ","A casa recolhe - ")+fmtK(stake)+L(" goes to "," vai para ")+owner.name+".","warn"); }
   }
   p._pokerBet=0;
   if(p.ai){render();finish();return;}
@@ -1656,7 +1661,7 @@ function addWorker(idx,per,n){const p=S.players[S.cur];n=Math.min(n,Math.floor(p
 function buyProduct(p,owner,idx,c){
   const workers=owner.owns.get(idx)||1;         // charge for the WHOLE staffed business
   const capacity=c.income*workers;
-  if(p.ai){ const amt=Math.min(capacity,Math.floor(p.cash/2)); if(amt>0){p.cash-=amt;owner.cash+=amt*2;p.cash+=amt*2;log(p.name+L(" buys "," compra ")+fmtK(amt)+L(" product at "," de produto em ")+c.t+L(" of "," de ")+owner.name+" ("+workers+L(" staff)."," funcionários)."),"good");} render();finish();return; }
+  if(p.ai){ const amt=Math.min(capacity,Math.floor(p.cash/2)); if(amt>0){p.cash-=amt;owner.cash+=amt*2;mkDirty(owner,amt*2);p.cash+=amt*2;mkDirty(p,amt*2);log(p.name+L(" buys "," compra ")+fmtK(amt)+L(" product at "," de produto em ")+c.t+L(" of "," de ")+owner.name+" ("+workers+L(" staff)."," funcionários)."),"good");} render();finish();return; }
   const maxBuy=Math.min(capacity, p.cash);
   const el=document.getElementById("cardEl");
   el.innerHTML=`<div class="lbl" style="background:${owner.color}">${c.t.toUpperCase()} ${L('OF','DE')} ${owner.name.toUpperCase()}</div>
@@ -1671,7 +1676,7 @@ function buyProduct(p,owner,idx,c){
   const pass=document.createElement("button");pass.textContent=L("[ PASS ]","[ PASSAR ]");pass.onclick=()=>{closeModal();finish();};pb.appendChild(pass);
   openModal();
 }
-function doProduct(pid,oid,amt){const p=S.players[pid],o=S.players[oid];p.cash-=amt;o.cash+=amt*2;p.cash+=amt*2;
+function doProduct(pid,oid,amt){const p=S.players[pid],o=S.players[oid];p.cash-=amt;o.cash+=amt*2;mkDirty(o,amt*2);p.cash+=amt*2;mkDirty(p,amt*2);
   log(p.name+L(" buys "," compra ")+fmtK(amt)+L(" product from "," de produto de ")+o.name+L(". You net +",". Você lucra +")+fmtK(amt)+", "+o.name+" +"+fmtK(amt*2)+".","good");closeModal();render();finish();}
 
 /* ===== RECRUITING (bulk) ===== */
@@ -1967,7 +1972,7 @@ function applyCard(){
   recordCharge(p,deck,c);
   recordNetwork(p,deck,c);
   // PARTY poker bets
-  if(deck==="party"&&c.tag==="poker"){ p.cash+=(c.win?c.bet:-c.bet); log(p.name+(c.win?L(" wins $"," ganha $"):L(" loses $"," perde $"))+c.bet+L("K at ","K em ")+(LANG==='PT'?(TTL_PT[c.ttl]||c.ttl):c.ttl),c.win?"good":"warn"); afterMoney(p); if(!c.raidArr){finish();return;} }
+  if(deck==="party"&&c.tag==="poker"){ p.cash+=(c.win?c.bet:-c.bet);if(c.win)mkDirty(p,c.bet); log(p.name+(c.win?L(" wins $"," ganha $"):L(" loses $"," perde $"))+c.bet+L("K at ","K em ")+(LANG==='PT'?(TTL_PT[c.ttl]||c.ttl):c.ttl),c.win?"good":"warn"); afterMoney(p); if(!c.raidArr){finish();return;} }
   if(c.cut){
     let amt=c.cut;
     if(deck==="court" && c.cut<0){                          // realistic fines = a slice of your net worth
@@ -1975,7 +1980,7 @@ function applyCard(){
       const fine=Math.max(Math.abs(c.cut), Math.round(netWorth(p)*pct));
       amt=-Math.min(fine, Math.max(0,netWorth(p)));
     }
-    p.cash+=amt;if(amt>0)SFX.cash();log(p.name+(amt>0?L(" gains $"," ganha $"):L(" loses $"," perde $"))+Math.abs(amt)+"K"+(deck==="court"&&amt<0?L(" (fine)"," (multa)"):"")+".",amt>0?"good":"warn");
+    p.cash+=amt;if(amt>0){mkDirty(p,amt);SFX.cash();}log(p.name+(amt>0?L(" gains $"," ganha $"):L(" loses $"," perde $"))+Math.abs(amt)+"K"+(deck==="court"&&amt<0?L(" (fine)"," (multa)"):"")+".",amt>0?"good":"warn");
     if(deck==="court"&&p.cash<0){ settleDebts(p); if(p.cash<0){p.cash=0;log(L("The court cleans ","O tribunal limpa ")+p.name+L(" out completely."," por completo."),"bad");} }
   }
   if(c.packs){p.packs=Math.max(0,p.packs+c.packs);
@@ -2046,6 +2051,9 @@ function afterMoney(p){
   // Broke with nothing left to sell → you get hurt. The hospital BILL is what's allowed to go negative (handled in leaveHospital).
   if(p.cash<0 && !settleDebts(p)){ log(p.name+L(" is broke with nothing left to sell — rushed to the HOSPITAL."," está quebrado sem nada para vender — levado às pressas ao HOSPITAL."),"bad"); p._sentToHospital=true; p.cash=0; toHospital(p,1,L("broke — couldn't cover their debts","quebrado — não cobriu as dívidas")); }
 }
+
+/* dirty money: every criminal dollar earned this year, waiting to be laundered at START */
+function mkDirty(p,amt){ if(amt>0)p.dirty=(p.dirty||0)+Math.round(amt); }
 
 /* ===== HEAT: how hot the law is on you. Base arrest risk 10% + heat; jobs add +5, quiet years cool it ===== */
 function arrestChance(p){return Math.min(.6,(10+(p.heat||0))/100);}
@@ -2520,6 +2528,7 @@ function showProfile(id){
         <div class="cvrow"><span>${L("Started with","Come\u00e7ou com")}</span><span>${fmtK(p.startCash||0)}</span></div>
         <div class="cvrow"><span>${L("Net worth","Patrim\u00f4nio")}</span><span>${fmtK(worth)}</span></div>
         <div class="cvrow"><span>${L("Cash","Dinheiro")}</span><span>${fmtK(p.cash)}</span></div>
+        <div class="cvrow"><span>${L("Dirty (to launder)","Sujo (a lavar)")}</span><span>${fmtK(Math.min(p.dirty||0,p.cash))}</span></div>
         <div class="cvrow"><span>${L("Invested","Investido")}</span><span>${fmtK(assets)}</span></div>
         <div class="cvrow"><span>${L("Soldiers","Soldados")}</span><span>${p.crew}</span></div>
         <div class="cvrow"><span>${L("Turf held","\u00c1reas")}</span><span>${p.owns.size}</span></div>
@@ -2573,10 +2582,10 @@ function rentCard(p,owner,amt,reason){
     p.cash-=amt; log(p.name+L(" can't cover "," não consegue pagar ")+reason+L(" to "," a ")+owner.name+".","warn");
     settleDebts(p);
     const paid=amt+Math.min(0,p.cash);
-    if(paid>0){ owner.cash+=paid; log(owner.name+L(" collects "," recolhe ")+fmtK(paid)+(p.cash<0?L(" — all "," — tudo que ")+p.name+L(" could raise."," conseguiu levantar."):L(" after the sell-off."," depois da liquidação.")),"warn"); }
+    if(paid>0){ owner.cash+=paid;mkDirty(owner,paid); log(owner.name+L(" collects "," recolhe ")+fmtK(paid)+(p.cash<0?L(" — all "," — tudo que ")+p.name+L(" could raise."," conseguiu levantar."):L(" after the sell-off."," depois da liquidação.")),"warn"); }
     afterMoney(p); if(!p._sentToHospital) finish(); p._sentToHospital=false; return;
   }
-  p.cash-=amt; owner.cash+=amt;
+  p.cash-=amt; owner.cash+=amt;mkDirty(owner,amt);
   log(p.name+L(" pays "," paga ")+fmtK(amt)+L(" to "," a ")+owner.name+" ("+reason+").","warn");
   if(p.ai){ render(); finish(); return; }
   render();
@@ -2680,7 +2689,7 @@ function closeModal(){document.getElementById("modal").classList.remove("on");co
   }
   function startLogin(){
     out.innerHTML="";
-    nl("CRIMINAL TERMINAL (R) v10.5");
+    nl("CRIMINAL TERMINAL (R) v10.6");
     nl("(C) 1987 SATAN SYSTEMS CORP. ALL RIGHTS RESERVED.");
     nl('<span id="playCountBoot" style="opacity:.75">'+(typeof PLAYCOUNT!=="undefined"&&PLAYCOUNT!=null?L("CRIMINALS SERVED WORLDWIDE: ","CRIMINOSOS ATENDIDOS NO MUNDO: ")+PLAYCOUNT:L("CRIMINALS SERVED WORLDWIDE: ...","CRIMINOSOS ATENDIDOS NO MUNDO: ..."))+'</span>');
     nl("");
@@ -2766,7 +2775,7 @@ function closeModal(){document.getElementById("modal").classList.remove("on");co
   window._pickLang=function(l){ setLang(l); try{applyStaticLang();}catch(e){} startLogin(); };
   function langScreen(){
     out.innerHTML="";
-    nl("CRIMINAL TERMINAL (R) v10.5");
+    nl("CRIMINAL TERMINAL (R) v10.6");
     nl("(C) 1987 SATAN SYSTEMS CORP.");
     nl("");
     nl("SELECT LANGUAGE / ESCOLHA O IDIOMA:");
