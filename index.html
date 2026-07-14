@@ -542,7 +542,7 @@
 <div id="setup">
 <div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
 <div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
-<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v10.6</div>
+<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v10.7</div>
 <div id="setupStage"></div>
 </div>
 
@@ -1036,8 +1036,8 @@ function updateControls(){
   // BUY SOLDIERS — available any time on your turn (free ring only), like buying hotels
   // HIRE WORKERS — staff owned businesses any time on your turn
   const bwb=document.getElementById("buyWorkersBtn");
-  if(bwb){ const hasBiz=!p.ai&&p.alive&&!S.over&&p.ring==="outer"&&!p.inJail&&Array.from(p.owns.keys()).some(idx=>OUTER[idx].k==="biz");
-    bwb.style.display=hasBiz?"inline-block":"none"; }
+  if(bwb){ const canHire=!p.ai&&p.alive&&!S.over&&p.ring==="outer"&&!p.inJail;
+    bwb.style.display=canHire?"inline-block":"none"; bwb.textContent=L("[ HIRE ]","[ CONTRATAR ]"); }
   // COMMIT CRIME — up to 3 per game, taken as your turn action (before you roll)
   const ccb=document.getElementById("commitCrimeBtn");
   if(ccb){ const canCrime=!p.ai&&p.alive&&!S.over&&!S.rolled&&p.ring==="outer"&&!p.inJail&&(p.crimeOps>0);
@@ -1131,7 +1131,7 @@ function openManual(){ window.speechSynthesis&&window.speechSynthesis.cancel(); 
   \u25B8 SOLO = voc\u00ea contra 1\u20139 chef\u00f5es IA. PASSA E JOGA = 2\u201310 humanos. Escolha nome, padr\u00e3o e idade (teclado num\u00e9rico ou \u25B2\u25BC).
 
   ${H("SEU TURNO")}
-  Voc\u00ea tem UMA a\u00e7\u00e3o: toque no dado para rolar e andar, OU aperte [ COMETER CRIME ] antes de rolar (3 chances por ano) para um assalto, morte encomendada ou tr\u00e1fico aleat\u00f3rio. Voc\u00ea anda pelo tabuleiro e resolve a casa onde CAIR. Tudo o que acontece aparece como uma carta.
+  Toque no dado para rolar e andar — você resolve a casa onde CAIR. Antes de rolar você também pode apertar [ COMETER CRIME ] (3 chances por ano) para um assalto, morte encomendada ou tráfico aleatório — é uma ação GRATUITA, você ainda rola depois (mas prisão ou hospital encerram seu turno). O botão [ CONTRATAR ] funciona a qualquer momento no seu turno: guarda-costas, soldados de rua e funcionários. Tudo o que acontece aparece como uma carta.
 
   ${H("A RUA (anel externo)")}
   Uma volta completa = UM ANO. Toda vez que passa pelo IN\u00cdCIO: voc\u00ea envelhece +1, suas 3 chances de crime renovam, paga o sal\u00e1rio dos soldados ($${SOLDIER_WAGE}K cada), os LAVADORES limpam o dinheiro SUJO que voc\u00ea ganhou naquele ano — um corte \u00fanico de 30% (s\u00f3 10% se voc\u00ea for DONO do neg\u00f3cio de lavagem). Dinheiro limpo nunca \u00e9 cobrado de novo; o caixa inicial e vendas de bens j\u00e1 s\u00e3o limpos. A cada 2 voltas limpas voc\u00ea tamb\u00e9m cura uma visita de hospital. Passar POR CIMA de uma propriedade sua coleta a renda \u2014 n\u00e3o precisa cair exatamente nela.
@@ -1187,7 +1187,7 @@ function openManual(){ window.speechSynthesis&&window.speechSynthesis.cancel(); 
   \u25B8 SOLO = you vs 1\u20139 AI bosses. PASS &amp; PLAY = 2\u201310 humans. Pick a name, a pattern, and your age (number keys or \u25B2\u25BC).
 
   ${H("YOUR TURN")}
-  You get ONE action: tap the die to roll and move, OR press [ COMMIT CRIME ] before rolling (3 chances per year) for a random heist, hit or drug run. You move around the board and resolve the space you LAND on. Everything that happens to you shows up as a card.
+  Tap the die to roll and move — you resolve the space you LAND on. Before rolling you can also press [ COMMIT CRIME ] (3 chances per year) for a random heist, hit or drug run — it's a FREE action, you still roll afterwards (but an arrest or a trip to the hospital ends your turn). The [ HIRE ] button works any time on your turn: bodyguard soldiers, street soldiers, and business workers. Everything that happens to you shows up as a card.
 
   ${H("THE STREET (outer ring)")}
   One full lap = ONE YEAR. Every time you pass START: you age +1, your 3 crime chances refill, you pay soldier wages ($${SOLDIER_WAGE}K each), the LAUNDERERS clean the DIRTY money you earned that year — a one-time 30% cut (only 10% if you OWN the money laundering business). Once cleaned, money is never charged again; your starting cash and asset sales are already clean. Every 2nd clean lap also heals one hospital visit. Passing OVER a property you own collects its income \u2014 no need to land on it exactly.
@@ -1687,28 +1687,46 @@ function openBuyWorkers(){
   const p=S.players[S.cur];
   if(p.ai||!p.alive||S.over||p.ring!=="outer"||p.inJail)return;
   const el=document.getElementById("cardEl");
-  const biz=Array.from(p.owns.entries()).filter(([idx])=>OUTER[idx].k==="biz");
-  const body = biz.length ? biz.map(([idx,cnt])=>{
-    const c=OUTER[idx];const per=c.incomeBase||c.income;const canAfford=p.cash>=per;
+  const tierBtns=(fn,idx,per)=>[1,5,25,100].filter(n=>p.cash>=per*n).map(n=>`<button style="padding:6px 8px;font-size:12px" onclick="${fn}(${idx===null?"":idx+","}${per},${n})">[ +${n} ]</button>`).join("");
+  // BODYGUARDS (crew)
+  const crewRow=`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin:3px 0;border-bottom:1px solid #1a2a1a;padding-bottom:4px">
+      <span>${L("Bodyguard soldiers","Soldados guarda-costas")} · ${p.crew}<br><span style="opacity:.6;font-size:11px">$${SOLDIER_COST}K ${L("each","cada")} · $${SOLDIER_WAGE}K/${L("yr","ano")} · ${L("take falls & beatings, fight attacks","assumem culpa e surra, lutam em ataques")}</span></span>
+      ${p.cash>=SOLDIER_COST?`<span style="display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-end">`+tierBtns("hireCrewN",null,SOLDIER_COST)+`</span>`:`<span style="opacity:.5;font-size:11px">${L("need ","precisa de ")}$${SOLDIER_COST}K</span>`}</div>`;
+  // STREET SOLDIERS
+  const sts=Array.from(p.owns.entries()).filter(([idx])=>OUTER[idx].k==="street");
+  const stBody=sts.length?sts.map(([idx,cnt])=>{
+    const c=OUTER[idx];const per=c.incomeBase||c.price;const can=p.cash>=per;
     return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin:3px 0;border-bottom:1px solid #1a2a1a;padding-bottom:4px">
-      <span>${c.t} · ${cnt} worker${cnt>1?"s":""}<br><span style="opacity:.6;font-size:11px">${fmtK(per)} each · earns ${fmtK(per*cnt)}/yr</span></span>
-      ${canAfford?`<span style="display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-end">`+[1,5,25,100].filter(n=>p.cash>=per*n).map(n=>`<button style="padding:6px 8px;font-size:12px" onclick="addWorkerAnytime(${idx},${per},${n})">[ +${n} ]</button>`).join("")+`</span>`:`<span style="opacity:.5;font-size:11px">need ${fmtK(per)}</span>`}</div>`;
-  }).join("") : "<div style='opacity:.6'>"+L("You don't own any businesses yet — land on a BUSINESS space to open one.","Voc\u00ea ainda n\u00e3o tem neg\u00f3cios — caia numa casa de NEG\u00d3CIO para abrir um.")+"</div>";
-  el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('HIRE WORKERS','CONTRATAR FUNCION\u00c1RIOS')}</div>
-    <div class="ttl">${L('Staff your businesses','Equipe seus neg\u00f3cios')}</div>
-    <div class="bd">${L('Add employees to any business you own, any time on your turn. More workers = more yearly income.','Adicione funcion\u00e1rios a qualquer neg\u00f3cio seu, a qualquer momento no seu turno. Mais funcion\u00e1rios = mais renda anual.')}</div>
-    <div class="out" style="max-height:280px;overflow:auto">${body}</div>
+      <span>${c.t} · ${cnt} ${L("soldier","soldado")}${cnt>1?"s":""}<br><span style="opacity:.6;font-size:11px">${fmtK(per)} ${L("each · earns","cada · rende")} ${fmtK(per*cnt)}/${L("yr","ano")}</span></span>
+      ${can?`<span style="display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-end">`+tierBtns("addSoldierAnytime",idx,per)+`</span>`:`<span style="opacity:.5;font-size:11px">${L("need ","precisa de ")}${fmtK(per)}</span>`}</div>`;
+  }).join(""):"<div style='opacity:.6'>"+L("No streets yet — land on a STREET space to claim one.","Nenhuma rua ainda — caia numa casa de RUA para tomar uma.")+"</div>";
+  // BUSINESS WORKERS
+  const biz=Array.from(p.owns.entries()).filter(([idx])=>OUTER[idx].k==="biz");
+  const bizBody=biz.length?biz.map(([idx,cnt])=>{
+    const c=OUTER[idx];const per=c.incomeBase||c.income;const can=p.cash>=per;
+    return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin:3px 0;border-bottom:1px solid #1a2a1a;padding-bottom:4px">
+      <span>${c.t} · ${cnt} ${L("worker","funcionário")}${cnt>1?"s":""}<br><span style="opacity:.6;font-size:11px">${fmtK(per)} ${L("each · earns","cada · rende")} ${fmtK(per*cnt)}/${L("yr","ano")}</span></span>
+      ${can?`<span style="display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-end">`+tierBtns("addWorkerAnytime",idx,per)+`</span>`:`<span style="opacity:.5;font-size:11px">${L("need ","precisa de ")}${fmtK(per)}</span>`}</div>`;
+  }).join(""):"<div style='opacity:.6'>"+L("No businesses yet — land on a BUSINESS space to open one.","Nenhum negócio ainda — caia numa casa de NEGÓCIO para abrir um.")+"</div>";
+  el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('HIRE','CONTRATAR')}</div>
+    <div class="ttl">${L('Staff your empire','Monte seu império')}</div>
+    <div class="bd">${L('Any time on your turn: hire bodyguard soldiers, post soldiers on your streets, and staff your businesses.','A qualquer momento no seu turno: contrate guarda-costas, coloque soldados nas suas ruas e equipe seus negócios.')}</div>
+    <div class="out" style="max-height:120px;overflow:auto"><b>${L("BODYGUARDS","GUARDA-COSTAS")}</b>${crewRow}</div>
+    <div class="out" style="max-height:150px;overflow:auto"><b>${L("STREET SOLDIERS","SOLDADOS DE RUA")}</b>${stBody}</div>
+    <div class="out" style="max-height:150px;overflow:auto"><b>${L("BUSINESS WORKERS","FUNCIONÁRIOS")}</b>${bizBody}</div>
     <div class="go"><button onclick="closeModal()">${L('[ DONE ]','[ CONCLUIR ]')}</button></div>
     ${statusBar()}`;
   openModal();
 }
-function addWorkerAnytime(idx,per,n){n=n||1;n=Math.min(n,Math.floor(S.players[S.cur].cash/per));const p=S.players[S.cur];if(n<1)return;p.cash-=per*n;p.owns.set(idx,p.owns.get(idx)+n);log(p.name+L(" hires "," contrata ")+n+L(" worker"+""," funcionário")+(n>1?"s":"")+L(" at "," em ")+OUTER[idx].t+L(" (now "," (agora ")+p.owns.get(idx)+").","good");render();openBuyWorkers();}
+function hireCrewN(per,n){const p=S.players[S.cur];n=Math.min(n,Math.floor(p.cash/SOLDIER_COST));if(n<1)return;p.cash-=SOLDIER_COST*n;p.crew+=n;log(p.name+L(" hires "," contrata ")+n+L(" bodyguard"," guarda-costas")+(n>1?(LANG==='PT'?"":"s"):"")+L(" (now "," (agora ")+p.crew+").","good");render();openBuyWorkers();}
+function addSoldierAnytime(idx,per,n){const p=S.players[S.cur];n=Math.min(n,Math.floor(p.cash/per));if(n<1)return;p.cash-=per*n;p.owns.set(idx,p.owns.get(idx)+n);log(p.name+L(" posts "," coloca ")+n+L(" soldier"," soldado")+(n>1?"s":"")+L(" at "," em ")+OUTER[idx].t+L(" (now "," (agora ")+p.owns.get(idx)+").","good");render();openBuyWorkers();}
+function addWorkerAnytime(idx,per,n){n=n||1;n=Math.min(n,Math.floor(S.players[S.cur].cash/per));const p=S.players[S.cur];if(n<1)return;p.cash-=per*n;p.owns.set(idx,p.owns.get(idx)+n);log(p.name+L(" hires "," contrata ")+n+L(" worker"," funcionário")+(n>1?"s":"")+L(" at "," em ")+OUTER[idx].t+L(" (now "," (agora ")+p.owns.get(idx)+").","good");render();openBuyWorkers();}
 function commitCrime(){
   const p=S.players[S.cur];
   if(p.ai||!p.alive||S.over||S.rolled||p.ring!=="outer"||p.inJail||p.crimeOps<=0)return;
   p.crimeOps--;
   log(p.name+L(" goes looking for a score ("," sai atrás de um golpe (")+p.crimeOps+L(" crime chances left)."," chances de crime restantes)."),"warn");
-  S.rolled=true;               // this is your action for the turn
+  // crime is a FREE action before your roll — you still move afterwards
   updateControls();
   const jobs=["heist","hitman","drug"];               // the streets decide what the job is
   drawStory(jobs[Math.floor(Math.random()*jobs.length)]);
@@ -2145,6 +2163,7 @@ function goToJailWithCigs(years){
 }
 function buyCigs(n,years){const p=S.players[S.cur];n=Math.min(n,Math.floor(p.cash/1));p.cash-=n;p.packs+=n;if(n>0)log(p.name+L(" buys "," compra ")+n+L(" cigarette packs from the CO (-$"," maços do agente (-$")+n+"K).","warn");closeModal();doArrest(p,years);}
 function doArrest(p,years){
+  S.rolled=true;   // an arrest ends your turn, even before rolling
   SFX.siren();
   p.inJail=true;p.ring="outer";p.pos=JAIL_POS;p.sentence=0;p._pendingYears=years;
   log(p.name+L(" ARRESTED → JAIL. Awaiting court."," PRESO → CADEIA. Aguardando tribunal."),"bad");
@@ -2184,6 +2203,7 @@ function toHospital(p,visits,cause){
 function soldierTakesBeating(){const p=S.players[S.cur];p.crew--;p._hospPending=null;log(L("","O soldado de ")+p.name+L("'s soldier takes the beating and goes to the hospital. "," leva a surra e vai pro hospital. ")+p.name+L(" walks away."," sai ileso."),"good");closeModal();render();finish();}
 function hospProceed(){const p=S.players[S.cur];const v=p._hospPending||1;p._hospPending=null;closeModal();doHospital(p,v);}
 function doHospital(p,visits){
+  S.rolled=true;   // a hospital trip ends your turn, even before rolling
   p.hosp+=visits;p.cleanLaps=0;
   // move the player's token onto the HOSPITAL space so it's visible where they are (outer ring only; in prison they stay inside)
   if(p.ring!=="inner"){ const hi=OUTER.findIndex(c=>c.k==="hospital"); if(hi>=0){p.ring="outer";p.pos=hi;} }
@@ -2689,7 +2709,7 @@ function closeModal(){document.getElementById("modal").classList.remove("on");co
   }
   function startLogin(){
     out.innerHTML="";
-    nl("CRIMINAL TERMINAL (R) v10.6");
+    nl("CRIMINAL TERMINAL (R) v10.7");
     nl("(C) 1987 SATAN SYSTEMS CORP. ALL RIGHTS RESERVED.");
     nl('<span id="playCountBoot" style="opacity:.75">'+(typeof PLAYCOUNT!=="undefined"&&PLAYCOUNT!=null?L("CRIMINALS SERVED WORLDWIDE: ","CRIMINOSOS ATENDIDOS NO MUNDO: ")+PLAYCOUNT:L("CRIMINALS SERVED WORLDWIDE: ...","CRIMINOSOS ATENDIDOS NO MUNDO: ..."))+'</span>');
     nl("");
@@ -2775,7 +2795,7 @@ function closeModal(){document.getElementById("modal").classList.remove("on");co
   window._pickLang=function(l){ setLang(l); try{applyStaticLang();}catch(e){} startLogin(); };
   function langScreen(){
     out.innerHTML="";
-    nl("CRIMINAL TERMINAL (R) v10.6");
+    nl("CRIMINAL TERMINAL (R) v10.7");
     nl("(C) 1987 SATAN SYSTEMS CORP.");
     nl("");
     nl("SELECT LANGUAGE / ESCOLHA O IDIOMA:");
