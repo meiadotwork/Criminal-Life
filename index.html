@@ -416,7 +416,7 @@
   body.colormode .cell.k-pfight{background:#f8e6d6 !important;box-shadow:inset 4px 0 0 #bf5700 !important;}
   body.colormode .cell.k-riot{background:#f0ead0 !important;box-shadow:inset 4px 0 0 #7a6400 !important;}
   /* current position highlight must beat the type tints (declared after them) */
-  body.colormode .cell.here{background:#ffe98a !important;border:2px solid #000 !important;}
+  body.colormode .cell.here{background:#ffe98a !important;border:1px solid #000 !important;box-shadow:inset 0 0 0 1px #000 !important;}
   body.colormode .pip{background:#000 !important;}
   body.colormode .die .dienum,body.colormode #die .dienum{color:#000 !important;}
   body.colormode button:hover,body.colormode button:focus,body.colormode button:active{background:#000 !important;color:#fff !important;}
@@ -458,7 +458,7 @@
 
   /* ===== INK MODE (colormode + mono): pure black-on-white — the exact inverse of 94 ===== */
   body.colormode.mono .cell{background:#fff !important;box-shadow:none !important;}
-  body.colormode.mono .cell.here{background:#e6e6e6 !important;border:2px solid #000 !important;}
+  body.colormode.mono .cell.here{background:#000 !important;border:1px solid #000 !important;}
   body.colormode.mono .card[data-deck] .lbl{background:#000 !important;}
   body.colormode.mono .card[data-deck]{border-color:#000 !important;}
 
@@ -500,6 +500,35 @@
   body.win95 .pat-cross,body.win95 .cell .pat-cross{background:repeating-linear-gradient(0deg,#000 0 1px,#fff 1px 4px),repeating-linear-gradient(90deg,#000 0 1px,#fff 1px 4px) !important;}
   body.win95 .pat-half,body.win95 .cell .pat-half{background:linear-gradient(180deg,#000 0 50%,#fff 50% 100%) !important;}
   body.win95 .pat-ring,body.win95 .cell .pat-ring{background:radial-gradient(circle,#fff 0 30%,#000 32% 62%,#fff 64%) !important;}
+  /* ===== IN-TURN CELL = INVERSE VIDEO: no hop, no size change — the cell's colors just flip ===== */
+  .cell.here{animation:none !important;transform:none !important;}
+  body:not(.colormode):not(.win95) .cell.here{background:var(--phos) !important;border:1px solid var(--phos) !important;box-shadow:none !important;}
+  body:not(.colormode):not(.win95) .cell.here,body:not(.colormode):not(.win95) .cell.here *{color:#000 !important;text-shadow:none !important;}
+  body:not(.colormode):not(.win95) .cell.here .patchip{border-color:#000 !important;background-color:var(--phos);}
+  body:not(.colormode):not(.win95) .cell.here .pat-solid{background:#000 !important;}
+  body:not(.colormode):not(.win95) .cell.here .pat-inv{background:var(--phos) !important;border:2px solid #000 !important;}
+  body:not(.colormode):not(.win95) .cell.here .pat-vstripe{background:repeating-linear-gradient(90deg,#000 0 2px,var(--phos) 2px 4px) !important;}
+  body:not(.colormode):not(.win95) .cell.here .pat-hstripe{background:repeating-linear-gradient(0deg,#000 0 2px,var(--phos) 2px 4px) !important;}
+  body:not(.colormode):not(.win95) .cell.here .pat-dots{background:radial-gradient(#000 34%,var(--phos) 36%) 0 0/5px 5px,var(--phos) !important;}
+  body:not(.colormode):not(.win95) .cell.here .pat-checker{background:conic-gradient(#000 90deg,var(--phos) 0 180deg,#000 0 270deg,var(--phos) 0) 0 0/6px 6px,var(--phos) !important;}
+  body:not(.colormode):not(.win95) .cell.here .pat-diag{background:repeating-linear-gradient(45deg,#000 0 2px,var(--phos) 2px 4px) !important;}
+  body:not(.colormode):not(.win95) .cell.here .pat-cross{background:repeating-linear-gradient(0deg,#000 0 1px,var(--phos) 1px 4px),repeating-linear-gradient(90deg,#000 0 1px,var(--phos) 1px 4px) !important;}
+  body:not(.colormode):not(.win95) .cell.here .pat-half{background:linear-gradient(180deg,#000 0 50%,var(--phos) 50% 100%) !important;}
+  body:not(.colormode):not(.win95) .cell.here .pat-ring{background:radial-gradient(circle,var(--phos) 0 30%,#000 32% 62%,var(--phos) 64%) !important;}
+  /* INK inverse: black cell, white ink */
+  body.colormode.mono .cell.here,body.colormode.mono .cell.here *{color:#fff !important;}
+  body.colormode.mono .cell.here .patchip{border-color:#fff !important;background-color:#000;}
+  body.colormode.mono .cell.here .pat-solid{background:#fff !important;}
+  body.colormode.mono .cell.here .pat-inv{background:#000 !important;border:2px solid #fff !important;}
+  body.colormode.mono .cell.here .pat-vstripe{background:repeating-linear-gradient(90deg,#fff 0 2px,#000 2px 4px) !important;}
+  body.colormode.mono .cell.here .pat-hstripe{background:repeating-linear-gradient(0deg,#fff 0 2px,#000 2px 4px) !important;}
+  body.colormode.mono .cell.here .pat-dots{background:radial-gradient(#fff 34%,#000 36%) 0 0/5px 5px,#000 !important;}
+  body.colormode.mono .cell.here .pat-checker{background:conic-gradient(#fff 90deg,#000 0 180deg,#fff 0 270deg,#000 0) 0 0/6px 6px,#000 !important;}
+  body.colormode.mono .cell.here .pat-diag{background:repeating-linear-gradient(45deg,#fff 0 2px,#000 2px 4px) !important;}
+  body.colormode.mono .cell.here .pat-cross{background:repeating-linear-gradient(0deg,#fff 0 1px,#000 1px 4px),repeating-linear-gradient(90deg,#fff 0 1px,#000 1px 4px) !important;}
+  body.colormode.mono .cell.here .pat-half{background:linear-gradient(180deg,#fff 0 50%,#000 50% 100%) !important;}
+  body.colormode.mono .cell.here .pat-ring{background:radial-gradient(circle,#000 0 30%,#fff 32% 62%,#000 64%) !important;}
+
   /* profile (criminal resume) section bars: navy + white in WIN, black + white on paper modes */
   body.win95 .cvh{background:#000080 !important;}
   body.win95 .cvh,body.win95 .cvh *{color:#fff !important;}
@@ -513,7 +542,7 @@
 <div id="setup">
 <div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
 <div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
-<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v10.0</div>
+<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v10.1</div>
 <div id="setupStage"></div>
 </div>
 
@@ -2554,7 +2583,7 @@ function closeModal(){document.getElementById("modal").classList.remove("on");co
   }
   function startLogin(){
     out.innerHTML="";
-    nl("CRIMINAL TERMINAL (R) v10.0");
+    nl("CRIMINAL TERMINAL (R) v10.1");
     nl("(C) 1987 SATAN SYSTEMS CORP. ALL RIGHTS RESERVED.");
     nl('<span id="playCountBoot" style="opacity:.75">'+(typeof PLAYCOUNT!=="undefined"&&PLAYCOUNT!=null?"CRIMINALS SERVED WORLDWIDE: "+PLAYCOUNT:"CRIMINALS SERVED WORLDWIDE: ...")+'</span>');
     nl("");
