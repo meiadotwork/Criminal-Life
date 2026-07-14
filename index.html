@@ -500,6 +500,11 @@
   body.win95 .pat-cross,body.win95 .cell .pat-cross{background:repeating-linear-gradient(0deg,#000 0 1px,#fff 1px 4px),repeating-linear-gradient(90deg,#000 0 1px,#fff 1px 4px) !important;}
   body.win95 .pat-half,body.win95 .cell .pat-half{background:linear-gradient(180deg,#000 0 50%,#fff 50% 100%) !important;}
   body.win95 .pat-ring,body.win95 .cell .pat-ring{background:radial-gradient(circle,#fff 0 30%,#000 32% 62%,#fff 64%) !important;}
+  /* profile (criminal resume) section bars: navy + white in WIN, black + white on paper modes */
+  body.win95 .cvh{background:#000080 !important;}
+  body.win95 .cvh,body.win95 .cvh *{color:#fff !important;}
+  body.colormode .cvh{background:#000 !important;}
+  body.colormode .cvh,body.colormode .cvh *{color:#fff !important;}
 </style>
 </head>
 <body class="crt">
@@ -508,7 +513,7 @@
 <div id="setup">
 <div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
 <div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
-<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v9.9</div>
+<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v10.0</div>
 <div id="setupStage"></div>
 </div>
 
@@ -2549,7 +2554,7 @@ function closeModal(){document.getElementById("modal").classList.remove("on");co
   }
   function startLogin(){
     out.innerHTML="";
-    nl("CRIMINAL TERMINAL (R) v9.9");
+    nl("CRIMINAL TERMINAL (R) v10.0");
     nl("(C) 1987 SATAN SYSTEMS CORP. ALL RIGHTS RESERVED.");
     nl('<span id="playCountBoot" style="opacity:.75">'+(typeof PLAYCOUNT!=="undefined"&&PLAYCOUNT!=null?"CRIMINALS SERVED WORLDWIDE: "+PLAYCOUNT:"CRIMINALS SERVED WORLDWIDE: ...")+'</span>');
     nl("");
