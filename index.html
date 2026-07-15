@@ -542,7 +542,7 @@
 <div id="setup">
 <div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
 <div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
-<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v11.3</div>
+<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v11.4</div>
 <div id="setupStage"></div>
 </div>
 
@@ -553,14 +553,7 @@
     <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL</h1>
     <div id="turnBanner">TURN 1</div>
     <div class="topbtns">
-      <button id="manualBtn" onclick="openManual()">[ MANUAL ]</button>
-      <button class="tiny" onclick="uiScale(-1)">−</button>
-      <button class="tiny" id="uizBtn" onclick="uiScale(0)">100%</button>
-      <button class="tiny" onclick="uiScale(1)">+</button>
-      <button id="followBtn" onclick="toggleFollow()">[ FOLLOW: ON ]</button>
-      <button id="greenBtn" onclick="toggleGreenDos()" title="display: 87 green / 94 mono / INK paper mono / COLOR paper / WIN 95">[ 87 ]</button>
-      <button id="sndBtn" onclick="toggleSnd()">[ SND ]</button>
-      <a class="reset" onclick="askReset()">[reset]</a>
+      <button id="settingsBtn" onclick="openSettings()" title="settings">[ MENU ]</button>
     </div>
   </div>
   <div class="main">
@@ -1309,6 +1302,21 @@ function uiScale(dir){
   document.documentElement.style.setProperty("--uiz",_uiz);
   const b=document.getElementById("uizBtn"); if(b)b.textContent=Math.round(_uiz*100)+"%";
   try{ if(typeof fitBoard==="function") setTimeout(fitBoard,60); }catch(e){}
+}
+function openSettings(){
+  const el=document.getElementById("cardEl"); if(!el)return; el.dataset.deck="";
+  const row=(label,ctrl)=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 2px;border-bottom:1px solid var(--phos-dim)"><span>${label}</span><span style="display:flex;gap:5px;align-items:center;flex-wrap:wrap;justify-content:flex-end">${ctrl}</span></div>`;
+  el.innerHTML=`<div class="lbl">${L("SETTINGS","AJUSTES")}</div>
+    <div class="bd" style="text-align:left;font-size:15px !important">
+    ${row(L("Rules / how to play","Regras / como jogar"),`<button onclick="closeModal();openManual()">[ MANUAL ]</button>`)}
+    ${row(L("Text size","Tamanho do texto"),`<button class="tiny" onclick="uiScale(-1)">−</button><button class="tiny" id="uizBtn" onclick="uiScale(0)">${Math.round((typeof _uiz!=="undefined"?_uiz:1)*100)}%</button><button class="tiny" onclick="uiScale(1)">+</button>`)}
+    ${row(L("Follow token","Seguir peça"),`<button id="followBtn" onclick="toggleFollow()">${tr((S&&S.followAnim)?"[ FOLLOW: ON ]":"[ FOLLOW: OFF ]")}</button>`)}
+    ${row(L("Display mode","Modo de tela"),`<button id="greenBtn" onclick="toggleGreenDos()">${DISPLAY_MODES[_dispMode].lbl}</button>`)}
+    ${row(L("Sound","Som"),`<button id="sndBtn" onclick="toggleSnd()">${SND?"[ SND ]":"[ MUTE ]"}</button>`)}
+    ${row(L("New game (reset)","Novo jogo (reiniciar)"),`<button class="red" onclick="askReset()">${L("[ RESET ]","[ REINICIAR ]")}</button>`)}
+    </div>
+    <div class="go"><button onclick="closeModal()">${L("[ CLOSE ]","[ FECHAR ]")}</button></div>`;
+  openModal();
 }
 function toggleFollow(){ S.followAnim=!S.followAnim; const b=document.getElementById("followBtn"); if(b)b.textContent=tr(S.followAnim?"[ FOLLOW: ON ]":"[ FOLLOW: OFF ]"); }
 /* ===== LANGUAGE: interface translation (EN / PT). Card text stays EN for now. ===== */
@@ -2757,7 +2765,7 @@ const CODES={"666": {"tag": "6 6 6  ·  D E V I L", "art": ["    ░▓▓▓░
   }
   function startLogin(){
     out.innerHTML="";
-    nl("CRIMINAL TERMINAL (R) v11.3");
+    nl("CRIMINAL TERMINAL (R) v11.4");
     nl("(C) 1987 SATAN SYSTEMS CORP. ALL RIGHTS RESERVED.");
     nl('<span id="playCountBoot" style="opacity:.75">'+(typeof PLAYCOUNT!=="undefined"&&PLAYCOUNT!=null?L("CRIMINALS SERVED WORLDWIDE: ","CRIMINOSOS ATENDIDOS NO MUNDO: ")+PLAYCOUNT:L("CRIMINALS SERVED WORLDWIDE: ...","CRIMINOSOS ATENDIDOS NO MUNDO: ..."))+'</span>');
     nl("");
@@ -2843,7 +2851,7 @@ const CODES={"666": {"tag": "6 6 6  ·  D E V I L", "art": ["    ░▓▓▓░
   window._pickLang=function(l){ setLang(l); try{applyStaticLang();}catch(e){} startLogin(); };
   function langScreen(){
     out.innerHTML="";
-    nl("CRIMINAL TERMINAL (R) v11.3");
+    nl("CRIMINAL TERMINAL (R) v11.4");
     nl("(C) 1987 SATAN SYSTEMS CORP.");
     nl("");
     nl("SELECT LANGUAGE / ESCOLHA O IDIOMA:");
