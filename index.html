@@ -558,7 +558,7 @@
 <div id="setup">
 <div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
 <div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
-<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v11.8</div>
+<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v11.9</div>
 <div id="setupStage"></div>
 </div>
 
@@ -1052,7 +1052,19 @@ function updateControls(){
   else if(!S.rolled)h.textContent=L("Tap the die to move.","Toque no dado para andar.");
   else h.textContent=L("Move resolved — next player up...","Jogada resolvida — pr\u00f3ximo jogador...");
   const ab=document.getElementById("actionBtn");
-  if(ab){ ab.style.display=(!p.ai&&p.alive&&!S.over)?"block":"none"; ab.textContent=L("[ ACTION ]","[ A\u00c7\u00c3O ]"); }
+  if(ab){
+    ab.style.display=(!p.ai&&p.alive&&!S.over)?"block":"none";
+    if(p.auto){ ab.textContent=L("[ \u25a0 STOP AUTO ]","[ \u25a0 PARAR AUTO ]"); ab.className="red"; ab.setAttribute("onclick","stopAuto()"); }
+    else { ab.textContent=L("[ ACTION ]","[ A\u00c7\u00c3O ]"); ab.className="amber"; ab.setAttribute("onclick","openActions()"); }
+  }
+}
+function stopAuto(){
+  const p=S.players[S.cur]; if(!p) return;
+  p.auto=false;
+  if(S._autoIv && !S.players.some(x=>x.auto)){ clearInterval(S._autoIv); S._autoIv=null; }
+  closeModal();
+  updateAutoBtn(); updateControls();
+  log(p.name+L(" takes back the wheel \u2014 auto-play OFF."," retoma o controle \u2014 jogo autom\u00e1tico DESLIGADO."),"warn");
 }
 /* ===== ACTION MENU: one page with everything the player can do ===== */
 function openActions(){
@@ -1407,7 +1419,7 @@ applyStaticLang();
 function updateAutoBtn(){ const p=S&&S.players?S.players[S.cur]:null; const b=document.getElementById("autoBtn"); if(b)b.textContent=tr((p&&p.auto)?"[ AUTO: ON ]":"[ AUTO: OFF ]"); }
 function toggleAuto(){
   const p=S.players[S.cur]; if(!p||p.ai) return;
-  p.auto=!p.auto; updateAutoBtn();
+  p.auto=!p.auto; updateAutoBtn(); updateControls();
   if(!S._autoIv) S._autoIv=setInterval(autoTick,1000);       // slower, watchable
 }
 function autoTick(){
@@ -2807,7 +2819,7 @@ const CODES={"666": {"tag": "6 6 6  ·  D E V I L", "art": ["    ░▓▓▓░
   }
   function startLogin(){
     out.innerHTML="";
-    nl("CRIMINAL TERMINAL (R) v11.8");
+    nl("CRIMINAL TERMINAL (R) v11.9");
     nl("(C) 1987 SATAN SYSTEMS CORP. ALL RIGHTS RESERVED.");
     nl('<span id="playCountBoot" style="opacity:.75">'+(typeof PLAYCOUNT!=="undefined"&&PLAYCOUNT!=null?L("CRIMINALS SERVED WORLDWIDE: ","CRIMINOSOS ATENDIDOS NO MUNDO: ")+PLAYCOUNT:L("CRIMINALS SERVED WORLDWIDE: ...","CRIMINOSOS ATENDIDOS NO MUNDO: ..."))+'</span>');
     nl("");
@@ -2893,7 +2905,7 @@ const CODES={"666": {"tag": "6 6 6  ·  D E V I L", "art": ["    ░▓▓▓░
   window._pickLang=function(l){ setLang(l); try{applyStaticLang();}catch(e){} startLogin(); };
   function langScreen(){
     out.innerHTML="";
-    nl("CRIMINAL TERMINAL (R) v11.8");
+    nl("CRIMINAL TERMINAL (R) v11.9");
     nl("(C) 1987 SATAN SYSTEMS CORP.");
     nl("");
     nl("SELECT LANGUAGE / ESCOLHA O IDIOMA:");
