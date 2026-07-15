@@ -559,7 +559,7 @@
 <div id="setup">
 <div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
 <div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
-<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v12.3</div>
+<div id="verSub" style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v12.4</div>
 <div id="setupStage"></div>
 </div>
 
@@ -567,7 +567,7 @@
 
 <div id="screen" style="display:none">
   <div class="bar">
-    <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL</h1>
+    <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL <span id="verTag" style="font-size:10px;letter-spacing:1px;opacity:.55;font-weight:normal;text-shadow:none">v12.4</span></h1>
     <div id="turnBanner">TURN 1</div>
     <div class="topbtns">
       <button id="settingsBtn" onclick="openSettings()" title="settings">[ MENU ]</button>
@@ -575,7 +575,7 @@
   </div>
   <div class="main">
     <div class="panel board-panel">
-      <h2>THE CITY</h2>
+      <h2>NEW YORK CITY</h2>
       <div class="zoombar"><button onclick="boardZoom(-1)">−</button><button id="bzBtn" onclick="boardZoom(0)" title="tap to fit">100%</button><button onclick="boardZoom(1)">+</button></div>
       <div id="boardWrap"><div id="board"></div></div>
     </div>
@@ -610,6 +610,9 @@
 let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN';}catch(e){return 'EN';}})();
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
+/* single source of truth for the version — shown on the top bar and setup screen */
+const APP_VERSION="v12.4";
+(function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
   {k:"hstripe",label:"horizontal"},{k:"dots",label:"dots"},{k:"checker",label:"checker"},
@@ -773,7 +776,8 @@ function afterSpeed(){
    <div style="font-size:12px;opacity:.7;margin:6px 0 2px">${L('SOLO — you vs the machine. How many AI bosses?','SOLO — voc\u00ea contra a m\u00e1quina. Quantos chef\u00f5es IA?')}</div>
    <div class="choice">${aiB}</div>
    <div style="font-size:12px;opacity:.7;margin:10px 0 2px">${L('PASS &amp; PLAY — how many humans?','PASSA E JOGA — quantos humanos?')}</div>
-   <div class="choice">${hB}</div>`;
+   <div class="choice">${hB}</div>
+   <div style="margin-top:16px"><button class="cfg" onclick="renderSetupStart()">${L('[ ‹ BACK ]','[ ‹ VOLTAR ]')}</button></div>`;
 }
 function chooseAI(k){setupData.n=1;setupData.aiCount=k;setupData.players=[];setupData.idx=0;setupData.ai=true;nextPlayerSetup();}
 function chooseCount(n){setupData.n=n;setupData.players=[];setupData.idx=0;setupData.ai=(n===1);if(n===1)setupData.aiCount=setupData.aiCount||1;nextPlayerSetup();}
@@ -809,11 +813,15 @@ function nextPlayerSetup(){
         '1234567890'.split('').map(k=>`<button type="button" class="kkey" onclick="ageKey('${k}')">${k}</button>`).join('')+
         `<button type="button" class="kkey kwide" onclick="ageKey('DEL')">DEL</button></div></div>`}
       <input type="hidden" id="page" value="${isAI?21:25}">
-      <button onclick="confirmPlayer(${isAI})">${L('[ CONFIRM ]','[ CONFIRMAR ]')}</button>
+      <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:4px">
+        <button onclick="setupBack()">${L('[ ‹ BACK ]','[ ‹ VOLTAR ]')}</button>
+        <button onclick="confirmPlayer(${isAI})">${L('[ CONFIRM ]','[ CONFIRMAR ]')}</button>
+      </div>
     </div>`;
   window._pickColor=null;
   window._ageTyped=false;
 }
+function setupBack(){ setupData.players=[]; setupData.idx=0; afterSpeed(); }
 function ageStep(d){ const inp=document.getElementById("page"); if(!inp)return; let v=(parseInt(inp.value)||25)+d; v=Math.max(1,Math.min(120,v)); inp.value=v; window._ageTyped=true; const s=document.getElementById("pageval"); if(s)s.textContent=v; }
 function ageKey(k){ const inp=document.getElementById("page"); if(!inp)return; let s=String(inp.value||"");
   if(k==='DEL'){ s=s.slice(0,-1); window._ageTyped=true; }
@@ -970,7 +978,7 @@ function buildBoardGrid(){
   // barbed-wire fence: an absolutely-positioned grid child pinned to the prison's own grid tracks
   // (rows/cols 4-8 of the 11-grid) — aligns on every browser with zero pixel math
   board.insertAdjacentHTML("beforeend",
-    `<div id="prisonFence"><span class="pfw t">x x x x x x x x x x x x</span><span class="pfw b">x x x x x x x x x x x x</span><span class="pfw l">x x x x x x x x</span><span class="pfw r">x x x x x x x x</span><div id="innerLabel">${L("P R I S O N","P R I S \u00c3 O")}</div></div>`);
+    `<div id="prisonFence"><span class="pfw t">x x x x x x x x x x x x</span><span class="pfw b">x x x x x x x x x x x x</span><span class="pfw l">x x x x x x x x</span><span class="pfw r">x x x x x x x x</span><div id="innerLabel">${L("R I K E R S","R I K E R S")}</div></div>`);
 }
 
 const CELL_PT={"HEIST · START":"ASSALTO · IN\u00cdCIO","POLICE RAID":"BATIDA POLICIAL","RECRUITING":"RECRUTAR","ATTACK":"ATAQUE","DRUG DEAL":"TR\u00c1FICO","CROOKED COP":"POLICIAL CORRUPTO","FATE":"DESTINO","PARTY":"FESTA","POKER NIGHT":"NOITE DE P\u00d4QUER","VISIT/JAIL":"VISITA/CADEIA","HOSPITAL":"HOSPITAL","HITMAN":"MATADOR","HEIST":"ASSALTO","weed":"maconha","meth":"metanfetamina","heroine":"hero\u00edna","cocaine":"coca\u00edna","guns":"armas","pills":"comprimidos","money laundering":"lavagem de dinheiro","fake documents":"documentos falsos","garage GTA":"desmanche GTA","prison entry":"entrada da pris\u00e3o","prison day":"dia de pris\u00e3o","prison fight":"briga na pris\u00e3o","riot":"rebeli\u00e3o"};
@@ -1118,7 +1126,7 @@ function openSellAssets(){
     <div class="bd">${L('Sell any property or business back for the full price you paid, to cover debts or free up cash. This does NOT end your turn.','Venda qualquer propriedade ou neg\u00f3cio pelo pre\u00e7o cheio que pagou, para cobrir d\u00edvidas ou liberar dinheiro. Isso N\u00c3O encerra seu turno.')}</div>
     <div class="out">${L('Cash on hand','Dinheiro em m\u00e3os')}: ${fmtK(p.cash)}</div>
     <div class="out" style="max-height:210px;overflow:auto;background:#0d1510;border-left:4px solid ${p.color}">${body}</div>
-    <div class="go"><button onclick="closeModal()">${L('[ DONE ]','[ CONCLUIR ]')}</button></div>`;
+    <div class="go"><button onclick="openActions()">${L('[ ‹ BACK ]','[ ‹ VOLTAR ]')}</button><button onclick="closeModal()">${L('[ DONE ]','[ CONCLUIR ]')}</button></div>`;
   openModal();
 }
 function sellAssetFromMenu(idx){
@@ -1368,6 +1376,7 @@ function openSettings(){
   el.innerHTML=`<div class="lbl">${L("SETTINGS","AJUSTES")}</div>
     <div class="bd" style="text-align:left;font-size:15px !important">
     ${row(L("Rules / how to play","Regras / como jogar"),`<button onclick="closeModal();openManual()">[ MANUAL ]</button>`)}
+    ${row(L("Language / Idioma","Idioma / Language"),`<button class="${LANG!=='PT'?'amber':''}" onclick="switchLang('EN')">[ EN ]</button><button class="${LANG==='PT'?'amber':''}" onclick="switchLang('PT')">[ PT ]</button>`)}
     ${row(L("Text size","Tamanho do texto"),`<button class="tiny" onclick="uiScale(-1)">−</button><button class="tiny" id="uizBtn" onclick="uiScale(0)">${Math.round((typeof _uiz!=="undefined"?_uiz:1)*100)}%</button><button class="tiny" onclick="uiScale(1)">+</button>`)}
     ${row(L("Follow token","Seguir peça"),`<button id="followBtn" onclick="toggleFollow()">${tr((S&&S.followAnim)?"[ FOLLOW: ON ]":"[ FOLLOW: OFF ]")}</button>`)}
     ${row(L("Display mode","Modo de tela"),`<button id="greenBtn" onclick="toggleGreenDos()">${DISPLAY_MODES[_dispMode].lbl}</button>`)}
@@ -1380,7 +1389,7 @@ function openSettings(){
 function toggleFollow(){ S.followAnim=!S.followAnim; const b=document.getElementById("followBtn"); if(b)b.textContent=tr(S.followAnim?"[ FOLLOW: ON ]":"[ FOLLOW: OFF ]"); }
 /* ===== LANGUAGE: interface translation (EN / PT). Card text stays EN for now. ===== */
 const PT={
- 'THE CITY':'A CIDADE','PLAYERS — tap for record':'JOGADORES — toque p/ ficha','DICE':'DADOS',
+ 'NEW YORK CITY':'NOVA YORK','PLAYERS — tap for record':'JOGADORES — toque p/ ficha','DICE':'DADOS',
  'ACTIONS':'AÇÕES','CONSOLE — this round':'CONSOLE — esta rodada','PLAYER ON TURN':'JOGADOR DA VEZ','OTHER PLAYERS — tap for record':'OUTROS JOGADORES — toque p/ ficha',
  '[ MANUAL ]':'[ MANUAL ]','[reset]':'[reiniciar]',
  '[ FOLLOW: OFF ]':'[ SEGUIR: NÃO ]','[ FOLLOW: ON ]':'[ SEGUIR: SIM ]',
@@ -1409,17 +1418,24 @@ function applyDisplayMode(){
 }
 function toggleGreenDos(){ _dispMode=(_dispMode+1)%DISPLAY_MODES.length; applyDisplayMode(); }
 applyDisplayMode();
-/* static chrome translation: panel headers and default widget texts */
+/* static chrome translation: panel headers and default widget texts — bidirectional so it can switch live */
+const STATIC_LABELS=[
+  ["NEW YORK CITY","NOVA YORK"],["DICE","DADOS"],
+  ["CONSOLE — this round","CONSOLE — esta rodada"],["PLAYER ON TURN","JOGADOR DA VEZ"],
+  ["OTHER PLAYERS — tap for record","OUTROS JOGADORES — toque p/ ficha"],
+  ["PLAYERS — tap for record","JOGADORES — toque para a ficha"]
+];
 function applyStaticLang(){
-  if(LANG!=='PT')return;
-  const map={"THE CITY":"A CIDADE","DICE":"DADOS","ACTIONS":"AÇÕES","CONSOLE — this round":"CONSOLE — esta rodada","PLAYER ON TURN":"JOGADOR DA VEZ","OTHER PLAYERS — tap for record":"OUTROS JOGADORES — toque p/ ficha","PLAYERS — tap for record":"JOGADORES — toque para a ficha"};
-  document.querySelectorAll("h2").forEach(h=>{const k=h.textContent.trim();if(map[k])h.textContent=map[k];});
-  const dl=document.getElementById("diceLbl"); if(dl&&/tap die/.test(dl.textContent))dl.textContent="toque no dado para rolar";
-  const fb=document.getElementById("followBtn"); if(fb)fb.textContent="[ SEGUIR: SIM ]";
-  const ab=document.getElementById("autoBtn"); if(ab&&/OFF/.test(ab.textContent))ab.textContent="[ AUTO: NÃO ]";
-  const rs=document.querySelector("a.reset"); if(rs)rs.textContent="[reiniciar]";
+  document.querySelectorAll("h2").forEach(h=>{const k=h.textContent.trim();const pr=STATIC_LABELS.find(x=>x[0]===k||x[1]===k);if(pr)h.textContent=(LANG==='PT'?pr[1]:pr[0]);});
+  const dl=document.getElementById("diceLbl");
+  if(dl){ if(LANG==='PT'&&/tap die/.test(dl.textContent))dl.textContent="toque no dado para rolar"; else if(LANG!=='PT'&&/toque no dado/.test(dl.textContent))dl.textContent="tap die to roll"; }
+  const fb=document.getElementById("followBtn"); if(fb)fb.textContent=tr((typeof S!=="undefined"&&S&&S.followAnim)?"[ FOLLOW: ON ]":"[ FOLLOW: OFF ]");
+  const ab=document.getElementById("autoBtn"); if(ab&&/OFF|NÃO/.test(ab.textContent))ab.textContent=tr("[ AUTO: OFF ]");
+  const rs=document.querySelector("a.reset"); if(rs)rs.textContent=L("[reset]","[reiniciar]");
 }
 applyStaticLang();
+/* switch interface language live from the menu, keeping the game in play */
+function switchLang(l){ setLang(l); applyStaticLang(); try{if(typeof render==="function"&&typeof S!=="undefined"&&S&&S.players){render();updateControls();}}catch(e){} openSettings(); }
 /* ===== AUTO-PLAY: per-player. Auto-rolls & resolves; pauses on an affordable buy; skips attacks ===== */
 function updateAutoBtn(){ const p=S&&S.players?S.players[S.cur]:null; const b=document.getElementById("autoBtn"); if(b)b.textContent=tr((p&&p.auto)?"[ AUTO: ON ]":"[ AUTO: OFF ]"); }
 function toggleAuto(){
@@ -1785,7 +1801,7 @@ function openBuyWorkers(){
     <div class="out" style="max-height:120px;overflow:auto"><b>${L("BODYGUARDS","GUARDA-COSTAS")}</b>${crewRow}</div>
     <div class="out" style="max-height:150px;overflow:auto"><b>${L("STREET SOLDIERS","SOLDADOS DE RUA")}</b>${stBody}</div>
     <div class="out" style="max-height:150px;overflow:auto"><b>${L("BUSINESS WORKERS","FUNCIONÁRIOS")}</b>${bizBody}</div>
-    <div class="go"><button onclick="closeModal()">${L('[ DONE ]','[ CONCLUIR ]')}</button></div>
+    <div class="go"><button onclick="openActions()">${L('[ ‹ BACK ]','[ ‹ VOLTAR ]')}</button><button onclick="closeModal()">${L('[ DONE ]','[ CONCLUIR ]')}</button></div>
     ${statusBar()}`;
   openModal();
 }
@@ -2650,7 +2666,8 @@ function showProfile(id){
     <div class="cvgrid">
       <div class="cvbox"><div class="cvh">${L("VITALS","SINAIS VITAIS")}</div>
         <div class="cvrow"><span>${L("Age","Idade")}</span><span>${p.age}</span></div>
-        <div class="cvrow"><span>${L("Health","Sa\u00fade")}</span><span>${3-p.hosp}/3</span></div>
+        <div class="cvrow"><span>${L("Life","Vida")}</span><span>${p.alive?("\u2665".repeat(Math.max(0,3-p.hosp))+"\u00b7".repeat(Math.max(0,p.hosp))+" ("+(3-p.hosp)+"/3)"):L("DEAD","MORTO")}</span></div>
+        <div class="cvrow"><span>${L("Heat","Risco")}</span><span>${p.ring==="inner"?"\u2014":(p.heat||0)+"%"}</span></div>
         <div class="cvrow"><span>${L("Status","Situa\u00e7\u00e3o")}</span><span>${loc}</span></div>
         <div class="cvrow"><span>${L("Years served","Anos cumpridos")}</span><span>${p.yearsServed||0}${L("y","a")}</span></div>
         ${p.ring==="inner"?`<div class="cvrow"><span>${L("Packs","Ma\u00e7os")}</span><span>${p.packs}</span></div>`:""}
@@ -2847,7 +2864,7 @@ const CODES={"666": {"tag": "6 6 6  ·  D E V I L", "art": ["    ░▓▓▓░
   }
   function startLogin(){
     out.innerHTML="";
-    nl("CRIMINAL TERMINAL (R) v12.3");
+    nl("CRIMINAL TERMINAL (R) "+APP_VERSION);
     nl("(C) 1987 SATAN SYSTEMS CORP. ALL RIGHTS RESERVED.");
     nl('<span id="playCountBoot" style="opacity:.75">'+(typeof PLAYCOUNT!=="undefined"&&PLAYCOUNT!=null?L("CRIMINALS SERVED WORLDWIDE: ","CRIMINOSOS ATENDIDOS NO MUNDO: ")+PLAYCOUNT:L("CRIMINALS SERVED WORLDWIDE: ...","CRIMINOSOS ATENDIDOS NO MUNDO: ..."))+'</span>');
     nl("");
@@ -2933,7 +2950,7 @@ const CODES={"666": {"tag": "6 6 6  ·  D E V I L", "art": ["    ░▓▓▓░
   window._pickLang=function(l){ setLang(l); try{applyStaticLang();}catch(e){} startLogin(); };
   function langScreen(){
     out.innerHTML="";
-    nl("CRIMINAL TERMINAL (R) v12.3");
+    nl("CRIMINAL TERMINAL (R) "+APP_VERSION);
     nl("(C) 1987 SATAN SYSTEMS CORP.");
     nl("");
     nl("SELECT LANGUAGE / ESCOLHA O IDIOMA:");
