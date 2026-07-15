@@ -558,7 +558,7 @@
 <div id="setup">
 <div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
 <div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
-<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v11.7</div>
+<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v11.8</div>
 <div id="setupStage"></div>
 </div>
 
@@ -588,10 +588,7 @@
           <h2>DICE</h2>
           <div id="diceBox"><div id="diceRow"><div class="die roller" onclick="rollDice()" title="tap to roll"></div></div><div style="font-size:13px;opacity:.7" id="diceLbl">tap die to roll</div></div>
           <div class="controls" style="min-height:8px">
-            <button id="commitCrimeBtn" onclick="commitCrime()" style="display:none">[ COMMIT CRIME ]</button>
-            <button id="buyWorkersBtn" onclick="openBuyWorkers()" style="display:none">[ HIRE WORKERS ]</button>
-            <button id="sellAssetsBtn" onclick="openSellAssets()" style="display:none">[ SELL ASSETS ]</button>
-            <button id="autoBtn" onclick="toggleAuto()">[ AUTO: OFF ]</button>
+            <button id="actionBtn" class="amber" onclick="openActions()">[ ACTION ]</button>
           </div>
           <div class="ctx" id="ctxHint"></div>
         </div>
@@ -1054,18 +1051,39 @@ function updateControls(){
   else if(p.ring==="inner")h.textContent=L("PRISON. Each full lap = 1 year served.","PRIS\u00c3O. Cada volta completa = 1 ano cumprido.");
   else if(!S.rolled)h.textContent=L("Tap the die to move.","Toque no dado para andar.");
   else h.textContent=L("Move resolved — next player up...","Jogada resolvida — pr\u00f3ximo jogador...");
-  const sab=document.getElementById("sellAssetsBtn");
-  if(sab) sab.style.display=(!p.ai&&p.alive&&!S.over&&p.owns.size>0)?"inline-block":"none";
-  // BUY SOLDIERS — available any time on your turn (free ring only), like buying hotels
-  // HIRE WORKERS — staff owned businesses any time on your turn
-  const bwb=document.getElementById("buyWorkersBtn");
-  if(bwb){ const canHire=!p.ai&&p.alive&&!S.over&&p.ring==="outer"&&!p.inJail;
-    bwb.style.display=canHire?"inline-block":"none"; bwb.textContent=L("[ HIRE ]","[ CONTRATAR ]"); }
-  // COMMIT CRIME — up to 3 per game, taken as your turn action (before you roll)
-  const ccb=document.getElementById("commitCrimeBtn");
-  if(ccb){ const canCrime=!p.ai&&p.alive&&!S.over&&!S.rolled&&p.ring==="outer"&&!p.inJail&&(p.crimeOps>0);
-    ccb.style.display=canCrime?"inline-block":"none";
-    if(canCrime) ccb.textContent=L("[ COMMIT CRIME (","[ COMETER CRIME (")+p.crimeOps+L(" left) ]"," rest.) ]"); }
+  const ab=document.getElementById("actionBtn");
+  if(ab){ ab.style.display=(!p.ai&&p.alive&&!S.over)?"block":"none"; ab.textContent=L("[ ACTION ]","[ A\u00c7\u00c3O ]"); }
+}
+/* ===== ACTION MENU: one page with everything the player can do ===== */
+function openActions(){
+  const p=S.players[S.cur];
+  if(!p||p.ai||!p.alive||S.over)return;
+  const el=document.getElementById("cardEl"); el.dataset.deck="";
+  const canCrime=!S.rolled&&p.ring==="outer"&&!p.inJail&&p.crimeOps>0;
+  const canHire=p.ring==="outer"&&!p.inJail;
+  const canSell=p.owns.size>0;
+  const row=(label,desc,btn)=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 2px;border-bottom:1px solid var(--phos-dim)"><span>${label}${desc?`<br><span style="opacity:.55;font-size:11px">${desc}</span>`:""}</span><span style="white-space:nowrap">${btn}</span></div>`;
+  const off=`<span style="opacity:.4">\u2014</span>`;
+  let rows="";
+  rows+=row(L("Commit a crime","Cometer um crime"), L("heist, hit or drug run","assalto, morte ou tr\u00e1fico"),
+    canCrime?`<button onclick="actDo('crime')">${L("[ DO IT \u00b7 ","[ FAZER \u00b7 ")}${p.crimeOps}${L(" left ]"," rest. ]")}</button>`:off);
+  rows+=row(L("Hire crew","Contratar equipe"), L("bodyguards, street soldiers, workers","guarda-costas, soldados, funcion\u00e1rios"),
+    canHire?`<button onclick="actDo('hire')">${L("[ HIRE ]","[ CONTRATAR ]")}</button>`:off);
+  rows+=row(L("Sell assets","Vender bens"), L("cash out property or businesses","liquidar propriedades ou neg\u00f3cios"),
+    canSell?`<button class="red" onclick="actDo('sell')">${L("[ SELL ]","[ VENDER ]")}</button>`:off);
+  rows+=row(L("Auto-play","Jogo autom\u00e1tico"), L("let the game play your turns","deixe o jogo jogar por voc\u00ea"),
+    `<button id="autoBtn" onclick="toggleAuto()">${tr(p.auto?"[ AUTO: ON ]":"[ AUTO: OFF ]")}</button>`);
+  el.innerHTML=`<div class="lbl" style="background:${p.color}">${L("ACTIONS","A\u00c7\u00d5ES")}</div>
+    <div class="ttl">${L("What do you want to do?","O que voc\u00ea quer fazer?")}</div>
+    <div class="bd" style="text-align:left">${rows}</div>
+    <div class="go"><button onclick="closeModal()">${L("[ CLOSE ]","[ FECHAR ]")}</button></div>
+    ${statusBar()}`;
+  openModal();
+}
+function actDo(what){
+  if(what==='crime')commitCrime();
+  else if(what==='hire')openBuyWorkers();
+  else if(what==='sell')openSellAssets();
 }
 function openSellAssets(){
   const p=S.players[S.cur];
@@ -2789,7 +2807,7 @@ const CODES={"666": {"tag": "6 6 6  ·  D E V I L", "art": ["    ░▓▓▓░
   }
   function startLogin(){
     out.innerHTML="";
-    nl("CRIMINAL TERMINAL (R) v11.7");
+    nl("CRIMINAL TERMINAL (R) v11.8");
     nl("(C) 1987 SATAN SYSTEMS CORP. ALL RIGHTS RESERVED.");
     nl('<span id="playCountBoot" style="opacity:.75">'+(typeof PLAYCOUNT!=="undefined"&&PLAYCOUNT!=null?L("CRIMINALS SERVED WORLDWIDE: ","CRIMINOSOS ATENDIDOS NO MUNDO: ")+PLAYCOUNT:L("CRIMINALS SERVED WORLDWIDE: ...","CRIMINOSOS ATENDIDOS NO MUNDO: ..."))+'</span>');
     nl("");
@@ -2875,7 +2893,7 @@ const CODES={"666": {"tag": "6 6 6  ·  D E V I L", "art": ["    ░▓▓▓░
   window._pickLang=function(l){ setLang(l); try{applyStaticLang();}catch(e){} startLogin(); };
   function langScreen(){
     out.innerHTML="";
-    nl("CRIMINAL TERMINAL (R) v11.7");
+    nl("CRIMINAL TERMINAL (R) v11.8");
     nl("(C) 1987 SATAN SYSTEMS CORP.");
     nl("");
     nl("SELECT LANGUAGE / ESCOLHA O IDIOMA:");
