@@ -542,7 +542,7 @@
 <div id="setup">
 <div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
 <div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
-<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v11.2</div>
+<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v11.3</div>
 <div id="setupStage"></div>
 </div>
 
@@ -557,7 +557,7 @@
       <button class="tiny" onclick="uiScale(-1)">−</button>
       <button class="tiny" id="uizBtn" onclick="uiScale(0)">100%</button>
       <button class="tiny" onclick="uiScale(1)">+</button>
-      <button id="followBtn" onclick="toggleFollow()">[ FOLLOW: OFF ]</button>
+      <button id="followBtn" onclick="toggleFollow()">[ FOLLOW: ON ]</button>
       <button id="greenBtn" onclick="toggleGreenDos()" title="display: 87 green / 94 mono / INK paper mono / COLOR paper / WIN 95">[ 87 ]</button>
       <button id="sndBtn" onclick="toggleSnd()">[ SND ]</button>
       <a class="reset" onclick="askReset()">[reset]</a>
@@ -816,7 +816,7 @@ function confirmPlayer(isAI){
   setupData.idx++; nextPlayerSetup();
 }
 function launch(){
-  S={turn:1,cur:0,n:setupData.players.length,rolled:false,over:false,ai:setupData.ai,roundEvents:[],baseDice:(setupData.dice||6),diff:setupData.difficulty};
+  S={turn:1,cur:0,n:setupData.players.length,rolled:false,over:false,ai:setupData.ai,roundEvents:[],baseDice:(setupData.dice||6),diff:setupData.difficulty,followAnim:true};
   const startCash=(setupData.startCash??100);
   S.players=setupData.players.map((p,i)=>{const pl=newPlayer(i,p.name,p.pattern);pl.ai=p.ai;pl.cash=startCash;pl.age=p.age||25;pl.startAge=pl.age;pl.startCash=startCash;
     if(pl.ai)pl.temper=Math.random()<.5?"AGGRESSIVE":"CAREFUL";return pl;});
@@ -844,7 +844,7 @@ function clearSave(){ try{localStorage.removeItem(SAVE_KEY);}catch(e){} }
 function loadSave(){ try{const s=JSON.parse(localStorage.getItem(SAVE_KEY)); return (s&&s.players&&s.players.length)?s:null;}catch(e){return null;} }
 function resumeGame(){
   const sv=loadSave(); if(!sv)return;
-  S={turn:sv.turn,cur:sv.cur,n:sv.n,rolled:false,over:false,ai:sv.ai,roundEvents:[],baseDice:({1:6,2:8,3:10}[sv.baseDice]||sv.baseDice||6),diff:sv.diff};
+  S={turn:sv.turn,cur:sv.cur,n:sv.n,rolled:false,over:false,ai:sv.ai,roundEvents:[],baseDice:({1:6,2:8,3:10}[sv.baseDice]||sv.baseDice||6),diff:sv.diff,followAnim:true};
   S.players=sv.players.map((sp,i)=>{const pl=newPlayer(i,sp.name,sp.pattern);Object.assign(pl,sp);pl.owns=new Map(sp.owns);return pl;});
   document.getElementById("setup").style.display="none";
   document.getElementById("screen").style.display="flex";
@@ -976,6 +976,9 @@ function render(){
     cell.innerHTML=`${ownHtml}<span class="ic">${data.ic}</span><span class="nm">${LANG==='PT'?(CELL_PT[data.t]||data.t):data.t}</span>`+(toks?`<span class="toks">${toks}</span>`:"");
   });
   const pl=document.getElementById("players");pl.innerHTML="";
+  const ranked=S.players.filter(p=>p.alive).slice().sort((a,b)=>netWorth(b)-netWorth(a));
+  const rankOf={}; ranked.forEach((p,i)=>rankOf[p.id]=i+1);
+  const rankTag=p=>!p.alive?L("DEAD","MORTO"):rankOf[p.id]===1?L("\u2605 LEADER","\u2605 L\u00cdDER"):"#"+rankOf[p.id];
   const mkCard=(p,big)=>{
     const d=document.createElement("div");d.className="pl"+(p.id===S.cur?" active":"")+(p.alive?"":" dead")+(big?" big":" mini");
     d.onclick=()=>showProfile(p.id);
@@ -986,9 +989,11 @@ function render(){
       d.innerHTML=`<div class="row"><span class="nm"><span class="patchip pat-${p.pattern||'solid'}"></span> ${p.name}${joj}</span><span>${hp}</span></div>
       <div class="row"><span>${fmtK(p.cash)}${(p.dirty||0)>0?` <span style="opacity:.6;font-size:11px">(${L("dirty","sujo")} ${fmtK(Math.min(p.dirty,p.cash))})</span>`:""}</span><span>${p.ring==="inner"?("pk "+p.packs):soldierIcons(p.color,p.crew)}</span></div>
       <div class="row" style="opacity:.6;font-size:11px"><span>${loc}</span><span>${p.ring==="inner"?"":L("HEAT ","RISCO ")+(p.heat||0)+"% · "}${L("TURF ","ÁREA ")}${p.owns.size} · ${p.age}${L("yo","a")}</span></div>
+      <div class="row" style="font-size:11px;opacity:.85"><span>${L("NET WORTH ","PATRIM\u00d4NIO ")}${fmtK(netWorth(p))}</span><span style="font-weight:bold">${rankTag(p)}</span></div>
       <div class="row" style="opacity:.5;font-size:10px"><span>${L("tap for record (CV)","toque para a ficha (CV)")}</span></div>`;
     } else {
-      d.innerHTML=`<div class="row"><span class="nm" style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><span class="patchip pat-${p.pattern||'solid'}"></span> ${p.name}</span><span style="white-space:nowrap;font-size:11px">${fmtK(p.cash)} · ${p.ring==="inner"?("pk"+p.packs):("s"+p.crew)} · ${hp}</span></div>`;
+      d.innerHTML=`<div class="row"><span class="nm" style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><span class="patchip pat-${p.pattern||'solid'}"></span> ${p.name}</span><span style="white-space:nowrap;font-size:10px;font-weight:bold">${rankTag(p)}</span></div>
+      <div class="row" style="font-size:10px;opacity:.75"><span>${L("NW ","PL ")}${fmtK(netWorth(p))}</span><span style="white-space:nowrap">${p.ring==="inner"?("pk"+p.packs):("s"+p.crew)} · ${hp}</span></div>`;
     }
     return d;
   };
@@ -1343,7 +1348,7 @@ function applyStaticLang(){
   const map={"THE CITY":"A CIDADE","DICE":"DADOS","ACTIONS":"AÇÕES","CONSOLE — this round":"CONSOLE — esta rodada","PLAYERS — tap for record":"JOGADORES — toque para a ficha"};
   document.querySelectorAll("h2").forEach(h=>{const k=h.textContent.trim();if(map[k])h.textContent=map[k];});
   const dl=document.getElementById("diceLbl"); if(dl&&/tap die/.test(dl.textContent))dl.textContent="toque no dado para rolar";
-  const fb=document.getElementById("followBtn"); if(fb&&/OFF/.test(fb.textContent))fb.textContent="[ SEGUIR: NÃO ]";
+  const fb=document.getElementById("followBtn"); if(fb)fb.textContent="[ SEGUIR: SIM ]";
   const ab=document.getElementById("autoBtn"); if(ab&&/OFF/.test(ab.textContent))ab.textContent="[ AUTO: NÃO ]";
   const rs=document.querySelector("a.reset"); if(rs)rs.textContent="[reiniciar]";
 }
@@ -2054,13 +2059,17 @@ function applyCard(){
    loose — only when there's truly nothing left does the street collect in blood. */
 function settleDebts(p){
   if(p.cash>=0)return true;
+  p._liq=p._liq||[];
   const items=Array.from(p.owns.entries())
     .map(([idx,cnt])=>({idx,val:cellUnit(idx)*cnt}))
     .sort((a,b)=>a.val-b.val);
   for(const it of items){ if(p.cash>=0)break;
     p.cash+=it.val; p.owns.delete(it.idx);
+    p._liq.push({name:OUTER[it.idx].t, val:it.val});
     log(p.name+L(" is forced to sell "," é forçado a vender ")+OUTER[it.idx].t+L(" for "," por ")+fmtK(it.val)+L(" to cover debts."," para cobrir dívidas."),"warn"); }
-  while(p.cash<0&&p.crew>0){ p.crew--; p.cash+=SOLDIER_COST; log(p.name+L(" cuts a soldier loose for "," dispensa um soldado por ")+fmtK(SOLDIER_COST)+".","warn"); }
+  while(p.cash<0&&p.crew>0){ p.crew--; p.cash+=SOLDIER_COST;
+    p._liq.push({name:L("soldier","soldado"), val:SOLDIER_COST});
+    log(p.name+L(" cuts a soldier loose for "," dispensa um soldado por ")+fmtK(SOLDIER_COST)+".","warn"); }
   render();
   return p.cash>=0;
 }
@@ -2609,27 +2618,41 @@ function aiBuyStreet(idx,c){const p=S.players[S.cur];if(p.cash>=c.price*2){p.cas
 function aiBuyBiz(idx,c){const p=S.players[S.cur];if(p.cash>=c.income*1.5){p.cash-=c.income;p.owns.set(idx,1);log(p.name+L(" opens "," abre ")+c.t+".","good");}else log(p.name+L(" passes on "," dispensa ")+c.t+".");render();finish();}
 
 /* ===== helpers ===== */
+let _rentCont=null;
+function rentOK(){ closeModal(); const f=_rentCont; _rentCont=null; if(f)f(); }
 function rentCard(p,owner,amt,reason){
+  const before=p.cash;
   const covered=p.cash>=amt;
-  if(!covered){ // can't pay — assets get liquidated; whatever is raised goes to the owner
-    p.cash-=amt; log(p.name+L(" can't cover "," não consegue pagar ")+reason+L(" to "," a ")+owner.name+".","warn");
+  p._liq=[];
+  let paid;
+  if(covered){ p.cash-=amt; paid=amt; owner.cash+=amt; mkDirty(owner,amt);
+    log(p.name+L(" pays "," paga ")+fmtK(amt)+L(" to "," a ")+owner.name+" ("+reason+").","warn"); }
+  else { p.cash-=amt; log(p.name+L(" can't cover "," não consegue pagar ")+reason+L(" to "," a ")+owner.name+".","warn");
     settleDebts(p);
-    const paid=amt+Math.min(0,p.cash);
-    if(paid>0){ owner.cash+=paid;mkDirty(owner,paid); log(owner.name+L(" collects "," recolhe ")+fmtK(paid)+(p.cash<0?L(" — all "," — tudo que ")+p.name+L(" could raise."," conseguiu levantar."):L(" after the sell-off."," depois da liquidação.")),"warn"); }
-    afterMoney(p); if(!p._sentToHospital) finish(); p._sentToHospital=false; return;
-  }
-  p.cash-=amt; owner.cash+=amt;mkDirty(owner,amt);
-  log(p.name+L(" pays "," paga ")+fmtK(amt)+L(" to "," a ")+owner.name+" ("+reason+").","warn");
-  if(p.ai){ render(); finish(); return; }
+    paid=amt+Math.min(0,p.cash);
+    if(paid>0){ owner.cash+=paid; mkDirty(owner,paid); log(owner.name+L(" collects "," recolhe ")+fmtK(paid)+(p.cash<0?L(" — all "," — tudo que ")+p.name+L(" could raise."," conseguiu levantar."):L(" after the sell-off."," depois da liquidação.")),"warn"); } }
+  const liq=p._liq||[]; p._liq=[];
   render();
+  const cont=()=>{ afterMoney(p); if(!p._sentToHospital) finish(); p._sentToHospital=false; };
+  if(p.ai){ cont(); return; }
+  const ownerNm=LANG==='PT'?(CELL_PT[reason]||reason):reason;
+  const soldHtml = liq.length
+    ? `\n${L("Sold to raise the money:","Vendido para levantar o dinheiro:")}\n`+liq.map(x=>"  \u00b7 "+(LANG==='PT'?(CELL_PT[x.name]||x.name):x.name)+"  +"+fmtK(x.val)).join("\n")
+    : "";
+  const shortfall = p.cash<0 ? `\n${L("Still short — headed to the hospital.","Ainda falta — a caminho do hospital.")}` : "";
   const el=document.getElementById("cardEl");
-  el.innerHTML=`<div class="lbl" style="background:${p.color}">PAYDAY</div>
+  el.dataset.deck="";
+  el.innerHTML=`<div class="lbl" style="background:${p.color}">${L("PAYDAY","HORA DE PAGAR")}</div>
     <div class="art">$ &gt;&gt; $</div>
-    <div class="ttl">${p.name} pays ${owner.name}</div>
-    <div class="bd">You landed on ${owner.name}'s turf — ${reason}. Money changes hands.</div>
-    <div class="out" style="color:${owner.color}">${owner.name} collects ${fmtK(amt)}</div>
-    <div class="go"><button onclick="closeModal();finish()">[ OK ]</button></div>
+    <div class="ttl">${p.name} \u2192 ${owner.name}</div>
+    <div class="bd">${L("You landed on ","Você caiu em ")}${owner.name}${L("'s turf","")} \u2014 ${reason}.</div>
+    <div class="out" style="white-space:pre-wrap">${L("Cash before:","Dinheiro antes:")} ${fmtK(before)}
+${L("Owed","Deve")} (${reason}): -${fmtK(amt)}${soldHtml}
+\u2192 ${owner.name} ${L("collects","recebe")}: +${fmtK(paid)}
+${L("Your cash now:","Seu dinheiro agora:")} ${fmtK(Math.max(0,p.cash))}${shortfall}</div>
+    <div class="go"><button onclick="rentOK()">[ OK ]</button></div>
     ${statusBar()}`;
+  _rentCont=cont;
   openModal();
 }
 function statusBar(){const p=S.players[S.cur];const wealth=p.ring==="inner"?`<span>${L('PACKS','MA\u00c7OS')}: ${p.packs}</span>`:`<span>${fmtK(p.cash)}</span>`;
@@ -2734,7 +2757,7 @@ const CODES={"666": {"tag": "6 6 6  ·  D E V I L", "art": ["    ░▓▓▓░
   }
   function startLogin(){
     out.innerHTML="";
-    nl("CRIMINAL TERMINAL (R) v11.2");
+    nl("CRIMINAL TERMINAL (R) v11.3");
     nl("(C) 1987 SATAN SYSTEMS CORP. ALL RIGHTS RESERVED.");
     nl('<span id="playCountBoot" style="opacity:.75">'+(typeof PLAYCOUNT!=="undefined"&&PLAYCOUNT!=null?L("CRIMINALS SERVED WORLDWIDE: ","CRIMINOSOS ATENDIDOS NO MUNDO: ")+PLAYCOUNT:L("CRIMINALS SERVED WORLDWIDE: ...","CRIMINOSOS ATENDIDOS NO MUNDO: ..."))+'</span>');
     nl("");
@@ -2820,7 +2843,7 @@ const CODES={"666": {"tag": "6 6 6  ·  D E V I L", "art": ["    ░▓▓▓░
   window._pickLang=function(l){ setLang(l); try{applyStaticLang();}catch(e){} startLogin(); };
   function langScreen(){
     out.innerHTML="";
-    nl("CRIMINAL TERMINAL (R) v11.2");
+    nl("CRIMINAL TERMINAL (R) v11.3");
     nl("(C) 1987 SATAN SYSTEMS CORP.");
     nl("");
     nl("SELECT LANGUAGE / ESCOLHA O IDIOMA:");
