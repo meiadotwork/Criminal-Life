@@ -542,7 +542,7 @@
 <div id="setup">
 <div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
 <div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
-<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v10.7</div>
+<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v10.8</div>
 <div id="setupStage"></div>
 </div>
 
@@ -608,7 +608,7 @@ const PATTERNS=[
 const OUTER = [
   {t:"HEIST · START",ic:"$!",k:"heist"},            // 0 bottom-left corner START
   {t:"Marcy Proj",ic:"#",k:"street",price:20},      // left side, going up
-  {t:"RECRUITING",ic:"@",k:"crew"},
+  {t:"Queensbridge",ic:"#",k:"street",price:30},
   {t:"cocaine",ic:"co",k:"biz",income:200},
   {t:"Fordham Rd",ic:"#",k:"street",price:45},
   {t:"ATTACK",ic:"><",k:"attack"},
@@ -619,7 +619,7 @@ const OUTER = [
   {t:"ATTACK",ic:"><",k:"attack"},                  // 10 top-left corner
   {t:"PARTY",ic:"?",k:"party"},                     // top row, left to right
   {t:"Flatbush Av",ic:"#",k:"street",price:60},
-  {t:"RECRUITING",ic:"@",k:"crew"},
+  {t:"125th St",ic:"#",k:"street",price:75},
   {t:"guns",ic:"gn",k:"biz",income:150},
   {t:"POLICE RAID",ic:"*",k:"raid"},
   {t:"Bedford Ave",ic:"#",k:"street",price:100},
@@ -628,7 +628,7 @@ const OUTER = [
   {t:"CROOKED COP",ic:"$b",k:"cop"},
   {t:"ATTACK",ic:"><",k:"attack"},                  // 20 top-right corner
   {t:"heroine",ic:"he",k:"biz",income:180},         // right side, going down
-  {t:"RECRUITING",ic:"@",k:"crew"},
+  {t:"Park Ave",ic:"#",k:"street",price:210},
   {t:"Fifth Ave",ic:"#",k:"street",price:225},
   {t:"HOSPITAL",ic:"+",k:"hospital"},
   {t:"POLICE RAID",ic:"*",k:"raid"},
@@ -637,7 +637,7 @@ const OUTER = [
   {t:"HITMAN",ic:"x",k:"hitman"},
   {t:"fake documents",ic:"id",k:"biz",income:70},
   {t:"ATTACK",ic:"><",k:"attack"},                  // 30 bottom-right corner
-  {t:"RECRUITING",ic:"@",k:"crew"},                 // bottom row, right to left
+  {t:"Broadway",ic:"#",k:"street",price:280},   // bottom row, right to left
   {t:"garage GTA",ic:"gt",k:"biz",income:90},
   {t:"Wall St",ic:"#",k:"street",price:300},
   {t:"HITMAN",ic:"x",k:"hitman"},
@@ -1141,7 +1141,6 @@ function openManual(){ window.speechSynthesis&&window.speechSynthesis.cancel(); 
   \u25B8 O MATADOR tamb\u00e9m aceita CONTRATOS \u2014 pague $150K para encomendar a morte de um rival: 1/3 ele escapa, 1/3 os soldados dele morrem, 1/3 ele vai pro HOSPITAL. Encomendar soma +10 de RISCO.<br>
   \u25B8 RUAS \u2014 compre \u00e1reas. Rival que cair na sua paga PARA VOC\u00ca. Guarne\u00e7a com soldados para defender.<br>
   \u25B8 NEG\u00d3CIOS \u2014 abra com 1 funcion\u00e1rio; cada funcion\u00e1rio rende o mesmo valor por ano. Quando um RIVAL cai no seu neg\u00f3cio ele compra PRODUTO: a prateleira tem renda \u00d7 funcion\u00e1rios, o comprador dobra o dinheiro \u2014 e o DONO recebe o DOBRO da compra. Todo mundo come, mas a casa come em dobro.<br>
-  \u25B8 RECRUTAR \u2014 contrate soldados por $${SOLDIER_COST}K cada.<br>
   \u25B8 ATAQUE \u2014 mande soldados contra a \u00e1rea de um rival. Mande MAIS do que ele tem defendendo e ela \u00e9 sua.<br>
   \u25B8 NOITE DE P\u00d4QUER \u2014 o cassino. Compre a casa: rende $1M POR ANO e cada aposta perdida por rivais vai pra voc\u00ea. Se n\u00e3o for sua, aposte: 4\u20136 DOBRA a aposta, 1\u20133 PERDE. Com outro humano na mesa, jogue M\u00c3O A M\u00c3O: uma rolagem cada, o maior leva.<br>
   \u25B8 FESTA / DESTINO \u2014 cartas de evento: golpes de sorte, encrenca, extors\u00e3o.<br>
@@ -1197,7 +1196,6 @@ function openManual(){ window.speechSynthesis&&window.speechSynthesis.cancel(); 
   \u25B8 The HITMAN also takes CONTRACTS \u2014 pay $150K to put a hit on a rival: 1/3 they dodge it, 1/3 their soldiers eat the bullets, 1/3 they land in the HOSPITAL. Ordering a hit adds +10 HEAT.<br>
   \u25B8 STREETS \u2014 buy turf. Land on a rival's and you pay THEM. Staff turf with soldiers to defend it.<br>
   \u25B8 BUSINESSES \u2014 open one for the price of 1 worker; every worker on staff earns that same amount per year. When a RIVAL lands on your business they buy PRODUCT: the shelf holds income \u00D7 workers, the buyer pays in and doubles their money \u2014 and the OWNER collects TWICE the buy. Everybody eats, but the house eats double. More workers = bigger deals for both sides.<br>
-  \u25B8 RECRUITING \u2014 hire soldiers at $${SOLDIER_COST}K each.<br>
   \u25B8 ATTACK \u2014 send soldiers at a rival's turf. Send MORE than they have defending and it's yours.<br>
   \u25B8 POKER NIGHT \u2014 the casino. Land on an unowned house and you can BUY it: the house pays you $1M A YEAR as you come around, plus every bet a rival loses at the tables goes straight to you (and you never have to gamble). Land on a house you don't own and you can play: set any stake up to your whole roll, then roll the die \u2014 4\u20136 DOUBLES your bet, 1\u20133 LOSES it, and if a rival owns the house your lost bet lands in their pocket. With another human at the table you can also go HEADS-UP: one roll each, high roll takes the stake.<br>
   \u25B8 PARTY / FATE \u2014 event cards: windfalls, trouble, shakedowns.<br>
@@ -2709,7 +2707,7 @@ function closeModal(){document.getElementById("modal").classList.remove("on");co
   }
   function startLogin(){
     out.innerHTML="";
-    nl("CRIMINAL TERMINAL (R) v10.7");
+    nl("CRIMINAL TERMINAL (R) v10.8");
     nl("(C) 1987 SATAN SYSTEMS CORP. ALL RIGHTS RESERVED.");
     nl('<span id="playCountBoot" style="opacity:.75">'+(typeof PLAYCOUNT!=="undefined"&&PLAYCOUNT!=null?L("CRIMINALS SERVED WORLDWIDE: ","CRIMINOSOS ATENDIDOS NO MUNDO: ")+PLAYCOUNT:L("CRIMINALS SERVED WORLDWIDE: ...","CRIMINOSOS ATENDIDOS NO MUNDO: ..."))+'</span>');
     nl("");
@@ -2795,7 +2793,7 @@ function closeModal(){document.getElementById("modal").classList.remove("on");co
   window._pickLang=function(l){ setLang(l); try{applyStaticLang();}catch(e){} startLogin(); };
   function langScreen(){
     out.innerHTML="";
-    nl("CRIMINAL TERMINAL (R) v10.7");
+    nl("CRIMINAL TERMINAL (R) v10.8");
     nl("(C) 1987 SATAN SYSTEMS CORP.");
     nl("");
     nl("SELECT LANGUAGE / ESCOLHA O IDIOMA:");
