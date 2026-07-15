@@ -68,7 +68,7 @@
   .pl .row{display:flex;justify-content:space-between}
   .pl .nm{font-weight:bold;letter-spacing:1px}
   .pl .tag{font-size:9px;padding:1px 4px;border:1px solid currentColor;margin-left:4px}
-  #log{font-size:14px;white-space:pre-wrap;word-break:break-word}
+  #log{font-size:14px;white-space:pre-wrap;word-break:break-word;max-height:40vh;overflow-y:auto}
   #log .rd{border:1px solid var(--phos-dark);padding:4px 6px;margin-bottom:5px}
   #log .rd b{color:var(--amber)}
   #log .l{margin-bottom:1px;padding-left:4px}
@@ -366,6 +366,23 @@
     #players .others .pl{flex:1 1 46% !important;}
   }
 </style>
+<style id="dos86">
+  @media(max-width:900px){
+    /* PLAYERS: capped so it takes ~half the space and never buries the console */
+    .side>.panel:first-child{flex:0 0 auto !important;max-height:30vh;overflow-y:auto !important;}
+    /* DICE/ACTIONS/CONSOLE: keep it real and visible; log scrolls on its own */
+    .side>.panel:last-child{flex:0 0 auto !important;overflow:visible !important;}
+    #log{min-height:20vh;max-height:30vh;overflow-y:auto;}
+    /* compact player cards */
+    #players{gap:4px !important;}
+    #players .pl{padding:4px 7px !important;}
+    #players .pl.big{padding:6px 8px !important;}
+    #players .pl.big .nm{font-size:14px !important;}
+    #players .pl.big .row{margin:0 !important;line-height:1.18;}
+    #players .others .pl{padding:4px 6px !important;font-size:11px !important;}
+    #players .others .pl .row{line-height:1.12;}
+  }
+</style>
 <style id="colorskin">
   /* die face shown as a number (D8/D10 rolls above 6 have no pip layout) */
   .die .dienum,#die .dienum{grid-column:1/4;grid-row:1/4;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:bold;color:var(--phos);}
@@ -542,7 +559,7 @@
 <div id="setup">
 <div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
 <div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
-<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v11.4</div>
+<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v11.5</div>
 <div id="setupStage"></div>
 </div>
 
@@ -2765,7 +2782,7 @@ const CODES={"666": {"tag": "6 6 6  ·  D E V I L", "art": ["    ░▓▓▓░
   }
   function startLogin(){
     out.innerHTML="";
-    nl("CRIMINAL TERMINAL (R) v11.4");
+    nl("CRIMINAL TERMINAL (R) v11.5");
     nl("(C) 1987 SATAN SYSTEMS CORP. ALL RIGHTS RESERVED.");
     nl('<span id="playCountBoot" style="opacity:.75">'+(typeof PLAYCOUNT!=="undefined"&&PLAYCOUNT!=null?L("CRIMINALS SERVED WORLDWIDE: ","CRIMINOSOS ATENDIDOS NO MUNDO: ")+PLAYCOUNT:L("CRIMINALS SERVED WORLDWIDE: ...","CRIMINOSOS ATENDIDOS NO MUNDO: ..."))+'</span>');
     nl("");
@@ -2851,7 +2868,7 @@ const CODES={"666": {"tag": "6 6 6  ·  D E V I L", "art": ["    ░▓▓▓░
   window._pickLang=function(l){ setLang(l); try{applyStaticLang();}catch(e){} startLogin(); };
   function langScreen(){
     out.innerHTML="";
-    nl("CRIMINAL TERMINAL (R) v11.4");
+    nl("CRIMINAL TERMINAL (R) v11.5");
     nl("(C) 1987 SATAN SYSTEMS CORP.");
     nl("");
     nl("SELECT LANGUAGE / ESCOLHA O IDIOMA:");
