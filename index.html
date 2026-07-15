@@ -223,7 +223,7 @@
 <style id="dos73">
   .bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
   .main{grid-template-columns:minmax(0,1fr) 360px !important;}
-  @media(max-width:900px){.main{grid-template-columns:1fr !important;}}
+  @media(max-width:900px){.main{grid-template-columns:minmax(0,1fr) !important;}}
   .side{display:flex;flex-direction:column;gap:9px;min-height:0;}
   .board-panel{overflow:auto;display:flex;flex-direction:column;}
   #boardWrap{position:relative;width:100%;margin:0;zoom:var(--bzoom,1);}
@@ -257,15 +257,28 @@
   .board-panel{overflow:auto;}
 </style>
 <style id="dos76">
-  .side{overflow:hidden;}
-  .side>.panel:first-child{flex:0 0 auto;overflow:visible;}                 /* PLAYERS: fit all, no scroll */
-  .side>.panel:last-child{flex:1 1 auto;min-height:130px;overflow:auto;}    /* dice/actions/console scroll */
+  .side{min-height:0;min-width:0;display:flex;flex-direction:column;gap:9px;}
+  .board-panel{min-width:0;}
+  #players .pl{flex:0 0 auto !important;min-width:0 !important;}
+  /* CONSOLE (wide) + DICE (narrow) side by side */
+  .condice-panel{display:flex;gap:9px;align-items:stretch;}
+  .condice-panel .concol{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;}
+  .condice-panel .dicecol{flex:0 0 44%;max-width:172px;min-width:118px;display:flex;flex-direction:column;}
+  .condice-panel #log{flex:1 1 auto;min-height:16vh;max-height:34vh;overflow-y:auto;}
+  .condice-panel #diceBox{margin-bottom:6px;}
+  .condice-panel .controls{display:flex;flex-direction:column;align-items:stretch;gap:5px;}
+  .condice-panel .controls button{width:100%;font-size:12px;padding:6px 4px;}
+  /* PLAYER ON TURN (full width) */
+  .curplayer-panel{flex:0 0 auto;}
   #players{gap:6px;}
   .pl.big{padding:8px;}
   .pl.big .nm{font-size:16px;}
-  .others{gap:5px;}
-  .pl.mini{flex:1 1 46%;min-width:0;padding:5px 6px;}
   .pl .row{gap:5px;align-items:center;}
+  /* OTHER PLAYERS (horizontal strip) */
+  .others-panel{flex:0 0 auto;}
+  #othersRow{display:flex;gap:5px;overflow-x:auto;padding-bottom:4px;}
+  #othersRow .pl{flex:0 0 auto;min-width:118px;padding:5px 7px;font-size:11px;}
+  #othersRow .pl .row{line-height:1.15;}
 </style>
 <style id="dos77">
   /* DOS config (difficulty + speed on one screen) */
@@ -301,7 +314,6 @@
 <style id="dos78">
   @media(max-width:900px){
     .board-panel{max-height:46vh;}
-    .side>.panel:last-child{order:-1;}   /* DICE/ACTIONS/CONSOLE above the players list on phones */
   }
   .agestep{display:flex;align-items:center;justify-content:center;gap:10px;margin:2px 0 4px;}
   .agestep button{font-size:20px;padding:4px 14px;line-height:1;}
@@ -356,31 +368,18 @@
 </style>
 <style id="dos85">
   @media(max-width:900px){
-    .side>.panel:first-child{flex:0 0 auto;overflow:visible;}
-    #players{flex-direction:row !important;flex-wrap:wrap;align-items:flex-start;gap:6px;}
-    #players .pl{flex:1 1 46% !important;min-width:0;height:auto !important;align-self:flex-start;padding:6px !important;}
-    #players .pl.big{flex:1 1 100% !important;}
+    #players .pl.big{padding:6px 8px !important;}
     #players .pl.big .nm{font-size:15px !important;}
-    #players .pl.big .row:last-child{display:none;}     /* drop the "tap for record" hint line */
-    #players .others{flex:1 1 100%;display:flex;flex-wrap:wrap;gap:6px;margin:0;}
-    #players .others .pl{flex:1 1 46% !important;}
+    #players .pl.big .row{margin:0 !important;line-height:1.18;}
+    #players .pl.big .row:last-child{display:none;}   /* drop the "tap for record" hint */
+    .condice-panel .dicecol{flex:0 0 42%;}
+    #othersRow .pl{min-width:110px;padding:4px 6px;}
+    #othersRow .pl .row{line-height:1.12;}
   }
 </style>
 <style id="dos86">
   @media(max-width:900px){
-    /* PLAYERS: capped so it takes ~half the space and never buries the console */
-    .side>.panel:first-child{flex:0 0 auto !important;max-height:30vh;overflow-y:auto !important;}
-    /* DICE/ACTIONS/CONSOLE: keep it real and visible; log scrolls on its own */
-    .side>.panel:last-child{flex:0 0 auto !important;overflow:visible !important;}
-    #log{min-height:20vh;max-height:30vh;overflow-y:auto;}
-    /* compact player cards */
-    #players{gap:4px !important;}
-    #players .pl{padding:4px 7px !important;}
-    #players .pl.big{padding:6px 8px !important;}
-    #players .pl.big .nm{font-size:14px !important;}
-    #players .pl.big .row{margin:0 !important;line-height:1.18;}
-    #players .others .pl{padding:4px 6px !important;font-size:11px !important;}
-    #players .others .pl .row{line-height:1.12;}
+    .condice-panel #log{min-height:22vh;max-height:30vh;}
   }
 </style>
 <style id="colorskin">
@@ -559,7 +558,7 @@
 <div id="setup">
 <div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
 <div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
-<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v11.5</div>
+<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v11.7</div>
 <div id="setupStage"></div>
 </div>
 
@@ -580,23 +579,30 @@
       <div id="boardWrap"><div id="board"></div></div>
     </div>
     <div class="side">
-      <div class="panel">
-        <h2>PLAYERS — tap for record</h2>
+      <div class="panel condice-panel">
+        <div class="concol">
+          <h2>CONSOLE — this round</h2>
+          <div id="log"></div>
+        </div>
+        <div class="dicecol">
+          <h2>DICE</h2>
+          <div id="diceBox"><div id="diceRow"><div class="die roller" onclick="rollDice()" title="tap to roll"></div></div><div style="font-size:13px;opacity:.7" id="diceLbl">tap die to roll</div></div>
+          <div class="controls" style="min-height:8px">
+            <button id="commitCrimeBtn" onclick="commitCrime()" style="display:none">[ COMMIT CRIME ]</button>
+            <button id="buyWorkersBtn" onclick="openBuyWorkers()" style="display:none">[ HIRE WORKERS ]</button>
+            <button id="sellAssetsBtn" onclick="openSellAssets()" style="display:none">[ SELL ASSETS ]</button>
+            <button id="autoBtn" onclick="toggleAuto()">[ AUTO: OFF ]</button>
+          </div>
+          <div class="ctx" id="ctxHint"></div>
+        </div>
+      </div>
+      <div class="panel curplayer-panel">
+        <h2>PLAYER ON TURN</h2>
         <div id="players"></div>
       </div>
-      <div class="panel">
-        <h2>DICE</h2>
-        <div id="diceBox"><div id="diceRow"><div class="die roller" onclick="rollDice()" title="tap to roll"></div></div><div style="font-size:14px;opacity:.7" id="diceLbl">tap die to roll</div></div>
-        <h2>ACTIONS</h2>
-        <div class="controls" style="min-height:8px;flex-wrap:wrap">
-          <button id="commitCrimeBtn" onclick="commitCrime()" style="display:none">[ COMMIT CRIME ]</button>
-          <button id="buyWorkersBtn" onclick="openBuyWorkers()" style="display:none">[ HIRE WORKERS ]</button>
-          <button id="sellAssetsBtn" onclick="openSellAssets()" style="display:none">[ SELL ASSETS ]</button>
-          <button id="autoBtn" onclick="toggleAuto()">[ AUTO: OFF ]</button>
-        </div>
-        <div class="ctx" id="ctxHint"></div>
-        <h2>CONSOLE — this round</h2>
-        <div id="log"></div>
+      <div class="panel others-panel">
+        <h2>OTHER PLAYERS — tap for record</h2>
+        <div id="othersRow"></div>
       </div>
     </div>
   </div>
@@ -1007,9 +1013,10 @@ function render(){
     }
     return d;
   };
+  const oth=document.getElementById("othersRow"); if(oth)oth.innerHTML="";
   pl.appendChild(mkCard(S.players[S.cur],true));
   const others=S.players.filter(p=>p.id!==S.cur);
-  if(others.length){ const w=document.createElement("div");w.className="others"; others.forEach(p=>w.appendChild(mkCard(p,false))); pl.appendChild(w); }
+  if(oth) others.forEach(p=>oth.appendChild(mkCard(p,false)));
   document.getElementById("turnNo")&&(document.getElementById("turnNo").textContent=S.turn);
   const cp=S.players[S.cur];
   const tb=document.getElementById("turnBanner");
@@ -1339,7 +1346,7 @@ function toggleFollow(){ S.followAnim=!S.followAnim; const b=document.getElement
 /* ===== LANGUAGE: interface translation (EN / PT). Card text stays EN for now. ===== */
 const PT={
  'THE CITY':'A CIDADE','PLAYERS — tap for record':'JOGADORES — toque p/ ficha','DICE':'DADOS',
- 'ACTIONS':'AÇÕES','CONSOLE — this round':'CONSOLE — esta rodada',
+ 'ACTIONS':'AÇÕES','CONSOLE — this round':'CONSOLE — esta rodada','PLAYER ON TURN':'JOGADOR DA VEZ','OTHER PLAYERS — tap for record':'OUTROS JOGADORES — toque p/ ficha',
  '[ MANUAL ]':'[ MANUAL ]','[reset]':'[reiniciar]',
  '[ FOLLOW: OFF ]':'[ SEGUIR: NÃO ]','[ FOLLOW: ON ]':'[ SEGUIR: SIM ]',
  '[ AUTO: OFF ]':'[ AUTO: NÃO ]','[ AUTO: ON ]':'[ AUTO: SIM ]',
@@ -1370,7 +1377,7 @@ applyDisplayMode();
 /* static chrome translation: panel headers and default widget texts */
 function applyStaticLang(){
   if(LANG!=='PT')return;
-  const map={"THE CITY":"A CIDADE","DICE":"DADOS","ACTIONS":"AÇÕES","CONSOLE — this round":"CONSOLE — esta rodada","PLAYERS — tap for record":"JOGADORES — toque para a ficha"};
+  const map={"THE CITY":"A CIDADE","DICE":"DADOS","ACTIONS":"AÇÕES","CONSOLE — this round":"CONSOLE — esta rodada","PLAYER ON TURN":"JOGADOR DA VEZ","OTHER PLAYERS — tap for record":"OUTROS JOGADORES — toque p/ ficha","PLAYERS — tap for record":"JOGADORES — toque para a ficha"};
   document.querySelectorAll("h2").forEach(h=>{const k=h.textContent.trim();if(map[k])h.textContent=map[k];});
   const dl=document.getElementById("diceLbl"); if(dl&&/tap die/.test(dl.textContent))dl.textContent="toque no dado para rolar";
   const fb=document.getElementById("followBtn"); if(fb)fb.textContent="[ SEGUIR: SIM ]";
@@ -2782,7 +2789,7 @@ const CODES={"666": {"tag": "6 6 6  ·  D E V I L", "art": ["    ░▓▓▓░
   }
   function startLogin(){
     out.innerHTML="";
-    nl("CRIMINAL TERMINAL (R) v11.5");
+    nl("CRIMINAL TERMINAL (R) v11.7");
     nl("(C) 1987 SATAN SYSTEMS CORP. ALL RIGHTS RESERVED.");
     nl('<span id="playCountBoot" style="opacity:.75">'+(typeof PLAYCOUNT!=="undefined"&&PLAYCOUNT!=null?L("CRIMINALS SERVED WORLDWIDE: ","CRIMINOSOS ATENDIDOS NO MUNDO: ")+PLAYCOUNT:L("CRIMINALS SERVED WORLDWIDE: ...","CRIMINOSOS ATENDIDOS NO MUNDO: ..."))+'</span>');
     nl("");
@@ -2868,7 +2875,7 @@ const CODES={"666": {"tag": "6 6 6  ·  D E V I L", "art": ["    ░▓▓▓░
   window._pickLang=function(l){ setLang(l); try{applyStaticLang();}catch(e){} startLogin(); };
   function langScreen(){
     out.innerHTML="";
-    nl("CRIMINAL TERMINAL (R) v11.5");
+    nl("CRIMINAL TERMINAL (R) v11.7");
     nl("(C) 1987 SATAN SYSTEMS CORP.");
     nl("");
     nl("SELECT LANGUAGE / ESCOLHA O IDIOMA:");
