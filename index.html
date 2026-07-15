@@ -559,7 +559,7 @@
 <div id="setup">
 <div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
 <div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
-<div id="verSub" style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v12.4</div>
+<div id="verSub" style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v12.5</div>
 <div id="setupStage"></div>
 </div>
 
@@ -567,7 +567,7 @@
 
 <div id="screen" style="display:none">
   <div class="bar">
-    <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL <span id="verTag" style="font-size:10px;letter-spacing:1px;opacity:.55;font-weight:normal;text-shadow:none">v12.4</span></h1>
+    <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL <span id="verTag" style="font-size:10px;letter-spacing:1px;opacity:.55;font-weight:normal;text-shadow:none">v12.5</span></h1>
     <div id="turnBanner">TURN 1</div>
     <div class="topbtns">
       <button id="settingsBtn" onclick="openSettings()" title="settings">[ MENU ]</button>
@@ -611,7 +611,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v12.4";
+const APP_VERSION="v12.5";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -888,6 +888,10 @@ function askReset(){
 
 /* ===== SOUND — tiny retro PC-speaker beeper (square wave), toggleable ===== */
 let SND=(function(){try{return localStorage.getItem("ct_snd")!=="off";}catch(e){return true;}})();
+/* police siren / raid loudness — Low / Medium / High multiplier */
+const POLICE_VOLS={L:0.35,M:1,H:2};
+let _polVol=(function(){try{const v=localStorage.getItem("ct_polvol");return POLICE_VOLS[v]?v:"M";}catch(e){return "M";}})();
+function policeGain(){return POLICE_VOLS[_polVol]||1;}
 let _ac=null;
 function beep(freq,dur,vol,when){
   if(!SND)return;
@@ -926,7 +930,7 @@ function sirenWail(start,cycles){ // smooth up-down frequency glide — a real s
     const o=_ac.createOscillator(),g=_ac.createGain();
     o.type="sawtooth";o.frequency.setValueAtTime(620,t0);
     for(let i=0;i<n;i++){o.frequency.linearRampToValueAtTime(1150,t0+i*per+per/2);o.frequency.linearRampToValueAtTime(620,t0+(i+1)*per);}
-    g.gain.setValueAtTime(.04,t0);g.gain.setValueAtTime(.04,t0+n*per-.08);g.gain.exponentialRampToValueAtTime(.0001,t0+n*per);
+    const sv=.04*policeGain();g.gain.setValueAtTime(sv,t0);g.gain.setValueAtTime(sv,t0+n*per-.08);g.gain.exponentialRampToValueAtTime(.0001,t0+n*per);
     o.connect(g);g.connect(_ac.destination);o.start(t0);o.stop(t0+n*per+.05);
   }catch(e){}
 }
@@ -936,8 +940,8 @@ const SFX={
   card:()=>beep(660,.06,.035),
   good:()=>{beep(523,.07,.045);beep(784,.09,.045,.08);},
   bad:()=>{beep(220,.12,.05);beep(165,.16,.05,.1);},
-  siren:()=>{beep(700,.14,.045);beep(500,.14,.045,.15);beep(700,.14,.045,.3);},
-  raid:()=>{noiseBurst(.28,.3,0,350);sirenWail(.15,3);},                                  // door breach BOOM + wailing sirens
+  siren:()=>{const v=.045*policeGain();beep(700,.14,v);beep(500,.14,v,.15);beep(700,.14,v,.3);},
+  raid:()=>{noiseBurst(.28,.3*policeGain(),0,350);sirenWail(.15,3);},                     // door breach BOOM + wailing sirens
   soldierDown:(n=1)=>{n=Math.max(1,Math.min(6,Math.round(n)));for(let i=0;i<n;i++){const b=i*0.85;noiseBurst(.12,.24,b,1100);noiseBurst(.12,.24,b+0.32,1050);noiseBurst(.16,.26,b+0.64,950);}}, // 3 deliberate shots PER soldier killed
   funeral:()=>{const seq=[[196,.55],[196,.28],[196,.28],[233,.75],[233,.38],[196,.38],[185,.38],[147,.9]];let t=0;seq.forEach(([f,d])=>{beep(f,d*0.92,.05,t);t+=d;});}, // slow minor dirge
   cash:()=>{beep(1245,.05,.045);beep(1568,.12,.05,.06);},                                 // register cha-ching
@@ -947,6 +951,7 @@ const SFX={
   win:()=>{[523,659,784,1047].forEach((f,i)=>beep(f,.12,.045,i*.13));},
 };
 function toggleSnd(){ SND=!SND; try{localStorage.setItem("ct_snd",SND?"on":"off");}catch(e){} const b=document.getElementById("sndBtn"); if(b)b.textContent=SND?"[ SND ]":"[ MUTE ]"; if(SND)SFX.card(); }
+function setPoliceVol(v){ if(!POLICE_VOLS[v])v="M"; _polVol=v; try{localStorage.setItem("ct_polvol",v);}catch(e){} if(SND){SFX.siren();} openSettings(); }
 
 /* ===== BOARD GRID (HEIST at bottom-left) ===== */
 function buildBoardGrid(){
@@ -1381,6 +1386,7 @@ function openSettings(){
     ${row(L("Follow token","Seguir peça"),`<button id="followBtn" onclick="toggleFollow()">${tr((S&&S.followAnim)?"[ FOLLOW: ON ]":"[ FOLLOW: OFF ]")}</button>`)}
     ${row(L("Display mode","Modo de tela"),`<button id="greenBtn" onclick="toggleGreenDos()">${DISPLAY_MODES[_dispMode].lbl}</button>`)}
     ${row(L("Sound","Som"),`<button id="sndBtn" onclick="toggleSnd()">${SND?"[ SND ]":"[ MUTE ]"}</button>`)}
+    ${row(L("Police volume","Volume da polícia"),`<button class="tiny${_polVol==='L'?' amber':''}" onclick="setPoliceVol('L')">L</button><button class="tiny${_polVol==='M'?' amber':''}" onclick="setPoliceVol('M')">M</button><button class="tiny${_polVol==='H'?' amber':''}" onclick="setPoliceVol('H')">H</button>`)}
     ${row(L("New game (reset)","Novo jogo (reiniciar)"),`<button class="red" onclick="askReset()">${L("[ RESET ]","[ REINICIAR ]")}</button>`)}
     </div>
     <div class="go"><button onclick="closeModal()">${L("[ CLOSE ]","[ FECHAR ]")}</button></div>`;
