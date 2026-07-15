@@ -374,7 +374,7 @@
      Positioned as an absolute grid child of #board pinned to grid tracks 4-8, so it hugs the prison
      cells exactly on every browser and zoom level. ===== */
   #board{position:relative;}
-  #prisonFence{position:absolute;grid-row:4/9;grid-column:4/9;top:-7px;left:-7px;right:-7px;bottom:-7px;
+  #prisonFence{position:absolute;grid-row:3/11;grid-column:3/11;inset:0;
     pointer-events:none;z-index:2;border:2px solid var(--phos) !important;}
   .pfw{position:absolute;color:var(--phos);font-weight:bold;font-size:clamp(13px,2.4vw,26px);letter-spacing:1.1em;white-space:nowrap;overflow:hidden;opacity:.95;line-height:1;}
   .pfw.t{left:0;right:0;top:-1px;transform:translateY(-50%);text-align:center;}
@@ -542,7 +542,7 @@
 <div id="setup">
 <div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
 <div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
-<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v10.8</div>
+<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v10.9</div>
 <div id="setupStage"></div>
 </div>
 
@@ -613,7 +613,7 @@ const OUTER = [
   {t:"Fordham Rd",ic:"#",k:"street",price:45},
   {t:"ATTACK",ic:"><",k:"attack"},
   {t:"DRUG DEAL",ic:"~",k:"drug"},
-  {t:"POLICE RAID",ic:"*",k:"raid"},
+  {t:"HITMAN",ic:"x",k:"hitman"},
   {t:"CROOKED COP",ic:"$b",k:"cop"},
   {t:"weed",ic:"wd",k:"biz",income:80},
   {t:"ATTACK",ic:"><",k:"attack"},                  // 10 top-left corner
@@ -621,7 +621,7 @@ const OUTER = [
   {t:"Flatbush Av",ic:"#",k:"street",price:60},
   {t:"125th St",ic:"#",k:"street",price:75},
   {t:"guns",ic:"gn",k:"biz",income:150},
-  {t:"POLICE RAID",ic:"*",k:"raid"},
+  {t:"HITMAN",ic:"x",k:"hitman"},
   {t:"Bedford Ave",ic:"#",k:"street",price:100},
   {t:"HEIST",ic:"!",k:"heist"},
   {t:"meth",ic:"me",k:"biz",income:170},
@@ -726,12 +726,12 @@ function renderSetupStart(){
   const sv=loadSave();
   document.getElementById("setupStage").innerHTML=`
    ${sv?`<div class="dosconfig" style="margin-bottom:16px">
-     <div class="cfgline">C:\\> CRIMELIFE.EXE /RESUME</div>
+     <div class="cfgline">C:\\> CRIMINAL_TERMINAL.EXE /RESUME</div>
      <div class="cfgline">${L('SAVED SESSION FOUND — turn','SESS\u00c3O SALVA ENCONTRADA — turno')} ${sv.turn} · ${sv.players.filter(p=>p.alive).length} ${L('of','de')} ${sv.players.length} ${L('still breathing','ainda respirando')}</div>
      <button class="cfggo" onclick="resumeGame()">${L('[ CONTINUE SESSION » ]','[ CONTINUAR SESS\u00c3O » ]')}</button>
    </div>`:''}
    <div class="dosconfig">
-     <div class="cfgline">C:\\> CRIMELIFE.EXE /NEWGAME</div>
+     <div class="cfgline">C:\\> CRIMINAL_TERMINAL.EXE /NEWGAME</div>
      <div class="cfgline" id="playCount" style="opacity:.7">${PLAYCOUNT!=null?(L("CRIMINALS SERVED WORLDWIDE: ","CRIMINOSOS ATENDIDOS NO MUNDO: ")+PLAYCOUNT):L("CONNECTING TO CRIME NETWORK...","CONECTANDO \u00c0 REDE DO CRIME...")}</div>
      <div class="cfgline">${L('CONFIGURE SESSION_','CONFIGURAR SESS\u00c3O_')}</div>
      <div class="cfghead">1. ${L('DIFFICULTY','DIFICULDADE')} <span style="opacity:.55">${L('(starting capital)','(capital inicial)')}</span></div>
@@ -917,7 +917,8 @@ const SFX={
   bad:()=>{beep(220,.12,.05);beep(165,.16,.05,.1);},
   siren:()=>{beep(700,.14,.045);beep(500,.14,.045,.15);beep(700,.14,.045,.3);},
   raid:()=>{noiseBurst(.28,.3,0,350);sirenWail(.15,3);},                                  // door breach BOOM + wailing sirens
-  soldierDown:()=>{noiseBurst(.12,.24,0,1100);noiseBurst(.12,.24,.32,1050);noiseBurst(.16,.26,.64,950);}, // three deliberate shots — a soldier dies
+  soldierDown:(n=1)=>{n=Math.max(1,Math.min(6,Math.round(n)));for(let i=0;i<n;i++){const b=i*0.85;noiseBurst(.12,.24,b,1100);noiseBurst(.12,.24,b+0.32,1050);noiseBurst(.16,.26,b+0.64,950);}}, // 3 deliberate shots PER soldier killed
+  funeral:()=>{const seq=[[196,.55],[196,.28],[196,.28],[233,.75],[233,.38],[196,.38],[185,.38],[147,.9]];let t=0;seq.forEach(([f,d])=>{beep(f,d*0.92,.05,t);t+=d;});}, // slow minor dirge
   cash:()=>{beep(1245,.05,.045);beep(1568,.12,.05,.06);},                                 // register cha-ching
   shots:()=>{noiseBurst(.14,.2,0,1200);noiseBurst(.14,.2,.22,1000);noiseBurst(.18,.22,.44,900);}, // firefight
   clang:()=>{beep(120,.3,.08);noiseBurst(.25,.12,.02,400);},                              // cell door slams
@@ -1818,7 +1819,7 @@ function orderHit(oid){
     showNotice(L("THE HIT","O SERVI\u00c7O"),"x",L("The target went to ground","O alvo sumiu do mapa"),o.name+L(" changed cars, changed routes, slept somewhere new. The shooter waited three nights and walked. Money spent, nothing to show — and the streets are whispering your name (+10 HEAT)."," trocou de carro, trocou de rota, dormiu em outro canto. O atirador esperou tr\u00eas noites e foi embora. Dinheiro gasto, nada em troca — e a rua sussurra seu nome (+10 RISCO)."),()=>{render();finish();});
   } else if(r<2/3 && o.crew>0){
     const loss=Math.min(o.crew,1+Math.floor(Math.random()*3));
-    o.crew-=loss; SFX.soldierDown();
+    o.crew-=loss; SFX.soldierDown(loss);
     log(L("A hit ordered by ","Um serviço encomendado por ")+p.name+L(" kills "," mata ")+loss+L(" of "," soldados de ")+o.name+L("'s soldiers.","."),"bad");
     showNotice(L("THE HIT","O SERVI\u00c7O"),"x",L("The bodyguards ate the bullets","Os seguran\u00e7as comeram as balas"),LANG==='PT'?`O atirador pegou a equipe de ${o.name} na porta do ponto. ${loss} soldado(s) no ch\u00e3o, mas ${o.name} saiu vivo. V\u00e3o descobrir quem pagou. (+10 RISCO)`:`The shooter caught ${o.name}'s people outside the spot. ${loss} soldier${loss>1?"s":""} down, but ${o.name} made it out alive. They'll figure out who paid for it. (+10 HEAT)`,()=>{render();finish();});
   } else {
@@ -1881,9 +1882,9 @@ function atkPick(d){const p=S.players[S.cur];if(d==='max')p._atkPick=p.crew;else
 function confirmAttack(){const p=S.players[S.cur];const t=p._atkTarget;const n=p._atkPick||1;p._atkPick=undefined;p._atkTarget=undefined;resolveAttack(p,S.players[t.oid],t.idx,n);}
 function resolveAttack(p,o,idx,atk){
   closeModal();
-  SFX.shots();
   const def=o.owns.get(idx)||0;
   atk=Math.max(1,Math.min(atk||p.crew,p.crew));
+  SFX.soldierDown(2*Math.min(atk,def)||1);   // 3 gunshots per soldier killed in the battle
   let title,body;
   if(atk>def){ p.crew-=atk; o.owns.delete(idx); p.owns.set(idx,Math.max(1,atk-def));
     title=L("TURF TAKEN","\u00c1REA TOMADA");
@@ -2005,7 +2006,7 @@ function applyCard(){
   if(c.crew){p.crew+=c.crew;log(p.name+L(" gains "," ganha ")+c.crew+L(" soldier."," soldado."),"good");}
   if(c.respect)log(p.name+L(" earns respect inside."," ganha respeito lá dentro."),"good");
   if(c.freeArrest){p.freeArrest++;log(p.name+L(" AVOIDS PRISON — banks a get-out-of-jail card ("," EVITA A PRISÃO — guarda uma carta de saída (")+p.freeArrest+").","good");}
-  if(c.loseCrew){SFX.soldierDown();p.crew=Math.max(0,p.crew-c.loseCrew);log(p.name+L(" loses "," perde ")+c.loseCrew+L(" soldier."," soldado."),"bad");}
+  if(c.loseCrew){SFX.soldierDown(c.loseCrew);p.crew=Math.max(0,p.crew-c.loseCrew);log(p.name+L(" loses "," perde ")+c.loseCrew+L(" soldier."," soldado."),"bad");}
   if(c.skip){p.skip=(p.skip||0)+c.skip;log(p.name+L(" will lose "," vai perder ")+c.skip+L(" turn."," turno."),"warn");}
   if(c.freeRaid){p.freeRaid=(p.freeRaid||0)+1;log(p.name+L(" dodges the next raid."," escapa da próxima batida."),"good");}
   if(c.note&&!c.cut&&!c.crew)log(p.name+": "+c.note);
@@ -2112,7 +2113,7 @@ function showNotice(lbl,art,ttl,bd,next,danger){
 function noticeOK(){ closeModal(); const f=_noticeNext; _noticeNext=null; if(f)f(); }
 
 /* ===== LAW ===== */
-function crewSave(p,type){if(p.crew>0){p.crew--;if(type!=="arrest")SFX.soldierDown();log(p.name+L(" burns a soldier — they take the "," queima um soldado — ele leva ")+(type==="arrest"?L("cuffs","as algemas"):L("bullet","a bala"))+".","good");return true;}return false;}
+function crewSave(p,type){if(p.crew>0){p.crew--;if(type!=="arrest")SFX.soldierDown(1);log(p.name+L(" burns a soldier — they take the "," queima um soldado — ele leva ")+(type==="arrest"?L("cuffs","as algemas"):L("bullet","a bala"))+".","good");return true;}return false;}
 
 /* Arrest flow: get-out card > soldier takes your place > buy cigs from crooked CO > jail */
 function arrestFlow(p){
@@ -2338,7 +2339,7 @@ function prisonDeath(p,why){
   const di=Math.floor(Math.random()*PRISON_DEATHS.length);
   const d=LANG==='PT'?{t:PRISON_DEATHS_PT[di].t,bd:PRISON_DEATHS_PT[di].b}:PRISON_DEATHS[di];
   p._deathCause=d.t;
-  SFX.flatline();
+  SFX.flatline();setTimeout(()=>SFX.funeral(),350);
   p.alive=false;p.diedAt=p.age;
   log(p.name+L(" is KILLED IN PRISON — "," é MORTO NA PRISÃO — ")+d.t+L(". OUT.",". FORA."),"bad");
   render();
@@ -2350,13 +2351,25 @@ function prisonDeath(p,why){
     ${why?`<div class="sub" style="text-align:center">${why}</div>`:""}
     <div class="bd">${d.bd}</div>
     <div class="out" style="color:var(--red)">${p.name} ${L('dies inside at','morre l\u00e1 dentro aos')} ${p.diedAt} ${L('years old. Never made it back to the street.','anos. Nunca voltou para a rua.')}</div>
+    <div class="out" style="white-space:pre-wrap">${empireLine(p)}</div>
     <div class="go"><button class="red" onclick="showRIP(${p.id})">[ MEMORIAL ]</button></div>`;
   openModal();
 }
 
 /* ===== DEATH / WIN ===== */
+function empireStats(p){
+  const biz=Array.from(p.owns.entries()).filter(([i])=>OUTER[i]&&OUTER[i].k==="biz");
+  const streets=Array.from(p.owns.entries()).filter(([i])=>OUTER[i]&&OUTER[i].k==="street");
+  return {nw:netWorth(p),cash:p.cash,crew:p.crew,turf:streets.length,biz:biz.length,
+    workers:biz.reduce((s,[i,c])=>s+c,0),stSol:streets.reduce((s,[i,c])=>s+c,0)};
+}
+function empireLine(p){const s=empireStats(p);
+  return L("Net worth ","Patrimônio ")+fmtK(s.nw)+" · "+L("Cash ","Dinheiro ")+fmtK(s.cash)+"\n"+
+    s.crew+L(" bodyguards"," guarda-costas")+" · "+s.turf+L(" streets ("," ruas (")+s.stSol+L(" soldiers)"," soldados)")+"\n"+
+    s.biz+L(" businesses ("," negócios (")+s.workers+L(" workers)"," funcionários)");
+}
 function killPlayer(p){
-  SFX.flatline();
+  SFX.flatline();setTimeout(()=>SFX.funeral(),350);
   if(!p._deathCause&&p._hospCause)p._deathCause=L("Flatlined in the hospital after ","Apagou no hospital depois de ")+p._hospCause;
   p.alive=false;p.diedAt=p.age;log(p.name+L(" DIES for good at "," MORRE de vez aos ")+p.age+L(". OUT.",". FORA."),"bad");
   render();
@@ -2369,6 +2382,7 @@ function showDeathAnnounce(p){
     <div style="text-align:center;font-size:40px;line-height:1.1;margin:10px 0;letter-spacing:4px">R.I.P</div>
     <div class="ttl" style="color:${p.color};text-align:center;font-size:30px">${p.name} ${L('IS DEAD','EST\u00c1 MORTO')}</div>
     <div class="sub" style="text-align:center;font-size:16px">${p._deathCause?p._deathCause:L("Gunned down","Baleado")} ${L('at','aos')} <b>${p.diedAt}</b> ${L('years old.','anos.')}<br>${L('Started at ','Come\u00e7ou aos ')}${p.startAge||p.age} ${L('with','com')} ${fmtK(p.startCash||0)}. ${L('The game caught up with them.','O jogo finalmente o alcan\u00e7ou.')}</div>
+    <div class="out" style="white-space:pre-wrap">${empireLine(p)}</div>
     <div class="go"><button class="red" onclick="showRIP(${p.id})">[ MEMORIAL ]</button></div>`;
   openModal();
 }
@@ -2401,6 +2415,7 @@ function showRIP(id){
     <div class="ttl" style="color:${p.color}">${p.name}</div>
     <div class="sub">${L('Age','Idade')} ${p.startAge||died} – ${died} &nbsp;·&nbsp; ${L('Here lies','Aqui jaz')} ${e.kind}${e.spec}.</div>
     <div class="out">${L('Died at <b>','Morreu aos <b>')}${died}</b> ${L('years old','anos')}\n${L('Rap sheet','Ficha')}: ${e.n} ${L('charges','acusa\u00e7\u00f5es')} · ${e.totalYears}${L('y exposure','a de exposi\u00e7\u00e3o')}\n${e.heists} ${L('robberies','roubos')} · ${e.hits} ${L('murders','homic\u00eddios')} · ${e.drugs} ${L('drug charges','crimes de drogas')}\n${L('Started with','Come\u00e7ou com')} ${fmtK(p.startCash||0)}.\n${L('The streets will remember the name.','As ruas v\u00e3o lembrar do nome.')}</div>
+    <div class="out" style="white-space:pre-wrap">${empireLine(p)}</div>
     <div class="go"><button onclick="afterRIP()">${L('[ LAY TO REST ]','[ ENTERRAR ]')}</button></div>`;
   openModal();
 }
@@ -2428,7 +2443,7 @@ function showRetire(p){
     <div style="text-align:center;font-size:40px;line-height:1.1;margin:8px 0;letter-spacing:2px">$$$</div>
     <div class="ttl" style="color:${p.color};text-align:center;font-size:26px">${p.name} ${L('WINS — THE SMART WAY','VENCE — DO JEITO ESPERTO')}</div>
     <div class="sub" style="text-align:center">${fmtK(netWorth(p))} ${L('net worth at <b>','de patrim\u00f4nio aos <b>')}${p.age}</b> ${L("years old. Nobody retires from this life. ","anos. Ningu\u00e9m se aposenta dessa vida. ")}${p.name} ${L("just did — villa, new name, clean paper. The city keeps fighting over what's left.","acabou de conseguir — mans\u00e3o, nome novo, papel limpo. A cidade continua brigando pelo que sobrou.")}</div>
-    <div class="out">${L('Age ','Idade ')}${p.age} · ${L('Net worth ','Patrim\u00f4nio ')}${fmtK(netWorth(p))} · ${p.owns.size} ${L('turf','\u00e1reas')} · ${p.crew} ${L('soldiers','soldados')} · ${L('started with ','come\u00e7ou com ')}${fmtK(p.startCash||0)}</div>
+    <div class="out">${L('Age ','Idade ')}${p.age} · ${L('Net worth ','Patrim\u00f4nio ')}${fmtK(netWorth(p))} · ${p.owns.size} ${L('turf','\u00e1reas')} · ${p.crew} ${L('soldiers','soldados')} · ${empireStats(p).workers} ${L('workers','func.')} · ${L('started with ','come\u00e7ou com ')}${fmtK(p.startCash||0)}</div>
     <div class="go"><button onclick="location.reload()">${L('[ NEW GAME ]','[ NOVO JOGO ]')}</button></div>`;
   openModal();
 }
@@ -2441,7 +2456,7 @@ function showGameOver(winner){
     <div style="text-align:center;font-size:40px;line-height:1.1;margin:8px 0;letter-spacing:2px">#1</div>
     <div class="ttl" style="color:${w?w.color:'#fff'};text-align:center;font-size:28px">${w?w.name+L(" WINS"," VENCE"):L("No survivors","Sem sobreviventes")}</div>
     <div class="sub" style="text-align:center">${w?(L("Survived to <b>","Sobreviveu at\u00e9 os <b>")+w.age+L("</b> years old — started at ","</b> anos — come\u00e7ou aos ")+(w.startAge||w.age)+L(" and outlived them all, starting with "," e enterrou todos, come\u00e7ando com ")+fmtK(w.startCash||0)+L(". The city is theirs.",". A cidade \u00e9 dele.")):L("Everyone's dead. The streets win.","Todos mortos. As ruas vencem.")}</div>
-    <div class="out">${w?L("Age ","Idade ")+w.age+L(" · Net worth "," · Patrim\u00f4nio ")+fmtK(netWorth(w))+L(" · "," · ")+w.owns.size+L(" turf · "," \u00e1reas · ")+soldierIcons(w.color,w.crew):"—"}</div>
+    <div class="out">${w?L("Age ","Idade ")+w.age+L(" · Net worth "," · Patrim\u00f4nio ")+fmtK(netWorth(w))+L(" · "," · ")+w.owns.size+L(" turf · "," \u00e1reas · ")+soldierIcons(w.color,w.crew)+" · "+empireStats(w).workers+L(" workers"," func."):"—"}</div>
     <div class="go"><button onclick="location.reload()">${L('[ NEW GAME ]','[ NOVO JOGO ]')}</button></div>`;
   openModal();
 }
@@ -2699,15 +2714,27 @@ function closeModal(){document.getElementById("modal").classList.remove("on");co
       setTimeout(line,70);
     })();
   }
+const CODES={"666": {"tag": "H A I L", "art": ["   \\\\,       ,//", "    \\\\ .---. //", "    .-(  o o  )-.", "   /   \\  ^  /   \\", "  |     '---'     |", "   \\   \\_____/   /", "    '-._______.-'", "      /|| | ||\\", "     666  DEVIL"]}, "138": {"tag": "F I E N D", "art": ["     .-'''''''-.", "    / .       . \\", "   |  (o)   (o)  |", "   |      T      |", "   |    \\___/    |", "    \\_|_|_|_|_|_/", "      | | | | |", "     138  MISFIT"]}, "171": {"tag": "M A S K E D", "art": ["    .-----------.", "   / o         o \\", "  |   .-------.   |", "  |  (  S K I  )  |", "  |   '-------'   |", "   \\_____________/", "      171  MASK"]}, "187": {"tag": "L O C K E D", "art": ["        __|__", "      .'  |  '.", "     /    |    \\", "    |-----+-----|", "     \\    |    /", "      '.  |  .'", "        --|--", "     187  IN SIGHT"]}, "013": {"tag": "B A D   L U C K", "art": ["     /\\_/\\", "    ( x.x )", "    =(   )=", "     )   (", "    (  Y  )", "   /_/   \\_\\", "  013  BLACK CAT"]}, "212": {"tag": "N E W   Y O R K", "art": ["         /\\", "         ||", "        _||_", "       |    |", "       | [] |", "       | [] |", "      /|    |\\", "     /_|____|_\\", "    212  EMPIRE ST"]}};
+  function showCodeArt(c){
+    const info=CODES[c]; out.innerHTML="";
+    nl('<span class="dosbar">ACCESS GRANTED \u2014 CODE '+c+'</span>'); nl("");
+    const box=document.createElement("pre"); box.className="leafart"; out.appendChild(box);
+    const fit=()=>{ let fs=20; box.style.fontSize=fs+"px"; while(box.scrollWidth>box.clientWidth && fs>5){ fs--; box.style.fontSize=fs+"px"; } };
+    let i=0;
+    (function line(){
+      if(i>=info.art.length){ fit(); nl(""); nl("      "+info.tag); setTimeout(boot,1500); return; }
+      box.textContent += info.art[i++] + "\n"; fit(); setTimeout(line,60);
+    })();
+  }
   function submit(){
     keypad(false);
     if(code==="420"){ phase="ok"; setLast("ENTER ACCESS CODE: * * *"); setTimeout(weed,400); return; }
-    if(code===PASS){ phase="ok"; setLast("ENTER ACCESS CODE: * * *"); nl(""); nl('<span class="dosbar">ACCESS GRANTED</span>'); nl(""); setTimeout(boot,700); }
+    if(CODES[code]){ phase="ok"; setLast("ENTER ACCESS CODE: * * *"); setTimeout(()=>showCodeArt(code),300); return; }
     else { phase="prank"; prank(); }
   }
   function startLogin(){
     out.innerHTML="";
-    nl("CRIMINAL TERMINAL (R) v10.8");
+    nl("CRIMINAL TERMINAL (R) v10.9");
     nl("(C) 1987 SATAN SYSTEMS CORP. ALL RIGHTS RESERVED.");
     nl('<span id="playCountBoot" style="opacity:.75">'+(typeof PLAYCOUNT!=="undefined"&&PLAYCOUNT!=null?L("CRIMINALS SERVED WORLDWIDE: ","CRIMINOSOS ATENDIDOS NO MUNDO: ")+PLAYCOUNT:L("CRIMINALS SERVED WORLDWIDE: ...","CRIMINOSOS ATENDIDOS NO MUNDO: ..."))+'</span>');
     nl("");
@@ -2769,7 +2796,7 @@ function closeModal(){document.getElementById("modal").classList.remove("on");co
       ["", 160],
       [L("Starting MS-DOS...","Iniciando MS-DOS..."), 700],
       ["", 180],
-      ["C:\\> CRIMELIFE.EXE", 480],
+      ["C:\\> CRIMINAL_TERMINAL.EXE", 480],
       [L("Loading criminal database ......... OK","Carregando banco de criminosos .... OK"), 280],
       [L("Shredding the evidence ............ OK","Triturando as provas .............. OK"), 280],
       [L("Bribing the arresting officer ..... OK","Subornando o policial da prisao ... OK"), 280],
@@ -2793,7 +2820,7 @@ function closeModal(){document.getElementById("modal").classList.remove("on");co
   window._pickLang=function(l){ setLang(l); try{applyStaticLang();}catch(e){} startLogin(); };
   function langScreen(){
     out.innerHTML="";
-    nl("CRIMINAL TERMINAL (R) v10.8");
+    nl("CRIMINAL TERMINAL (R) v10.9");
     nl("(C) 1987 SATAN SYSTEMS CORP.");
     nl("");
     nl("SELECT LANGUAGE / ESCOLHA O IDIOMA:");
