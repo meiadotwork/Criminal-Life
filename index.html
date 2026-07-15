@@ -216,6 +216,7 @@
   .die{width:58px;height:58px;border:1px solid var(--phos)!important;background:#000!important;display:grid;
     grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);padding:9px;gap:3px;cursor:pointer;flex:0 0 auto;}
   .die.rolling{opacity:.65;}
+  .die .dielbl{grid-column:1/4;grid-row:1/4;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:bold;letter-spacing:2px;color:var(--phos);opacity:.55;}
   /* player roster as a bottom bar under the board */
   #players{display:flex;flex-wrap:wrap;gap:8px;}
   #players .pl{flex:1 1 160px;min-width:140px;}
@@ -434,7 +435,7 @@
   /* current position highlight must beat the type tints (declared after them) */
   body.colormode .cell.here{background:#ffe98a !important;border:1px solid #000 !important;box-shadow:inset 0 0 0 1px #000 !important;}
   body.colormode .pip{background:#000 !important;}
-  body.colormode .die .dienum,body.colormode #die .dienum{color:#000 !important;}
+  body.colormode .die .dienum,body.colormode #die .dienum,body.colormode .die .dielbl{color:#000 !important;}
   body.colormode button:hover,body.colormode button:focus,body.colormode button:active{background:#000 !important;color:#fff !important;}
   body.colormode button:hover *,body.colormode button:focus *,body.colormode button:active *{color:#fff !important;}
   body.colormode svg *{fill:#000 !important;stroke:#000 !important;}
@@ -500,7 +501,7 @@
   body.win95 .card .out,body.win95 #log,body.win95 input{background:#fff !important;background-image:none !important;border:2px solid !important;border-color:#404040 #fff #fff #404040 !important;}
   body.win95 #die,body.win95 .die{background:#fff !important;border:2px solid !important;border-color:#404040 #fff #fff #404040 !important;}
   body.win95 .pip{background:#000 !important;}
-  body.win95 .die .dienum,body.win95 #die .dienum{color:#000 !important;}
+  body.win95 .die .dienum,body.win95 #die .dienum,body.win95 .die .dielbl{color:#000 !important;}
   body.win95 svg *{fill:#000 !important;stroke:#000 !important;}
   body.win95 #innerLabel{background:#c0c0c0 !important;}
   body.win95 #innerLabel,body.win95 .pfw{color:#000 !important;}
@@ -558,7 +559,7 @@
 <div id="setup">
 <div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
 <div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
-<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v12.0</div>
+<div style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v12.1</div>
 <div id="setupStage"></div>
 </div>
 
@@ -585,12 +586,11 @@
           <div id="log"></div>
         </div>
         <div class="dicecol">
-          <h2>DICE</h2>
-          <div id="diceBox"><div id="diceRow"><div class="die roller" onclick="rollDice()" title="tap to roll"></div></div><div style="font-size:13px;opacity:.7" id="diceLbl">tap die to roll</div></div>
+          <div id="diceBox"><div id="diceRow"><div class="die roller" onclick="rollDice()" title="tap to roll"><span class="dielbl">DICE</span></div></div><div style="font-size:13px;opacity:.7;display:none" id="diceLbl">tap die to roll</div></div>
           <div class="controls" style="min-height:8px">
             <button id="actionBtn" class="amber" onclick="openActions()">[ ACTION ]</button>
           </div>
-          <div class="ctx" id="ctxHint"></div>
+          <div class="ctx" id="ctxHint" style="display:none"></div>
         </div>
       </div>
       <div class="panel curplayer-panel">
@@ -1040,7 +1040,7 @@ function updateControls(){
   const p=S.players[S.cur];
   updateAutoBtn();
   const row=document.getElementById("diceRow");
-  if(row && !S.rolled){ row.innerHTML='<div class="die roller" onclick="rollDice()" title="tap to roll"></div>'; }
+  if(row && !S.rolled){ row.innerHTML='<div class="die roller" onclick="rollDice()" title="tap to roll"><span class="dielbl">DICE</span></div>'; }
   const die=row?row.querySelector(".die"):null;
   const canRoll=!S.rolled&&p.alive&&!S.over&&!(p.ai);
   if(die){ die.style.cursor=canRoll?"pointer":"default"; die.style.opacity=canRoll?"1":".5"; }
@@ -2838,7 +2838,7 @@ const CODES={"666": {"tag": "6 6 6  ·  D E V I L", "art": ["    ░▓▓▓░
   }
   function startLogin(){
     out.innerHTML="";
-    nl("CRIMINAL TERMINAL (R) v12.0");
+    nl("CRIMINAL TERMINAL (R) v12.1");
     nl("(C) 1987 SATAN SYSTEMS CORP. ALL RIGHTS RESERVED.");
     nl('<span id="playCountBoot" style="opacity:.75">'+(typeof PLAYCOUNT!=="undefined"&&PLAYCOUNT!=null?L("CRIMINALS SERVED WORLDWIDE: ","CRIMINOSOS ATENDIDOS NO MUNDO: ")+PLAYCOUNT:L("CRIMINALS SERVED WORLDWIDE: ...","CRIMINOSOS ATENDIDOS NO MUNDO: ..."))+'</span>');
     nl("");
@@ -2924,7 +2924,7 @@ const CODES={"666": {"tag": "6 6 6  ·  D E V I L", "art": ["    ░▓▓▓░
   window._pickLang=function(l){ setLang(l); try{applyStaticLang();}catch(e){} startLogin(); };
   function langScreen(){
     out.innerHTML="";
-    nl("CRIMINAL TERMINAL (R) v12.0");
+    nl("CRIMINAL TERMINAL (R) v12.1");
     nl("(C) 1987 SATAN SYSTEMS CORP.");
     nl("");
     nl("SELECT LANGUAGE / ESCOLHA O IDIOMA:");
