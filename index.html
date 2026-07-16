@@ -559,7 +559,7 @@
 <div id="setup">
 <div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
 <div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
-<div id="verSub" style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v12.7</div>
+<div id="verSub" style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v12.8</div>
 <div id="setupStage"></div>
 </div>
 
@@ -567,7 +567,7 @@
 
 <div id="screen" style="display:none">
   <div class="bar">
-    <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL <span id="verTag" style="font-size:10px;letter-spacing:1px;opacity:.55;font-weight:normal;text-shadow:none">v12.7</span></h1>
+    <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL <span id="verTag" style="font-size:10px;letter-spacing:1px;opacity:.55;font-weight:normal;text-shadow:none">v12.8</span></h1>
     <div id="turnBanner">TURN 1</div>
     <div class="topbtns">
       <button id="settingsBtn" onclick="openSettings()" title="settings">[ MENU ]</button>
@@ -611,7 +611,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v12.7";
+const APP_VERSION="v12.8";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -704,9 +704,25 @@ function trLbl(s){ if(!s)return s; return LANG==='PT'?(LBL_PT[s]||s):s; }
 
 /* ===== RANDOM CARD DRAW (fully random every round) ===== */
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+/* SHUFFLE BAG: draw every card in a deck once (in random order) before any repeat, then reshuffle.
+   Each deck has its own bag, kept per-game in S. Falls back to plain random before a game exists. */
 function draw(deck){
   const arr=DECKS[deck];
-  return arr[Math.floor(Math.random()*arr.length)];
+  if(!arr||!arr.length) return arr&&arr[0];
+  if(!S) return arr[Math.floor(Math.random()*arr.length)];        // pre-game safety
+  const bags=S._bags||(S._bags={});
+  const last=S._lastDraw||(S._lastDraw={});
+  let bag=bags[deck];
+  if(!bag||!bag.length){
+    bag=arr.map((_,i)=>i);
+    for(let i=bag.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));const t=bag[i];bag[i]=bag[j];bag[j]=t;}
+    // don't let the same card straddle the reshuffle (last of old bag = first of new)
+    if(bag.length>2 && last[deck]===bag[bag.length-1]){ const t=bag[bag.length-1];bag[bag.length-1]=bag[0];bag[0]=t; }
+    bags[deck]=bag;
+  }
+  const idx=bag.pop();
+  last[deck]=idx;
+  return arr[idx];
 }
 
 /* ===== STATE ===== */
