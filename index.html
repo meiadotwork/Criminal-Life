@@ -559,7 +559,7 @@
 <div id="setup">
 <div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
 <div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
-<div id="verSub" style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v12.6</div>
+<div id="verSub" style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v12.7</div>
 <div id="setupStage"></div>
 </div>
 
@@ -567,7 +567,7 @@
 
 <div id="screen" style="display:none">
   <div class="bar">
-    <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL <span id="verTag" style="font-size:10px;letter-spacing:1px;opacity:.55;font-weight:normal;text-shadow:none">v12.6</span></h1>
+    <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL <span id="verTag" style="font-size:10px;letter-spacing:1px;opacity:.55;font-weight:normal;text-shadow:none">v12.7</span></h1>
     <div id="turnBanner">TURN 1</div>
     <div class="topbtns">
       <button id="settingsBtn" onclick="openSettings()" title="settings">[ MENU ]</button>
@@ -611,7 +611,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v12.6";
+const APP_VERSION="v12.7";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -762,8 +762,8 @@ function renderSetupStart(){
    ${(()=>{let h=[];try{h=JSON.parse(localStorage.getItem("ct_hof_v1")||"[]").slice(0,5);}catch(e){}
      return `<div class="dosconfig" style="margin-top:16px">
        <div class="cfgline">C:\\> TYPE ${L("HALLOFFAME.TXT","HALLDAFAMA.TXT")}</div>
-       ${h.length?h.map((x,i)=>`<div class="cfgline">${i+1}. ${x.n} — ${fmtK(x.nw)} · age ${x.age} · ${x.how} · ${x.d}</div>`).join("")
-         :`<div class="cfgline" style="opacity:.6">${L('NO BOSSES ON RECORD. Beat the AI on REALISTIC — last boss standing, or retire with $10M at 65 — and your name gets carved here.','NENHUM CHEF\u00c3O REGISTRADO. Ven\u00e7a a IA no REALISTA — \u00faltimo de p\u00e9, ou aposente com $10M aos 65 — e seu nome fica gravado aqui.')}</div>`}
+       ${h.length?h.map((x,i)=>`<div class="cfgline">${i+1}. ${x.n} — ${fmtK(x.nw)} · age ${x.age} · ${x.how}${hofVs(x)?" · "+hofVs(x):""}${x.diff?" · "+x.diff:""} · ${x.d}</div>`).join("")
+         :`<div class="cfgline" style="opacity:.6">${L('NO BOSSES ON RECORD. Win any game — last boss standing, or retire with $10M at 65 — and your name gets carved here, with how many rivals you buried.','NENHUM CHEF\u00c3O REGISTRADO. Ven\u00e7a qualquer partida — \u00faltimo de p\u00e9, ou aposente com $10M aos 65 — e seu nome fica gravado aqui, com quantos rivais voc\u00ea enterrou.')}</div>`}
      </div>`})()}`;
 }
 function selectDiff(d){ setupData.difficulty=d; setupData.startCash=DIFFICULTY[d].cash; renderSetupStart(); }
@@ -840,7 +840,7 @@ function launch(){
   S={turn:1,cur:0,n:setupData.players.length,rolled:false,over:false,ai:setupData.ai,roundEvents:[],baseDice:(setupData.dice||6),diff:setupData.difficulty,followAnim:true};
   const startCash=(setupData.startCash??100);
   S.players=setupData.players.map((p,i)=>{const pl=newPlayer(i,p.name,p.pattern);pl.ai=p.ai;pl.cash=startCash;pl.age=p.age||25;pl.startAge=pl.age;pl.startCash=startCash;
-    if(pl.ai)pl.temper=Math.random()<.5?"AGGRESSIVE":"CAREFUL";return pl;});
+    if(pl.ai)pl.temper=Math.random()<.72?"AGGRESSIVE":"CAREFUL";return pl;});
   document.getElementById("setup").style.display="none";
   document.getElementById("screen").style.display="flex";
   buildBoardGrid();
@@ -2573,10 +2573,14 @@ function afterRIP(){
 }
 /* ===== HALL OF FAME (kept between games) ===== */
 const HOF_KEY="ct_hof_v1";
-function hofEligible(p){ return p&&!p.ai&&S.ai&&S.diff==="REALISTIC"; } // legends only: humans who beat the AI on REALISTIC
+function hofEligible(p){ return !!(p&&!p.ai); }   // any human victory is carved in — vs AI, vs humans, any difficulty
+function oppCounts(p){ const opp=(S&&S.players)?S.players.filter(x=>x.id!==p.id):[]; return {ai:opp.filter(x=>x.ai).length, hum:opp.filter(x=>!x.ai).length}; }
 function recordHof(p,how){ try{ const h=JSON.parse(localStorage.getItem(HOF_KEY)||"[]");
-  h.push({n:p.name,age:p.age,nw:netWorth(p),how:how,d:new Date().toISOString().slice(0,10)});
+  const oc=oppCounts(p);
+  h.push({n:p.name,age:p.age,nw:netWorth(p),how:how,d:new Date().toISOString().slice(0,10),ai:oc.ai,hum:oc.hum,diff:(S&&S.diff)||""});
   h.sort((a,b)=>b.nw-a.nw); localStorage.setItem(HOF_KEY,JSON.stringify(h.slice(0,10))); }catch(e){} }
+/* short "vs 3 AI + 1 human" string for a hall-of-fame record (guards old records with no counts) */
+function hofVs(x){ if(x.ai==null&&x.hum==null) return ""; const parts=[]; if(x.ai)parts.push(x.ai+" AI"); if(x.hum)parts.push(x.hum+" "+L("human","humano")+(x.hum>1?"s":"")); return parts.length?(L("vs ","contra ")+parts.join(" + ")):L("solo","solo"); }
 
 /* ===== RETIRE UNTOUCHABLE: the second way to win ===== */
 function showRetire(p){
@@ -2588,6 +2592,7 @@ function showRetire(p){
     <div class="ttl" style="color:${p.color};text-align:center;font-size:26px">${p.name} ${L('WINS — THE SMART WAY','VENCE — DO JEITO ESPERTO')}</div>
     <div class="sub" style="text-align:center">${fmtK(netWorth(p))} ${L('net worth at <b>','de patrim\u00f4nio aos <b>')}${p.age}</b> ${L("years old. Nobody retires from this life. ","anos. Ningu\u00e9m se aposenta dessa vida. ")}${p.name} ${L("just did — villa, new name, clean paper. The city keeps fighting over what's left.","acabou de conseguir — mans\u00e3o, nome novo, papel limpo. A cidade continua brigando pelo que sobrou.")}</div>
     <div class="out">${L('Age ','Idade ')}${p.age} · ${L('Net worth ','Patrim\u00f4nio ')}${fmtK(netWorth(p))} · ${p.owns.size} ${L('turf','\u00e1reas')} · ${p.crew} ${L('soldiers','soldados')} · ${empireStats(p).workers} ${L('workers','func.')} · ${L('started with ','come\u00e7ou com ')}${fmtK(p.startCash||0)}</div>
+    <div class="out">${(()=>{const oc=oppCounts(p);return L("Outlasted ","Superou ")+oc.ai+L(" AI"," IA")+(oc.hum?L(" and "," e ")+oc.hum+L(" human rival"," rival humano")+(oc.hum>1?"s":""):"")+(S.diff?" \u00b7 "+S.diff:"")+".";})()}</div>
     <div class="go"><button onclick="location.reload()">${L('[ NEW GAME ]','[ NOVO JOGO ]')}</button></div>`;
   openModal();
 }
@@ -2601,6 +2606,7 @@ function showGameOver(winner){
     <div class="ttl" style="color:${w?w.color:'#fff'};text-align:center;font-size:28px">${w?w.name+L(" WINS"," VENCE"):L("No survivors","Sem sobreviventes")}</div>
     <div class="sub" style="text-align:center">${w?(L("Survived to <b>","Sobreviveu at\u00e9 os <b>")+w.age+L("</b> years old — started at ","</b> anos — come\u00e7ou aos ")+(w.startAge||w.age)+L(" and outlived them all, starting with "," e enterrou todos, come\u00e7ando com ")+fmtK(w.startCash||0)+L(". The city is theirs.",". A cidade \u00e9 dele.")):L("Everyone's dead. The streets win.","Todos mortos. As ruas vencem.")}</div>
     <div class="out">${w?L("Age ","Idade ")+w.age+L(" · Net worth "," · Patrim\u00f4nio ")+fmtK(netWorth(w))+L(" · "," · ")+w.owns.size+L(" turf · "," \u00e1reas · ")+soldierIcons(w.color,w.crew)+" · "+empireStats(w).workers+L(" workers"," func."):"—"}</div>
+    <div class="out">${w?(()=>{const oc=oppCounts(w);return L("Outlasted ","Superou ")+oc.ai+L(" AI"," IA")+(oc.hum?L(" and "," e ")+oc.hum+L(" human rival"," rival humano")+(oc.hum>1?"s":""):"")+(S.diff?" · "+S.diff:"")+".";})():""}</div>
     <div class="go"><button onclick="location.reload()">${L('[ NEW GAME ]','[ NOVO JOGO ]')}</button></div>`;
   openModal();
 }
@@ -2747,10 +2753,44 @@ function endTurn(){ if(S.over)return; if(!S.rolled)return;
   const np=S.players[S.cur];
   if(np.ai&&!S.over){ setTimeout(()=>rollDiceAI(),700); }
 }
-function rollDiceAI(){ if(S.players[S.cur].ai&&!S.rolled){ rollDice(); } }
+function rollDiceAI(){
+  const p=S&&S.players?S.players[S.cur]:null; if(!p||!p.ai||S.rolled) return;
+  aiRecruit(p);                                   // build an army with spare cash before acting
+  const tgt=aiAttackTarget(p);
+  if(tgt){                                        // an aggressive AI hits a rival instead of moving — attacking IS its turn
+    S.rolled=true;
+    log(p.name+L(" moves on "," parte pra cima de ")+tgt.o.name+L("'s "," em ")+OUTER[tgt.idx].t+".","warn");
+    resolveAttack(p,tgt.o,tgt.idx,Math.min(p.crew,tgt.s+1)); return;
+  }
+  rollDice();
+}
+/* AI stocks up on bodyguards with spare cash — more soldiers = more attacks and the 10+ bonus die */
+function aiRecruit(p){
+  if(p.ring!=="outer"||p.inJail) return;
+  const agg=p.temper==="AGGRESSIVE";
+  const cap=Math.min(agg?12:6, (typeof MAX_SOLDIERS!=="undefined"?MAX_SOLDIERS:99));
+  const reserve=SOLDIER_COST*(agg?2:5);           // aggressive spends down to a thinner reserve
+  let added=0;
+  while(p.crew<cap && p.cash-SOLDIER_COST>=reserve){ p.cash-=SOLDIER_COST; p.crew++; added++; }
+  if(added>0){ render(); log(p.name+L(" recruits "," recruta ")+added+L(" soldier"," soldado")+(added>1?"s":"")+L(" (now "," (agora ")+p.crew+").","good"); }
+}
+/* pick the richest rival turf this AI can actually take; returns null if it shouldn't attack this turn */
+function aiAttackTarget(p){
+  if(p.ring!=="outer"||p.inJail) return null;
+  const agg=p.temper==="AGGRESSIVE";
+  const minCrew=agg?2:4;
+  if(p.crew<minCrew) return null;
+  const cap=agg?p.crew:p.crew-1;                  // careful keeps one back
+  const targets=[];
+  S.players.forEach(o=>{ if(o.id!==p.id&&o.alive){ o.owns.forEach((s,idx)=>{ if(s+1<=cap) targets.push({o,idx,s}); }); } });
+  if(!targets.length) return null;
+  if(Math.random() >= (agg?0.6:0.15)) return null;   // even when able, doesn't attack every single turn
+  targets.sort((a,b)=>cellUnit(b.idx)*b.s-cellUnit(a.idx)*a.s);
+  return targets[0];
+}
 
 /* ===== AI helpers ===== */
-function aiBuyStreet(idx,c){const p=S.players[S.cur];if(p.cash>=c.price*2){p.cash-=c.price;p.owns.set(idx,1);log(p.name+L(" claims "," toma ")+c.t+".","good");}else log(p.name+L(" passes on "," dispensa ")+c.t+".");render();finish();}
+function aiBuyStreet(idx,c){const p=S.players[S.cur];const mult=(p.temper==="AGGRESSIVE")?1.3:2;if(p.cash>=c.price*mult){p.cash-=c.price;p.owns.set(idx,1);log(p.name+L(" claims "," toma ")+c.t+".","good");}else log(p.name+L(" passes on "," dispensa ")+c.t+".");render();finish();}
 function aiBuyBiz(idx,c){const p=S.players[S.cur];if(p.cash>=c.income*1.5){p.cash-=c.income;p.owns.set(idx,1);log(p.name+L(" opens "," abre ")+c.t+".","good");}else log(p.name+L(" passes on "," dispensa ")+c.t+".");render();finish();}
 
 /* ===== helpers ===== */
