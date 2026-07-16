@@ -559,7 +559,7 @@
 <div id="setup">
 <div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
 <div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
-<div id="verSub" style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v13.0</div>
+<div id="verSub" style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v13.1</div>
 <div id="setupStage"></div>
 </div>
 
@@ -567,7 +567,7 @@
 
 <div id="screen" style="display:none">
   <div class="bar">
-    <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL <span id="verTag" style="font-size:10px;letter-spacing:1px;opacity:.55;font-weight:normal;text-shadow:none">v13.0</span></h1>
+    <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL <span id="verTag" style="font-size:10px;letter-spacing:1px;opacity:.55;font-weight:normal;text-shadow:none">v13.1</span></h1>
     <div id="turnBanner">TURN 1</div>
     <div class="topbtns">
       <button id="settingsBtn" onclick="openSettings()" title="settings">[ MENU ]</button>
@@ -611,7 +611,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v13.0";
+const APP_VERSION="v13.1";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -909,11 +909,21 @@ let _polVol=(function(){try{const v=localStorage.getItem("ct_polvol");return POL
 function policeGain(){return POLICE_VOLS[_polVol]||1;}
 /* AI cards: auto-resolve after a pause (default), or wait for a human tap */
 let AI_AUTOCARDS=(function(){try{return localStorage.getItem("ct_aicards")!=="manual";}catch(e){return true;}})();
-/* AI play speed — how long each AI move/scene lingers before it auto-advances */
-const AI_SPEEDS={SLOW:{roll:900,card:2600},NORMAL:{roll:600,card:1600},FAST:{roll:300,card:850},TURBO:{roll:110,card:400}};
-let AI_SPEED=(function(){try{const v=localStorage.getItem("ct_aispeed");return AI_SPEEDS[v]?v:"NORMAL";}catch(e){return "NORMAL";}})();
-function aiDelay(){return (AI_SPEEDS[AI_SPEED]||AI_SPEEDS.NORMAL).roll;}
-function aiCardMs(){return (AI_SPEEDS[AI_SPEED]||AI_SPEEDS.NORMAL).card;}
+/* AI play speed — NORMAL is the fastest; three progressively slower tiers below it.
+   roll = pause before/between turns · card = how long each scene lingers · dice/step = animation pace */
+const AI_SPEEDS={
+  SLOWEST:{roll:1600,card:3800,dice:82,step:440},
+  SLOWER: {roll:1200,card:2900,dice:64,step:340},
+  SLOW:   {roll:850, card:2200,dice:48,step:255},
+  NORMAL: {roll:600, card:1600,dice:38,step:190}
+};
+const AI_SPEED_ORDER=["SLOWEST","SLOWER","SLOW","NORMAL"];   // slowest → fastest, shown in this order
+let AI_SPEED=(function(){try{const v=localStorage.getItem("ct_aispeed");return AI_SPEEDS[v]?v:"SLOWEST";}catch(e){return "SLOWEST";}})();
+function aiSpd(){return AI_SPEEDS[AI_SPEED]||AI_SPEEDS.SLOWEST;}
+function aiDelay(){return aiSpd().roll;}
+function aiCardMs(){return aiSpd().card;}
+function aiDiceTick(){return aiSpd().dice;}
+function aiStepMs(){return aiSpd().step;}
 let _ac=null;
 function beep(freq,dur,vol,when){
   if(!SND)return;
@@ -1205,7 +1215,7 @@ function rollDice(){
   const row=document.getElementById("diceRow");row.innerHTML="";
   const dice=[];for(let i=0;i<n;i++){const d=document.createElement("div");d.className="die rolling";if(i===0)d.onclick=rollDice;row.appendChild(d);dice.push(d);}
   let t=0;
-  const rollTick=(p.ai?({SLOW:55,NORMAL:38,FAST:20,TURBO:9}[AI_SPEED]||38):70);   // AI rolls quicker on higher speeds
+  const rollTick=(p.ai?aiDiceTick():70);   // AI dice-roll animation pace follows the AI speed setting
   const iv=setInterval(()=>{
     SFX.tick();
     dice.forEach(d=>drawDieEl(d,1+Math.floor(Math.random()*sides)));
@@ -1388,7 +1398,7 @@ function stepMove(p,left){
   render();
   scrollToToken();
   document.getElementById("diceLbl").textContent=L("…moving (","…andando (")+left+")";
-  const stepMs=(p.ai?({SLOW:300,NORMAL:190,FAST:85,TURBO:30}[AI_SPEED]||190):430);   // AI walks the board faster on higher speeds
+  const stepMs=(p.ai?aiStepMs():430);   // AI board-movement pace follows the AI speed setting
   setTimeout(()=>stepMove(p,left-1),stepMs);
 }
 function scrollToToken(){
@@ -1417,7 +1427,7 @@ function openSettings(){
     ${row(L("Sound","Som"),`<button id="sndBtn" onclick="toggleSnd()">${SND?"[ SND ]":"[ MUTE ]"}</button>`)}
     ${row(L("Police volume","Volume da polícia"),`<button class="tiny${_polVol==='L'?' amber':''}" onclick="setPoliceVol('L')">L</button><button class="tiny${_polVol==='M'?' amber':''}" onclick="setPoliceVol('M')">M</button><button class="tiny${_polVol==='H'?' amber':''}" onclick="setPoliceVol('H')">H</button>`)}
     ${row(L("AI cards","Cartas da IA"),`<button class="${AI_AUTOCARDS?'amber':''}" onclick="setAICards('auto')">${L('[ AUTO ]','[ AUTO ]')}</button><button class="${!AI_AUTOCARDS?'amber':''}" onclick="setAICards('manual')">${L('[ TAP ]','[ TOQUE ]')}</button>`)}
-    ${row(L("AI speed","Velocidade IA"),["SLOW","NORMAL","FAST","TURBO"].map(s=>`<button class="tiny${AI_SPEED===s?' amber':''}" onclick="setAISpeed('${s}')">${({SLOW:L('SLOW','LENTO'),NORMAL:L('NORM','NORM'),FAST:L('FAST','RÁP'),TURBO:L('TURBO','TURBO')})[s]}</button>`).join(""))}
+    ${row(L("AI speed","Velocidade IA"),AI_SPEED_ORDER.map(s=>`<button class="tiny${AI_SPEED===s?' amber':''}" onclick="setAISpeed('${s}')">${({SLOWEST:L('SLOWEST','MÍN'),SLOWER:L('SLOWER','LENTO+'),SLOW:L('SLOW','LENTO'),NORMAL:L('NORMAL','NORMAL')})[s]}</button>`).join(""))}
     ${row(L("New game (reset)","Novo jogo (reiniciar)"),`<button class="red" onclick="askReset()">${L("[ RESET ]","[ REINICIAR ]")}</button>`)}
     </div>
     <div class="go"><button onclick="closeModal()">${L("[ CLOSE ]","[ FECHAR ]")}</button></div>`;
