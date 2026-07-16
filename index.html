@@ -559,7 +559,7 @@
 <div id="setup">
 <div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
 <div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
-<div id="verSub" style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v13.1</div>
+<div id="verSub" style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v13.2</div>
 <div id="setupStage"></div>
 </div>
 
@@ -567,7 +567,7 @@
 
 <div id="screen" style="display:none">
   <div class="bar">
-    <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL <span id="verTag" style="font-size:10px;letter-spacing:1px;opacity:.55;font-weight:normal;text-shadow:none">v13.1</span></h1>
+    <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL <span id="verTag" style="font-size:10px;letter-spacing:1px;opacity:.55;font-weight:normal;text-shadow:none">v13.2</span></h1>
     <div id="turnBanner">TURN 1</div>
     <div class="topbtns">
       <button id="settingsBtn" onclick="openSettings()" title="settings">[ MENU ]</button>
@@ -611,7 +611,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v13.1";
+const APP_VERSION="v13.2";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -811,8 +811,8 @@ function nextPlayerSetup(){
       <div style="font-size:11px;opacity:.7;margin:8px 0 2px">${L('who is in this seat?','quem está neste lugar?')}</div>
       <div class="choice" style="margin:2px 0 6px">
         <button class="cfg${isAI?'':' sel'}" onclick="setSeatType(false)">${L('[ HUMAN ]','[ HUMANO ]')}</button>
-        <button class="cfg${isAI?' sel':''}" onclick="setSeatType(true)">[ AI ]</button></div>
-      <input id="pname" placeholder="${isAI?L('AI name','nome da IA'):L('name','nome')}" value="${nameval}" maxlength="10">
+        <button class="cfg${isAI?' sel':''}" onclick="setSeatType(true)">${L('[ GHOST ]','[ FANTASMA ]')}</button></div>
+      <input id="pname" placeholder="${isAI?L('Ghost name','nome do Fantasma'):L('name','nome')}" value="${nameval}" maxlength="10">
       <div class="namekeys">${['QWERTYUIOP','ASDFGHJKL','ZXCVBNM'].map(row=>`<div class="krow">`+row.split('').map(k=>`<button type="button" class="kkey" onclick="nameKey('${k}')">${k}</button>`).join('')+`</div>`).join('')}<div class="krow"><button type="button" class="kkey kwide" onclick="nameKey('SP')">SPACE</button><button type="button" class="kkey kwide" onclick="nameKey('DEL')">DEL</button></div></div>
       <div style="font-size:11px;opacity:.7">${L('pick a pattern','escolha um padrão')}</div>
       <div class="swatches">${sw}</div>
