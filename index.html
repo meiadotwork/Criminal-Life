@@ -559,7 +559,7 @@
 <div id="setup">
 <div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
 <div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
-<div id="verSub" style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v13.2</div>
+<div id="verSub" style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v13.3</div>
 <div id="setupStage"></div>
 </div>
 
@@ -567,7 +567,7 @@
 
 <div id="screen" style="display:none">
   <div class="bar">
-    <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL <span id="verTag" style="font-size:10px;letter-spacing:1px;opacity:.55;font-weight:normal;text-shadow:none">v13.2</span></h1>
+    <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL <span id="verTag" style="font-size:10px;letter-spacing:1px;opacity:.55;font-weight:normal;text-shadow:none">v13.3</span></h1>
     <div id="turnBanner">TURN 1</div>
     <div class="topbtns">
       <button id="settingsBtn" onclick="openSettings()" title="settings">[ MENU ]</button>
@@ -611,7 +611,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v13.2";
+const APP_VERSION="v13.3";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -912,14 +912,13 @@ let AI_AUTOCARDS=(function(){try{return localStorage.getItem("ct_aicards")!=="ma
 /* AI play speed — NORMAL is the fastest; three progressively slower tiers below it.
    roll = pause before/between turns · card = how long each scene lingers · dice/step = animation pace */
 const AI_SPEEDS={
-  SLOWEST:{roll:1600,card:3800,dice:82,step:440},
-  SLOWER: {roll:1200,card:2900,dice:64,step:340},
-  SLOW:   {roll:850, card:2200,dice:48,step:255},
-  NORMAL: {roll:600, card:1600,dice:38,step:190}
+  SLOW:   {roll:1600,card:3800,dice:82,step:440},   // the slowest — easiest to follow
+  MEDIUM: {roll:1200,card:2900,dice:64,step:340},
+  FAST:   {roll:850, card:2200,dice:48,step:255}    // the fastest offered
 };
-const AI_SPEED_ORDER=["SLOWEST","SLOWER","SLOW","NORMAL"];   // slowest → fastest, shown in this order
-let AI_SPEED=(function(){try{const v=localStorage.getItem("ct_aispeed");return AI_SPEEDS[v]?v:"SLOWEST";}catch(e){return "SLOWEST";}})();
-function aiSpd(){return AI_SPEEDS[AI_SPEED]||AI_SPEEDS.SLOWEST;}
+const AI_SPEED_ORDER=["SLOW","MEDIUM","FAST"];   // slowest → fastest, shown in this order
+let AI_SPEED=(function(){try{const v=localStorage.getItem("ct_aispeed");return AI_SPEEDS[v]?v:"SLOW";}catch(e){return "SLOW";}})();
+function aiSpd(){return AI_SPEEDS[AI_SPEED]||AI_SPEEDS.SLOW;}
 function aiDelay(){return aiSpd().roll;}
 function aiCardMs(){return aiSpd().card;}
 function aiDiceTick(){return aiSpd().dice;}
@@ -985,7 +984,7 @@ const SFX={
 function toggleSnd(){ SND=!SND; try{localStorage.setItem("ct_snd",SND?"on":"off");}catch(e){} const b=document.getElementById("sndBtn"); if(b)b.textContent=SND?"[ SND ]":"[ MUTE ]"; if(SND)SFX.card(); }
 function setPoliceVol(v){ if(!POLICE_VOLS[v])v="M"; _polVol=v; try{localStorage.setItem("ct_polvol",v);}catch(e){} if(SND){SFX.siren();} openSettings(); }
 function setAICards(m){ AI_AUTOCARDS=(m!=="manual"); try{localStorage.setItem("ct_aicards",AI_AUTOCARDS?"auto":"manual");}catch(e){} openSettings(); }
-function setAISpeed(s){ if(!AI_SPEEDS[s])s="NORMAL"; AI_SPEED=s; try{localStorage.setItem("ct_aispeed",s);}catch(e){} openSettings(); }
+function setAISpeed(s){ if(!AI_SPEEDS[s])s="SLOW"; AI_SPEED=s; try{localStorage.setItem("ct_aispeed",s);}catch(e){} openSettings(); }
 
 /* ===== BOARD GRID (HEIST at bottom-left) ===== */
 function buildBoardGrid(){
@@ -1374,6 +1373,7 @@ function offerBail(){
 function payBail(bail){const p=S.players[S.cur];p.cash-=bail;p.inJail=false;p._pendingYears=null;log(p.name+L(" posts bail ("," paga fiança (")+fmtK(bail)+L(") and walks free — no court.",") e sai livre — sem tribunal."),"good");closeModal();render();finish();}
 function faceCourt(){const p=S.players[S.cur];p.inJail=false;closeModal();drawCourt();}
 function stepMove(p,left){
+  if(PAUSED){ if(S)S._resume=()=>stepMove(p,left); return; }   // menu is open — freeze mid-move
   if(left<=0){arriveCell(p);return;}
   const ring=p.ring;const len=ring==="inner"?INNER.length:OUTER.length;
   p.pos=(p.pos+1)%len;SFX.step();
@@ -1414,12 +1414,16 @@ function uiScale(dir){
   const b=document.getElementById("uizBtn"); if(b)b.textContent=Math.round(_uiz*100)+"%";
   try{ if(typeof fitBoard==="function") setTimeout(fitBoard,60); }catch(e){}
 }
+/* ===== PAUSE: opening the MENU freezes AI turns until it's closed ===== */
+let PAUSED=false;
+function unpauseGame(){ if(!PAUSED)return; PAUSED=false; const r=(S&&S._resume)||null; if(S)S._resume=null; if(typeof r==="function") setTimeout(()=>{ if(!PAUSED)r(); },90); }
 function openSettings(){
+  PAUSED=true;   // pause the game while the menu is open
   const el=document.getElementById("cardEl"); if(!el)return; el.dataset.deck="";
   const row=(label,ctrl)=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 2px;border-bottom:1px solid var(--phos-dim)"><span>${label}</span><span style="display:flex;gap:5px;align-items:center;flex-wrap:wrap;justify-content:flex-end">${ctrl}</span></div>`;
   el.innerHTML=`<div class="lbl">${L("SETTINGS","AJUSTES")}</div>
     <div class="bd" style="text-align:left;font-size:15px !important">
-    ${row(L("Rules / how to play","Regras / como jogar"),`<button onclick="closeModal();openManual()">[ MANUAL ]</button>`)}
+    ${row(L("Rules / how to play","Regras / como jogar"),`<button onclick="openManual()">[ MANUAL ]</button>`)}
     ${row(L("Language / Idioma","Idioma / Language"),`<button class="${LANG!=='PT'?'amber':''}" onclick="switchLang('EN')">[ EN ]</button><button class="${LANG==='PT'?'amber':''}" onclick="switchLang('PT')">[ PT ]</button>`)}
     ${row(L("Text size","Tamanho do texto"),`<button class="tiny" onclick="uiScale(-1)">−</button><button class="tiny" id="uizBtn" onclick="uiScale(0)">${Math.round((typeof _uiz!=="undefined"?_uiz:1)*100)}%</button><button class="tiny" onclick="uiScale(1)">+</button>`)}
     ${row(L("Follow token","Seguir peça"),`<button id="followBtn" onclick="toggleFollow()">${tr((S&&S.followAnim)?"[ FOLLOW: ON ]":"[ FOLLOW: OFF ]")}</button>`)}
@@ -1427,7 +1431,7 @@ function openSettings(){
     ${row(L("Sound","Som"),`<button id="sndBtn" onclick="toggleSnd()">${SND?"[ SND ]":"[ MUTE ]"}</button>`)}
     ${row(L("Police volume","Volume da polícia"),`<button class="tiny${_polVol==='L'?' amber':''}" onclick="setPoliceVol('L')">L</button><button class="tiny${_polVol==='M'?' amber':''}" onclick="setPoliceVol('M')">M</button><button class="tiny${_polVol==='H'?' amber':''}" onclick="setPoliceVol('H')">H</button>`)}
     ${row(L("AI cards","Cartas da IA"),`<button class="${AI_AUTOCARDS?'amber':''}" onclick="setAICards('auto')">${L('[ AUTO ]','[ AUTO ]')}</button><button class="${!AI_AUTOCARDS?'amber':''}" onclick="setAICards('manual')">${L('[ TAP ]','[ TOQUE ]')}</button>`)}
-    ${row(L("AI speed","Velocidade IA"),AI_SPEED_ORDER.map(s=>`<button class="tiny${AI_SPEED===s?' amber':''}" onclick="setAISpeed('${s}')">${({SLOWEST:L('SLOWEST','MÍN'),SLOWER:L('SLOWER','LENTO+'),SLOW:L('SLOW','LENTO'),NORMAL:L('NORMAL','NORMAL')})[s]}</button>`).join(""))}
+    ${row(L("AI speed","Velocidade IA"),AI_SPEED_ORDER.map(s=>`<button class="tiny${AI_SPEED===s?' amber':''}" onclick="setAISpeed('${s}')">${({SLOW:L('SLOW','LENTO'),MEDIUM:L('MEDIUM','MÉDIO'),FAST:L('FAST','RÁPIDO')})[s]}</button>`).join(""))}
     ${row(L("New game (reset)","Novo jogo (reiniciar)"),`<button class="red" onclick="askReset()">${L("[ RESET ]","[ REINICIAR ]")}</button>`)}
     </div>
     <div class="go"><button onclick="closeModal()">${L("[ CLOSE ]","[ FECHAR ]")}</button></div>`;
@@ -1491,6 +1495,7 @@ function toggleAuto(){
   if(!S._autoIv) S._autoIv=setInterval(autoTick,1000);       // slower, watchable
 }
 function autoTick(){
+  if(PAUSED)return;   // menu open — hold auto-play
   if(!S||S.over){ if(S&&S._autoIv){clearInterval(S._autoIv);S._autoIv=null;} return; }
   const p=S.players[S.cur];
   if(!p||p.ai||!p.auto||!p.alive) return;                    // only the current player, only if THEY enabled auto
@@ -2794,6 +2799,7 @@ function endTurn(){ if(S.over)return; if(!S.rolled)return;
   if(np.ai&&!S.over){ setTimeout(()=>rollDiceAI(),aiDelay()); }
 }
 function rollDiceAI(){
+  if(PAUSED){ if(S)S._resume=rollDiceAI; return; }   // menu is open — hold this AI turn
   const p=S&&S.players?S.players[S.cur]:null; if(!p||!p.ai||S.rolled) return;
   aiRecruit(p);                                   // build an army with spare cash before acting
   const tgt=aiAttackTarget(p);
@@ -2896,7 +2902,7 @@ function statusBar(){const p=S.players[S.cur];const wealth=p.ring==="inner"?`<sp
   const heat=p.ring==="inner"?"":`<span>${L('HEAT','RISCO')}: ${p.heat||0}%</span>`;
   return `<div class="status"><span>${p.name}</span>${wealth}${heat}<span>SOL: ${p.crew}</span><span>${L('TURF','\u00c1REA')}: ${p.owns.size}</span></div>`;}
 function openModal(){document.getElementById("modal").classList.add("on");}
-function closeModal(){document.getElementById("modal").classList.remove("on");const ce=document.getElementById("cardEl");if(ce)ce.dataset.deck="";try{window.speechSynthesis&&window.speechSynthesis.cancel();}catch(e){}}
+function closeModal(){document.getElementById("modal").classList.remove("on");const ce=document.getElementById("cardEl");if(ce)ce.dataset.deck="";try{window.speechSynthesis&&window.speechSynthesis.cancel();}catch(e){} if(typeof unpauseGame==="function")unpauseGame();}
 
 /* ===== BOOT ===== */
 /* ===== DOS TERMINAL FRONT-END: password gate + MS-DOS boot ===== */
