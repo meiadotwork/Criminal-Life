@@ -559,7 +559,7 @@
 <div id="setup">
 <div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
 <div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
-<div id="verSub" style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v12.9</div>
+<div id="verSub" style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v13.0</div>
 <div id="setupStage"></div>
 </div>
 
@@ -567,7 +567,7 @@
 
 <div id="screen" style="display:none">
   <div class="bar">
-    <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL <span id="verTag" style="font-size:10px;letter-spacing:1px;opacity:.55;font-weight:normal;text-shadow:none">v12.9</span></h1>
+    <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL <span id="verTag" style="font-size:10px;letter-spacing:1px;opacity:.55;font-weight:normal;text-shadow:none">v13.0</span></h1>
     <div id="turnBanner">TURN 1</div>
     <div class="topbtns">
       <button id="settingsBtn" onclick="openSettings()" title="settings">[ MENU ]</button>
@@ -611,7 +611,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v12.9";
+const APP_VERSION="v13.0";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -866,7 +866,7 @@ function launch(){
   log(L("SYSTEM ONLINE. ","SISTEMA ONLINE. Modo ")+(LANG==='PT'?({EASY:"FÁCIL",MEDIUM:"MÉDIO",HARD:"DIFÍCIL",REALISTIC:"REALISTA"}[setupData.difficulty]||setupData.difficulty):setupData.difficulty)+L(" mode — everyone starts with "," — todos começam com ")+fmtK(startCash)+".","sys");
   S.players.filter(x=>x.ai).forEach(x=>log(x.name+L(" sits down — plays "," senta na mesa — joga ")+(x.temper==="AGGRESSIVE"?L("AGGRESSIVE","AGRESSIVO"):L("CAREFUL","CAUTELOSO"))+".","sys"));
   saveGame();
-  if(S.players[S.cur].ai&&!S.over) setTimeout(()=>rollDiceAI(),900);   // all-AI / AI-first games drive themselves
+  if(S.players[S.cur].ai&&!S.over) setTimeout(()=>rollDiceAI(),aiDelay());   // all-AI / AI-first games drive themselves
 }
 
 /* ===== SAVE / RESUME (localStorage — written at every turn boundary) ===== */
@@ -890,7 +890,7 @@ function resumeGame(){
   if(document.fonts&&document.fonts.ready){document.fonts.ready.then(()=>setTimeout(fitBoard,40));}
   newRound();
   log(L("SESSION RESTORED — turn ","SESSÃO RESTAURADA — turno ")+S.turn+". "+S.players[S.cur].name+L(" is up."," é a vez."),"sys");
-  if(S.players[S.cur].ai) setTimeout(()=>rollDiceAI(),900);
+  if(S.players[S.cur].ai) setTimeout(()=>rollDiceAI(),aiDelay());
 }
 function askReset(){
   const el=document.getElementById("cardEl");
@@ -909,6 +909,11 @@ let _polVol=(function(){try{const v=localStorage.getItem("ct_polvol");return POL
 function policeGain(){return POLICE_VOLS[_polVol]||1;}
 /* AI cards: auto-resolve after a pause (default), or wait for a human tap */
 let AI_AUTOCARDS=(function(){try{return localStorage.getItem("ct_aicards")!=="manual";}catch(e){return true;}})();
+/* AI play speed — how long each AI move/scene lingers before it auto-advances */
+const AI_SPEEDS={SLOW:{roll:900,card:2600},NORMAL:{roll:600,card:1600},FAST:{roll:300,card:850},TURBO:{roll:110,card:400}};
+let AI_SPEED=(function(){try{const v=localStorage.getItem("ct_aispeed");return AI_SPEEDS[v]?v:"NORMAL";}catch(e){return "NORMAL";}})();
+function aiDelay(){return (AI_SPEEDS[AI_SPEED]||AI_SPEEDS.NORMAL).roll;}
+function aiCardMs(){return (AI_SPEEDS[AI_SPEED]||AI_SPEEDS.NORMAL).card;}
 let _ac=null;
 function beep(freq,dur,vol,when){
   if(!SND)return;
@@ -970,6 +975,7 @@ const SFX={
 function toggleSnd(){ SND=!SND; try{localStorage.setItem("ct_snd",SND?"on":"off");}catch(e){} const b=document.getElementById("sndBtn"); if(b)b.textContent=SND?"[ SND ]":"[ MUTE ]"; if(SND)SFX.card(); }
 function setPoliceVol(v){ if(!POLICE_VOLS[v])v="M"; _polVol=v; try{localStorage.setItem("ct_polvol",v);}catch(e){} if(SND){SFX.siren();} openSettings(); }
 function setAICards(m){ AI_AUTOCARDS=(m!=="manual"); try{localStorage.setItem("ct_aicards",AI_AUTOCARDS?"auto":"manual");}catch(e){} openSettings(); }
+function setAISpeed(s){ if(!AI_SPEEDS[s])s="NORMAL"; AI_SPEED=s; try{localStorage.setItem("ct_aispeed",s);}catch(e){} openSettings(); }
 
 /* ===== BOARD GRID (HEIST at bottom-left) ===== */
 function buildBoardGrid(){
@@ -1199,11 +1205,12 @@ function rollDice(){
   const row=document.getElementById("diceRow");row.innerHTML="";
   const dice=[];for(let i=0;i<n;i++){const d=document.createElement("div");d.className="die rolling";if(i===0)d.onclick=rollDice;row.appendChild(d);dice.push(d);}
   let t=0;
+  const rollTick=(p.ai?({SLOW:55,NORMAL:38,FAST:20,TURBO:9}[AI_SPEED]||38):70);   // AI rolls quicker on higher speeds
   const iv=setInterval(()=>{
     SFX.tick();
     dice.forEach(d=>drawDieEl(d,1+Math.floor(Math.random()*sides)));
     if(++t>6){clearInterval(iv);dice.forEach((d,i)=>{drawDieEl(d,rolls[i]);d.classList.remove("rolling");});afterRoll(total);}
-  },70);
+  },rollTick);
   S.rolled=true;
   document.getElementById("diceLbl").textContent=L("rolled ","tirou ")+(n>1?total+" ("+rolls.join("+")+")":""+total)+" · D"+sides+(bonus?L(" · +1 die (10+ soldiers)"," · +1 dado (10+ soldados)"):"");
 }
@@ -1381,7 +1388,8 @@ function stepMove(p,left){
   render();
   scrollToToken();
   document.getElementById("diceLbl").textContent=L("…moving (","…andando (")+left+")";
-  setTimeout(()=>stepMove(p,left-1),430);
+  const stepMs=(p.ai?({SLOW:300,NORMAL:190,FAST:85,TURBO:30}[AI_SPEED]||190):430);   // AI walks the board faster on higher speeds
+  setTimeout(()=>stepMove(p,left-1),stepMs);
 }
 function scrollToToken(){
   if(!S||!S.followAnim) return;
@@ -1409,6 +1417,7 @@ function openSettings(){
     ${row(L("Sound","Som"),`<button id="sndBtn" onclick="toggleSnd()">${SND?"[ SND ]":"[ MUTE ]"}</button>`)}
     ${row(L("Police volume","Volume da polícia"),`<button class="tiny${_polVol==='L'?' amber':''}" onclick="setPoliceVol('L')">L</button><button class="tiny${_polVol==='M'?' amber':''}" onclick="setPoliceVol('M')">M</button><button class="tiny${_polVol==='H'?' amber':''}" onclick="setPoliceVol('H')">H</button>`)}
     ${row(L("AI cards","Cartas da IA"),`<button class="${AI_AUTOCARDS?'amber':''}" onclick="setAICards('auto')">${L('[ AUTO ]','[ AUTO ]')}</button><button class="${!AI_AUTOCARDS?'amber':''}" onclick="setAICards('manual')">${L('[ TAP ]','[ TOQUE ]')}</button>`)}
+    ${row(L("AI speed","Velocidade IA"),["SLOW","NORMAL","FAST","TURBO"].map(s=>`<button class="tiny${AI_SPEED===s?' amber':''}" onclick="setAISpeed('${s}')">${({SLOW:L('SLOW','LENTO'),NORMAL:L('NORM','NORM'),FAST:L('FAST','RÁP'),TURBO:L('TURBO','TURBO')})[s]}</button>`).join(""))}
     ${row(L("New game (reset)","Novo jogo (reiniciar)"),`<button class="red" onclick="askReset()">${L("[ RESET ]","[ REINICIAR ]")}</button>`)}
     </div>
     <div class="go"><button onclick="closeModal()">${L("[ CLOSE ]","[ FECHAR ]")}</button></div>`;
@@ -2050,7 +2059,7 @@ function resolveAttack(p,o,idx,atk){
     log(L("","O ataque de ")+p.name+L("'s attack on "," a ")+OUTER[idx].t+L(" fails."," falha."),"bad"); }
   if(p._atkMenu) S.rolled=true;   // attacking from the ACTION menu is your move — it counts as the round
   render();
-  if(p.ai){ finish(); return; }
+  if(p.ai){ aiScene(`<div class="lbl" style="background:${p.color}">${L('ATTACK','ATAQUE')} · ${p.name}</div><div class="art">)|(</div><div class="ttl">${title}</div><div class="bd">${body}</div>`, finish); return; }
   const el=document.getElementById("cardEl");
   el.innerHTML=`<div class="lbl">${L('ATTACK','ATAQUE')}</div>
     <div class="ttl">${title}</div>
@@ -2080,7 +2089,7 @@ function aiAutoApply(card){
   setTimeout(()=>{
     const el=document.getElementById("cardEl");
     if(el._card===card && document.getElementById("modal").classList.contains("on")) applyCard();
-  },2400);
+  },aiCardMs());
 }
 function renderStoryCard(card,deck,isAI){
   const p=S.players[S.cur];const el=document.getElementById("cardEl");
@@ -2376,7 +2385,8 @@ function doHospital(p,visits){
   const ocLine = oc==="good" ? L("✓ Good news — you're healing well. This visit is cleared.","✓ Boa not\u00edcia — voc\u00ea est\u00e1 se recuperando bem. Esta visita foi zerada.")
                : oc==="bad" ? L("✗ Complication — this counts as an EXTRA hospital visit.","✗ Complica\u00e7\u00e3o — conta como uma visita EXTRA ao hospital.")
                : L("— Stable. Just the bill and some rest.","— Est\u00e1vel. S\u00f3 a conta e um descanso.");
-  if(p.ai){ p.cash-=bill; if(settle)p.cash+=settle; applyHospOutcome(p,oc); if(!p.alive)return; log(p.name+L(" checks out (-$"," recebe alta (-$")+bill+"K"+(settle?L(", settlement +$",", indenização +$")+settle+"K":"")+").","warn"); finish(); return; }
+  if(p.ai){ p.cash-=bill; if(settle)p.cash+=settle; applyHospOutcome(p,oc); if(!p.alive)return; log(p.name+L(" checks out (-$"," recebe alta (-$")+bill+"K"+(settle?L(", settlement +$",", indenização +$")+settle+"K":"")+").","warn");
+    aiScene(`<div class="lbl" style="background:${p.color}">HOSPITAL · ${p.name}</div><div class="art">${ART.hospital}</div><div class="ttl">${p._hospCause||L("Hospitalized","Hospitalizado")}</div><div class="out">${ocLine}</div><div class="out">${L('Medical bill','Conta médica')}: ${fmtK(bill)}${settle?` · ${L('settlement','indenização')} +${fmtK(settle)}`:''} · ${3-p.hosp}/3</div>`, finish); return; }
   const el=document.getElementById("cardEl");
   el.dataset.deck="hospital";
   const hnum=(typeof DECKS!=="undefined"&&DECKS.hospital)?DECKS.hospital.indexOf(card)+1:0;
@@ -2750,7 +2760,7 @@ function showProfile(id){
 /* ===== TURN ADVANCE ===== */
 function finish(){render();updateControls();
   if(S.over||!S.rolled) return;
-  const delay=S.players[S.cur].ai?700:600;
+  const delay=S.players[S.cur].ai?aiDelay():600;
   clearTimeout(S._finishTimer);
   const tick=()=>{
     if(S.over||!S.rolled) return;
@@ -2771,7 +2781,7 @@ function endTurn(){ if(S.over)return; if(!S.rolled)return;
   render();updateControls();
   saveGame();
   const np=S.players[S.cur];
-  if(np.ai&&!S.over){ setTimeout(()=>rollDiceAI(),700); }
+  if(np.ai&&!S.over){ setTimeout(()=>rollDiceAI(),aiDelay()); }
 }
 function rollDiceAI(){
   const p=S&&S.players?S.players[S.cur]:null; if(!p||!p.ai||S.rolled) return;
@@ -2810,8 +2820,29 @@ function aiAttackTarget(p){
 }
 
 /* ===== AI helpers ===== */
-function aiBuyStreet(idx,c){const p=S.players[S.cur];const mult=(p.temper==="AGGRESSIVE")?1.3:2;if(p.cash>=c.price*mult){p.cash-=c.price;p.owns.set(idx,1);log(p.name+L(" claims "," toma ")+c.t+".","good");}else log(p.name+L(" passes on "," dispensa ")+c.t+".");render();finish();}
-function aiBuyBiz(idx,c){const p=S.players[S.cur];if(p.cash>=c.income*1.5){p.cash-=c.income;p.owns.set(idx,1);log(p.name+L(" opens "," abre ")+c.t+".","good");}else log(p.name+L(" passes on "," dispensa ")+c.t+".");render();finish();}
+/* ===== SPECTATE: show what the AI is doing as a card, then auto-advance (or wait for a tap) ===== */
+let _aiSceneThen=null,_aiSceneDone=true;
+function aiScene(inner,then){
+  const el=document.getElementById("cardEl"); if(!el){ if(then)then(); return; }
+  el.dataset.deck=""; el._card=null;
+  _aiSceneThen=then||null; _aiSceneDone=false;
+  el.innerHTML=inner+`<div class="go"><button onclick="aiSceneGo()">${L('[ CONTINUE ]','[ CONTINUAR ]')}</button></div>`+statusBar();
+  openModal();
+  if(AI_AUTOCARDS) setTimeout(aiSceneGo, aiCardMs());
+}
+function aiSceneGo(){ if(_aiSceneDone)return; _aiSceneDone=true; closeModal(); const f=_aiSceneThen; _aiSceneThen=null; if(f)f(); }
+function aiSceneCard(p,ttl,body,cls){ return `<div class="lbl" style="background:${p.color}">${p.name}</div><div class="ttl"${cls?` style="color:${cls}"`:''}>${ttl}</div><div class="bd">${body}</div>`; }
+function aiBuyStreet(idx,c){const p=S.players[S.cur];const mult=(p.temper==="AGGRESSIVE")?1.3:2;
+  let ttl,body;
+  if(p.cash>=c.price*mult){p.cash-=c.price;p.owns.set(idx,1);log(p.name+L(" claims "," toma ")+c.t+".","good");
+    ttl=L("CLAIMS TURF","TOMA A ÁREA");body=p.name+L(" buys "," compra ")+c.t+L(" for "," por ")+fmtK(c.price)+".";}
+  else {log(p.name+L(" passes on "," dispensa ")+c.t+".");ttl=L("WALKS PAST","PASSA DIRETO");body=p.name+L(" eyes "," olha ")+c.t+L(" but keeps the cash."," mas guarda o dinheiro.");}
+  render();aiScene(aiSceneCard(p,ttl,body),finish);}
+function aiBuyBiz(idx,c){const p=S.players[S.cur];let ttl,body;
+  if(p.cash>=c.income*1.5){p.cash-=c.income;p.owns.set(idx,1);log(p.name+L(" opens "," abre ")+c.t+".","good");
+    ttl=L("OPENS SHOP","ABRE NEGÓCIO");body=p.name+L(" opens "," abre ")+c.t+L(" for "," por ")+fmtK(c.income)+".";}
+  else {log(p.name+L(" passes on "," dispensa ")+c.t+".");ttl=L("WALKS PAST","PASSA DIRETO");body=p.name+L(" passes on "," dispensa ")+c.t+".";}
+  render();aiScene(aiSceneCard(p,ttl,body),finish);}
 
 /* ===== helpers ===== */
 let _rentCont=null;
