@@ -559,7 +559,7 @@
 <div id="setup">
 <div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
 <div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
-<div id="verSub" style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v13.3</div>
+<div id="verSub" style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v13.4</div>
 <div id="setupStage"></div>
 </div>
 
@@ -567,7 +567,7 @@
 
 <div id="screen" style="display:none">
   <div class="bar">
-    <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL <span id="verTag" style="font-size:10px;letter-spacing:1px;opacity:.55;font-weight:normal;text-shadow:none">v13.3</span></h1>
+    <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL <span id="verTag" style="font-size:10px;letter-spacing:1px;opacity:.55;font-weight:normal;text-shadow:none">v13.4</span></h1>
     <div id="turnBanner">TURN 1</div>
     <div class="topbtns">
       <button id="settingsBtn" onclick="openSettings()" title="settings">[ MENU ]</button>
@@ -611,7 +611,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v13.3";
+const APP_VERSION="v13.4";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -1122,7 +1122,7 @@ function openActions(){
   const el=document.getElementById("cardEl"); el.dataset.deck="";
   const canCrime=!S.rolled&&p.ring==="outer"&&!p.inJail&&p.crimeOps>0;
   const canHire=p.ring==="outer"&&!p.inJail;
-  const canSell=p.owns.size>0;
+  const canSell=p.owns.size>0||p.crew>0;
   const rivalTurf=S.players.some(o=>o.id!==p.id&&o.alive&&o.owns.size>0);
   const canAttack=!S.rolled&&p.ring==="outer"&&!p.inJail&&p.crew>=1&&rivalTurf;
   const row=(label,desc,btn)=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 2px;border-bottom:1px solid var(--phos-dim)"><span>${label}${desc?`<br><span style="opacity:.55;font-size:11px">${desc}</span>`:""}</span><span style="white-space:nowrap">${btn}</span></div>`;
@@ -1156,15 +1156,20 @@ function openSellAssets(){
   if(p.ai||!p.alive||S.over)return;
   const el=document.getElementById("cardEl");
   const rows=Array.from(p.owns.entries());
-  const body = rows.length ? rows.map(([idx,cnt])=>{
+  const SGUARD=Math.round(SOLDIER_COST*0.5);   // disband payout per bodyguard
+  const guardRow = p.crew>0 ? `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin:3px 0;border-bottom:1px solid #1a2a1a;padding-bottom:4px">
+      <span>${L("Bodyguard soldiers","Soldados guarda-costas")} x${p.crew}<br><span style="opacity:.6;font-size:11px">${L("disband for","dispensar por")} ${fmtK(SGUARD)} ${L("each","cada")}</span></span>
+      <span style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end"><button class="red" onclick="sellSoldier(1)">${L("[ SELL 1 ]","[ VENDER 1 ]")}</button>${p.crew>1?`<button class="red" onclick="sellSoldier(${p.crew})">${L("[ ALL ","[ TODOS ")}${p.crew} \u00b7 ${fmtK(SGUARD*p.crew)} ]</button>`:''}</span></div>` : "";
+  const propBody = rows.map(([idx,cnt])=>{
     const c=OUTER[idx];const per=c.incomeBase||c.price||c.income||0;const val=Math.round(per*cnt);
     return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin:3px 0;border-bottom:1px solid #1a2a1a;padding-bottom:4px">
       <span>${c.t} x${cnt}<br><span style="opacity:.6;font-size:11px">${L("worth","vale")} ${fmtK(per*cnt)}</span></span>
       <button class="red" onclick="sellAssetFromMenu(${idx})">${L("[ SELL ","[ VENDER ")}${fmtK(val)} ]</button></div>`;
-  }).join("") : "<div style='opacity:.6'>"+L("You own nothing to sell.","Voc\u00ea n\u00e3o tem nada para vender.")+"</div>";
+  }).join("");
+  const body = (guardRow+propBody) || "<div style='opacity:.6'>"+L("You own nothing to sell.","Voc\u00ea n\u00e3o tem nada para vender.")+"</div>";
   el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('SELL ASSETS','VENDER BENS')}</div>
     <div class="ttl">${L('Cash out','Fazer caixa')}</div>
-    <div class="bd">${L('Sell any property or business back for the full price you paid, to cover debts or free up cash. This does NOT end your turn.','Venda qualquer propriedade ou neg\u00f3cio pelo pre\u00e7o cheio que pagou, para cobrir d\u00edvidas ou liberar dinheiro. Isso N\u00c3O encerra seu turno.')}</div>
+    <div class="bd">${L('Sell property or businesses back for the full price you paid, or disband bodyguards for half their cost, to cover debts or free up cash. This does NOT end your turn.','Venda propriedades ou neg\u00f3cios pelo pre\u00e7o cheio que pagou, ou dispense guarda-costas por metade do custo, para cobrir d\u00edvidas ou liberar dinheiro. Isso N\u00c3O encerra seu turno.')}</div>
     <div class="out">${L('Cash on hand','Dinheiro em m\u00e3os')}: ${fmtK(p.cash)}</div>
     <div class="out" style="max-height:210px;overflow:auto;background:#0d1510;border-left:4px solid ${p.color}">${body}</div>
     <div class="go"><button onclick="openActions()">${L('[ ‹ BACK ]','[ ‹ VOLTAR ]')}</button><button onclick="closeModal()">${L('[ DONE ]','[ CONCLUIR ]')}</button></div>`;
@@ -1175,6 +1180,12 @@ function sellAssetFromMenu(idx){
   const per=c.incomeBase||c.price||c.income||0;const val=Math.round(per*cnt);
   p.cash+=val;p.owns.delete(idx);
   log(p.name+L(" sells "," vende ")+c.t+" (x"+cnt+L(") for ",") por ")+fmtK(val)+".","warn");
+  render();openSellAssets();
+}
+function sellSoldier(n){
+  const p=S.players[S.cur]; n=Math.min(n||1,p.crew); if(n<1)return;
+  const val=Math.round(SOLDIER_COST*0.5)*n; p.crew-=n; p.cash+=val;
+  log(p.name+L(" disbands "," dispensa ")+n+L(" bodyguard"," guarda-costas")+(n>1&&LANG!=='PT'?"s":"")+L(" for "," por ")+fmtK(val)+".","warn");
   render();openSellAssets();
 }
 
