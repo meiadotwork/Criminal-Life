@@ -559,7 +559,7 @@
 <div id="setup">
 <div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
 <div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
-<div id="verSub" style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v13.4</div>
+<div id="verSub" style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v13.5</div>
 <div id="setupStage"></div>
 </div>
 
@@ -567,9 +567,10 @@
 
 <div id="screen" style="display:none">
   <div class="bar">
-    <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL <span id="verTag" style="font-size:10px;letter-spacing:1px;opacity:.55;font-weight:normal;text-shadow:none">v13.4</span></h1>
+    <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL <span id="verTag" style="font-size:10px;letter-spacing:1px;opacity:.55;font-weight:normal;text-shadow:none">v13.5</span></h1>
     <div id="turnBanner">TURN 1</div>
     <div class="topbtns">
+      <button class="amber" onclick="openSupport()" title="support the developer">[ &#9829; ]</button>
       <button id="settingsBtn" onclick="openSettings()" title="settings">[ MENU ]</button>
     </div>
   </div>
@@ -611,7 +612,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v13.4";
+const APP_VERSION="v13.5";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -1443,9 +1444,26 @@ function openSettings(){
     ${row(L("Police volume","Volume da polícia"),`<button class="tiny${_polVol==='L'?' amber':''}" onclick="setPoliceVol('L')">L</button><button class="tiny${_polVol==='M'?' amber':''}" onclick="setPoliceVol('M')">M</button><button class="tiny${_polVol==='H'?' amber':''}" onclick="setPoliceVol('H')">H</button>`)}
     ${row(L("AI cards","Cartas da IA"),`<button class="${AI_AUTOCARDS?'amber':''}" onclick="setAICards('auto')">${L('[ AUTO ]','[ AUTO ]')}</button><button class="${!AI_AUTOCARDS?'amber':''}" onclick="setAICards('manual')">${L('[ TAP ]','[ TOQUE ]')}</button>`)}
     ${row(L("AI speed","Velocidade IA"),AI_SPEED_ORDER.map(s=>`<button class="tiny${AI_SPEED===s?' amber':''}" onclick="setAISpeed('${s}')">${({SLOW:L('SLOW','LENTO'),MEDIUM:L('MEDIUM','MÉDIO'),FAST:L('FAST','RÁPIDO')})[s]}</button>`).join(""))}
+    ${row(L("Support the dev","Apoiar o dev"),`<button class="amber" onclick="openSupport()">${L("[ ♥ TIP ]","[ ♥ APOIAR ]")}</button>`)}
     ${row(L("New game (reset)","Novo jogo (reiniciar)"),`<button class="red" onclick="askReset()">${L("[ RESET ]","[ REINICIAR ]")}</button>`)}
     </div>
     <div class="go"><button onclick="closeModal()">${L("[ CLOSE ]","[ FECHAR ]")}</button></div>`;
+  openModal();
+}
+/* ===== SUPPORT / TIP THE DEVELOPER ===== */
+const SUPPORT_URL="https://meiadotwork.itch.io/criminal-terminal/donate";
+function supportGo(){ try{ window.open(SUPPORT_URL,"_blank","noopener"); }catch(e){ location.href=SUPPORT_URL; } }
+function openSupport(){
+  PAUSED=true;   // freeze the game while the tip prompt is up (closeModal resumes)
+  const el=document.getElementById("cardEl"); if(!el)return; el.dataset.deck="";
+  el.innerHTML=`<div class="lbl">${L("SUPPORT","APOIAR")}</div>
+    <div class="art">$$$</div>
+    <div class="ttl">${L("Enjoying CRIMINAL TERMINAL?","Curtindo o CRIMINAL TERMINAL?")}</div>
+    <div class="bd">${L("This game is free and always will be. If it gave you a good time, a small tip keeps new cities, cards and features coming. Opens my itch.io page in a new tab. Thank you.","Este jogo é grátis e sempre será. Se te rendeu bons momentos, uma pequena contribuição mantém novas cidades, cartas e recursos chegando. Abre minha página do itch.io em uma nova aba. Obrigado.")}</div>
+    <div class="go" style="flex-direction:column">
+      <button class="amber" onclick="supportGo()">${L("[ ♥ TIP THE DEV ]","[ ♥ APOIAR O DEV ]")}</button>
+      <button onclick="closeModal()">${L("[ MAYBE LATER ]","[ TALVEZ DEPOIS ]")}</button>
+    </div>`;
   openModal();
 }
 function toggleFollow(){ S.followAnim=!S.followAnim; const b=document.getElementById("followBtn"); if(b)b.textContent=tr(S.followAnim?"[ FOLLOW: ON ]":"[ FOLLOW: OFF ]"); }
@@ -2649,7 +2667,7 @@ function showRetire(p){
     <div class="sub" style="text-align:center">${fmtK(netWorth(p))} ${L('net worth at <b>','de patrim\u00f4nio aos <b>')}${p.age}</b> ${L("years old. Nobody retires from this life. ","anos. Ningu\u00e9m se aposenta dessa vida. ")}${p.name} ${L("just did — villa, new name, clean paper. The city keeps fighting over what's left.","acabou de conseguir — mans\u00e3o, nome novo, papel limpo. A cidade continua brigando pelo que sobrou.")}</div>
     <div class="out">${L('Age ','Idade ')}${p.age} · ${L('Net worth ','Patrim\u00f4nio ')}${fmtK(netWorth(p))} · ${p.owns.size} ${L('turf','\u00e1reas')} · ${p.crew} ${L('soldiers','soldados')} · ${empireStats(p).workers} ${L('workers','func.')} · ${L('started with ','come\u00e7ou com ')}${fmtK(p.startCash||0)}</div>
     <div class="out">${(()=>{const oc=oppCounts(p);return L("Outlasted ","Superou ")+oc.ai+L(" AI"," IA")+(oc.hum?L(" and "," e ")+oc.hum+L(" human rival"," rival humano")+(oc.hum>1?"s":""):"")+(S.diff?" \u00b7 "+S.diff:"")+".";})()}</div>
-    <div class="go"><button onclick="location.reload()">${L('[ NEW GAME ]','[ NOVO JOGO ]')}</button></div>`;
+    <div class="go"><button class="amber" onclick="openSupport()">${L('[ ♥ TIP THE DEV ]','[ ♥ APOIAR ]')}</button><button onclick="location.reload()">${L('[ NEW GAME ]','[ NOVO JOGO ]')}</button></div>`;
   openModal();
 }
 function showGameOver(winner){
@@ -2663,7 +2681,7 @@ function showGameOver(winner){
     <div class="sub" style="text-align:center">${w?(L("Survived to <b>","Sobreviveu at\u00e9 os <b>")+w.age+L("</b> years old — started at ","</b> anos — come\u00e7ou aos ")+(w.startAge||w.age)+L(" and outlived them all, starting with "," e enterrou todos, come\u00e7ando com ")+fmtK(w.startCash||0)+L(". The city is theirs.",". A cidade \u00e9 dele.")):L("Everyone's dead. The streets win.","Todos mortos. As ruas vencem.")}</div>
     <div class="out">${w?L("Age ","Idade ")+w.age+L(" · Net worth "," · Patrim\u00f4nio ")+fmtK(netWorth(w))+L(" · "," · ")+w.owns.size+L(" turf · "," \u00e1reas · ")+soldierIcons(w.color,w.crew)+" · "+empireStats(w).workers+L(" workers"," func."):"—"}</div>
     <div class="out">${w?(()=>{const oc=oppCounts(w);return L("Outlasted ","Superou ")+oc.ai+L(" AI"," IA")+(oc.hum?L(" and "," e ")+oc.hum+L(" human rival"," rival humano")+(oc.hum>1?"s":""):"")+(S.diff?" · "+S.diff:"")+".";})():""}</div>
-    <div class="go"><button onclick="location.reload()">${L('[ NEW GAME ]','[ NOVO JOGO ]')}</button></div>`;
+    <div class="go"><button class="amber" onclick="openSupport()">${L('[ ♥ TIP THE DEV ]','[ ♥ APOIAR ]')}</button><button onclick="location.reload()">${L('[ NEW GAME ]','[ NOVO JOGO ]')}</button></div>`;
   openModal();
 }
 
