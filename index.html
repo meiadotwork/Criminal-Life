@@ -68,6 +68,27 @@
   .cell .own{position:absolute;top:1px;right:2px;font-size:8px;font-weight:bold}
   #innerLabel{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:10px;letter-spacing:3px;color:var(--phos-dim);pointer-events:none}
   #boardWrap{position:relative;margin-bottom:8px}
+  /* ===== FOCUS MODE: one big readable card for the cell you're on ===== */
+  #focusBtn.on{background:var(--phos) !important;color:#000 !important;border-color:var(--phos) !important;font-weight:bold}
+  #focusCard{padding:2px}
+  .fcard{border:2px solid var(--phos);border-radius:8px;padding:16px 15px;position:relative;
+    background:linear-gradient(180deg,rgba(20,80,36,.22),rgba(1,8,3,.4));
+    box-shadow:0 0 0 1px var(--phos),0 0 22px rgba(57,255,116,.30),inset 0 0 18px rgba(57,255,116,.10)}
+  .fcHere{font-size:11px;letter-spacing:3px;color:var(--phos);opacity:.85;margin-bottom:8px}
+  .fcTop{display:flex;align-items:center;gap:14px;margin-bottom:12px}
+  .fcIcon{font-size:46px;line-height:1;text-shadow:0 0 10px currentColor;flex:0 0 auto}
+  .fcName{font-size:26px;font-weight:bold;letter-spacing:1px;line-height:1.05;word-break:break-word}
+  .fcType{display:inline-block;margin-top:6px;font-size:10px;letter-spacing:2px;border:1px solid var(--phos-dim);padding:2px 8px;border-radius:3px;opacity:.85}
+  .fcRow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 2px;border-top:1px solid var(--phos-dark);font-size:15px}
+  .fcRow .k{opacity:.62;font-size:12px;letter-spacing:1px;flex:0 0 auto}
+  .fcRow .v{font-weight:bold;text-align:right;display:flex;align-items:center;gap:7px;justify-content:flex-end;flex-wrap:wrap;min-width:0}
+  .fcRow .v .patchip{width:15px;height:15px}
+  .fcOwned{color:var(--amber)}
+  .fcPeople{display:flex;gap:5px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+  .fcFull{margin-top:16px;border:2px solid var(--phos);background:transparent;color:var(--phos);font-size:16px;letter-spacing:1px;padding:13px;width:100%;font-weight:bold;border-radius:5px;cursor:pointer;font-family:inherit}
+  .fcFull:hover{background:var(--phos);color:#000}
+  .fcHint{font-size:10px;opacity:.55;text-align:center;margin-top:8px;line-height:1.5}
+  body.focus-on .board-panel{max-height:none !important;}   /* let the whole focus card show without scrolling */
   .pl{border:1px solid var(--phos-dark);padding:6px 8px;margin-bottom:5px;font-size:13.5px;cursor:pointer}
   .pl.active{border-width:2px;background:rgba(255,255,255,.05)}
   .pl.dead{opacity:.4;text-decoration:line-through}
@@ -565,7 +586,7 @@
 <div id="setup">
 <div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
 <div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
-<div id="verSub" style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v14.5</div>
+<div id="verSub" style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v14.6</div>
 <div id="setupStage"></div>
 </div>
 
@@ -573,7 +594,7 @@
 
 <div id="screen" style="display:none">
   <div class="bar">
-    <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL <span id="verTag" style="font-size:10px;letter-spacing:1px;opacity:.55;font-weight:normal;text-shadow:none">v14.5</span></h1>
+    <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL <span id="verTag" style="font-size:10px;letter-spacing:1px;opacity:.55;font-weight:normal;text-shadow:none">v14.6</span></h1>
     <div id="turnBanner">TURN 1</div>
     <div class="topbtns">
       <button class="amber" onclick="openSupport()" title="support the developer">[ &#9829; ]</button>
@@ -584,8 +605,9 @@
   <div class="main">
     <div class="panel board-panel">
       <h2>NEW YORK CITY</h2>
-      <div class="zoombar"><button onclick="boardZoom(-1)">−</button><button id="bzBtn" onclick="boardZoom(0)" title="tap to fit">100%</button><button onclick="boardZoom(1)">+</button></div>
+      <div class="zoombar"><button onclick="boardZoom(-1)">−</button><button id="bzBtn" onclick="boardZoom(0)" title="tap to fit">100%</button><button onclick="boardZoom(1)">+</button><button id="focusBtn" onclick="toggleFocus()" title="zoom in on the cell you're on" style="margin-left:auto">◎ FOCUS</button></div>
       <div id="boardWrap"><div id="board"></div></div>
+      <div id="focusCard" style="display:none"></div>
     </div>
     <div class="side">
       <div class="panel condice-panel">
@@ -619,7 +641,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v14.5";
+const APP_VERSION="v14.6";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -873,6 +895,7 @@ function launch(){
   buildBoardGrid();
   render();updateControls();
   [60,300,700,1400].forEach(t=>setTimeout(fitBoard,t));
+  try{applyFocus();}catch(e){}   // restore FOCUS mode preference on game start
   if(document.fonts&&document.fonts.ready){document.fonts.ready.then(()=>setTimeout(fitBoard,40));}
   newRound();
   bumpPlayCount(S.players.filter(x=>!x.ai).length);   // every human who sits down counts, worldwide
@@ -901,6 +924,7 @@ function loadFromSnapshot(sv,note){
   buildBoardGrid();
   render();updateControls();
   [60,300,700,1400].forEach(t=>setTimeout(fitBoard,t));
+  try{applyFocus();}catch(e){}   // restore FOCUS mode preference on game start
   if(document.fonts&&document.fonts.ready){document.fonts.ready.then(()=>setTimeout(fitBoard,40));}
   newRound();
   log(note||(L("SESSION RESTORED — turn ","SESSÃO RESTAURADA — turno ")+S.turn+". "+S.players[S.cur].name+L(" is up."," é a vez.")),"sys");
@@ -1135,6 +1159,7 @@ function render(){
   const tb=document.getElementById("turnBanner");
   tb.textContent=`${L("TURN","TURNO")} ${S.turn} — ${cp.name}`+(cp.ring==="inner"?L(" [PRISON]"," [PRIS\u00c3O]"):"");
   tb.style.background=cp.color;tb.style.borderColor=cp.color;
+  if(FOCUS_MODE)renderFocusCard();   // keep the focus card following the token
 }
 function hexA(hex,a){const n=parseInt(hex.slice(1),16);return`rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${a})`;}
 
@@ -1599,6 +1624,93 @@ function scrollToToken(){
   if(!S||!S.followAnim) return;
   const here=document.querySelector("#board .cell.here");
   if(here) here.scrollIntoView({behavior:"smooth",block:"center",inline:"center"});
+}
+/* ===== FOCUS MODE: replace the board with one big, fully-readable card for the
+   cell the current player is on. Follows the token; a FULL BOARD button snaps back. ===== */
+let FOCUS_MODE=(function(){try{return localStorage.getItem("ct_focus")==="on";}catch(e){return false;}})();
+function toggleFocus(){ FOCUS_MODE=!FOCUS_MODE; try{localStorage.setItem("ct_focus",FOCUS_MODE?"on":"off");}catch(e){} applyFocus(); }
+function applyFocus(){
+  const fb=document.getElementById("focusBtn"), board=document.getElementById("boardWrap"), fc=document.getElementById("focusCard");
+  if(fb)fb.classList.toggle("on",FOCUS_MODE);
+  document.body.classList.toggle("focus-on",FOCUS_MODE);
+  if(FOCUS_MODE){ if(board)board.style.display="none"; if(fc){fc.style.display="block"; renderFocusCard();} }
+  else { if(fc)fc.style.display="none"; if(board)board.style.display=""; try{fitBoard();}catch(e){} }
+}
+function cellTypeLabel(k){
+  const m={street:L("STREET","RUA"),biz:L("BUSINESS","NEGÓCIO"),poker:L("CASINO · POKER","CASSINO"),
+    heist:L("HEIST · START","ASSALTO · INÍCIO"),drug:L("DRUG DEAL","TRÁFICO"),hitman:L("HITMAN","PISTOLEIRO"),
+    cop:L("CROOKED COP","POLICIAL"),raid:L("POLICE RAID","BATIDA"),party:L("PARTY","FESTA"),fate:L("FATE","DESTINO"),
+    crew:L("RECRUIT CREW","RECRUTAR"),attack:L("TARGET","ALVO"),hospital:L("HOSPITAL","HOSPITAL"),
+    visitjail:L("JAIL — VISITING","CADEIA — VISITA")};
+  return m[k]||(k||"").toUpperCase();
+}
+function focusEventNote(k){
+  const m={heist:L("pull a heist for cash","dar um golpe por grana"),drug:L("a drug deal","um corre de tráfico"),
+    hitman:L("order a hit on a rival","contratar a morte de um rival"),cop:L("bribe a crooked cop","subornar um policial"),
+    raid:L("police raid — risk of prison","batida — risco de prisão"),party:L("party night — luck & risk","noite de festa — sorte e risco"),
+    fate:L("a card from fate","uma carta do destino"),crew:L("recruit soldiers","recrutar soldados"),
+    attack:L("attack a target","atacar um alvo"),hospital:L("patch up your wounds","cuidar dos ferimentos"),
+    visitjail:L("just visiting","só de visita")};
+  return m[k]||"—";
+}
+function focusPeopleRow(ring,idx){
+  const here=S.players.filter(x=>x.alive&&x.ring===ring&&x.pos===idx);
+  const chips=here.map(x=>`<span class="patchip tok pat-${x.pattern||'solid'}" title="${x.name}"></span>`).join("");
+  return `<div class="fcRow"><span class="k">${L("WHO'S HERE","QUEM ESTÁ AQUI")}</span><span class="v fcPeople">${chips||"—"}</span></div>`;
+}
+function renderFocusCard(){
+  const host=document.getElementById("focusCard"); if(!host||!S||!S.players)return;
+  const p=S.players[S.cur]; if(!p){host.innerHTML="";return;}
+  const hereLbl=p.ai?L("IS HERE","ESTÁ AQUI"):L("YOU ARE HERE","VOCÊ ESTÁ AQUI");
+  // in prison — show a prison-status card instead
+  if(p.ring==="inner"){
+    const c=INNER[p.pos]||{ic:"#"};
+    host.innerHTML=`<div class="fcard">
+      <div class="fcHere">▲ ${p.name} — ${p.ai?L("IN PRISON","NA PRISÃO"):L("YOU'RE IN PRISON","VOCÊ ESTÁ PRESO")}</div>
+      <div class="fcTop"><div class="fcIcon">${c.ic||"#"}</div><div><div class="fcName">RIKERS</div><span class="fcType">${L("PRISON","PRISÃO")}</span></div></div>
+      <div class="fcRow"><span class="k">${L("SENTENCE","PENA")}</span><span class="v">${p.sentence}${L("y left","a restantes")}</span></div>
+      <div class="fcRow"><span class="k">${L("PACKS (protection)","MAÇOS (proteção)")}</span><span class="v">${p.packs}</span></div>
+      <div class="fcRow"><span class="k">${L("LIFE","VIDA")}</span><span class="v">${"♥".repeat(Math.max(0,3-p.hosp))||"—"}</span></div>
+      ${focusPeopleRow("inner",p.pos)}
+      <button class="fcFull" onclick="toggleFocus()">⤢ ${L("FULL BOARD","MAPA COMPLETO")}</button>
+      <div class="fcHint">${L("follows the turn · tap FULL BOARD for the whole map","segue o turno · toque em MAPA COMPLETO")}</div>
+    </div>`;
+    return;
+  }
+  const idx=p.pos, c=OUTER[idx]||{t:"—",ic:"?",k:""};
+  const ownable=(c.k==="street"||c.k==="biz"||c.k==="poker");
+  const unit=c.incomeBase||c.price||c.income||0;
+  const owner=S.players.find(x=>x.owns.has(idx));
+  let rows="";
+  if(ownable){
+    if(owner){
+      const isMe=owner.id===p.id, cnt=owner.owns.get(idx);
+      rows+=`<div class="fcRow"><span class="k">${L("OWNER","DONO")}</span><span class="v ${isMe?'':'fcOwned'}"><span class="patchip pat-${owner.pattern||'solid'}"></span>${owner.name}${owner.ai?" (Ghost)":""}${isMe?" ("+L("YOU","VOCÊ")+")":""}${cnt>1?" ×"+cnt:""}</span></div>`;
+      rows+=`<div class="fcRow"><span class="k">${L("VALUE","VALOR")}</span><span class="v">${fmtK(unit*cnt)}</span></div>`;
+      if(c.k==="street"){
+        const toll=Math.round(unit*cnt/2);
+        if(!isMe) rows+=`<div class="fcRow"><span class="k">${L("YOU PAY (toll)","VOCÊ PAGA (pedágio)")}</span><span class="v fcOwned">${fmtK(toll)} → ${owner.name}</span></div>`;
+        else rows+=`<div class="fcRow"><span class="k">${L("TOLL / LAP","PEDÁGIO / VOLTA")}</span><span class="v">${fmtK(toll)}</span></div>`;
+      } else {
+        rows+=`<div class="fcRow"><span class="k">${L("EARNS / YR","RENDE / ANO")}</span><span class="v">${fmtK(unit*cnt)}</span></div>`;
+        if(!isMe) rows+=`<div class="fcRow"><span class="k">${L("DEAL HERE","NEGOCIAR")}</span><span class="v" style="font-weight:normal;font-size:12px">${L("buy product · both profit","comprar produto · lucro pra ambos")}</span></div>`;
+      }
+    } else {
+      rows+=`<div class="fcRow"><span class="k">${L("OWNER","DONO")}</span><span class="v">— ${L("UNCLAIMED","SEM DONO")} —</span></div>`;
+      rows+=`<div class="fcRow"><span class="k">${L("PRICE","PREÇO")}</span><span class="v">${fmtK(unit)} · ${L("for sale","à venda")}</span></div>`;
+      rows+=`<div class="fcRow"><span class="k">${c.k==="street"?L("TOLL / LAP","PEDÁGIO"):L("EARNS / YR","RENDE / ANO")}</span><span class="v">${fmtK(c.k==="street"?Math.round(unit/2):unit)} ${L("once yours","se comprar")}</span></div>`;
+    }
+  } else {
+    rows+=`<div class="fcRow"><span class="k">${L("SPACE","ESPAÇO")}</span><span class="v" style="font-weight:normal;font-size:13px">${focusEventNote(c.k)}</span></div>`;
+  }
+  rows+=focusPeopleRow("outer",idx);
+  host.innerHTML=`<div class="fcard">
+    <div class="fcHere">▲ ${p.name} — ${hereLbl}</div>
+    <div class="fcTop"><div class="fcIcon">${c.ic||"?"}</div><div><div class="fcName">${LANG==='PT'?(CELL_PT[c.t]||c.t):c.t}</div><span class="fcType">${cellTypeLabel(c.k)}</span></div></div>
+    ${rows}
+    <button class="fcFull" onclick="toggleFocus()">⤢ ${L("FULL BOARD","MAPA COMPLETO")}</button>
+    <div class="fcHint">${L("follows your token · tap FULL BOARD for the whole map","segue sua peça · toque em MAPA COMPLETO")}</div>
+  </div>`;
 }
 /* ===== GLOBAL TEXT SIZE: scales all info panels + cards (board has its own zoom) ===== */
 let _uiz=1;
