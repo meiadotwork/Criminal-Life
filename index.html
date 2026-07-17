@@ -565,7 +565,7 @@
 <div id="setup">
 <div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
 <div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
-<div id="verSub" style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v14.3</div>
+<div id="verSub" style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v14.4</div>
 <div id="setupStage"></div>
 </div>
 
@@ -573,7 +573,7 @@
 
 <div id="screen" style="display:none">
   <div class="bar">
-    <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL <span id="verTag" style="font-size:10px;letter-spacing:1px;opacity:.55;font-weight:normal;text-shadow:none">v14.3</span></h1>
+    <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL <span id="verTag" style="font-size:10px;letter-spacing:1px;opacity:.55;font-weight:normal;text-shadow:none">v14.4</span></h1>
     <div id="turnBanner">TURN 1</div>
     <div class="topbtns">
       <button class="amber" onclick="openSupport()" title="support the developer">[ &#9829; ]</button>
@@ -619,7 +619,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v14.3";
+const APP_VERSION="v14.4";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -1152,9 +1152,9 @@ function newRound(){
 function recordNW(){
   if(!S||!S.players)return;
   S.players.forEach(p=>{
+    if(!p.alive)return;                          // dead: line just stops where it ended — no flat tail
     if(!p.nwHist)p.nwHist=[];
-    const v=p.alive?Math.max(0,netWorth(p)):(p.nwHist.length?p.nwHist[p.nwHist.length-1]:0);
-    p.nwHist.push(Math.round(v));
+    p.nwHist.push(Math.round(netWorth(p)));       // negatives allowed — a boss can be deep in the red
   });
 }
 /* distinct chart colours — this is the ONE place the terminal breaks its mono look,
@@ -1163,31 +1163,59 @@ const CHART_COLORS=["#33ff66","#ff5b4a","#4aa8ff","#ffcf3f","#c07cff","#ff8f3f",
 function chartColor(id){return CHART_COLORS[((id||0)%CHART_COLORS.length+CHART_COLORS.length)%CHART_COLORS.length];}
 /* build the net-worth-over-time line chart as a self-contained SVG (dark bg baked in
    so it reads the same in every display mode) — like a stock ticker, lines going up and down. */
-function nwChartSVG(players){
-  const W=620,H=250,padL=48,padR=16,padT=16,padB=28;
+function nwChartSVG(players,W){
+  W=Math.max(280,Math.round(W||620));const H=250,padL=52,padR=14,padT=16,padB=28;
   const plotW=W-padL-padR, plotH=H-padT-padB;
-  let maxLen=1, maxV=1;
-  players.forEach(p=>{const h=p.nwHist||[]; if(h.length>maxLen)maxLen=h.length; h.forEach(v=>{if(v>maxV)maxV=v;});});
+  let maxLen=1, maxV=0, minV=0;
+  players.forEach(p=>{const h=p.nwHist||[]; if(h.length>maxLen)maxLen=h.length; h.forEach(v=>{if(v>maxV)maxV=v;if(v<minV)minV=v;});});
+  if(maxV<=minV)maxV=minV+1;                                   // avoid divide-by-zero
+  const span=maxV-minV, pad=span*0.08||1; maxV+=pad; minV-=(minV<0?pad:0);
+  const range=maxV-minV;
   const nDiv=Math.max(1,maxLen-1);
   const xOf=i=>padL+(maxLen<=1?plotW/2:(i/nDiv)*plotW);
-  const yOf=v=>padT+plotH-(v/maxV)*plotH;
+  const yOf=v=>padT+plotH-((v-minV)/range)*plotH;
   let grid="",ylab="";const rows=4;
-  for(let g=0;g<=rows;g++){const yy=padT+plotH-(g/rows)*plotH;const val=Math.round((g/rows)*maxV);
+  for(let g=0;g<=rows;g++){const val=minV+(g/rows)*range;const yy=yOf(val);
     grid+=`<line x1="${padL}" y1="${yy.toFixed(1)}" x2="${W-padR}" y2="${yy.toFixed(1)}" stroke="#173a22" stroke-width="1"/>`;
-    ylab+=`<text x="${padL-6}" y="${(yy+3).toFixed(1)}" text-anchor="end" font-size="10" fill="#5fae74">${fmtK(val)}</text>`;}
+    ylab+=`<text x="${padL-6}" y="${(yy+3).toFixed(1)}" text-anchor="end" font-size="10" fill="#5fae74">${fmtK(Math.round(val))}</text>`;}
+  // zero baseline drawn brighter when the range crosses zero (below it = in the red)
+  let zeroLine="";
+  if(minV<0&&maxV>0){const zy=yOf(0);zeroLine=`<line x1="${padL}" y1="${zy.toFixed(1)}" x2="${W-padR}" y2="${zy.toFixed(1)}" stroke="#4a7d57" stroke-width="1" stroke-dasharray="3 3"/><text x="${W-padR-2}" y="${(zy-3).toFixed(1)}" text-anchor="end" font-size="9" fill="#4a7d57">$0</text>`;}
   let xlab=`<text x="${padL}" y="${H-8}" font-size="10" fill="#5fae74">R1</text>`;
   if(maxLen>1)xlab+=`<text x="${W-padR}" y="${H-8}" text-anchor="end" font-size="10" fill="#5fae74">R${maxLen}</text>`;
   let lines="";
   players.forEach(p=>{const h=p.nwHist||[];const col=chartColor(p.id);if(!h.length)return;
+    const dead=!p.alive;
     if(h.length===1){lines+=`<circle cx="${xOf(0).toFixed(1)}" cy="${yOf(h[0]).toFixed(1)}" r="3" fill="${col}"/>`;return;}
     const pts=h.map((v,i)=>`${xOf(i).toFixed(1)},${yOf(v).toFixed(1)}`).join(" ");
-    lines+=`<polyline points="${pts}" fill="none" stroke="${col}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
-    const li=h.length-1;lines+=`<circle cx="${xOf(li).toFixed(1)}" cy="${yOf(h[li]).toFixed(1)}" r="2.6" fill="${col}"/>`;});
-  return `<svg class="nwchart" viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block" xmlns="http://www.w3.org/2000/svg">
+    lines+=`<polyline points="${pts}" fill="none" stroke="${col}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"${dead?' stroke-opacity="0.85"':''}/>`;
+    const li=h.length-1;
+    // dead bosses get a hollow ✕-style end marker so you can see where their line stopped
+    if(dead){lines+=`<circle cx="${xOf(li).toFixed(1)}" cy="${yOf(h[li]).toFixed(1)}" r="3.4" fill="#060a07" stroke="${col}" stroke-width="1.6"/>`;}
+    else{lines+=`<circle cx="${xOf(li).toFixed(1)}" cy="${yOf(h[li]).toFixed(1)}" r="2.6" fill="${col}"/>`;}});
+  return `<svg class="nwchart" viewBox="0 0 ${W} ${H}" style="width:${W}px;max-width:none;height:auto;display:block" xmlns="http://www.w3.org/2000/svg">
     <rect x="0" y="0" width="${W}" height="${H}" fill="#060a07"/>
     <rect x="${padL}" y="${padT}" width="${plotW}" height="${plotH}" fill="#08110b" stroke="#173a22"/>
-    ${grid}${ylab}${xlab}${lines}
+    ${grid}${zeroLine}${ylab}${xlab}${lines}
   </svg>`;
+}
+/* horizontal zoom + side-scroll for the net-worth chart. zoom 1 = fit the panel;
+   above that the SVG grows wider than its scroll box so you can drag sideways. */
+let _chartData=[], _chartZoom=1;
+function renderChart(){
+  const wrap=document.getElementById("nwChartWrap"); if(!wrap)return;
+  const cw=Math.max(280,wrap.clientWidth||600);
+  const keepLeft=wrap.scrollLeft, prevInner=wrap.firstChild?wrap.firstChild.getBoundingClientRect().width:cw;
+  wrap.innerHTML=nwChartSVG(_chartData, cw*_chartZoom);
+  // keep the same spot centred-ish when zooming
+  const newInner=wrap.firstChild?wrap.firstChild.getBoundingClientRect().width:cw;
+  if(prevInner>0)wrap.scrollLeft=keepLeft*(newInner/prevInner);
+  const zb=document.getElementById("chartZoomBtn"); if(zb)zb.textContent=Math.round(_chartZoom*100)+"%";
+}
+function chartZoom(d){
+  if(d===0){_chartZoom=1;}
+  else{_chartZoom=Math.max(1,Math.min(5,+(_chartZoom+d*0.5).toFixed(2)));}
+  renderChart();
 }
 /* PAUSE → standings: freezes the game, shows the chart + a tappable leaderboard.
    tapping a boss opens their full record (with a BACK button back to here). */
@@ -1219,12 +1247,15 @@ function openPause(){
       <div class="cvsub">${L("TURN","TURNO")} ${S.turn} · ${L("TAP A BOSS FOR THEIR RECORD","TOQUE NUM CHEFE PRA VER A FICHA")}</div>
     </div>
     <div class="cvh" style="margin-top:2px">${L("NET WORTH OVER TIME","PATRIMÔNIO AO LONGO DO TEMPO")}</div>
-    ${anyHist?nwChartSVG(ordered):`<div class="cvdim" style="padding:14px 0;text-align:center">${L("no history yet — play a round","sem histórico ainda — jogue uma rodada")}</div>`}
+    ${anyHist?`<div style="display:flex;justify-content:flex-end;gap:5px;margin:2px 0 4px"><button class="tiny" onclick="chartZoom(-1)">−</button><button class="tiny" id="chartZoomBtn" onclick="chartZoom(0)" title="reset zoom">100%</button><button class="tiny" onclick="chartZoom(1)">+</button></div>
+    <div id="nwChartWrap" style="overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;border:1px solid #173a22"></div>
+    <div class="cvdim" style="font-size:10px;text-align:center;margin-top:3px">${L("+ to zoom · drag / swipe sideways to scroll","+ para zoom · arraste pro lado pra rolar")}</div>`:`<div class="cvdim" style="padding:14px 0;text-align:center">${L("no history yet — play a round","sem histórico ainda — jogue uma rodada")}</div>`}
     <div class="cvh" style="margin-top:4px">${L("LEADERBOARD","CLASSIFICAÇÃO")}</div>
     <div>${rows}</div>
-    <div class="go"><button class="amber" onclick="closeModal()">${L("[ ▶ RESUME ]","[ ▶ CONTINUAR ]")}</button></div>
+    <div class="go"><button class="amber" onclick="closeModal()">${S.over?L("[ ▸ CLOSE ]","[ ▸ FECHAR ]"):L("[ ▶ RESUME ]","[ ▶ CONTINUAR ]")}</button></div>
   </div>`;
   openModal();
+  if(anyHist){ _chartData=ordered; _chartZoom=1; setTimeout(renderChart,30); }
 }
 function log(m,cls=""){const d=document.createElement("div");d.className="l "+cls;d.textContent="• "+m;
   const box=(S.roundEl||document.getElementById("log"));
@@ -2835,7 +2866,7 @@ function showRetire(p){
     <div class="sub" style="text-align:center">${fmtK(netWorth(p))} ${L('net worth at <b>','de patrim\u00f4nio aos <b>')}${p.age}</b> ${L("years old. Nobody retires from this life. ","anos. Ningu\u00e9m se aposenta dessa vida. ")}${p.name} ${L("just did — villa, new name, clean paper. The city keeps fighting over what's left.","acabou de conseguir — mans\u00e3o, nome novo, papel limpo. A cidade continua brigando pelo que sobrou.")}</div>
     <div class="out">${L('Age ','Idade ')}${p.age} · ${L('Net worth ','Patrim\u00f4nio ')}${fmtK(netWorth(p))} · ${p.owns.size} ${L('turf','\u00e1reas')} · ${p.crew} ${L('soldiers','soldados')} · ${empireStats(p).workers} ${L('workers','func.')} · ${L('started with ','come\u00e7ou com ')}${fmtK(p.startCash||0)}</div>
     <div class="out">${(()=>{const oc=oppCounts(p);return L("Outlasted ","Superou ")+oc.ai+L(" AI"," IA")+(oc.hum?L(" and "," e ")+oc.hum+L(" human rival"," rival humano")+(oc.hum>1?"s":""):"")+(S.diff?" \u00b7 "+S.diff:"")+".";})()}</div>
-    <div class="go"><button class="amber" onclick="openSupport()">${L('[ ♥ TIP THE DEV ]','[ ♥ APOIAR ]')}</button><button onclick="location.reload()">${L('[ NEW GAME ]','[ NOVO JOGO ]')}</button></div>`;
+    <div class="go"><button onclick="openPause()">${L('[ ⇑ SEE CHART ]','[ ⇑ VER GRÁFICO ]')}</button><button class="amber" onclick="openSupport()">${L('[ ♥ TIP THE DEV ]','[ ♥ APOIAR ]')}</button><button onclick="location.reload()">${L('[ NEW GAME ]','[ NOVO JOGO ]')}</button></div>`;
   openModal();
 }
 function showGameOver(winner){
@@ -2849,7 +2880,7 @@ function showGameOver(winner){
     <div class="sub" style="text-align:center">${w?(L("Survived to <b>","Sobreviveu at\u00e9 os <b>")+w.age+L("</b> years old — started at ","</b> anos — come\u00e7ou aos ")+(w.startAge||w.age)+L(" and outlived them all, starting with "," e enterrou todos, come\u00e7ando com ")+fmtK(w.startCash||0)+L(". The city is theirs.",". A cidade \u00e9 dele.")):L("Everyone's dead. The streets win.","Todos mortos. As ruas vencem.")}</div>
     <div class="out">${w?L("Age ","Idade ")+w.age+L(" · Net worth "," · Patrim\u00f4nio ")+fmtK(netWorth(w))+L(" · "," · ")+w.owns.size+L(" turf · "," \u00e1reas · ")+soldierIcons(w.color,w.crew)+" · "+empireStats(w).workers+L(" workers"," func."):"—"}</div>
     <div class="out">${w?(()=>{const oc=oppCounts(w);return L("Outlasted ","Superou ")+oc.ai+L(" AI"," IA")+(oc.hum?L(" and "," e ")+oc.hum+L(" human rival"," rival humano")+(oc.hum>1?"s":""):"")+(S.diff?" · "+S.diff:"")+".";})():""}</div>
-    <div class="go"><button class="amber" onclick="openSupport()">${L('[ ♥ TIP THE DEV ]','[ ♥ APOIAR ]')}</button><button onclick="location.reload()">${L('[ NEW GAME ]','[ NOVO JOGO ]')}</button></div>`;
+    <div class="go"><button onclick="openPause()">${L('[ ⇑ SEE CHART ]','[ ⇑ VER GRÁFICO ]')}</button><button class="amber" onclick="openSupport()">${L('[ ♥ TIP THE DEV ]','[ ♥ APOIAR ]')}</button><button onclick="location.reload()">${L('[ NEW GAME ]','[ NOVO JOGO ]')}</button></div>`;
   openModal();
 }
 
