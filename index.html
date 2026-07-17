@@ -565,7 +565,7 @@
 <div id="setup">
 <div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
 <div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
-<div id="verSub" style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v14.0</div>
+<div id="verSub" style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v14.1</div>
 <div id="setupStage"></div>
 </div>
 
@@ -573,7 +573,7 @@
 
 <div id="screen" style="display:none">
   <div class="bar">
-    <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL <span id="verTag" style="font-size:10px;letter-spacing:1px;opacity:.55;font-weight:normal;text-shadow:none">v14.0</span></h1>
+    <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL <span id="verTag" style="font-size:10px;letter-spacing:1px;opacity:.55;font-weight:normal;text-shadow:none">v14.1</span></h1>
     <div id="turnBanner">TURN 1</div>
     <div class="topbtns">
       <button class="amber" onclick="openSupport()" title="support the developer">[ &#9829; ]</button>
@@ -618,7 +618,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v14.0";
+const APP_VERSION="v14.1";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -1508,14 +1508,26 @@ function openSettings(){
 }
 /* ===== SUPPORT / TIP THE DEVELOPER ===== */
 const SUPPORT_URL="https://meiadotwork.itch.io/criminal-terminal/donate";
-function supportGo(){ try{ window.open(SUPPORT_URL,"_blank","noopener"); }catch(e){ location.href=SUPPORT_URL; } }
+function supportGo(){
+  try{ if(typeof saveGame==="function") saveGame(); }catch(e){}   // protect progress before leaving
+  const url=SUPPORT_URL, win=(typeof window!=="undefined");
+  try{
+    // an anchor with target=_blank opens the donation in EXTERNAL Safari and keeps the game
+    // running in the background (important for Add-to-Home-Screen app mode, which has no tabs)
+    const a=document.createElement("a");
+    a.href=url; a.target="_blank"; a.rel="noopener noreferrer";
+    document.body.appendChild(a); a.click(); a.remove();
+  }catch(e){
+    try{ window.open(url,"_blank","noopener"); }catch(_){ /* last resort: don't nuke the game */ }
+  }
+}
 function openSupport(){
   PAUSED=true;   // freeze the game while the tip prompt is up (closeModal resumes)
   const el=document.getElementById("cardEl"); if(!el)return; el.dataset.deck="";
   el.innerHTML=`<div class="lbl">${L("SUPPORT","APOIAR")}</div>
     <div class="art">$$$</div>
     <div class="ttl">${L("Enjoying CRIMINAL TERMINAL?","Curtindo o CRIMINAL TERMINAL?")}</div>
-    <div class="bd">${L("This game is free and always will be. If it gave you a good time, a small tip keeps new cities, cards and features coming. Opens my itch.io page in a new tab. Thank you.","Este jogo é grátis e sempre será. Se te rendeu bons momentos, uma pequena contribuição mantém novas cidades, cartas e recursos chegando. Abre minha página do itch.io em uma nova aba. Obrigado.")}</div>
+    <div class="bd">${L("This game is free and always will be. If it gave you a good time, a small tip keeps new cities, cards and features coming. It opens in a new tab and your game is saved, so you can come right back. Thank you.","Este jogo é grátis e sempre será. Se te rendeu bons momentos, uma pequena contribuição mantém novas cidades, cartas e recursos chegando. Abre em uma nova aba e seu jogo fica salvo, então você pode voltar na hora. Obrigado.")}</div>
     <div class="go" style="flex-direction:column">
       <button class="amber" onclick="supportGo()">${L("[ ♥ TIP THE DEV ]","[ ♥ APOIAR O DEV ]")}</button>
       <button onclick="closeModal()">${L("[ MAYBE LATER ]","[ TALVEZ DEPOIS ]")}</button>
