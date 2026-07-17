@@ -565,7 +565,7 @@
 <div id="setup">
 <div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
 <div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
-<div id="verSub" style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v13.9</div>
+<div id="verSub" style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v14.0</div>
 <div id="setupStage"></div>
 </div>
 
@@ -573,7 +573,7 @@
 
 <div id="screen" style="display:none">
   <div class="bar">
-    <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL <span id="verTag" style="font-size:10px;letter-spacing:1px;opacity:.55;font-weight:normal;text-shadow:none">v13.9</span></h1>
+    <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL <span id="verTag" style="font-size:10px;letter-spacing:1px;opacity:.55;font-weight:normal;text-shadow:none">v14.0</span></h1>
     <div id="turnBanner">TURN 1</div>
     <div class="topbtns">
       <button class="amber" onclick="openSupport()" title="support the developer">[ &#9829; ]</button>
@@ -618,7 +618,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v13.9";
+const APP_VERSION="v14.0";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -769,6 +769,11 @@ function renderSetupStart(){
      <div class="cfgline">${L('SAVED SESSION FOUND — turn','SESS\u00c3O SALVA ENCONTRADA — turno')} ${sv.turn} · ${sv.players.filter(p=>p.alive).length} ${L('of','de')} ${sv.players.length} ${L('still breathing','ainda respirando')}</div>
      <button class="cfggo" onclick="resumeGame()">${L('[ CONTINUE SESSION » ]','[ CONTINUAR SESS\u00c3O » ]')}</button>
    </div>`:''}
+   <div class="dosconfig" style="margin-bottom:16px">
+     <div class="cfgline">C:\\> CRIMINAL_TERMINAL.EXE /LOADCODE</div>
+     <div class="cfgline" style="opacity:.7">${L('Have a SAVE CODE from another device? Load it here.','Tem um CÓDIGO DE JOGO de outro aparelho? Carregue aqui.')}</div>
+     <button class="cfggo" onclick="openLoadCode()">${L('[ LOAD SAVE CODE ]','[ CARREGAR CÓDIGO ]')}</button>
+   </div>
    <div class="dosconfig">
      <div class="cfgline">C:\\> CRIMINAL_TERMINAL.EXE /NEWGAME</div>
      <div class="cfgline" id="playCount" style="opacity:.7">${PLAYCOUNT!=null?(L("CRIMINALS SERVED WORLDWIDE: ","CRIMINOSOS ATENDIDOS NO MUNDO: ")+PLAYCOUNT):L("CONNECTING TO CRIME NETWORK...","CONECTANDO \u00c0 REDE DO CRIME...")}</div>
@@ -885,10 +890,11 @@ function snapshot(){
 function saveGame(){ if(!S||S.over)return; try{localStorage.setItem(SAVE_KEY,JSON.stringify(snapshot()));}catch(e){} }
 function clearSave(){ try{localStorage.removeItem(SAVE_KEY);}catch(e){} }
 function loadSave(){ try{const s=JSON.parse(localStorage.getItem(SAVE_KEY)); return (s&&s.players&&s.players.length)?s:null;}catch(e){return null;} }
-function resumeGame(){
-  const sv=loadSave(); if(!sv)return;
-  S={turn:sv.turn,cur:sv.cur,n:sv.n,rolled:false,over:false,ai:sv.ai,roundEvents:[],baseDice:({1:6,2:8,3:10}[sv.baseDice]||sv.baseDice||6),diff:sv.diff,followAnim:true};
-  S.players=sv.players.map((sp,i)=>{const pl=newPlayer(i,sp.name,sp.pattern);Object.assign(pl,sp);pl.owns=new Map(sp.owns);return pl;});
+function loadFromSnapshot(sv,note){
+  if(!sv||!sv.players||!sv.players.length) return false;
+  S={turn:sv.turn||1,cur:sv.cur||0,n:sv.n||sv.players.length,rolled:false,over:false,ai:sv.ai,roundEvents:[],baseDice:({1:6,2:8,3:10}[sv.baseDice]||sv.baseDice||6),diff:sv.diff,followAnim:true};
+  S.players=sv.players.map((sp,i)=>{const pl=newPlayer(i,sp.name,sp.pattern);Object.assign(pl,sp);pl.owns=new Map(sp.owns||[]);pl.auto=false;return pl;});
+  if(S.cur>=S.players.length)S.cur=0;
   document.getElementById("setup").style.display="none";
   document.getElementById("screen").style.display="flex";
   buildBoardGrid();
@@ -896,8 +902,50 @@ function resumeGame(){
   [60,300,700,1400].forEach(t=>setTimeout(fitBoard,t));
   if(document.fonts&&document.fonts.ready){document.fonts.ready.then(()=>setTimeout(fitBoard,40));}
   newRound();
-  log(L("SESSION RESTORED — turn ","SESSÃO RESTAURADA — turno ")+S.turn+". "+S.players[S.cur].name+L(" is up."," é a vez."),"sys");
-  if(S.players[S.cur].ai) setTimeout(()=>rollDiceAI(),aiDelay());
+  log(note||(L("SESSION RESTORED — turn ","SESSÃO RESTAURADA — turno ")+S.turn+". "+S.players[S.cur].name+L(" is up."," é a vez.")),"sys");
+  if(S.players[S.cur].ai&&!S.over) setTimeout(()=>rollDiceAI(),aiDelay());
+  try{saveGame();}catch(e){}
+  return true;
+}
+function resumeGame(){ const sv=loadSave(); if(sv) loadFromSnapshot(sv); }
+/* ===== SAVE CODE: a portable save that works even where the browser blocks localStorage (itch iframe) ===== */
+function encodeSaveCode(sv){ try{ return btoa(unescape(encodeURIComponent(JSON.stringify(sv)))); }catch(e){ return ""; } }
+function decodeSaveCode(code){ try{ const o=JSON.parse(decodeURIComponent(escape(atob((code||"").replace(/\s+/g,""))))); return (o&&o.players&&o.players.length)?o:null; }catch(e){ return null; } }
+function openSaveCode(){
+  if(!S||!S.players){ return; }
+  const code=encodeSaveCode(snapshot());
+  const el=document.getElementById("cardEl"); if(!el)return; el.dataset.deck="";
+  el.innerHTML=`<div class="lbl">${L("SAVE CODE","CÓDIGO DE JOGO")}</div>
+    <div class="bd" style="font-size:14px">${L("Your game as a code. Copy it and keep it somewhere — paste it on the START screen (any device) to continue. Works even where auto-save is blocked.","Seu jogo como um código. Copie e guarde — cole na tela INICIAL (qualquer aparelho) para continuar. Funciona até onde o salvamento automático é bloqueado.")}</div>
+    <textarea id="saveCodeBox" readonly style="width:100%;height:120px;background:#000;color:var(--phos);border:1px solid var(--phos);font-family:inherit;font-size:11px;padding:6px;resize:none;-webkit-user-select:all;user-select:all">${code}</textarea>
+    <div class="go"><button class="amber" onclick="copySaveCode()">${L("[ COPY ]","[ COPIAR ]")}</button><button onclick="closeModal()">${L("[ CLOSE ]","[ FECHAR ]")}</button></div>`;
+  openModal();
+  setTimeout(()=>{const t=document.getElementById("saveCodeBox"); if(t){t.focus();t.select();}},60);
+}
+function copySaveCode(){
+  const t=document.getElementById("saveCodeBox"); if(!t)return; t.focus(); t.select(); t.setSelectionRange&&t.setSelectionRange(0,t.value.length);
+  let ok=false;
+  try{ if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(t.value); ok=true; } }catch(e){}
+  if(!ok){ try{ ok=document.execCommand("copy"); }catch(e){} }
+  const b=document.querySelector('#cardEl .go button.amber'); if(b)b.textContent=ok?L("[ COPIED ✓ ]","[ COPIADO ✓ ]"):L("[ SELECT ALL & COPY ]","[ SELECIONE TUDO E COPIE ]");
+}
+function openLoadCode(){
+  const el=document.getElementById("cardEl"); if(!el)return; el.dataset.deck="";
+  el.innerHTML=`<div class="lbl">${L("LOAD CODE","CARREGAR CÓDIGO")}</div>
+    <div class="bd" style="font-size:14px">${L("Paste a save code below to continue that game. This replaces any game in progress.","Cole um código de jogo abaixo para continuar. Isso substitui qualquer jogo em andamento.")}</div>
+    <textarea id="loadCodeBox" placeholder="${L("paste your code here","cole seu código aqui")}" style="width:100%;height:120px;background:#000;color:var(--phos);border:1px solid var(--phos);font-family:inherit;font-size:11px;padding:6px;resize:none"></textarea>
+    <div id="loadCodeErr" style="color:var(--red);min-height:16px;font-size:12px"></div>
+    <div class="go"><button class="amber" onclick="doLoadCode()">${L("[ LOAD GAME ]","[ CARREGAR ]")}</button><button onclick="closeModal()">${L("[ CANCEL ]","[ CANCELAR ]")}</button></div>`;
+  openModal();
+  setTimeout(()=>{const t=document.getElementById("loadCodeBox"); if(t)t.focus();},60);
+}
+function doLoadCode(){
+  const t=document.getElementById("loadCodeBox"); if(!t)return;
+  const sv=decodeSaveCode(t.value);
+  if(!sv){ const e=document.getElementById("loadCodeErr"); if(e)e.textContent=L("Invalid or incomplete code — make sure you pasted all of it.","Código inválido ou incompleto — confira se colou tudo."); return; }
+  if(typeof PAUSED!=="undefined")PAUSED=false;
+  closeModal();
+  loadFromSnapshot(sv, L("GAME LOADED FROM CODE — turn ","JOGO CARREGADO DO CÓDIGO — turno ")+(sv.turn||1)+".");
 }
 function askReset(){
   const el=document.getElementById("cardEl");
@@ -1451,6 +1499,7 @@ function openSettings(){
     ${row(L("Police volume","Volume da polícia"),`<button class="tiny${_polVol==='L'?' amber':''}" onclick="setPoliceVol('L')">L</button><button class="tiny${_polVol==='M'?' amber':''}" onclick="setPoliceVol('M')">M</button><button class="tiny${_polVol==='H'?' amber':''}" onclick="setPoliceVol('H')">H</button>`)}
     ${row(L("AI cards","Cartas da IA"),`<button class="${AI_AUTOCARDS?'amber':''}" onclick="setAICards('auto')">${L('[ AUTO ]','[ AUTO ]')}</button><button class="${!AI_AUTOCARDS?'amber':''}" onclick="setAICards('manual')">${L('[ TAP ]','[ TOQUE ]')}</button>`)}
     ${row(L("AI speed","Velocidade IA"),AI_SPEED_ORDER.map(s=>`<button class="tiny${AI_SPEED===s?' amber':''}" onclick="setAISpeed('${s}')">${({SLOW:L('SLOW','LENTO'),MEDIUM:L('MEDIUM','MÉDIO'),FAST:L('FAST','RÁPIDO')})[s]}</button>`).join(""))}
+    ${row(L("Save code","Código de jogo"),`<button onclick="openSaveCode()">${L("[ GET ]","[ OBTER ]")}</button><button onclick="openLoadCode()">${L("[ LOAD ]","[ CARREGAR ]")}</button>`)}
     ${row(L("Support the dev","Apoiar o dev"),`<button class="amber" onclick="openSupport()">${L("[ ♥ TIP ]","[ ♥ APOIAR ]")}</button>`)}
     ${row(L("New game (reset)","Novo jogo (reiniciar)"),`<button class="red" onclick="askReset()">${L("[ RESET ]","[ REINICIAR ]")}</button>`)}
     </div>
