@@ -176,7 +176,7 @@
   .sw{border:2px solid var(--phos-dim) !important;border-radius:0 !important;}
   .sw.sel{border-color:var(--phos) !important;}
   /* svg icons -> one color */
-  svg *{fill:var(--phos) !important;stroke:var(--phos) !important;}
+  svg:not(.nwchart) *{fill:var(--phos) !important;stroke:var(--phos) !important;}
 
   /* ---- blinking ---- */
   @keyframes dosblink{0%,49%{opacity:1}50%,100%{opacity:0}}
@@ -444,7 +444,7 @@
   body.colormode .die .dienum,body.colormode #die .dienum,body.colormode .die .dielbl{color:#000 !important;}
   body.colormode button:hover,body.colormode button:focus,body.colormode button:active{background:#000 !important;color:#fff !important;}
   body.colormode button:hover *,body.colormode button:focus *,body.colormode button:active *{color:#fff !important;}
-  body.colormode svg *{fill:#000 !important;stroke:#000 !important;}
+  body.colormode svg:not(.nwchart) *{fill:#000 !important;stroke:#000 !important;}
   /* inverted boxes: black bar, white text */
   body.colormode .lbl,body.colormode .card .lbl,body.colormode .panel h2,body.colormode #turnBanner,body.colormode .dosbar,body.colormode .card .status{background:#000 !important;}
   body.colormode .lbl,body.colormode .lbl *,body.colormode .card .lbl,body.colormode .card .lbl *,body.colormode .panel h2,body.colormode .panel h2 *,body.colormode #turnBanner,body.colormode #turnBanner *,body.colormode .dosbar,body.colormode .dosbar *,body.colormode .card .status,body.colormode .card .status *{color:#fff !important;}
@@ -508,7 +508,7 @@
   body.win95 #die,body.win95 .die{background:#fff !important;border:2px solid !important;border-color:#404040 #fff #fff #404040 !important;}
   body.win95 .pip{background:#000 !important;}
   body.win95 .die .dienum,body.win95 #die .dienum,body.win95 .die .dielbl{color:#000 !important;}
-  body.win95 svg *{fill:#000 !important;stroke:#000 !important;}
+  body.win95 svg:not(.nwchart) *{fill:#000 !important;stroke:#000 !important;}
   body.win95 #innerLabel{background:#c0c0c0 !important;}
   body.win95 #innerLabel,body.win95 .pfw{color:#000 !important;}
   body.win95 #prisonFence{border-color:#000 !important;}
@@ -565,7 +565,7 @@
 <div id="setup">
 <div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
 <div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
-<div id="verSub" style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v14.1</div>
+<div id="verSub" style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v14.2</div>
 <div id="setupStage"></div>
 </div>
 
@@ -573,10 +573,11 @@
 
 <div id="screen" style="display:none">
   <div class="bar">
-    <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL <span id="verTag" style="font-size:10px;letter-spacing:1px;opacity:.55;font-weight:normal;text-shadow:none">v14.1</span></h1>
+    <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL <span id="verTag" style="font-size:10px;letter-spacing:1px;opacity:.55;font-weight:normal;text-shadow:none">v14.2</span></h1>
     <div id="turnBanner">TURN 1</div>
     <div class="topbtns">
       <button class="amber" onclick="openSupport()" title="support the developer">[ &#9829; ]</button>
+      <button onclick="openPause()" title="pause & standings">[ PAUSE ]</button>
       <button id="settingsBtn" onclick="openSettings()" title="settings">[ MENU ]</button>
     </div>
   </div>
@@ -618,7 +619,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v14.1";
+const APP_VERSION="v14.2";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -737,7 +738,7 @@ let S=null;
 function newPlayer(i,name,pattern){return{id:i,name:name||("P"+(i+1)),color:"#33ff44",pattern:pattern||"solid",ring:"outer",pos:0,
   cash:100,crew:0,packs:0,alive:true,respawns:0,hosp:0,cleanLaps:0,
   inJail:false,sentence:0,owns:new Map(),skip:0,freeArrest:0,freeRaid:0,
-  crimes:[],network:[],stayCount:0,age:15,crimeOps:3,yearsServed:0,heat:0,dirty:0};}
+  crimes:[],network:[],stayCount:0,age:15,crimeOps:3,yearsServed:0,heat:0,dirty:0,nwHist:[]};}
 
 /* ===== GLOBAL PLAYER COUNTER: every person who starts a game, counted worldwide.
    Uses the free abacus hit-counter API; fails silently offline — the game never depends on it. ===== */
@@ -1130,6 +1131,86 @@ function newRound(){
   rd.innerHTML=`<b>${L("ROUND","RODADA")} ${S.turn}</b>`;
   box.insertBefore(rd,box.firstChild);
   S.roundEl=rd;
+  recordNW();
+}
+/* record every boss's net worth at the start of each round — feeds the stock-style chart on PAUSE.
+   dead players flatline at their last value so their line just stops climbing. */
+function recordNW(){
+  if(!S||!S.players)return;
+  S.players.forEach(p=>{
+    if(!p.nwHist)p.nwHist=[];
+    const v=p.alive?Math.max(0,netWorth(p)):(p.nwHist.length?p.nwHist[p.nwHist.length-1]:0);
+    p.nwHist.push(Math.round(v));
+  });
+}
+/* distinct chart colours — this is the ONE place the terminal breaks its mono look,
+   so each boss's line is easy to tell apart. Keyed by player id, up to 10 players. */
+const CHART_COLORS=["#33ff66","#ff5b4a","#4aa8ff","#ffcf3f","#c07cff","#ff8f3f","#3fe0d0","#ff6fb5","#a6e22e","#8fa0ff"];
+function chartColor(id){return CHART_COLORS[((id||0)%CHART_COLORS.length+CHART_COLORS.length)%CHART_COLORS.length];}
+/* build the net-worth-over-time line chart as a self-contained SVG (dark bg baked in
+   so it reads the same in every display mode) — like a stock ticker, lines going up and down. */
+function nwChartSVG(players){
+  const W=620,H=250,padL=48,padR=16,padT=16,padB=28;
+  const plotW=W-padL-padR, plotH=H-padT-padB;
+  let maxLen=1, maxV=1;
+  players.forEach(p=>{const h=p.nwHist||[]; if(h.length>maxLen)maxLen=h.length; h.forEach(v=>{if(v>maxV)maxV=v;});});
+  const nDiv=Math.max(1,maxLen-1);
+  const xOf=i=>padL+(maxLen<=1?plotW/2:(i/nDiv)*plotW);
+  const yOf=v=>padT+plotH-(v/maxV)*plotH;
+  let grid="",ylab="";const rows=4;
+  for(let g=0;g<=rows;g++){const yy=padT+plotH-(g/rows)*plotH;const val=Math.round((g/rows)*maxV);
+    grid+=`<line x1="${padL}" y1="${yy.toFixed(1)}" x2="${W-padR}" y2="${yy.toFixed(1)}" stroke="#173a22" stroke-width="1"/>`;
+    ylab+=`<text x="${padL-6}" y="${(yy+3).toFixed(1)}" text-anchor="end" font-size="10" fill="#5fae74">${fmtK(val)}</text>`;}
+  let xlab=`<text x="${padL}" y="${H-8}" font-size="10" fill="#5fae74">R1</text>`;
+  if(maxLen>1)xlab+=`<text x="${W-padR}" y="${H-8}" text-anchor="end" font-size="10" fill="#5fae74">R${maxLen}</text>`;
+  let lines="";
+  players.forEach(p=>{const h=p.nwHist||[];const col=chartColor(p.id);if(!h.length)return;
+    if(h.length===1){lines+=`<circle cx="${xOf(0).toFixed(1)}" cy="${yOf(h[0]).toFixed(1)}" r="3" fill="${col}"/>`;return;}
+    const pts=h.map((v,i)=>`${xOf(i).toFixed(1)},${yOf(v).toFixed(1)}`).join(" ");
+    lines+=`<polyline points="${pts}" fill="none" stroke="${col}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+    const li=h.length-1;lines+=`<circle cx="${xOf(li).toFixed(1)}" cy="${yOf(h[li]).toFixed(1)}" r="2.6" fill="${col}"/>`;});
+  return `<svg class="nwchart" viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block" xmlns="http://www.w3.org/2000/svg">
+    <rect x="0" y="0" width="${W}" height="${H}" fill="#060a07"/>
+    <rect x="${padL}" y="${padT}" width="${plotW}" height="${plotH}" fill="#08110b" stroke="#173a22"/>
+    ${grid}${ylab}${xlab}${lines}
+  </svg>`;
+}
+/* PAUSE → standings: freezes the game, shows the chart + a tappable leaderboard.
+   tapping a boss opens their full record (with a BACK button back to here). */
+function openPause(){
+  if(!S||!S.players||!S.players.length)return;
+  PAUSED=true;
+  try{if(typeof saveGame==="function")saveGame();}catch(e){}
+  const el=document.getElementById("cardEl");
+  const alive=S.players.filter(p=>p.alive).slice().sort((a,b)=>netWorth(b)-netWorth(a));
+  const aliveRank={};alive.forEach((p,i)=>aliveRank[p.id]=i+1);
+  const ordered=S.players.slice().sort((a,b)=>{if(a.alive!==b.alive)return a.alive?-1:1;return netWorth(b)-netWorth(a);});
+  const rows=ordered.map(p=>{
+    const col=chartColor(p.id);
+    const rk=p.alive?(aliveRank[p.id]===1?L("★","★"):"#"+aliveRank[p.id]):L("DEAD","MORTO");
+    const hp=p.alive?("♥".repeat(Math.max(0,3-p.hosp))):"†";
+    const tag=p.ai?` <span style="opacity:.5;font-size:10px">(Ghost)</span>`:"";
+    return `<div onclick="showProfile(${p.id},true)" style="display:flex;align-items:center;gap:9px;padding:8px 4px;border-bottom:1px solid var(--phos-dark);cursor:pointer">
+      <span style="width:13px;height:13px;flex:0 0 auto;background:${col};border:1px solid var(--phos)"></span>
+      <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.name}${tag}</span>
+      <span style="opacity:.7;font-size:11px;white-space:nowrap">${hp}</span>
+      <span style="font-weight:bold;min-width:56px;text-align:right;white-space:nowrap">${fmtK(netWorth(p))}</span>
+      <span style="opacity:.75;min-width:38px;text-align:right;white-space:nowrap">${rk}</span>
+      <span style="opacity:.45">›</span>
+    </div>`;}).join("");
+  const anyHist=S.players.some(p=>(p.nwHist||[]).length);
+  el.innerHTML=`<div class="cv">
+    <div class="cvhead">
+      <div class="cvtitle">‖ ${L("PAUSED — STANDINGS","PAUSADO — CLASSIFICAÇÃO")}</div>
+      <div class="cvsub">${L("TURN","TURNO")} ${S.turn} · ${L("TAP A BOSS FOR THEIR RECORD","TOQUE NUM CHEFE PRA VER A FICHA")}</div>
+    </div>
+    <div class="cvh" style="margin-top:2px">${L("NET WORTH OVER TIME","PATRIMÔNIO AO LONGO DO TEMPO")}</div>
+    ${anyHist?nwChartSVG(ordered):`<div class="cvdim" style="padding:14px 0;text-align:center">${L("no history yet — play a round","sem histórico ainda — jogue uma rodada")}</div>`}
+    <div class="cvh" style="margin-top:4px">${L("LEADERBOARD","CLASSIFICAÇÃO")}</div>
+    <div>${rows}</div>
+    <div class="go"><button class="amber" onclick="closeModal()">${L("[ ▶ RESUME ]","[ ▶ CONTINUAR ]")}</button></div>
+  </div>`;
+  openModal();
 }
 function log(m,cls=""){const d=document.createElement("div");d.className="l "+cls;d.textContent="• "+m;
   const box=(S.roundEl||document.getElementById("log"));
@@ -2822,7 +2903,7 @@ function recordNetwork(p,deck,c){
 }
 
 /* ===== PROFILE (crime record) ===== */
-function showProfile(id){
+function showProfile(id,fromPause){
   const p=S.players[id];const el=document.getElementById("cardEl");
   const list=p.crimes.filter(c=>typeof c==="object");
   const rebornCount=p.crimes.filter(c=>c==="(reborn)").length;
@@ -2868,7 +2949,7 @@ function showProfile(id){
       <div class="cvbox" style="grid-column:1/-1"><div class="cvh">${L("NETWORK","REDE")} · ${(p.network||[]).length} ${L("contact","contato")}${(p.network||[]).length===1?"":"s"}</div><div class="cvlist">${network}</div></div>
     </div>
     ${rebornCount>0?`<div class="cvnote cvdim">${L("reborn ","renasceu ")}${rebornCount}×${L(" — this cat's got lives"," — esse gato tem vidas")}</div>`:""}
-    <div class="go"><button onclick="closeModal()">[ CLOSE ]</button></div>
+    <div class="go">${fromPause?`<button onclick="openPause()">${L('[ ‹ BACK ]','[ ‹ VOLTAR ]')}</button>`:''}<button onclick="closeModal()">[ CLOSE ]</button></div>
   </div>`;
   openModal();
 }
