@@ -559,7 +559,7 @@
 <div id="setup">
 <div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
 <div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
-<div id="verSub" style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v13.6</div>
+<div id="verSub" style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v13.7</div>
 <div id="setupStage"></div>
 </div>
 
@@ -567,7 +567,7 @@
 
 <div id="screen" style="display:none">
   <div class="bar">
-    <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL <span id="verTag" style="font-size:10px;letter-spacing:1px;opacity:.55;font-weight:normal;text-shadow:none">v13.6</span></h1>
+    <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL <span id="verTag" style="font-size:10px;letter-spacing:1px;opacity:.55;font-weight:normal;text-shadow:none">v13.7</span></h1>
     <div id="turnBanner">TURN 1</div>
     <div class="topbtns">
       <button class="amber" onclick="openSupport()" title="support the developer">[ &#9829; ]</button>
@@ -612,7 +612,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v13.6";
+const APP_VERSION="v13.7";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -1254,7 +1254,7 @@ function openManual(){ window.speechSynthesis&&window.speechSynthesis.cancel(); 
   Toque no dado para rolar e andar — você resolve a casa onde CAIR. Antes de rolar você também pode apertar [ COMETER CRIME ] (3 chances por ano) para um assalto, morte encomendada ou tráfico aleatório — é uma ação GRATUITA, você ainda rola depois (mas prisão ou hospital encerram seu turno). O botão [ CONTRATAR ] funciona a qualquer momento no seu turno: guarda-costas, soldados de rua e funcionários. Tudo o que acontece aparece como uma carta.
 
   ${H("A RUA (anel externo)")}
-  Uma volta completa = UM ANO. Toda vez que passa pelo IN\u00cdCIO: voc\u00ea envelhece +1, suas 3 chances de crime renovam, paga o sal\u00e1rio dos soldados ($${SOLDIER_WAGE}K cada), os LAVADORES limpam o dinheiro SUJO que voc\u00ea ganhou naquele ano — um corte \u00fanico de 30% (s\u00f3 10% se voc\u00ea for DONO do neg\u00f3cio de lavagem). Dinheiro limpo nunca \u00e9 cobrado de novo; o caixa inicial e vendas de bens j\u00e1 s\u00e3o limpos. A cada 2 voltas limpas voc\u00ea tamb\u00e9m cura uma visita de hospital. Passar POR CIMA de uma propriedade sua coleta a renda \u2014 n\u00e3o precisa cair exatamente nela.
+  Uma volta completa = UM ANO. Toda vez que passa pelo IN\u00cdCIO: voc\u00ea envelhece +1, suas 3 chances de crime renovam, paga o sal\u00e1rio dos soldados ($${SOLDIER_WAGE}K cada), os LAVADORES limpam o dinheiro SUJO que voc\u00ea ganhou naquele ano — um corte \u00fanico de 30% (s\u00f3 10% se voc\u00ea for DONO do neg\u00f3cio de lavagem). Dinheiro limpo nunca \u00e9 cobrado de novo; o caixa inicial e vendas de bens j\u00e1 s\u00e3o limpos. Passar POR CIMA de uma propriedade sua coleta a renda \u2014 n\u00e3o precisa cair exatamente nela.
 
   ${H("AS CASAS")}
   \u25B8 ASSALTO / MATADOR / TR\u00c1FICO \u2014 uma carta de servi\u00e7o: pegue o dinheiro e sobreviva ao teste de pris\u00e3o (10% base + seu RISCO).<br>
@@ -1309,7 +1309,7 @@ function openManual(){ window.speechSynthesis&&window.speechSynthesis.cancel(); 
   Tap the die to roll and move — you resolve the space you LAND on. Before rolling you can also press [ COMMIT CRIME ] (3 chances per year) for a random heist, hit or drug run — it's a FREE action, you still roll afterwards (but an arrest or a trip to the hospital ends your turn). The [ HIRE ] button works any time on your turn: bodyguard soldiers, street soldiers, and business workers. Everything that happens to you shows up as a card.
 
   ${H("THE STREET (outer ring)")}
-  One full lap = ONE YEAR. Every time you pass START: you age +1, your 3 crime chances refill, you pay soldier wages ($${SOLDIER_WAGE}K each), the LAUNDERERS clean the DIRTY money you earned that year — a one-time 30% cut (only 10% if you OWN the money laundering business). Once cleaned, money is never charged again; your starting cash and asset sales are already clean. Every 2nd clean lap also heals one hospital visit. Passing OVER a property you own collects its income \u2014 no need to land on it exactly.
+  One full lap = ONE YEAR. Every time you pass START: you age +1, your 3 crime chances refill, you pay soldier wages ($${SOLDIER_WAGE}K each), the LAUNDERERS clean the DIRTY money you earned that year — a one-time 30% cut (only 10% if you OWN the money laundering business). Once cleaned, money is never charged again; your starting cash and asset sales are already clean. Passing OVER a property you own collects its income \u2014 no need to land on it exactly.
 
   ${H("THE SPACES")}
   \u25B8 HEIST / HITMAN / DRUG \u2014 a job card: take the money, then survive the arrest roll (10% base + your HEAT).<br>
@@ -1406,7 +1406,7 @@ function stepMove(p,left){
         else log(p.name+L(" launders "," lava ")+fmtK(base)+L(" of dirty money — the launderers take "," de dinheiro sujo — os lavadores levam ")+fmtK(laund)+" (30%).","warn");}
     }
     p.dirty=0;   // whatever you hold now is clean; the new year starts fresh
-    p.cleanLaps++;if(p.hosp>0&&p.cleanLaps%2===0){p.hosp--;log(p.name+L(" recovers — 1 hospital visit cleared."," se recupera — 1 visita de hospital limpa."),"good");}
+    p.cleanLaps++;   // life does NOT heal on its own — you must pay to patch up at the HOSPITAL
     if(p.age>=65&&netWorth(p)>=10000){showRetire(p);return;}}   // RETIRE UNTOUCHABLE: $10M net worth + age 65
   render();
   scrollToToken();
