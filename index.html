@@ -565,7 +565,7 @@
 <div id="setup">
 <div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
 <div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
-<div id="verSub" style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v13.8</div>
+<div id="verSub" style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v13.9</div>
 <div id="setupStage"></div>
 </div>
 
@@ -573,7 +573,7 @@
 
 <div id="screen" style="display:none">
   <div class="bar">
-    <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL <span id="verTag" style="font-size:10px;letter-spacing:1px;opacity:.55;font-weight:normal;text-shadow:none">v13.8</span></h1>
+    <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL <span id="verTag" style="font-size:10px;letter-spacing:1px;opacity:.55;font-weight:normal;text-shadow:none">v13.9</span></h1>
     <div id="turnBanner">TURN 1</div>
     <div class="topbtns">
       <button class="amber" onclick="openSupport()" title="support the developer">[ &#9829; ]</button>
@@ -618,7 +618,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v13.8";
+const APP_VERSION="v13.9";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -3134,10 +3134,17 @@ const CODES={"666": {"tag": "6 6 6  ·  D E V I L", "art": ["    ░▓▓▓░
     nl('<button class="doskey" style="display:inline-block;width:auto;padding:12px 22px;margin-right:10px" onclick="window._pickLang(\'EN\')">[ ENGLISH ]</button> <button class="doskey" style="display:inline-block;width:auto;padding:12px 22px" onclick="window._pickLang(\'PT\')">[ PORTUGU\u00CAS ]</button>');
     phase="lang"; keypad(false);
   }
+  /* itch runs the game in a 3rd-party iframe; Safari blocks its localStorage by default.
+     On the first tap we ask the browser for storage access so saves can persist. */
+  let _askedStorage=false;
+  function requestStorage(){ if(_askedStorage)return; _askedStorage=true;
+    try{ if(document.requestStorageAccess && document.hasStorageAccess){
+      document.hasStorageAccess().then(function(has){ if(!has){ try{ document.requestStorageAccess().then(function(){},function(){}); }catch(_){} } },function(){});
+    } }catch(_){} }
   window.dosBoot=function(){
     gate.classList.remove("hidden");
     langScreen();
-    gate.addEventListener("click",(e)=>{ if(phase==="ready" && !e.target.closest("#doskeys")) finish(); });
+    gate.addEventListener("click",(e)=>{ requestStorage(); if(phase==="ready" && !e.target.closest("#doskeys")) finish(); });
     document.addEventListener("keydown",(e)=>{
       if(phase==="login"){ if(/^[0-9]$/.test(e.key)) press(e.key); else if(e.key==="Enter") press("OK"); else if(e.key==="Backspace") press("CLR"); }
       else if(phase==="ready"){ finish(); }
