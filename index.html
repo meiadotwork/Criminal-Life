@@ -565,7 +565,7 @@
 <div id="setup">
 <div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
 <div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
-<div id="verSub" style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v14.4</div>
+<div id="verSub" style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v14.5</div>
 <div id="setupStage"></div>
 </div>
 
@@ -573,7 +573,7 @@
 
 <div id="screen" style="display:none">
   <div class="bar">
-    <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL <span id="verTag" style="font-size:10px;letter-spacing:1px;opacity:.55;font-weight:normal;text-shadow:none">v14.4</span></h1>
+    <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL <span id="verTag" style="font-size:10px;letter-spacing:1px;opacity:.55;font-weight:normal;text-shadow:none">v14.5</span></h1>
     <div id="turnBanner">TURN 1</div>
     <div class="topbtns">
       <button class="amber" onclick="openSupport()" title="support the developer">[ &#9829; ]</button>
@@ -619,7 +619,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v14.4";
+const APP_VERSION="v14.5";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -1190,8 +1190,9 @@ function nwChartSVG(players,W){
     const pts=h.map((v,i)=>`${xOf(i).toFixed(1)},${yOf(v).toFixed(1)}`).join(" ");
     lines+=`<polyline points="${pts}" fill="none" stroke="${col}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"${dead?' stroke-opacity="0.85"':''}/>`;
     const li=h.length-1;
-    // dead bosses get a hollow ✕-style end marker so you can see where their line stopped
-    if(dead){lines+=`<circle cx="${xOf(li).toFixed(1)}" cy="${yOf(h[li]).toFixed(1)}" r="3.4" fill="#060a07" stroke="${col}" stroke-width="1.6"/>`;}
+    // dead bosses get an X where their line stopped (two diagonal strokes — a real X, not a cross)
+    if(dead){const cx=xOf(li),cy=yOf(h[li]),s=4.2;
+      lines+=`<line x1="${(cx-s).toFixed(1)}" y1="${(cy-s).toFixed(1)}" x2="${(cx+s).toFixed(1)}" y2="${(cy+s).toFixed(1)}" stroke="${col}" stroke-width="2.2" stroke-linecap="round"/><line x1="${(cx-s).toFixed(1)}" y1="${(cy+s).toFixed(1)}" x2="${(cx+s).toFixed(1)}" y2="${(cy-s).toFixed(1)}" stroke="${col}" stroke-width="2.2" stroke-linecap="round"/>`;}
     else{lines+=`<circle cx="${xOf(li).toFixed(1)}" cy="${yOf(h[li]).toFixed(1)}" r="2.6" fill="${col}"/>`;}});
   return `<svg class="nwchart" viewBox="0 0 ${W} ${H}" style="width:${W}px;max-width:none;height:auto;display:block" xmlns="http://www.w3.org/2000/svg">
     <rect x="0" y="0" width="${W}" height="${H}" fill="#060a07"/>
@@ -1230,7 +1231,7 @@ function openPause(){
   const rows=ordered.map(p=>{
     const col=chartColor(p.id);
     const rk=p.alive?(aliveRank[p.id]===1?L("★","★"):"#"+aliveRank[p.id]):L("DEAD","MORTO");
-    const hp=p.alive?("♥".repeat(Math.max(0,3-p.hosp))):"†";
+    const hp=p.alive?("♥".repeat(Math.max(0,3-p.hosp))):"X";
     const tag=p.ai?` <span style="opacity:.5;font-size:10px">(Ghost)</span>`:"";
     return `<div onclick="showProfile(${p.id},true)" style="display:flex;align-items:center;gap:9px;padding:8px 4px;border-bottom:1px solid var(--phos-dark);cursor:pointer">
       <span style="width:13px;height:13px;flex:0 0 auto;background:${col};border:1px solid var(--phos)"></span>
