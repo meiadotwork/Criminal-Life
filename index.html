@@ -565,7 +565,7 @@
 <div id="setup">
 <div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
 <div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
-<div id="verSub" style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v14.2</div>
+<div id="verSub" style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v14.3</div>
 <div id="setupStage"></div>
 </div>
 
@@ -573,7 +573,7 @@
 
 <div id="screen" style="display:none">
   <div class="bar">
-    <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL <span id="verTag" style="font-size:10px;letter-spacing:1px;opacity:.55;font-weight:normal;text-shadow:none">v14.2</span></h1>
+    <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL <span id="verTag" style="font-size:10px;letter-spacing:1px;opacity:.55;font-weight:normal;text-shadow:none">v14.3</span></h1>
     <div id="turnBanner">TURN 1</div>
     <div class="topbtns">
       <button class="amber" onclick="openSupport()" title="support the developer">[ &#9829; ]</button>
@@ -619,7 +619,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v14.2";
+const APP_VERSION="v14.3";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -963,6 +963,10 @@ let SND=(function(){try{return localStorage.getItem("ct_snd")!=="off";}catch(e){
 const POLICE_VOLS={L:0.35,M:1,H:2};
 let _polVol=(function(){try{const v=localStorage.getItem("ct_polvol");return POLICE_VOLS[v]?v:"M";}catch(e){return "M";}})();
 function policeGain(){return POLICE_VOLS[_polVol]||1;}
+/* master game volume — Low / Medium / High multiplier applied to EVERY sound */
+const GAME_VOLS={L:0.4,M:1,H:1.9};
+let _gameVol=(function(){try{const v=localStorage.getItem("ct_gamevol");return GAME_VOLS[v]?v:"M";}catch(e){return "M";}})();
+function masterGain(){return GAME_VOLS[_gameVol]||1;}
 /* AI cards: auto-resolve after a pause (default), or wait for a human tap */
 let AI_AUTOCARDS=(function(){try{return localStorage.getItem("ct_aicards")!=="manual";}catch(e){return true;}})();
 /* AI play speed — NORMAL is the fastest; three progressively slower tiers below it.
@@ -988,7 +992,7 @@ function beep(freq,dur,vol,when){
     const t=_ac.currentTime+(when||0);
     const o=_ac.createOscillator(),g=_ac.createGain();
     o.type="square";o.frequency.value=freq;
-    g.gain.setValueAtTime(vol||.04,t);g.gain.exponentialRampToValueAtTime(.0001,t+(dur||.06));
+    g.gain.setValueAtTime((vol||.04)*masterGain(),t);g.gain.exponentialRampToValueAtTime(.0001,t+(dur||.06));
     o.connect(g);g.connect(_ac.destination);o.start(t);o.stop(t+(dur||.06)+.02);
   }catch(e){}
 }
@@ -1004,7 +1008,7 @@ function noiseBurst(dur,vol,when,cutoff){ // filtered white noise: gunshots, sla
     for(let i=0;i<n;i++)d[i]=(Math.random()*2-1)*(1-i/n);
     const s=_ac.createBufferSource();s.buffer=buf;
     const f=_ac.createBiquadFilter();f.type="lowpass";f.frequency.value=cutoff||900;
-    const g=_ac.createGain();g.gain.setValueAtTime(vol||.15,t);g.gain.exponentialRampToValueAtTime(.0001,t+(dur||.15));
+    const g=_ac.createGain();g.gain.setValueAtTime((vol||.15)*masterGain(),t);g.gain.exponentialRampToValueAtTime(.0001,t+(dur||.15));
     s.connect(f);f.connect(g);g.connect(_ac.destination);s.start(t);s.stop(t+(dur||.15)+.02);
   }catch(e){}
 }
@@ -1017,7 +1021,7 @@ function sirenWail(start,cycles){ // smooth up-down frequency glide — a real s
     const o=_ac.createOscillator(),g=_ac.createGain();
     o.type="sawtooth";o.frequency.setValueAtTime(620,t0);
     for(let i=0;i<n;i++){o.frequency.linearRampToValueAtTime(1150,t0+i*per+per/2);o.frequency.linearRampToValueAtTime(620,t0+(i+1)*per);}
-    const sv=.04*policeGain();g.gain.setValueAtTime(sv,t0);g.gain.setValueAtTime(sv,t0+n*per-.08);g.gain.exponentialRampToValueAtTime(.0001,t0+n*per);
+    const sv=.04*policeGain()*masterGain();g.gain.setValueAtTime(sv,t0);g.gain.setValueAtTime(sv,t0+n*per-.08);g.gain.exponentialRampToValueAtTime(.0001,t0+n*per);
     o.connect(g);g.connect(_ac.destination);o.start(t0);o.stop(t0+n*per+.05);
   }catch(e){}
 }
@@ -1029,16 +1033,26 @@ const SFX={
   bad:()=>{beep(220,.12,.05);beep(165,.16,.05,.1);},
   siren:()=>{const v=.045*policeGain();beep(700,.14,v);beep(500,.14,v,.15);beep(700,.14,v,.3);},
   raid:()=>{noiseBurst(.28,.3*policeGain(),0,350);sirenWail(.15,3);},                     // door breach BOOM + wailing sirens
-  soldierDown:(n=1)=>{n=Math.max(1,Math.min(6,Math.round(n)));for(let i=0;i<n;i++){const b=i*0.85;noiseBurst(.12,.24,b,1100);noiseBurst(.12,.24,b+0.32,1050);noiseBurst(.16,.26,b+0.64,950);}}, // 3 deliberate shots PER soldier killed
+  /* ===== SIX GUN VOICES — each firearm sounds distinct ===== */
+  gunHandgun:()=>{ noiseBurst(.10,.30,0,1400); noiseBurst(.10,.30,.30,1400); },            // pistol: two deliberate, spaced cracks
+  gunBurst:()=>{ for(let i=0;i<3;i++)noiseBurst(.055,.26,i*.07,1750); },                   // rifle 3-round burst: tight brrt
+  gunFullAuto:()=>{ for(let i=0;i<14;i++)noiseBurst(.045,.17,i*.052,1500); beep(70,.82,.045); }, // machine gun: sustained rip + low rumble
+  gunSMG:()=>{ for(let i=0;i<11;i++)noiseBurst(.030,.15,i*.043,2100); },                   // uzi: faster, brighter spray
+  gunShotgun:()=>{ noiseBurst(.24,.36,0,520); noiseBurst(.05,.14,.34,3200); beep(300,.05,.05,.34); beep(170,.06,.05,.40); }, // heavy BOOM + pump ka-chunk
+  gunSniper:()=>{ noiseBurst(.16,.36,0,950); noiseBurst(.34,.10,.19,300); noiseBurst(.30,.06,.46,240); }, // single huge crack + rolling echo tail
+  gunRandom:()=>{ const k=["gunHandgun","gunBurst","gunFullAuto","gunSMG","gunShotgun","gunSniper"]; SFX[k[Math.floor(Math.random()*k.length)]](); },
+  ambulance:()=>{ const v=.05; const two=[880,1175]; let t=0; for(let i=0;i<6;i++){ beep(two[i%2],.24,v,t); t+=.26; } }, // hi-lo two-tone ambulance yelp — someone's hurt
+  soldierDown:(n=1)=>{ n=Math.max(1,Math.min(6,Math.round(n))); if(n>=4)SFX.gunFullAuto(); else if(n>=2)SFX.gunBurst(); else SFX.gunHandgun(); }, // bigger the body count, heavier the gun
   funeral:()=>{const seq=[[196,.55],[196,.28],[196,.28],[233,.75],[233,.38],[196,.38],[185,.38],[147,.9]];let t=0;seq.forEach(([f,d])=>{beep(f,d*0.92,.05,t);t+=d;});}, // slow minor dirge
   cash:()=>{beep(1245,.05,.045);beep(1568,.12,.05,.06);},                                 // register cha-ching
-  shots:()=>{noiseBurst(.14,.2,0,1200);noiseBurst(.14,.2,.22,1000);noiseBurst(.18,.22,.44,900);}, // firefight
+  shots:()=>{ SFX.gunRandom(); },                                                          // firefight — random firearm each time
   clang:()=>{beep(120,.3,.08);noiseBurst(.25,.12,.02,400);},                              // cell door slams
   flatline:()=>{beep(1000,.09,.05);beep(1000,.09,.05,.4);beep(1000,.09,.05,.8);beep(1000,1.3,.055,1.2);}, // heart monitor
   win:()=>{[523,659,784,1047].forEach((f,i)=>beep(f,.12,.045,i*.13));},
 };
 function toggleSnd(){ SND=!SND; try{localStorage.setItem("ct_snd",SND?"on":"off");}catch(e){} const b=document.getElementById("sndBtn"); if(b)b.textContent=SND?"[ SND ]":"[ MUTE ]"; if(SND)SFX.card(); }
 function setPoliceVol(v){ if(!POLICE_VOLS[v])v="M"; _polVol=v; try{localStorage.setItem("ct_polvol",v);}catch(e){} if(SND){SFX.siren();} openSettings(); }
+function setGameVol(v){ if(!GAME_VOLS[v])v="M"; _gameVol=v; try{localStorage.setItem("ct_gamevol",v);}catch(e){} if(SND){SFX.gunHandgun();} openSettings(); }
 function setAICards(m){ AI_AUTOCARDS=(m!=="manual"); try{localStorage.setItem("ct_aicards",AI_AUTOCARDS?"auto":"manual");}catch(e){} openSettings(); }
 function setAISpeed(s){ if(!AI_SPEEDS[s])s="SLOW"; AI_SPEED=s; try{localStorage.setItem("ct_aispeed",s);}catch(e){} openSettings(); }
 
@@ -1577,6 +1591,7 @@ function openSettings(){
     ${row(L("Follow token","Seguir peça"),`<button id="followBtn" onclick="toggleFollow()">${tr((S&&S.followAnim)?"[ FOLLOW: ON ]":"[ FOLLOW: OFF ]")}</button>`)}
     ${row(L("Display mode","Modo de tela"),`<button id="greenBtn" onclick="toggleGreenDos()">${DISPLAY_MODES[_dispMode].lbl}</button>`)}
     ${row(L("Sound","Som"),`<button id="sndBtn" onclick="toggleSnd()">${SND?"[ SND ]":"[ MUTE ]"}</button>`)}
+    ${row(L("Game volume","Volume do jogo"),`<button class="tiny${_gameVol==='L'?' amber':''}" onclick="setGameVol('L')">L</button><button class="tiny${_gameVol==='M'?' amber':''}" onclick="setGameVol('M')">M</button><button class="tiny${_gameVol==='H'?' amber':''}" onclick="setGameVol('H')">H</button>`)}
     ${row(L("Police volume","Volume da polícia"),`<button class="tiny${_polVol==='L'?' amber':''}" onclick="setPoliceVol('L')">L</button><button class="tiny${_polVol==='M'?' amber':''}" onclick="setPoliceVol('M')">M</button><button class="tiny${_polVol==='H'?' amber':''}" onclick="setPoliceVol('H')">H</button>`)}
     ${row(L("AI cards","Cartas da IA"),`<button class="${AI_AUTOCARDS?'amber':''}" onclick="setAICards('auto')">${L('[ AUTO ]','[ AUTO ]')}</button><button class="${!AI_AUTOCARDS?'amber':''}" onclick="setAICards('manual')">${L('[ TAP ]','[ TOQUE ]')}</button>`)}
     ${row(L("AI speed","Velocidade IA"),AI_SPEED_ORDER.map(s=>`<button class="tiny${AI_SPEED===s?' amber':''}" onclick="setAISpeed('${s}')">${({SLOW:L('SLOW','LENTO'),MEDIUM:L('MEDIUM','MÉDIO'),FAST:L('FAST','RÁPIDO')})[s]}</button>`).join(""))}
@@ -2145,7 +2160,7 @@ function orderHit(oid){
       log(L("","O contrato de ")+p.name+L("'s prison hit on "," na prisão em ")+o.name+L(" falls through — the target's locked down tight."," fura — o alvo está trancado demais."),"warn");
       showNotice(L("THE HIT","O SERVIÇO"),"x",L("Locked away too tight","Trancado demais"),o.name+L(" got moved to protective custody before your man could reach him. Money spent, nothing done — and the streets whisper your name (+10 HEAT)."," foi pra cela isolada antes do seu homem chegar. Dinheiro gasto, nada feito — e a rua sussurra seu nome (+10 RISCO)."),()=>{render();finish();});
     } else {
-      o.hosp++; o.cleanLaps=0;
+      o.hosp++; o.cleanLaps=0; SFX.ambulance();
       log(L("","O serviço de ")+p.name+L("'s contract shanks "," esfaqueia ")+o.name+L(" in prison — HOSPITAL ("," na prisão — HOSPITAL (")+o.hosp+"/3).","bad");
       if(o.hosp>=3){ o._deathCause=L("Shanked on a contract in prison","Esfaqueado por contrato na prisão"); render(); killPlayer(o); return; }
       showNotice(L("THE HIT","O SERVIÇO"),"x",L("Shanked on the block","Esfaqueado no pátio"),o.name+L(" caught a blade in the yard — paid for by you, carried out by someone inside. Rushed to the prison HOSPITAL (visit "," levou uma facada no pátio — pago por você, feito por alguém lá dentro. Correu pro HOSPITAL da prisão (visita ")+o.hosp+L("/3). One more bad day and it's over. (+10 HEAT)","/3). Mais um dia ruim e acabou. (+10 RISCO)"),()=>{render();finish();});
@@ -2161,7 +2176,7 @@ function orderHit(oid){
     log(L("A hit ordered by ","Um serviço encomendado por ")+p.name+L(" kills "," mata ")+loss+L(" of "," soldados de ")+o.name+L("'s soldiers.","."),"bad");
     showNotice(L("THE HIT","O SERVI\u00c7O"),"x",L("The bodyguards ate the bullets","Os seguran\u00e7as comeram as balas"),LANG==='PT'?`O atirador pegou a equipe de ${o.name} na porta do ponto. ${loss} soldado(s) no ch\u00e3o, mas ${o.name} saiu vivo. V\u00e3o descobrir quem pagou. (+10 RISCO)`:`The shooter caught ${o.name}'s people outside the spot. ${loss} soldier${loss>1?"s":""} down, but ${o.name} made it out alive. They'll figure out who paid for it. (+10 HEAT)`,()=>{render();finish();});
   } else {
-    o.hosp++; o.cleanLaps=0;
+    o.hosp++; o.cleanLaps=0; SFX.gunBurst(); setTimeout(()=>SFX.ambulance(),520);
     if(o.ring==="outer"&&!o.inJail){const hi=OUTER.findIndex(c=>c.k==="hospital");if(hi>=0)o.pos=hi;}
     log(L("","O serviço de ")+p.name+L("'s hit puts "," coloca ")+o.name+L(" in the HOSPITAL ("," no HOSPITAL (")+o.hosp+"/3).","bad");
     if(o.hosp>=3){ o._deathCause="Taken out by a contract hit"; render(); killPlayer(o); return; }
@@ -2567,7 +2582,7 @@ function soldierTakesBeating(){const p=S.players[S.cur];p.crew--;p._hospPending=
 function hospProceed(){const p=S.players[S.cur];const v=p._hospPending||1;p._hospPending=null;closeModal();doHospital(p,v);}
 function doHospital(p,visits){
   S.rolled=true;   // a hospital trip ends your turn, even before rolling
-  p.hosp+=visits;p.cleanLaps=0;
+  p.hosp+=visits;p.cleanLaps=0; SFX.ambulance();   // sirens roll — someone's hurt
   // move the player's token onto the HOSPITAL space so it's visible where they are (outer ring only; in prison they stay inside)
   if(p.ring!=="inner"){ const hi=OUTER.findIndex(c=>c.k==="hospital"); if(hi>=0){p.ring="outer";p.pos=hi;} }
   render();
@@ -2603,7 +2618,7 @@ function applyHospOutcome(p,oc){
     // a complication can leave you critical, but it will NOT be the killing blow on the same stop —
     // death has to come from a fresh hospitalization or a genuinely severe injury, never a single card.
     if(p.hosp>=2){ log(p.name+L(" is in critical condition but pulls through the night — still 2/3. One more trip could be the last."," está em estado crítico mas passa a noite — ainda 2/3. Mais uma ida pode ser a última."),"bad"); }
-    else { p.hosp++; log(p.name+L(" takes a turn for the worse — extra hospital visit (now "," piora — visita extra de hospital (agora ")+p.hosp+"/3).","bad"); }
+    else { p.hosp++; SFX.ambulance(); log(p.name+L(" takes a turn for the worse — extra hospital visit (now "," piora — visita extra de hospital (agora ")+p.hosp+"/3).","bad"); }
   }
 }
 function leaveHospital(cost,oc,settle){cost=cost||0;settle=settle||0;const p=S.players[S.cur];p.cash-=cost;if(settle)p.cash+=settle;closeModal();log(p.name+L(" checks out (-$"," recebe alta (-$")+cost+"K"+(settle?L(", settlement +$",", indenização +$")+settle+"K":"")+")"+(p.cash<0?L(" — now "," — agora ")+fmtK(p.cash)+L(" in the red"," no vermelho"):"")+".","warn");applyHospOutcome(p,oc||"neutral");if(!p.alive)return;finish();}
