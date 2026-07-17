@@ -2,8 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="description" content="CRIMINAL TERMINAL — a retro DOS crime-life board game. Build an empire on the street, survive prison, be the last boss standing.">
+<!-- pure-black status bar / edge-to-edge when this page is top-level (GitHub or Add-to-Home-Screen) -->
+<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="CRIMINAL TERMINAL">
 <title>CRIMINAL TERMINAL</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' fill='%23000'/><text x='8' y='12.5' font-size='12' text-anchor='middle' fill='%2333ff44' font-family='monospace'>$</text></svg>">
 <style>
@@ -559,7 +565,7 @@
 <div id="setup">
 <div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
 <div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
-<div id="verSub" style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v13.7</div>
+<div id="verSub" style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v13.8</div>
 <div id="setupStage"></div>
 </div>
 
@@ -567,7 +573,7 @@
 
 <div id="screen" style="display:none">
   <div class="bar">
-    <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL <span id="verTag" style="font-size:10px;letter-spacing:1px;opacity:.55;font-weight:normal;text-shadow:none">v13.7</span></h1>
+    <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL <span id="verTag" style="font-size:10px;letter-spacing:1px;opacity:.55;font-weight:normal;text-shadow:none">v13.8</span></h1>
     <div id="turnBanner">TURN 1</div>
     <div class="topbtns">
       <button class="amber" onclick="openSupport()" title="support the developer">[ &#9829; ]</button>
@@ -612,7 +618,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v13.7";
+const APP_VERSION="v13.8";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
