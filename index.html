@@ -559,7 +559,7 @@
 <div id="setup">
 <div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
 <div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
-<div id="verSub" style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v13.5</div>
+<div id="verSub" style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v13.6</div>
 <div id="setupStage"></div>
 </div>
 
@@ -567,7 +567,7 @@
 
 <div id="screen" style="display:none">
   <div class="bar">
-    <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL <span id="verTag" style="font-size:10px;letter-spacing:1px;opacity:.55;font-weight:normal;text-shadow:none">v13.5</span></h1>
+    <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL <span id="verTag" style="font-size:10px;letter-spacing:1px;opacity:.55;font-weight:normal;text-shadow:none">v13.6</span></h1>
     <div id="turnBanner">TURN 1</div>
     <div class="topbtns">
       <button class="amber" onclick="openSupport()" title="support the developer">[ &#9829; ]</button>
@@ -612,7 +612,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v13.5";
+const APP_VERSION="v13.6";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -1273,10 +1273,10 @@ function openManual(){ window.speechSynthesis&&window.speechSynthesis.cancel(); 
   $${SOLDIER_COST}K para contratar, $${SOLDIER_WAGE}K/ano de sal\u00e1rio. Eles defendem e tomam \u00e1reas, ASSUMEM A CULPA (v\u00e3o presos no seu lugar), LEVAM A SURRA (hospital no seu lugar) \u2014 e com 10+ soldados voc\u00ea rola um dado B\u00d4NUS.
 
   ${H("RISCO (HEAT)")}
-  Cada servi\u00e7o soma +5% de RISCO, e sua chance de pris\u00e3o \u00e9 10% + RISCO (m\u00e1x. 60%) \u2014 quanto mais voc\u00ea trabalha, mais a lei te observa. O risco esfria \u22125% a cada ano que voc\u00ea completa, o POLICIAL CORRUPTO zera na hora, e cumprir a pena inteira zera tamb\u00e9m (pagar fian\u00e7a N\u00c3O \u2014 voc\u00ea comprou a sa\u00edda, o arquivo continua aberto). Seu risco aparece no painel e em cada carta de servi\u00e7o.
+  Cada crime que você comete e cada negócio que você toca aumenta seu RISCO — golpes maiores e operações maiores atraem mais atenção federal. O risco esfria −5% a cada ano tranquilo, um POLICIAL CORRUPTO zera na hora, e cumprir a pena inteira reseta pra 0. O risco é o que te pega numa BATIDA — quanto mais quente, mais difícil escapar dela. Seu risco aparece no seu painel.
 
   ${H("A LEI")}
-  Pego depois de um servi\u00e7o? Na ordem: uma carta de sa\u00edda guardada te salva \u2192 um soldado pode assumir a culpa \u2192 um agente corrupto vende ma\u00e7os de cigarro a $1K \u2192 voc\u00ea vai pra CADEIA. Na cadeia, toque no dado: pague FIAN\u00c7A (definida pela acusa\u00e7\u00e3o e seu patrim\u00f4nio) ou encare o TRIBUNAL, onde uma carta decide \u2014 sair livre, multa que escala com sua fortuna, cumprir os anos, ou pegar PERP\u00c9TUA (30a) por homic\u00eddio.
+  Crimes e negócios geram risco, mas não te prendem — a ÚNICA forma de cair é parar numa BATIDA POLICIAL. Seu risco decide: risco baixo você pode escapar, risco alto você quase certamente cai. Uma condenação em batida é à prova de tudo — nenhum soldado assume a culpa, sem fiança, sem acordo. Você vai DIRETO pra prisão cumprir os anos. Sobreviva lá dentro, ou o pátio te acaba.
 
   ${H("PRIS\u00c3O (anel interno)")}
   Uma volta interna = um ano cumprido. MA\u00c7OS DE CIGARRO s\u00e3o prote\u00e7\u00e3o: sem ma\u00e7os num dia de pris\u00e3o o p\u00e1tio te espanca at\u00e9 o hospital \u2014 ou pior, h\u00e1 1 chance em 4 de te matarem na hora. Brigas e rebeli\u00f5es podem te hospitalizar, e as piores viram fatais. A MAIORIA DAS MORTES ACONTECE NA PRIS\u00c3O \u2014 h\u00e1 50 formas diferentes de morrer l\u00e1 dentro. Em cada DIA DE PRIS\u00c3O voc\u00ea escolhe: FICAR QUIETO (tira a carta do dia \u2014 perigoso sem ma\u00e7os), CANTINA (5 ma\u00e7os por $10K), SUBORNAR UM AGENTE (\u22121 ano por $40K), ou CORRER O P\u00c1TIO \u2014 um corre que costuma render 1\u20134 ma\u00e7os mas pode acabar em briga e cama de hospital. FUGIR te liberta agora, mas os anos pulados (+5) voltam se voc\u00ea for preso de novo.
@@ -1328,10 +1328,10 @@ function openManual(){ window.speechSynthesis&&window.speechSynthesis.cancel(); 
   $${SOLDIER_COST}K to hire, $${SOLDIER_WAGE}K/yr wages. They defend and take turf, take the FALL (prison in your place), take the BEATING (hospital in your place) \u2014 and with 10+ soldiers you roll a BONUS die.
 
   ${H("HEAT")}
-  Every job you pull adds +5% HEAT, and your arrest risk is 10% + HEAT (capped at 60%) \u2014 the more you work, the harder the law looks at you. Heat cools \u22125% every year you make it around the board, a CROOKED COP payoff wipes it instantly, and serving out a prison sentence resets it to 0 (posting bail does NOT \u2014 you bought your way out, the file stays open). Your current heat shows on your player panel and on every job card.
+  Every crime you pull and every business you run raises your HEAT — bigger jobs and bigger operations draw more federal attention. Heat cools −5% each quiet year around the board, a CROOKED COP payoff wipes it instantly, and serving a full prison sentence resets it to 0. Heat is what gets you caught in a RAID — the hotter you are, the harder a raid is to dodge. Your heat shows on your player panel.
 
   ${H("THE LAW")}
-  Caught after a job? In order: a banked get-out-of-jail card saves you \u2192 a soldier can take the fall \u2192 a crooked CO sells cigarette packs at $1K \u2192 you go to JAIL. In jail, tap the die: post BAIL (set by the charge and your net worth) or face COURT, where a card decides \u2014 walk free, pay a fine that scales with your fortune, do the years, or catch LIFE (30y) for murder.
+  Crimes and businesses build heat, but they don't arrest you — the ONLY way to get busted is landing on a POLICE RAID. Your heat decides it: low heat you might slip, high heat you're almost certainly taken. A raid conviction is airtight — no soldier can take the fall, no bail, no court deal. You go STRAIGHT to prison to serve the years. Survive inside, or the block finishes you.
 
   ${H("PRISON (inner ring)")}
   One inner lap = one year served. CIGARETTE PACKS are protection: with no packs on a prison day the block beats you into the hospital \u2014 or worse, there's a 1-in-4 chance they just kill you. Prison fights and riots can hospitalize you, and the worst ones turn fatal. MOST DEATHS HAPPEN IN PRISON \u2014 there are 50 different ways to die inside. On every PRISON DAY you choose how to spend it: LAY LOW and draw the day's card (dangerous with no packs), hit the COMMISSARY (5 packs for $10K), BRIBE A CO to shave a year off your sentence ($40K), or RUN THE YARD \u2014 a hustle that usually earns 1\u20134 packs but can end in a brawl and a hospital bed. ESCAPE frees you now, but the skipped years (+5) come back if you're busted again.
@@ -1395,6 +1395,7 @@ function stepMove(p,left){
     if(p.sentence<=0){render();setTimeout(()=>releaseFromPrison(p),300);return;}}
   if(ring==="outer"&&p.pos===0){p.age++;p.crimeOps=3;log(p.name+L(" makes it another year (now "," sobrevive mais um ano (agora ")+p.age+L(" yo). Crime chances refilled."," anos). Chances de crime renovadas."),"");
     if(p.heat>0){p.heat=Math.max(0,p.heat-5);log(p.name+L("'s heat cools a little (now ",": o risco esfria um pouco (agora ")+p.heat+"%).","");}
+    {const _bz=Array.from(p.owns.keys()).filter(i=>OUTER[i]&&OUTER[i].k==="biz").length; if(_bz>0){const _bh=_bz*4; p.heat=Math.min(80,(p.heat||0)+_bh); log(p.name+L(" — the operation draws federal heat +"," — a operação atrai risco federal +")+_bh+"% ("+_bz+L(" biz)."," neg)."),"warn");}}
     if(p.crew>0){const wages=p.crew*SOLDIER_WAGE;p.cash-=wages;log(p.name+L(" pays soldier wages: "," paga salário dos soldados: ")+fmtK(wages)+" ("+p.crew+" × $"+SOLDIER_WAGE+L("K/yr).","K/ano)."),"warn");}
     if((p.dirty||0)>0&&p.cash>0){
       const base=Math.min(p.dirty,p.cash);
@@ -2117,8 +2118,8 @@ function atkDone(){ const p=S.players[S.cur]; if(p)p._atkMenu=false; closeModal(
 
 /* ===== STORY CARDS ===== */
 function drawStory(deck){
-  const p=S.players[S.cur];const card=draw(deck);
-  if(deck==="raid" && card.raidArr){ card._sLoss = card.takesAll ? "all" : (1+Math.floor(Math.random()*3)); }
+  const p=S.players[S.cur];let card=draw(deck);
+  if(deck==="raid"){ card={...card}; card.raidArr=Math.random()<raidArrestChance(p); if(card.raidArr){ card._sLoss = card.takesAll ? "all" : (1+Math.floor(Math.random()*3)); } }
   document.getElementById("cardEl")._card=card;document.getElementById("cardEl")._deck=deck;
   renderStoryCard(card,deck,p.ai);
   if(deck==="raid")SFX.raid(); else SFX.card();
@@ -2170,7 +2171,7 @@ function outcomeAndButton(c,deck){
   if(c.packs<0){lines.push(L("Lose ","Perca ")+(-c.packs)+L(" packs"," ma\u00e7os"));btn=L("[ PAY ]","[ PAGAR ]");}
   if(c.respect)lines.push(L("Respect earned","Respeito conquistado"));
   if(c.crew)lines.push(L("Gain ","Ganhe ")+c.crew+L(" soldier"," soldado"));
-  if(c.arr!==undefined)lines.push(L("If arrested: ","Se for preso: ")+(c.arr==="LIFE"?L("LIFE","PERP\u00c9TUA"):c.arr+L(" yrs"," anos"))+L(" · risk "," · risco ")+Math.round(arrestChance(S.players[S.cur])*100)+"%");
+  if(c.arr!==undefined)lines.push(L("Heat +","Risco +")+crimeHeat(c)+"% "+L("— heat gets you busted in RAIDS","— o risco te pega em BATIDAS"));
   if(c.hosp){lines.push(L("Hurt bad — HOSPITAL","Ferido feio — HOSPITAL"));}
   if(c.raidArr){lines.push(L("ARRESTED","PRESO"));
     if(c._sLoss!==undefined) lines.push(c._sLoss==="all"?L("⚑ The WHOLE crew is swept up — ALL soldiers arrested","⚑ A equipe INTEIRA foi levada — TODOS os soldados presos"):"⚑ "+c._sLoss+L(" of your soldiers get arrested"," dos seus soldados s\u00e3o presos"));
@@ -2235,12 +2236,11 @@ function applyCard(){
     toHospital(p, c.rounds>=4?2:1, deck==="pfight"?L("a prison fight","uma briga na prisão"):L("the prison riot","a rebelião na prisão")); return; }
   // HEIST/drug/hitman arrest chance: 10% base + your HEAT (every job makes you hotter)
   if(c.arr!==undefined){
-    const chance=arrestChance(p);
-    p.heat=Math.min(70,(p.heat||0)+5);
-    const caught=Math.random()<chance;
-    if(caught){ p._pendingYears=(c.arr==="LIFE"?30:c.arr); arrestFlow(p); return; }
-    log(L("Clean getaway.","Fuga limpa."),"good");
-    showNotice(L("CLEAN GETAWAY","FUGA LIMPA"),"$-$",L("You got away clean","Voc\u00ea escapou limpo"),L("No heat, no tail, no charges. The job is done and nobody is coming for you — this time.","Sem pol\u00edcia, sem rabo, sem acusa\u00e7\u00e3o. O servi\u00e7o foi feito e ningu\u00e9m vem atr\u00e1s de voc\u00ea — desta vez."),()=>{afterMoney(p);if(!p._sentToHospital)finish();p._sentToHospital=false;});
+    p._raidBust=false;
+    const hb=crimeHeat(c);
+    p.heat=Math.min(80,(p.heat||0)+hb);
+    log(p.name+L(" pulls the job — heat +"," faz o serviço — risco +")+hb+"% (now "+p.heat+"%).","warn");
+    showNotice(L("CLEAN GETAWAY","FUGA LIMPA"),"$-$",L("You got away clean","Voc\u00ea escapou limpo"),L("The money is yours and no cuffs came out — but a job like this turns up the HEAT, and heat is exactly what gets you swept up in a RAID.","Sem pol\u00edcia, sem rabo, sem acusa\u00e7\u00e3o. O servi\u00e7o foi feito e ningu\u00e9m vem atr\u00e1s de voc\u00ea — desta vez."),()=>{afterMoney(p);if(!p._sentToHospital)finish();p._sentToHospital=false;});
     return;
   }
   if(c.raidArr){
@@ -2250,7 +2250,7 @@ function applyCard(){
       p.crew-=loss;
       log(loss+L(" of "," soldado(s) de ")+p.name+L("'s soldier"+(1?"":"")," presos na batida")+(LANG==='PT'?"":( (loss>1?"s":"")+" arrested in the raid"))+(c._sLoss==="all"?L(" — the whole crew"," — a equipe inteira"):"")+". "+p.crew+L(" left."," restando."),"bad");
     }
-    p._pendingYears=2; arrestFlow(p); return;
+    p._raidBust=true; p._pendingYears=3+Math.floor((p.heat||0)/20); arrestFlow(p); return;
   }
   if(c.safe)log(p.name+L(" gets away clean."," escapa limpo."),"good");
   afterMoney(p);
@@ -2285,6 +2285,8 @@ function mkDirty(p,amt){ if(amt>0)p.dirty=(p.dirty||0)+Math.round(amt); }
 
 /* ===== HEAT: how hot the law is on you. Base arrest risk 10% + heat; jobs add +5, quiet years cool it ===== */
 function arrestChance(p){return Math.min(.6,(10+(p.heat||0))/100);}
+function crimeHeat(c){ return c.arr==="LIFE"?25:Math.max(5,Math.min(22,Math.round((c.arr||0)/1.4))); }
+function raidArrestChance(p){ return Math.min(0.92,0.40+(p.heat||0)/100); }
 /* CROOKED COP space: pay him off to wipe your heat, or hear what he has to say (story card) */
 function copStop(){
   const p=S.players[S.cur];
@@ -2332,13 +2334,13 @@ function arrestFlow(p){
   if(p.freeArrest>0){p.freeArrest--;log(p.name+L(" uses a get-out-of-jail card. Walks free."," usa uma carta de saída. Sai livre."),"good");p._pendingYears=null;showNotice(L("GET OUT OF JAIL","SAIU DA CADEIA"),"***",L("The favor gets called in","O favor \u00e9 cobrado"),L("The cuffs were already out — but your banked get-out-of-jail card burns instead. Charges evaporate. You walk free.","As algemas j\u00e1 estavam na m\u00e3o — mas sua carta de sa\u00edda guardada \u00e9 queimada. As acusa\u00e7\u00f5es evaporam. Voc\u00ea sai livre."),()=>finish());return;}
   if(p.ai){
     // AI: soldier takes the fall if available, else just go in (buys a few packs if rich)
-    if(p.crew>0){p.crew--;log(L("","O soldado de ")+p.name+L("'s soldier takes the fall and goes to prison. "," assume a culpa e vai preso. ")+p.name+L(" stays free."," continua livre."),"good");p._pendingYears=null;finish();return;}
+    if(!p._raidBust && p.crew>0){p.crew--;log(L("","O soldado de ")+p.name+L("'s soldier takes the fall and goes to prison. "," assume a culpa e vai preso. ")+p.name+L(" stays free."," continua livre."),"good");p._pendingYears=null;finish();return;}
     const packs=Math.min(20,Math.floor(p.cash/1)); if(packs>0){p.cash-=packs;p.packs=packs;}
     doArrest(p,years);return;
   }
   const el=document.getElementById("cardEl");
   el.dataset.deck="law";
-  const hasSoldier=p.crew>0;
+  const hasSoldier=p.crew>0 && !p._raidBust;
   el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('BUSTED','PRESO EM FLAGRANTE')}</div>
     <div class="art">PD</div><div class="ttl">${L("You're going down","Voc\u00ea vai cair")}</div>
     <div class="bd">${L("The cuffs are out — ","As algemas j\u00e1 sa\u00edram — ")}${years==30?L("they're calling it LIFE","est\u00e3o chamando de PERP\u00c9TUA"):years+L(" years"," anos")}${L(" hanging over you."," pesando sobre voc\u00ea.")}${hasSoldier?L(" One of your soldiers can take the fall and do the time in your place."," Um dos seus soldados pode assumir a culpa e cumprir a pena no seu lugar."):L(" No soldiers to cover you."," Sem soldados para te cobrir.")}</div>
@@ -2375,6 +2377,9 @@ function buyCigs(n,years){const p=S.players[S.cur];n=Math.min(n,Math.floor(p.cas
 function doArrest(p,years){
   S.rolled=true;   // an arrest ends your turn, even before rolling
   SFX.siren();
+  if(p._raidBust){ p._raidBust=false; p.inJail=false; p.sentence=years; p.ring="inner"; p.pos=0; SFX.clang();
+    log(p.name+L(" is convicted in the raid → PRISON, "," é condenado na batida → PRISÃO, ")+years+L("y to serve.","a a cumprir."),"bad"); render();
+    showNotice(L("CONVICTED","CONDENADO"),"[=]",L("Straight to PRISON","Direto pra PRISÃO"),L("A federal raid is airtight — no bail, no deal, no patsy in your place. You go straight to prison to serve "+years+" years. Now survive it.","Uma batida federal é à prova de tudo — sem fiança, sem acordo, sem laranja no seu lugar. Você vai direto pra prisão cumprir "+years+" anos. Agora sobreviva."),()=>finish(),true); return; }
   p.inJail=true;p.ring="outer";p.pos=JAIL_POS;p.sentence=0;p._pendingYears=years;
   log(p.name+L(" ARRESTED → JAIL. Awaiting court."," PRESO → CADEIA. Aguardando tribunal."),"bad");
   render();
