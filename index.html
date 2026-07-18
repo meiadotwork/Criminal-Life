@@ -586,7 +586,7 @@
 <div id="setup">
 <div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
 <div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
-<div id="verSub" style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v14.9</div>
+<div id="verSub" style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v15.0</div>
 <div id="setupStage"></div>
 </div>
 
@@ -594,7 +594,7 @@
 
 <div id="screen" style="display:none">
   <div class="bar">
-    <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL <span id="verTag" style="font-size:10px;letter-spacing:1px;opacity:.55;font-weight:normal;text-shadow:none">v14.9</span></h1>
+    <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL <span id="verTag" style="font-size:10px;letter-spacing:1px;opacity:.55;font-weight:normal;text-shadow:none">v15.0</span></h1>
     <div id="turnBanner">TURN 1</div>
     <div class="topbtns">
       <button class="amber" onclick="openSupport()" title="support the developer">[ &#9829; ]</button>
@@ -641,7 +641,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v14.9";
+const APP_VERSION="v15.0";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -871,12 +871,25 @@ function afterSpeed(){
 /* mob names used to pre-fill AI seats (editable) */
 const AI_NAMES=["SCARFACE","LUCKY","THE CHIN","NUCKY","TONY","BUGSY","KNUCKLES","THE SHARK","CAPO","FRANKIE","MICKEY","THE RAT","VITO","SONNY","GOODFELLA","SLICK","THE BULL","DIAMOND","ACE","BIG PAULIE"];
 function aiName(){ const taken=(setupData.players||[]).map(p=>(p.name||"").toUpperCase()); const pool=AI_NAMES.filter(n=>!taken.includes(n)); const src=pool.length?pool:AI_NAMES; return src[Math.floor(Math.random()*src.length)]; }
-function chooseCount(n){ setupData.n=n; setupData.players=[]; setupData.idx=0; setupData._seatAI=undefined; setupData._seatName=undefined; nextPlayerSetup(); }
-function setSeatType(ai){ setupData._seatAI=!!ai; setupData._seatName=ai?aiName():""; nextPlayerSetup(); }
+/* ===== GHOST AGGRESSION: 4 tiers, most → least aggressive. AGGRESSIVE & CAREFUL
+   keep their original behaviour; CAUTIOUS & PASSIVE are the two calmer tiers. ===== */
+const AI_PROFILES={
+  AGGRESSIVE:{ lbl:["AGGRESSIVE","AGRESSIVO"], recruitCap:12, recruitReserve:2, atkMinCrew:2, atkAllIn:true,  atkProb:0.60, copHeat:40, buyMult:1.3, pokerMult:1.5 },
+  CAREFUL:   { lbl:["CAREFUL","CAUTELOSO"],     recruitCap:6,  recruitReserve:5, atkMinCrew:4, atkAllIn:false, atkProb:0.15, copHeat:15, buyMult:2.0, pokerMult:2.0 },
+  CAUTIOUS:  { lbl:["CAUTIOUS","RESERVADO"],    recruitCap:4,  recruitReserve:7, atkMinCrew:6, atkAllIn:false, atkProb:0.06, copHeat:10, buyMult:2.6, pokerMult:2.6 },
+  PASSIVE:   { lbl:["PASSIVE","PACÍFICO"],      recruitCap:2,  recruitReserve:9, atkMinCrew:9, atkAllIn:false, atkProb:0.02, copHeat:6,  buyMult:3.2, pokerMult:3.2 },
+};
+const AI_AGGRO_ORDER=["AGGRESSIVE","CAREFUL","CAUTIOUS","PASSIVE"];   // most → least aggressive
+function aiProf(p){ return AI_PROFILES[p&&p.temper]||AI_PROFILES.CAREFUL; }
+function temperLabel(t){ const pr=AI_PROFILES[t]||AI_PROFILES.CAREFUL; return LANG==='PT'?pr.lbl[1]:pr.lbl[0]; }
+function chooseCount(n){ setupData.n=n; setupData.players=[]; setupData.idx=0; setupData._seatAI=undefined; setupData._seatName=undefined; setupData._seatAggro=undefined; nextPlayerSetup(); }
+function setSeatType(ai){ setupData._seatAI=!!ai; setupData._seatName=ai?aiName():""; setupData._seatAggro=ai?"AGGRESSIVE":undefined; nextPlayerSetup(); }
+function setSeatAggro(k){ const inp=document.getElementById("pname"); if(inp)setupData._seatName=inp.value; setupData._seatAggro=k; nextPlayerSetup(); }
 function nextPlayerSetup(){
   const i=setupData.idx;
   if(i>=setupData.n){ launch(); return; }
   if(setupData._seatAI===undefined){ setupData._seatAI=(i>0); setupData._seatName=setupData._seatAI?aiName():""; }
+  if(setupData._seatAI && setupData._seatAggro===undefined) setupData._seatAggro="AGGRESSIVE";
   const isAI=setupData._seatAI;
   const used=setupData.players.map(p=>p.pattern);
   const sw=PATTERNS.map(pt=>`<div class="sw pat-${pt.k}" style="${used.includes(pt.k)?'opacity:.2;pointer-events:none':''}" data-c="${pt.k}" title="${pt.label}" onclick="pickColor(this)"></div>`).join("");
@@ -892,6 +905,8 @@ function nextPlayerSetup(){
       <div class="namekeys">${['QWERTYUIOP','ASDFGHJKL','ZXCVBNM'].map(row=>`<div class="krow">`+row.split('').map(k=>`<button type="button" class="kkey" onclick="nameKey('${k}')">${k}</button>`).join('')+`</div>`).join('')}<div class="krow"><button type="button" class="kkey kwide" onclick="nameKey('SP')">SPACE</button><button type="button" class="kkey kwide" onclick="nameKey('DEL')">DEL</button></div></div>
       <div style="font-size:11px;opacity:.7">${L('pick a pattern','escolha um padrão')}</div>
       <div class="swatches">${sw}</div>
+      ${isAI?`<div style="font-size:11px;opacity:.7;margin-top:8px">${L('aggression (most → least)','agressividade (mais → menos)')}</div>
+      <div class="choice" style="flex-wrap:wrap;gap:5px">${AI_AGGRO_ORDER.map(k=>`<button class="cfg${(setupData._seatAggro||'AGGRESSIVE')===k?' sel':''}" onclick="setSeatAggro('${k}')">[ ${temperLabel(k)} ]</button>`).join('')}</div>`:''}
       ${isAI?'':`<div style="font-size:11px;opacity:.7;margin-top:8px">${L("your age (1–120 — doesn't affect play)","sua idade (1–120 — não afeta o jogo)")}</div>
       <div class="agestep">
         <button type="button" onclick="ageStep(-1)">▼</button>
@@ -922,8 +937,10 @@ function confirmPlayer(){
   let pattern=window._pickColor;
   if(!pattern){ const used=setupData.players.map(p=>p.pattern); pattern=(PATTERNS.find(pt=>!used.includes(pt.k))||PATTERNS[0]).k; }
   const age=Math.max(1,Math.min(120,parseInt((document.getElementById("page")||{}).value)||(isAI?21:25)));
-  setupData.players.push({name,pattern,ai:isAI,age});
-  setupData._seatAI=undefined; setupData._seatName=undefined;
+  const seat={name,pattern,ai:isAI,age};
+  if(isAI) seat.temper=setupData._seatAggro||"AGGRESSIVE";
+  setupData.players.push(seat);
+  setupData._seatAI=undefined; setupData._seatName=undefined; setupData._seatAggro=undefined;
   setupData.idx++; nextPlayerSetup();
 }
 function launch(){
@@ -933,7 +950,7 @@ function launch(){
   S={turn:1,cur:0,n:setupData.players.length,rolled:false,over:false,ai:setupData.players.some(p=>p.ai),roundEvents:[],baseDice:(setupData.dice||6),diff:(POLICE_LABELS[pol]||"REALISTIC"),police:pol,city:cityKey,law:(CITIES[cityKey]||CITIES.NY).law,followAnim:true};
   const startCash=(setupData.startCash??0);
   S.players=setupData.players.map((p,i)=>{const pl=newPlayer(i,p.name,p.pattern);pl.ai=p.ai;pl.cash=startCash;pl.age=p.age||25;pl.startAge=pl.age;pl.startCash=startCash;
-    if(pl.ai)pl.temper=Math.random()<.72?"AGGRESSIVE":"CAREFUL";return pl;});
+    if(pl.ai)pl.temper=p.temper||(Math.random()<.72?"AGGRESSIVE":"CAREFUL");return pl;});
   document.getElementById("setup").style.display="none";
   document.getElementById("screen").style.display="flex";
   buildBoardGrid();
@@ -944,7 +961,7 @@ function launch(){
   newRound();
   bumpPlayCount(S.players.filter(x=>!x.ai).length);   // every human who sits down counts, worldwide
   log(L("SYSTEM ONLINE. Police: ","SISTEMA ONLINE. Polícia: ")+(LANG==='PT'?(POLICE_LABELS_PT[pol]||"REALISTA"):(POLICE_LABELS[pol]||"REALISTIC"))+L(" — everyone starts with "," — todos começam com ")+fmtK(startCash)+".","sys");
-  S.players.filter(x=>x.ai).forEach(x=>log(x.name+L(" sits down — plays "," senta na mesa — joga ")+(x.temper==="AGGRESSIVE"?L("AGGRESSIVE","AGRESSIVO"):L("CAREFUL","CAUTELOSO"))+".","sys"));
+  S.players.filter(x=>x.ai).forEach(x=>log(x.name+L(" sits down — plays "," senta na mesa — joga ")+temperLabel(x.temper)+".","sys"));
   saveGame();
   if(S.players[S.cur].ai&&!S.over) setTimeout(()=>rollDiceAI(),aiDelay());   // all-AI / AI-first games drive themselves
 }
@@ -2049,7 +2066,7 @@ function pokerNight(){
   }
   // AI never gambles at the tables (too swingy) - it may buy the house if flush, else walks away. (No modal = no freeze.)
   if(p.ai){
-    if(!owner && p.cash>=c.price*(p.temper==="AGGRESSIVE"?1.5:2)){ pokerBuy(idx); } else { finish(); }
+    if(!owner && p.cash>=c.price*aiProf(p).pokerMult){ pokerBuy(idx); } else { finish(); }
     return;
   }
   const ownerName=owner?owner.name:null;
@@ -2263,7 +2280,7 @@ function commitCrime(){
 }
 function offerHire(){
   const p=S.players[S.cur];
-  if(p.ai){ const agg=p.temper==="AGGRESSIVE"; const aiCap=agg?7:4; while(p.crew<aiCap && p.cash>=SOLDIER_COST*(agg?2:3)){p.cash-=SOLDIER_COST;p.crew++;} log(p.name+L(" recruits soldiers."," recruta soldados."),"good"); finish(); return; }
+  if(p.ai){ const pr=aiProf(p); const aiCap=pr.recruitCap; while(p.crew<aiCap && p.cash>=SOLDIER_COST*pr.recruitReserve){p.cash-=SOLDIER_COST;p.crew++;} log(p.name+L(" recruits soldiers."," recruta soldados."),"good"); finish(); return; }
   const slotsLeft=MAX_SOLDIERS-p.crew;
   const affordable=Math.floor(p.cash/SOLDIER_COST);
   const canBuy=Math.min(slotsLeft,affordable);
@@ -2398,7 +2415,7 @@ function doAttack(fromMenu){
   if(targets.length===0){ if(menu){atkNotice(L("No rival controls any turf yet — nothing to attack.","Nenhum rival controla área ainda — nada para atacar."));return;} log(L("No rival turf to attack.","Nenhuma área rival para atacar.")); finish(); return;}
   if(p.ai){
     // take the richest turf it can actually win; CAREFUL keeps one in reserve, AGGRESSIVE goes all in
-    const winnable=targets.filter(t=>t.s+1<=(p.temper==="AGGRESSIVE"?p.crew:p.crew-1));
+    const winnable=targets.filter(t=>t.s+1<=(aiProf(p).atkAllIn?p.crew:p.crew-1));
     if(!winnable.length){ log(p.name+L(" sizes up the rivals and stands down."," avalia os rivais e recua.")); finish(); return; }
     winnable.sort((a,b)=>cellUnit(b.idx)*b.s-cellUnit(a.idx)*a.s);
     const t=winnable[0]; resolveAttack(p,t.o,t.idx,Math.min(p.crew,t.s+1)); return;
@@ -2648,7 +2665,7 @@ function raidArrestChance(p){ return Math.min(0.92,(0.40+(p.heat||0)/100))*polic
 function copStop(){
   const p=S.players[S.cur];
   const cost=(p.heat||0)*3; // $3K per point of heat
-  if(p.ai){ const th=p.temper==="AGGRESSIVE"?40:15; if(p.heat>=th&&p.cash>=cost*2){p.cash-=cost;p.heat=0;log(p.name+L(" pays off a crooked cop (-"," paga um policial corrupto (-")+fmtK(cost)+L(") — heat wiped.",") — risco zerado."),"warn");render();finish();} else drawStory("cop"); return; }
+  if(p.ai){ const th=aiProf(p).copHeat; if(p.heat>=th&&p.cash>=cost*2){p.cash-=cost;p.heat=0;log(p.name+L(" pays off a crooked cop (-"," paga um policial corrupto (-")+fmtK(cost)+L(") — heat wiped.",") — risco zerado."),"warn");render();finish();} else drawStory("cop"); return; }
   if(!p.heat||p.cash<cost){ drawStory("cop"); return; }
   const el=document.getElementById("cardEl");
   el.dataset.deck="cop";
@@ -3206,9 +3223,9 @@ function rollDiceAI(){
 /* AI stocks up on bodyguards with spare cash — more soldiers = more attacks and the 10+ bonus die */
 function aiRecruit(p){
   if(p.ring!=="outer"||p.inJail) return;
-  const agg=p.temper==="AGGRESSIVE";
-  const cap=Math.min(agg?12:6, (typeof MAX_SOLDIERS!=="undefined"?MAX_SOLDIERS:99));
-  const reserve=SOLDIER_COST*(agg?2:5);           // aggressive spends down to a thinner reserve
+  const pr=aiProf(p);
+  const cap=Math.min(pr.recruitCap, (typeof MAX_SOLDIERS!=="undefined"?MAX_SOLDIERS:99));
+  const reserve=SOLDIER_COST*pr.recruitReserve;   // more aggressive spends down to a thinner reserve
   let added=0;
   while(p.crew<cap && p.cash-SOLDIER_COST>=reserve){ p.cash-=SOLDIER_COST; p.crew++; added++; }
   if(added>0){ render(); log(p.name+L(" recruits "," recruta ")+added+L(" soldier"," soldado")+(added>1?"s":"")+L(" (now "," (agora ")+p.crew+").","good"); }
@@ -3216,14 +3233,14 @@ function aiRecruit(p){
 /* pick the richest rival turf this AI can actually take; returns null if it shouldn't attack this turn */
 function aiAttackTarget(p){
   if(p.ring!=="outer"||p.inJail) return null;
-  const agg=p.temper==="AGGRESSIVE";
-  const minCrew=agg?2:4;
+  const pr=aiProf(p);
+  const minCrew=pr.atkMinCrew;
   if(p.crew<minCrew) return null;
-  const cap=agg?p.crew:p.crew-1;                  // careful keeps one back
+  const cap=pr.atkAllIn?p.crew:p.crew-1;          // only the most aggressive goes all-in; others keep one back
   const targets=[];
   S.players.forEach(o=>{ if(o.id!==p.id&&o.alive){ o.owns.forEach((s,idx)=>{ if(s+1<=cap) targets.push({o,idx,s}); }); } });
   if(!targets.length) return null;
-  if(Math.random() >= (agg?0.6:0.15)) return null;   // even when able, doesn't attack every single turn
+  if(Math.random() >= pr.atkProb) return null;    // even when able, doesn't attack every single turn
   targets.sort((a,b)=>cellUnit(b.idx)*b.s-cellUnit(a.idx)*a.s);
   return targets[0];
 }
@@ -3241,7 +3258,7 @@ function aiScene(inner,then){
 }
 function aiSceneGo(){ if(_aiSceneDone)return; _aiSceneDone=true; closeModal(); const f=_aiSceneThen; _aiSceneThen=null; if(f)f(); }
 function aiSceneCard(p,ttl,body,cls){ return `<div class="lbl" style="background:${p.color}">${p.name}</div><div class="ttl"${cls?` style="color:${cls}"`:''}>${ttl}</div><div class="bd">${body}</div>`; }
-function aiBuyStreet(idx,c){const p=S.players[S.cur];const mult=(p.temper==="AGGRESSIVE")?1.3:2;
+function aiBuyStreet(idx,c){const p=S.players[S.cur];const mult=aiProf(p).buyMult;
   let ttl,body;
   if(p.cash>=c.price*mult){p.cash-=c.price;p.owns.set(idx,1);log(p.name+L(" claims "," toma ")+c.t+".","good");
     ttl=L("CLAIMS TURF","TOMA A ÁREA");body=p.name+L(" buys "," compra ")+c.t+L(" for "," por ")+fmtK(c.price)+".";}
