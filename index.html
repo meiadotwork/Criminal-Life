@@ -586,7 +586,7 @@
 <div id="setup">
 <div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
 <div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
-<div id="verSub" style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v15.0</div>
+<div id="verSub" style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v15.1</div>
 <div id="setupStage"></div>
 </div>
 
@@ -594,7 +594,7 @@
 
 <div id="screen" style="display:none">
   <div class="bar">
-    <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL <span id="verTag" style="font-size:10px;letter-spacing:1px;opacity:.55;font-weight:normal;text-shadow:none">v15.0</span></h1>
+    <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL <span id="verTag" style="font-size:10px;letter-spacing:1px;opacity:.55;font-weight:normal;text-shadow:none">v15.1</span></h1>
     <div id="turnBanner">TURN 1</div>
     <div class="topbtns">
       <button class="amber" onclick="openSupport()" title="support the developer">[ &#9829; ]</button>
@@ -641,7 +641,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v15.0";
+const APP_VERSION="v15.1";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -706,6 +706,11 @@ const CITIES = {
     // businesses keyed by their fixed income → [name, 2-char icon]; 400 stays the laundering front
     biz:{200:["tráfico","tf"],180:["roubo carga","cr"],170:["contrabando","cn"],150:["desmanche","dm"],110:["golpe PIX","px"],90:["combustível","cb"],80:["pirataria","pi"],70:["celulares","cl"],400:["lavagem","$$"]},
     casino:["Jogo do Bicho","JB"]
+  },
+  LA: { name:"LOS ANGELES", prison:"TWIN TOWERS", law:{life:true, maxYears:99},
+    streets:{20:"Skid Row",30:"Watts",45:"South LA",60:"Boyle Hts",75:"Echo Park",90:"Hollywood",100:"Koreatown",210:"Downtown LA",225:"W. Hollywood",230:"Santa Monica",250:"Brentwood",280:"Pacific Pal.",300:"Beverly Hills",350:"Holmby Hills",400:"Bel Air"},
+    biz:{200:["drug trade","dt"],180:["cargo theft","cg"],170:["retail theft","rt"],150:["firearms","gn"],110:["fraud/ID","id"],90:["auto export","gt"],80:["extortion","ex"],70:["loan shark","ls"],400:["laundering","$$"]},
+    casino:["Card Room","CR"]
   }
 };
 function applyCity(key){
@@ -837,7 +842,7 @@ function renderSetupStart(){
      <div class="cfgline" id="playCount" style="opacity:.7">${PLAYCOUNT!=null?(L("CRIMINALS SERVED WORLDWIDE: ","CRIMINOSOS ATENDIDOS NO MUNDO: ")+PLAYCOUNT):L("CONNECTING TO CRIME NETWORK...","CONECTANDO \u00c0 REDE DO CRIME...")}</div>
      <div class="cfgline">${L('CONFIGURE SESSION_','CONFIGURAR SESS\u00c3O_')}</div>
      <div class="cfghead">1. ${L('CITY','CIDADE')} <span style="opacity:.55">${L('(map · prison · local law)','(mapa · prisão · lei local)')}</span></div>
-     <div class="choice">${cityB('NY','NEW YORK')}${cityB('CWB','CURITIBA')}</div>
+     <div class="choice">${cityB('NY','NEW YORK')}${cityB('LA','LOS ANGELES')}${cityB('CWB','CURITIBA')}</div>
      <div class="cfghead">2. ${L('INITIAL CAPITAL','CAPITAL INICIAL')} <span style="opacity:.55">${L('(what you start with)','(com quanto você começa)')}</span></div>
      <div class="choice">${cB(0,'$0')}${cB(100,'$100K')}${cB(250,'$250K')}${cB(1000,'$1M')}</div>
      ${cap!=null?`<div class="cfgflavor">&gt; ${capFlavor(cap)}</div>`:''}
