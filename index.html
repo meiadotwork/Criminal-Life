@@ -586,7 +586,7 @@
 <div id="setup">
 <div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
 <div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
-<div id="verSub" style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v15.5</div>
+<div id="verSub" style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v15.6</div>
 <div id="setupStage"></div>
 </div>
 
@@ -594,7 +594,7 @@
 
 <div id="screen" style="display:none">
   <div class="bar">
-    <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL <span id="verTag" style="font-size:10px;letter-spacing:1px;opacity:.55;font-weight:normal;text-shadow:none">v15.5</span></h1>
+    <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL <span id="verTag" style="font-size:10px;letter-spacing:1px;opacity:.55;font-weight:normal;text-shadow:none">v15.6</span></h1>
     <div id="turnBanner">TURN 1</div>
     <div class="topbtns">
       <button class="amber" onclick="openSupport()" title="support the developer">[ &#9829; ]</button>
@@ -641,7 +641,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v15.5";
+const APP_VERSION="v15.6";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -721,7 +721,12 @@ const CITIES = {
     // drugs separated (cocaína, crack, maconha) + milícia extortion, cargo theft, chop shop, PIX scam, smuggling, laundering
     biz:{200:["cocaína","co"],180:["crack","ck"],170:["maconha","mc"],150:["milícia","ml"],110:["roubo carga","cr"],90:["desmanche","dm"],80:["golpe PIX","px"],70:["contrabando","cn"],400:["lavagem","$$"]},
     casino:["Jogo do Bicho","JB"]
-  }
+  },
+  CDMX:{ name:"MEXICO CITY", prison:"ALTIPLANO", law:{life:false, maxYears:60}, cur:"MX$", scale:0.3, soldier:60,
+    streets:{20:"Neza",30:"Tepito",45:"Iztapalapa",60:"Doctores",75:"Centro Hist.",90:"Escandón",100:"Narvarte",210:"Del Valle",225:"Coyoacán",230:"Roma Norte",250:"Condesa",280:"Santa Fe",300:"Bosques Lomas",350:"Lomas Chap.",400:"Polanco"},
+    // drugs separated (cocaína, cristal, mota) + cobro de piso extortion, huachicol, robo de carga, autopartes, piratería, lavado
+    biz:{200:["cocaína","co"],180:["cristal","cr"],170:["mota","mt"],150:["cobro de piso","cp"],110:["huachicol","hu"],90:["robo carga","rc"],80:["autopartes","ap"],70:["piratería","pi"],400:["lavado","$$"]},
+    casino:["Casino","CS"] }
 };
 function applyCity(key){
   const city=CITIES[key]||CITIES.NY;
@@ -858,7 +863,7 @@ function renderSetupStart(){
      <div class="cfgline" id="playCount" style="opacity:.7">${PLAYCOUNT!=null?(L("CRIMINALS SERVED WORLDWIDE: ","CRIMINOSOS ATENDIDOS NO MUNDO: ")+PLAYCOUNT):L("CONNECTING TO CRIME NETWORK...","CONECTANDO \u00c0 REDE DO CRIME...")}</div>
      <div class="cfgline">${L('CONFIGURE SESSION_','CONFIGURAR SESS\u00c3O_')}</div>
      <div class="cfghead">1. ${L('CITY','CIDADE')} <span style="opacity:.55">${L('(map · prison · local law)','(mapa · prisão · lei local)')}</span></div>
-     <div class="choice">${cityB('NY','NEW YORK')}${cityB('LA','LOS ANGELES')}${cityB('CWB','CURITIBA')}${cityB('RIO','RIO')}</div>
+     <div class="choice">${cityB('NY','NEW YORK')}${cityB('LA','LOS ANGELES')}${cityB('CWB','CURITIBA')}${cityB('RIO','RIO')}${cityB('CDMX','CDMX')}</div>
      <div class="cfghead">2. ${L('INITIAL CAPITAL','CAPITAL INICIAL')} <span style="opacity:.55">${L('(what you start with)','(com quanto você começa)')}</span></div>
      <div class="choice">${cB(0,fmtK(0))}${cB(100,fmtK(100))}${cB(250,fmtK(250))}${cB(1000,fmtK(1000))}</div>
      ${cap!=null?`<div class="cfgflavor">&gt; ${capFlavor(cap)}</div>`:''}
