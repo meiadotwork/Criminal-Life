@@ -295,9 +295,11 @@
   .condice-panel #diceBox{margin-bottom:6px;}
   .condice-panel .controls{display:flex;flex-direction:column;align-items:stretch;gap:5px;}
   .condice-panel .controls button{width:100%;font-size:12px;padding:6px 4px;}
-  /* spectating an all-AI match: no dice to roll — drop it, give the console the room */
+  /* spectating an all-AI match: the chart + leaderboard (in the board panel) are the show.
+     Drop the dice, shrink the console to a line or two, and hide the player-info panels. */
   body.spectating .condice-panel .dicecol{display:none !important;}
-  body.spectating .condice-panel #log{max-height:62vh !important;}
+  body.spectating .condice-panel #log{min-height:0 !important;max-height:4.4em !important;}
+  body.spectating .curplayer-panel, body.spectating .others-panel{display:none !important;}
   /* PLAYER ON TURN (full width) */
   .curplayer-panel{flex:0 0 auto;}
   #players{gap:6px;}
@@ -588,7 +590,7 @@
 <div id="setup">
 <div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
 <div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
-<div id="verSub" style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v16.2</div>
+<div id="verSub" style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v16.3</div>
 <div id="setupStage"></div>
 </div>
 
@@ -596,7 +598,7 @@
 
 <div id="screen" style="display:none">
   <div class="bar">
-    <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL <span id="verTag" style="font-size:10px;letter-spacing:1px;opacity:.55;font-weight:normal;text-shadow:none">v16.2</span></h1>
+    <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL <span id="verTag" style="font-size:10px;letter-spacing:1px;opacity:.55;font-weight:normal;text-shadow:none">v16.3</span></h1>
     <div id="turnBanner">TURN 1</div>
     <div class="topbtns">
       <button class="amber" onclick="openSupport()" title="support the developer">[ &#9829; ]</button>
@@ -644,7 +646,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v16.2";
+const APP_VERSION="v16.3";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
