@@ -586,7 +586,7 @@
 <div id="setup">
 <div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
 <div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
-<div id="verSub" style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v15.8</div>
+<div id="verSub" style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v15.9</div>
 <div id="setupStage"></div>
 </div>
 
@@ -594,7 +594,7 @@
 
 <div id="screen" style="display:none">
   <div class="bar">
-    <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL <span id="verTag" style="font-size:10px;letter-spacing:1px;opacity:.55;font-weight:normal;text-shadow:none">v15.8</span></h1>
+    <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL <span id="verTag" style="font-size:10px;letter-spacing:1px;opacity:.55;font-weight:normal;text-shadow:none">v15.9</span></h1>
     <div id="turnBanner">TURN 1</div>
     <div class="topbtns">
       <button class="amber" onclick="openSupport()" title="support the developer">[ &#9829; ]</button>
@@ -641,7 +641,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v15.8";
+const APP_VERSION="v15.9";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -1537,7 +1537,7 @@ function rollDice(){
   document.getElementById("diceLbl").textContent=L("rolled ","tirou ")+(n>1?total+" ("+rolls.join("+")+")":""+total)+" · D"+sides+(bonus?L(" · +1 die (10+ soldiers)"," · +1 dado (10+ soldados)"):"");
 }
 function speakCard(){ try{ const raw=document.getElementById("cardEl").innerText||""; const t=raw.replace(/\[[^\]]*\]/g," ").replace(/\s+/g," ").trim(); if(!t)return; window.speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(t); u.rate=1; window.speechSynthesis.speak(u); }catch(e){} }
-function openManual(){ window.speechSynthesis&&window.speechSynthesis.cancel(); const el=document.getElementById("cardEl");
+function openManual(){ window.speechSynthesis&&window.speechSynthesis.cancel(); const el=document.getElementById("cardEl"); el.dataset.read="1";   // manual → show READ
   const H=t=>`<div style="margin:14px 0 4px;font-weight:bold;letter-spacing:2px;border-bottom:1px solid var(--phos-dim);padding-bottom:2px">${t}</div>`;
   if(LANG==='PT'){
   el.innerHTML=`<div class="lbl">MANUAL \u2014 COMO JOGAR</div>
@@ -2022,7 +2022,7 @@ function hospitalStop(){
   if(p.hosp<=0){ log(L("Hospital. You're healthy — just passing.","Hospital. Você está saudável — só de passagem.")); finish(); return; }
   if(p.ai){ if(p.cash>=TREAT_COST*3){p.cash-=TREAT_COST;p.hosp--;log(p.name+L(" pays "," paga ")+fmtK(TREAT_COST)+L(" for treatment — 1 hospital visit cleared ("," pelo tratamento — 1 visita de hospital limpa (")+p.hosp+"/3).","good");} finish(); return; }
   const el=document.getElementById("cardEl");
-  el.innerHTML=`<div class="lbl" style="background:${p.color}">HOSPITAL</div>
+  el.dataset.read="1"; el.innerHTML=`<div class="lbl" style="background:${p.color}">HOSPITAL</div>
     <div class="art">${ART.hospital}</div><div class="ttl">${L('Walk-in clinic','Cl\u00ednica sem agendamento')}</div>
     <div class="bd">${L("You're carrying ","Voc\u00ea carrega ")}${p.hosp}${L(" hospital visit"+(1?"":"")," visita(s) de hospital")}${LANG==='PT'?" na ficha (3 = morto). Um m\u00e9dico discreto limpa uma — dinheiro adiantado, sem perguntas.":(p.hosp>1?"s":"")+" on your record (3 = dead). A discreet doctor will patch one up — cash up front, no questions asked."}</div>
     <div class="out">${L('Treatment','Tratamento')}: ${fmtK(TREAT_COST)} ${L('clears 1 visit','limpa 1 visita')}</div>
@@ -2048,7 +2048,7 @@ function tryStreet(c){
   let rows=ladder.map(l=>`<div><span>${l.n} soldier${l.n>1?"s":""}</span><span>${fmtK(l.v)}/yr</span></div>`).join("");
   let btns=`<button onclick="buyStreet(${idx},1,${c.price})">${L('[ BUY 1 · ','[ COMPRAR 1 · ')}${fmtK(c.price)} ]</button>`;
   const el=document.getElementById("cardEl");
-  el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('STREET · FOR SALE','RUA · \u00c0 VENDA')}</div>
+  el.dataset.read="1"; el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('STREET · FOR SALE','RUA · \u00c0 VENDA')}</div>
     <div class="art">${ART.street}</div><div class="ttl">${c.t}</div>
     <div class="sub">${L('Price per soldier = their yearly take. Buy soldiers one at a time; add more later.','Pre\u00e7o por soldado = o que ele rende por ano. Compre um por vez; adicione mais depois.')}</div>
     <div class="out ladder">${rows}</div>
@@ -2088,7 +2088,7 @@ function pokerNight(){
     collectOne(p,idx); // your casino pays out its year's take ($1M) when you come around
     if(p.ai){render();finish();return;}
     const el=document.getElementById("cardEl");
-    el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('POKER NIGHT - YOUR HOUSE','NOITE DE P\u00d4QUER - SUA CASA')}</div>
+    el.dataset.read="1"; el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('POKER NIGHT - YOUR HOUSE','NOITE DE P\u00d4QUER - SUA CASA')}</div>
       <div class="ttl">${L('You run the tables','Voc\u00ea comanda as mesas')}</div>
       <div class="bd">${L("This is your casino. It earns you <b>$1M a year</b>, and every bet a rival loses at these tables comes straight to you. The house doesn't gamble against itself — you just count the take.","Este \u00e9 o seu cassino. Rende <b>$1M por ano</b>, e cada aposta que um rival perde nestas mesas vai direto pra voc\u00ea. A casa n\u00e3o aposta contra si mesma — voc\u00ea s\u00f3 conta o dinheiro.")}</div>
       <div class="go"><button class="red" onclick="sellPoker(${idx})">${L('[ SELL HOUSE - ','[ VENDER CASA - ')}${fmtK(c.price)} ]</button><button onclick="closeModal();finish()">${L('[ DONE ]','[ CONCLUIR ]')}</button></div>
@@ -2109,7 +2109,7 @@ function pokerNight(){
   const ownLine = ownerName?`<div class="sub">${ownerName} ${L('owns this house - if you LOSE, your bet goes to','\u00e9 dono desta casa - se voc\u00ea PERDER, sua aposta vai para')} ${ownerName}. ${L('Wins are paid by the house.','Vit\u00f3rias s\u00e3o pagas pela casa.')}</div>`
                            :`<div class="sub">${L('Nobody owns this house yet. Buy it, or try your luck.','Ningu\u00e9m \u00e9 dono desta casa ainda. Compre-a, ou tente a sorte.')}</div>`;
   const buyBtn = (!owner && p.cash>=c.price)?`<button onclick="pokerBuy(${idx})">${L('[ BUY HOUSE - ','[ COMPRAR CASA - ')}${fmtK(c.price)} ]</button>`:"";
-  el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('POKER NIGHT','NOITE DE P\u00d4QUER')}</div>
+  el.dataset.read="1"; el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('POKER NIGHT','NOITE DE P\u00d4QUER')}</div>
     <div class="ttl">${L('Place your bet','Fa\u00e7a sua aposta')}</div>
     <div class="bd">${L('Choose your stake, then roll: <b>4-6 you WIN your bet</b> (double it), <b>1-3 you LOSE your bet</b>.','Escolha o valor e role: <b>4-6 voc\u00ea GANHA a aposta</b> (dobra), <b>1-3 voc\u00ea PERDE a aposta</b>.')}</div>
     ${ownLine}
@@ -2187,7 +2187,7 @@ function pokerRoll(idx){
   p._pokerBet=0;
   if(p.ai){render();finish();return;}
   const el=document.getElementById("cardEl");
-  el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('POKER NIGHT','NOITE DE P\u00d4QUER')}</div>
+  el.dataset.read="1"; el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('POKER NIGHT','NOITE DE P\u00d4QUER')}</div>
     <div class="ttl">${win?L("WINNER","VENCEDOR"):L("YOU LOSE","VOC\u00ca PERDEU")}</div>
     <div class="bd">${L('You rolled a <b>','Voc\u00ea tirou <b>')}${r}</b>. ${win?(L("You won your bet - +","Voc\u00ea ganhou a aposta - +")+fmtK(stake)+"."):(L("You lost your bet","Voc\u00ea perdeu a aposta")+(owner&&owner.id!==p.id?" - "+owner.name+L(" collects."," recolhe."):"."))}</div>
     <div class="out">${fmtK(p.cash)} ${L('on hand','em m\u00e3os')}</div>
@@ -2203,7 +2203,7 @@ function tryBiz(c){
   if(owner&&owner.id!==p.id){ buyProduct(p,owner,idx,c); return; }
   if(p.ai){ aiBuyBiz(idx,c); return; }
   const el=document.getElementById("cardEl");const can=p.cash>=c.income;
-  el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('BUSINESS · FOR SALE','NEG\u00d3CIO · \u00c0 VENDA')}</div>
+  el.dataset.read="1"; el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('BUSINESS · FOR SALE','NEG\u00d3CIO · \u00c0 VENDA')}</div>
     <div class="art">${ART.biz}</div><div class="ttl">${c.t}</div>
     <div class="sub">${L('Staff with 1 worker to open. Buy more workers later. Rivals landing here pay you — everybody eats.','Abra com 1 funcion\u00e1rio. Compre mais depois. Rivais que ca\u00edrem aqui pagam a voc\u00ea — todo mundo come.')}</div>
     <div class="out">${L('Open with 1 worker','Abrir com 1 funcion\u00e1rio')}: ${fmtK(c.income)} · ${L('earns','rende')} ${fmtK(c.income)}/${L('yr each','ano cada')}</div>
@@ -2540,7 +2540,7 @@ function aiAutoApply(card){
 }
 function renderStoryCard(card,deck,isAI){
   const p=S.players[S.cur];const el=document.getElementById("cardEl");
-  el.dataset.deck=deck;
+  el.dataset.deck=deck; el.dataset.read="1";   // narrative card → show READ
   const art=ART[deck]||"[?]";
   const {text,btn}=outcomeAndButton(card,deck);
   const num=(typeof DECKS!=="undefined"&&DECKS[deck])?DECKS[deck].indexOf(card)+1:0;
@@ -2719,7 +2719,7 @@ function showNotice(lbl,art,ttl,bd,next,danger){
   if(p.ai){ if(next)next(); return; }
   _noticeNext=next||null;
   const el=document.getElementById("cardEl");
-  el.dataset.deck=danger?"law":"notice";
+  el.dataset.deck=danger?"law":"notice"; el.dataset.read="1";   // narrative notice → show READ
   el.innerHTML=`<div class="lbl" style="background:${danger?'#7a0d0d':p.color}">${lbl}</div>
     <div class="art">${art}</div>
     <div class="ttl">${ttl}</div>
@@ -3342,7 +3342,13 @@ ${L("Your cash now:","Seu dinheiro agora:")} ${fmtK(Math.max(0,p.cash))}${shortf
 function statusBar(){const p=S.players[S.cur];const wealth=p.ring==="inner"?`<span>${L('PACKS','MA\u00c7OS')}: ${p.packs}</span>`:`<span>${fmtK(p.cash)}</span>`;
   const heat=p.ring==="inner"?"":`<span>${L('HEAT','RISCO')}: ${p.heat||0}%</span>`;
   return `<div class="status"><span>${p.name}</span>${wealth}${heat}<span>SOL: ${p.crew}</span><span>${L('TURF','\u00c1REA')}: ${p.owns.size}</span></div>`;}
-function openModal(){document.getElementById("modal").classList.add("on");}
+function openModal(){document.getElementById("modal").classList.add("on");
+  // READ (text-to-speech) only on narrative cards + the manual — they set dataset.read="1".
+  // Hidden on menus, standings, settings, profile, buy/sell prompts, etc.
+  const t=document.getElementById("cardTools"), ce=document.getElementById("cardEl");
+  if(t) t.style.display=(ce&&ce.dataset.read==="1")?"flex":"none";
+  if(ce) ce.dataset.read="";   // consume the flag so the next modal starts hidden
+}
 function closeModal(){document.getElementById("modal").classList.remove("on");const ce=document.getElementById("cardEl");if(ce)ce.dataset.deck="";try{window.speechSynthesis&&window.speechSynthesis.cancel();}catch(e){} if(typeof unpauseGame==="function")unpauseGame();}
 
 /* ===== BOOT ===== */
