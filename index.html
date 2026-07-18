@@ -585,7 +585,7 @@
 <div id="setup">
 <div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
 <div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
-<div id="verSub" style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v16.0</div>
+<div id="verSub" style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v16.1</div>
 <div id="setupStage"></div>
 </div>
 
@@ -593,7 +593,7 @@
 
 <div id="screen" style="display:none">
   <div class="bar">
-    <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL <span id="verTag" style="font-size:10px;letter-spacing:1px;opacity:.55;font-weight:normal;text-shadow:none">v16.0</span></h1>
+    <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL <span id="verTag" style="font-size:10px;letter-spacing:1px;opacity:.55;font-weight:normal;text-shadow:none">v16.1</span></h1>
     <div id="turnBanner">TURN 1</div>
     <div class="topbtns">
       <button class="amber" onclick="openSupport()" title="support the developer">[ &#9829; ]</button>
@@ -607,6 +607,7 @@
       <div class="zoombar"><button onclick="boardZoom(-1)">−</button><button id="bzBtn" onclick="boardZoom(0)" title="tap to fit">100%</button><button onclick="boardZoom(1)">+</button><button id="focusBtn" onclick="toggleFocus()" title="zoom in on the cell you're on" style="margin-left:auto">◎ FOCUS</button></div>
       <div id="boardWrap"><div id="board"></div></div>
       <div id="focusCard" style="display:none"></div>
+      <div id="spectateView" style="display:none;width:100%"></div>
     </div>
     <div class="side">
       <div class="panel condice-panel">
@@ -640,7 +641,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v16.0";
+const APP_VERSION="v16.1";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -986,7 +987,7 @@ function launch(){
   buildBoardGrid();
   render();updateControls();
   [60,300,700,1400].forEach(t=>setTimeout(fitBoard,t));
-  try{applyFocus();}catch(e){}   // restore FOCUS mode preference on game start
+  try{SPECTATING=false;applyFocus();}catch(e){}   // restore FOCUS mode preference on game start
   if(document.fonts&&document.fonts.ready){document.fonts.ready.then(()=>setTimeout(fitBoard,40));}
   newRound();
   bumpPlayCount(S.players.filter(x=>!x.ai).length);   // every human who sits down counts, worldwide
@@ -1016,7 +1017,7 @@ function loadFromSnapshot(sv,note){
   buildBoardGrid();
   render();updateControls();
   [60,300,700,1400].forEach(t=>setTimeout(fitBoard,t));
-  try{applyFocus();}catch(e){}   // restore FOCUS mode preference on game start
+  try{SPECTATING=false;applyFocus();}catch(e){}   // restore FOCUS mode preference on game start
   if(document.fonts&&document.fonts.ready){document.fonts.ready.then(()=>setTimeout(fitBoard,40));}
   newRound();
   log(note||(L("SESSION RESTORED — turn ","SESSÃO RESTAURADA — turno ")+S.turn+". "+S.players[S.cur].name+L(" is up."," é a vez.")),"sys");
@@ -1251,7 +1252,8 @@ function render(){
   const tb=document.getElementById("turnBanner");
   tb.textContent=`${L("TURN","TURNO")} ${S.turn} — ${cp.name}`+(cp.ring==="inner"?L(" [PRISON]"," [PRIS\u00c3O]"):"");
   tb.style.background=cp.color;tb.style.borderColor=cp.color;
-  if(FOCUS_MODE)renderFocusCard();   // keep the focus card following the token
+  if(SPECTATING)renderSpectate(false);        // live spectate dashboard
+  else if(FOCUS_MODE)renderFocusCard();       // keep the focus card following the token
   const bh=document.querySelector(".board-panel h2");
   if(bh) bh.textContent = (S.city==="NY")?L("NEW YORK CITY","NOVA YORK"):((CITIES[S.city]||CITIES.NY).name);
 }
@@ -1344,10 +1346,32 @@ function openPause(){
   PAUSED=true;
   try{if(typeof saveGame==="function")saveGame();}catch(e){}
   const el=document.getElementById("cardEl");
+  const ordered=orderedPlayers();
+  const rows=standingsRows();
+  const anyHist=S.players.some(p=>(p.nwHist||[]).length);
+  const allAI=S.players.length>0 && S.players.filter(p=>p.alive).every(p=>p.ai);
+  el.innerHTML=`<div class="cv">
+    <div class="cvhead">
+      <div class="cvtitle">‖ ${L("PAUSED — STANDINGS","PAUSADO — CLASSIFICAÇÃO")}</div>
+      <div class="cvsub">${L("TURN","TURNO")} ${S.turn} · ${L("TAP A BOSS FOR THEIR RECORD","TOQUE NUM CHEFE PRA VER A FICHA")}</div>
+    </div>
+    <div class="cvh" style="margin-top:2px">${L("NET WORTH OVER TIME","PATRIMÔNIO AO LONGO DO TEMPO")}</div>
+    ${anyHist?`<div style="display:flex;justify-content:flex-end;gap:5px;margin:2px 0 4px"><button class="tiny" onclick="chartZoom(-1)">−</button><button class="tiny" id="chartZoomBtn" onclick="chartZoom(0)" title="reset zoom">100%</button><button class="tiny" onclick="chartZoom(1)">+</button></div>
+    <div id="nwChartWrap" style="overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;border:1px solid #173a22"></div>
+    <div class="cvdim" style="font-size:10px;text-align:center;margin-top:3px">${L("+ to zoom · drag / swipe sideways to scroll","+ para zoom · arraste pro lado pra rolar")}</div>`:`<div class="cvdim" style="padding:14px 0;text-align:center">${L("no history yet — play a round","sem histórico ainda — jogue uma rodada")}</div>`}
+    <div class="cvh" style="margin-top:4px">${L("LEADERBOARD","CLASSIFICAÇÃO")}</div>
+    <div>${rows}</div>
+    <div class="go">${(allAI&&!S.over)?`<button onclick="startSpectate()">${L("[ ▶ SPECTATE ]","[ ▶ ASSISTIR ]")}</button>`:""}<button class="amber" onclick="closeModal()">${S.over?L("[ ▸ CLOSE ]","[ ▸ FECHAR ]"):L("[ ▶ RESUME ]","[ ▶ CONTINUAR ]")}</button></div>
+  </div>`;
+  openModal();
+  if(anyHist){ _chartData=ordered; _chartZoom=1; setTimeout(renderChart,30); }
+}
+/* shared by the pause standings and the live spectate view */
+function orderedPlayers(){ return S.players.slice().sort((a,b)=>{if(a.alive!==b.alive)return a.alive?-1:1;return netWorth(b)-netWorth(a);}); }
+function standingsRows(){
   const alive=S.players.filter(p=>p.alive).slice().sort((a,b)=>netWorth(b)-netWorth(a));
   const aliveRank={};alive.forEach((p,i)=>aliveRank[p.id]=i+1);
-  const ordered=S.players.slice().sort((a,b)=>{if(a.alive!==b.alive)return a.alive?-1:1;return netWorth(b)-netWorth(a);});
-  const rows=ordered.map(p=>{
+  return orderedPlayers().map(p=>{
     const col=chartColor(p.id);
     const rk=p.alive?(aliveRank[p.id]===1?L("★","★"):"#"+aliveRank[p.id]):L("DEAD","MORTO");
     const hp=p.alive?("♥".repeat(Math.max(0,3-p.hosp))):"X";
@@ -1360,22 +1384,49 @@ function openPause(){
       <span style="opacity:.75;min-width:38px;text-align:right;white-space:nowrap">${rk}</span>
       <span style="opacity:.45">›</span>
     </div>`;}).join("");
-  const anyHist=S.players.some(p=>(p.nwHist||[]).length);
-  el.innerHTML=`<div class="cv">
-    <div class="cvhead">
-      <div class="cvtitle">‖ ${L("PAUSED — STANDINGS","PAUSADO — CLASSIFICAÇÃO")}</div>
-      <div class="cvsub">${L("TURN","TURNO")} ${S.turn} · ${L("TAP A BOSS FOR THEIR RECORD","TOQUE NUM CHEFE PRA VER A FICHA")}</div>
-    </div>
-    <div class="cvh" style="margin-top:2px">${L("NET WORTH OVER TIME","PATRIMÔNIO AO LONGO DO TEMPO")}</div>
-    ${anyHist?`<div style="display:flex;justify-content:flex-end;gap:5px;margin:2px 0 4px"><button class="tiny" onclick="chartZoom(-1)">−</button><button class="tiny" id="chartZoomBtn" onclick="chartZoom(0)" title="reset zoom">100%</button><button class="tiny" onclick="chartZoom(1)">+</button></div>
-    <div id="nwChartWrap" style="overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;border:1px solid #173a22"></div>
-    <div class="cvdim" style="font-size:10px;text-align:center;margin-top:3px">${L("+ to zoom · drag / swipe sideways to scroll","+ para zoom · arraste pro lado pra rolar")}</div>`:`<div class="cvdim" style="padding:14px 0;text-align:center">${L("no history yet — play a round","sem histórico ainda — jogue uma rodada")}</div>`}
-    <div class="cvh" style="margin-top:4px">${L("LEADERBOARD","CLASSIFICAÇÃO")}</div>
-    <div>${rows}</div>
-    <div class="go"><button class="amber" onclick="closeModal()">${S.over?L("[ ▸ CLOSE ]","[ ▸ FECHAR ]"):L("[ ▶ RESUME ]","[ ▶ CONTINUAR ]")}</button></div>
-  </div>`;
-  openModal();
-  if(anyHist){ _chartData=ordered; _chartZoom=1; setTimeout(renderChart,30); }
+}
+/* ===== SPECTATE: watch an all-AI match as a live dashboard (chart + leaderboard),
+   with the round console right below. Unlike PAUSE, the game keeps running. ===== */
+let SPECTATING=false, _specTurn=-1;
+function startSpectate(){ SPECTATING=true; _specTurn=-1; const sv=document.getElementById("spectateView"); if(sv)sv.dataset.built=""; closeModal(); const ce=document.getElementById("cardEl"); if(ce)ce.innerHTML=""; /* drop the pause card's duplicate #nwChartWrap */ applySpectate(); }
+function exitSpectate(){ SPECTATING=false; applySpectate(); }
+function applySpectate(){
+  const board=document.getElementById("boardWrap"), fc=document.getElementById("focusCard"), sv=document.getElementById("spectateView");
+  if(SPECTATING){
+    if(board)board.style.display="none"; if(fc)fc.style.display="none";
+    if(sv)sv.style.display="block";
+    document.body.classList.add("focus-on");
+    renderSpectate(true);
+  } else {
+    if(sv)sv.style.display="none";
+    document.body.classList.remove("focus-on");
+    if(typeof FOCUS_MODE!=="undefined"&&FOCUS_MODE){ if(fc)fc.style.display="block"; if(typeof renderFocusCard==="function")renderFocusCard(); }
+    else { if(board)board.style.display=""; try{fitBoard();}catch(e){} }
+  }
+}
+function renderSpectate(force){
+  const sv=document.getElementById("spectateView"); if(!sv||!S||!S.players)return;
+  let roundChanged=(S.turn!==_specTurn);
+  if(force||sv.dataset.built!=="1"){
+    sv.innerHTML=`<div class="cv" style="display:block">
+      <div class="cvhead"><div class="cvtitle">▶ ${L("SPECTATING","ASSISTINDO")}</div><div class="cvsub" id="specSub"></div></div>
+      <div class="cvh" style="margin-top:2px">${L("NET WORTH OVER TIME","PATRIMÔNIO AO LONGO DO TEMPO")}</div>
+      <div style="display:flex;justify-content:flex-end;gap:5px;margin:2px 0 4px"><button class="tiny" onclick="chartZoom(-1)">−</button><button class="tiny" id="chartZoomBtn" onclick="chartZoom(0)" title="reset zoom">100%</button><button class="tiny" onclick="chartZoom(1)">+</button></div>
+      <div id="nwChartWrap" style="width:100%;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;border:1px solid #173a22"></div>
+      <div class="cvh" style="margin-top:6px">${L("LEADERBOARD","CLASSIFICAÇÃO")}</div>
+      <div id="specBoard"></div>
+      <div class="cvdim" style="font-size:10px;text-align:center;margin-top:4px">${L("the round console is just below ↓","o console da rodada está logo abaixo ↓")}</div>
+      <div class="go"><button class="amber" onclick="exitSpectate()">${L("[ ⤢ BACK TO BOARD ]","[ ⤢ VOLTAR AO MAPA ]")}</button></div>
+    </div>`;
+    sv.dataset.built="1"; roundChanged=true;
+  }
+  const ss=document.getElementById("specSub"); if(ss)ss.textContent=`${L("TURN","TURNO")} ${S.turn} · ${S.players.filter(p=>p.alive).length}/${S.players.length} ${L("still standing","de pé")}`;
+  const sb=document.getElementById("specBoard"); if(sb)sb.innerHTML=standingsRows();
+  if(roundChanged){ _specTurn=S.turn; _chartData=orderedPlayers();
+    const doChart=()=>{ if(!SPECTATING)return; const wrap=document.getElementById("nwChartWrap"); if(!wrap)return;
+      const par=wrap.parentElement; if(par&&par.clientWidth)wrap.style.width=par.clientWidth+"px";   // flex child won't stretch on its own
+      renderChart(); };
+    doChart(); setTimeout(doChart,60); }
 }
 function log(m,cls=""){const d=document.createElement("div");d.className="l "+cls;d.textContent="• "+m;
   const box=(S.roundEl||document.getElementById("log"));
