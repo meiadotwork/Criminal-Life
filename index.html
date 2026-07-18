@@ -586,7 +586,7 @@
 <div id="setup">
 <div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
 <div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
-<div id="verSub" style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v15.2</div>
+<div id="verSub" style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v15.3</div>
 <div id="setupStage"></div>
 </div>
 
@@ -594,7 +594,7 @@
 
 <div id="screen" style="display:none">
   <div class="bar">
-    <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL <span id="verTag" style="font-size:10px;letter-spacing:1px;opacity:.55;font-weight:normal;text-shadow:none">v15.2</span></h1>
+    <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL <span id="verTag" style="font-size:10px;letter-spacing:1px;opacity:.55;font-weight:normal;text-shadow:none">v15.3</span></h1>
     <div id="turnBanner">TURN 1</div>
     <div class="topbtns">
       <button class="amber" onclick="openSupport()" title="support the developer">[ &#9829; ]</button>
@@ -641,7 +641,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v15.2";
+const APP_VERSION="v15.3";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -699,17 +699,18 @@ const ML_POS=OUTER.findIndex(c=>c.t==="money laundering");
    only names, icons, prison and local law change per city. ===== */
 const CITY_BASE = OUTER.map(c=>({t:c.t,ic:c.ic}));   // snapshot the New York names as the base template
 const CITIES = {
-  NY:  { name:"NEW YORK", prison:"RIKERS", law:{life:true, maxYears:99} },
-  CWB: { name:"CURITIBA", prison:"PIRAQUARA", law:{life:false, maxYears:40},
+  NY:  { name:"NEW YORK", prison:"RIKERS", law:{life:true, maxYears:99}, cur:"$", scale:1, soldier:100 },
+  CWB: { name:"CURITIBA", prison:"PIRAQUARA", law:{life:false, maxYears:40}, cur:"R$", scale:0.2, soldier:50,
     // streets keyed by their fixed price → local neighborhood (richest price = most prestigious area)
     streets:{20:"Caximba",30:"Tatuquara",45:"Cajuru",60:"CIC",75:"Sítio Cercado",90:"Boqueirão",100:"Portão",210:"Centro",225:"Centro Cívico",230:"Juvevê",250:"Cabral",280:"Água Verde",300:"Bigorrilho",350:"Ecoville",400:"Batel"},
-    // businesses keyed by their fixed income → [name, 2-char icon]; 400 stays the laundering front
-    biz:{200:["tráfico","tf"],180:["roubo carga","cr"],170:["contrabando","cn"],150:["desmanche","dm"],110:["golpe PIX","px"],90:["golpe do gás","gs"],80:["pirataria","pi"],70:["roubo celular","cl"],400:["lavagem","$$"]},
+    // businesses keyed by their fixed income → [name, icon]; drugs are separated. 400 = the laundering front
+    biz:{200:["cocaína","co"],180:["crack","ck"],170:["maconha","mc"],150:["contrabando","cn"],110:["roubo carga","cr"],90:["desmanche","dm"],80:["golpe PIX","px"],70:["roubo celular","cl"],400:["lavagem","$$"]},
     casino:["Jogo do Bicho","JB"]
   },
-  LA: { name:"LOS ANGELES", prison:"TWIN TOWERS", law:{life:true, maxYears:99},
+  LA: { name:"LOS ANGELES", prison:"TWIN TOWERS", law:{life:true, maxYears:99}, cur:"$", scale:1, soldier:100,
     streets:{20:"Skid Row",30:"Watts",45:"South LA",60:"Boyle Hts",75:"Echo Park",90:"Hollywood",100:"Koreatown",210:"Downtown LA",225:"W. Hollywood",230:"Santa Monica",250:"Brentwood",280:"Pacific Pal.",300:"Beverly Hills",350:"Holmby Hills",400:"Bel Air"},
-    biz:{200:["drug trade","dt"],180:["cargo theft","cg"],170:["retail theft","rt"],150:["firearms","gn"],110:["fraud/ID","id"],90:["auto export","gt"],80:["extortion","ex"],70:["loan shark","ls"],400:["laundering","$$"]},
+    // drugs separated (cocaine, fentanyl, meth, heroin) + firearms, cargo/retail theft, fraud, laundering
+    biz:{200:["cocaine","co"],180:["fentanyl","fn"],170:["meth","me"],150:["heroin","he"],110:["firearms","gn"],90:["cargo theft","cg"],80:["fraud/ID","id"],70:["retail theft","rt"],400:["laundering","$$"]},
     casino:["Card Room","CR"]
   }
 };
@@ -722,8 +723,14 @@ function applyCity(key){
     else if(c.k==="poker"){ c.t=city.casino?city.casino[0]:base.t; c.ic=city.casino?city.casino[1]:base.ic; }
     else { c.t=base.t; c.ic=base.ic; }
   });
+  // local labour is cheaper in some places (Brazil) — soldiers cost & pay less
+  SOLDIER_COST = city.soldier || 100;
+  SOLDIER_WAGE = city.soldier || 100;
 }
-function cityPrison(){ return (CITIES[(typeof S!=="undefined"&&S&&S.city)||"NY"]||CITIES.NY).prison; }
+function _cityKey(){ if(typeof S!=="undefined"&&S&&S.city)return S.city; if(typeof setupData!=="undefined"&&setupData&&setupData.city)return setupData.city; return "NY"; }
+function cityCur(){ return (CITIES[_cityKey()]||CITIES.NY).cur || "$"; }
+function cityScale(){ const s=(CITIES[_cityKey()]||CITIES.NY).scale; return s||1; }
+function cityPrison(){ return (CITIES[_cityKey()]||CITIES.NY).prison; }
 function cityLaw(){ return (typeof S!=="undefined"&&S&&S.law)||{life:true,maxYears:99}; }
 function capYears(y){ const m=cityLaw().maxYears||99; return Math.min(y,m); }
 const INNER = [
@@ -844,7 +851,7 @@ function renderSetupStart(){
      <div class="cfghead">1. ${L('CITY','CIDADE')} <span style="opacity:.55">${L('(map · prison · local law)','(mapa · prisão · lei local)')}</span></div>
      <div class="choice">${cityB('NY','NEW YORK')}${cityB('LA','LOS ANGELES')}${cityB('CWB','CURITIBA')}</div>
      <div class="cfghead">2. ${L('INITIAL CAPITAL','CAPITAL INICIAL')} <span style="opacity:.55">${L('(what you start with)','(com quanto você começa)')}</span></div>
-     <div class="choice">${cB(0,'$0')}${cB(100,'$100K')}${cB(250,'$250K')}${cB(1000,'$1M')}</div>
+     <div class="choice">${cB(0,fmtK(0))}${cB(100,fmtK(100))}${cB(250,fmtK(250))}${cB(1000,fmtK(1000))}</div>
      ${cap!=null?`<div class="cfgflavor">&gt; ${capFlavor(cap)}</div>`:''}
      <div class="cfghead">3. ${L('DICE','DADOS')} <span style="opacity:.55">${L('(bigger die = years pass faster)','(dado maior = anos passam mais rápido)')}</span></div>
      <div class="choice">${sB(6,'D6')}${sB(8,'D8')}${sB(10,'D10')}</div>
@@ -1945,9 +1952,9 @@ function collectOne(p,idx){
 }
 function cellUnit(idx){const c=OUTER[idx];return c.incomeBase||c.price||c.income||0;}
 function fmtK(v){
-  const neg=v<0?"-":""; v=Math.abs(v);
-  if(v>=1000){ const m=v/1000; return neg+"$"+(m%1===0?m:m.toFixed(m>=10?0:1))+"M"; }
-  return neg+"$"+v+"K";
+  const neg=v<0?"-":""; v=Math.abs(v)*cityScale(); const cur=cityCur();   // display in local currency & scale
+  if(v>=1000){ const m=v/1000; return neg+cur+(m%1===0?m:m.toFixed(m>=10?0:1))+"M"; }
+  return neg+cur+Math.round(v)+"K";
 }
 
 /* ===== RESOLVE OUTER ===== */
@@ -2225,8 +2232,8 @@ function doProduct(pid,oid,amt){const p=S.players[pid],o=S.players[oid];p.cash-=
   log(p.name+L(" buys "," compra ")+fmtK(amt)+L(" product from "," de produto de ")+o.name+L(". You net +",". Você lucra +")+fmtK(amt)+", "+o.name+" +"+fmtK(amt*2)+".","good");closeModal();render();finish();}
 
 /* ===== RECRUITING (bulk) ===== */
-const SOLDIER_COST=100; // $100K per soldier
-const SOLDIER_WAGE=100; // paid per soldier every year (lap past START)
+let SOLDIER_COST=100; // per soldier to hire (set per city in applyCity — cheaper in Brazil)
+let SOLDIER_WAGE=100; // paid per soldier every year (lap past START)
 const MAX_SOLDIERS=Infinity;   // no cap on soldiers
 function openBuyWorkers(){
   const p=S.players[S.cur];
@@ -2532,10 +2539,10 @@ function renderStoryCard(card,deck,isAI){
 function outcomeAndButton(c,deck){
   let lines=[];let btn="[ OK ]";const B=(en,pt)=>L(en,pt);
   if(deck==="party"){
-    if(c.tag==="poker"){ lines.push((c.win?L("You WIN the pot: +$","Voc\u00ea GANHA o pote: +$"):L("You LOSE the bet: -$","Voc\u00ea PERDE a aposta: -$"))+c.bet+"K"); btn=c.win?L("[ COLLECT ]","[ RECEBER ]"):L("[ PAY ]","[ PAGAR ]"); }
+    if(c.tag==="poker"){ lines.push((c.win?L("You WIN the pot: +","Voc\u00ea GANHA o pote: +"):L("You LOSE the bet: -","Voc\u00ea PERDE a aposta: -"))+fmtK(c.bet)); btn=c.win?L("[ COLLECT ]","[ RECEBER ]"):L("[ PAY ]","[ PAGAR ]"); }
     else if(c.bet){ } 
-    if(c.cut>0){lines.push(L("Collect $","Receba $")+c.cut+"K");btn=L("[ COLLECT ]","[ RECEBER ]");}
-    if(c.cut<0){lines.push(L("Pay $","Pague $")+(-c.cut)+"K");btn=L("[ PAY ]","[ PAGAR ]");}
+    if(c.cut>0){lines.push(L("Collect ","Receba ")+fmtK(c.cut));btn=L("[ COLLECT ]","[ RECEBER ]");}
+    if(c.cut<0){lines.push(L("Pay ","Pague ")+fmtK(-c.cut));btn=L("[ PAY ]","[ PAGAR ]");}
     if(c.crew){lines.push(L("Gain ","Ganhe ")+c.crew+L(" soldier"," soldado"));btn="[ OK ]";}
     if(c.raidArr){lines.push(L("ARRESTED","PRESO"));btn=L("[ FACE THE LAW ]","[ ENCARAR A LEI ]");}
     if(c.note&&!lines.length){lines.push(c.note);btn="[ OK ]";}
@@ -2559,7 +2566,7 @@ function outcomeAndButton(c,deck){
   if(c.dyears!==undefined)lines.push(c.dyears>0?L("Sentence +","Pena +")+c.dyears+L("y","a"):c.dyears<0?L("Sentence ","Pena ")+c.dyears+L("y","a"):L("No change","Sem mudan\u00e7a"));
   if(c.escape)lines.push(L("ESCAPE — you're free","FUGA — voc\u00ea est\u00e1 livre"));
   if(c.ryears!==undefined)lines.push(c.ryears>0?"+"+c.ryears+L("y","a"):c.ryears+L("y","a"));
-  if(c.cost!==undefined&&c.cut===undefined)lines.push(L("Medical bill: $","Conta m\u00e9dica: $")+c.cost+"K");
+  if(c.cost!==undefined&&c.cut===undefined)lines.push(L("Medical bill: ","Conta m\u00e9dica: ")+fmtK(c.cost));
   return {text:lines.join("\n")||"...",btn};
 }
 
