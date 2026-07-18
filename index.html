@@ -300,6 +300,22 @@
   body.spectating .condice-panel .dicecol{display:none !important;}
   body.spectating .condice-panel #log{min-height:0 !important;max-height:4.4em !important;}
   body.spectating .curplayer-panel, body.spectating .others-panel{display:none !important;}
+  /* board zoom bar is useless while spectating */
+  body.spectating .board-panel .zoombar{display:none !important;}
+  /* DESKTOP: chart + leaderboard share the fixed-height board panel — cap the panel,
+     let the chart keep its (shortened) height, and give the leaderboard the rest with its
+     own scroll so it's always on screen no matter how many bosses are playing. */
+  @media(min-width:901px){
+    body.spectating .board-panel{max-height:calc(100vh - 92px) !important;overflow:hidden !important;}
+    body.spectating #spectateView{display:flex !important;flex:1 1 auto;min-height:0;flex-direction:column;}
+    /* .cv carries an inline display:block (chart-width guard); force flex so the leaderboard
+       can take remaining height. The chart wrap is pinned to an explicit px width in JS, so it
+       won't collapse under flex. */
+    body.spectating #spectateView>.cv{display:flex !important;flex-direction:column !important;flex:1 1 auto;min-height:0;height:100%;gap:6px;}
+    body.spectating #spectateView #nwChartWrap{flex:0 0 auto;}
+    body.spectating #spectateView #specBoard{flex:1 1 auto;min-height:90px;overflow-y:auto;}
+    body.spectating #spectateView .go{flex:0 0 auto;margin-top:2px;}
+  }
   /* PLAYER ON TURN (full width) */
   .curplayer-panel{flex:0 0 auto;}
   #players{gap:6px;}
@@ -646,7 +662,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v16.3";
+const APP_VERSION="v16.4";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -1289,8 +1305,8 @@ const CHART_COLORS=["#33ff66","#ff5b4a","#4aa8ff","#ffcf3f","#c07cff","#ff8f3f",
 function chartColor(id){return CHART_COLORS[((id||0)%CHART_COLORS.length+CHART_COLORS.length)%CHART_COLORS.length];}
 /* build the net-worth-over-time line chart as a self-contained SVG (dark bg baked in
    so it reads the same in every display mode) — like a stock ticker, lines going up and down. */
-function nwChartSVG(players,W){
-  W=Math.max(280,Math.round(W||620));const H=250,padL=52,padR=14,padT=16,padB=28;
+function nwChartSVG(players,W,H){
+  W=Math.max(280,Math.round(W||620));H=Math.max(150,Math.round(H||250));const padL=52,padR=14,padT=16,padB=28;
   const plotW=W-padL-padR, plotH=H-padT-padB;
   let maxLen=1, maxV=0, minV=0;
   players.forEach(p=>{const h=p.nwHist||[]; if(h.length>maxLen)maxLen=h.length; h.forEach(v=>{if(v>maxV)maxV=v;if(v<minV)minV=v;});});
@@ -1332,8 +1348,10 @@ let _chartData=[], _chartZoom=1;
 function renderChart(){
   const wrap=document.getElementById("nwChartWrap"); if(!wrap)return;
   const cw=Math.max(280,wrap.clientWidth||600);
+  // in spectate on desktop the leaderboard shares the panel, so keep the chart shorter so both fit
+  const ch=(SPECTATING&&window.innerWidth>=901)?200:250;
   const keepLeft=wrap.scrollLeft, prevInner=wrap.firstChild?wrap.firstChild.getBoundingClientRect().width:cw;
-  wrap.innerHTML=nwChartSVG(_chartData, cw*_chartZoom);
+  wrap.innerHTML=nwChartSVG(_chartData, cw*_chartZoom, ch);
   // keep the same spot centred-ish when zooming
   const newInner=wrap.firstChild?wrap.firstChild.getBoundingClientRect().width:cw;
   if(prevInner>0)wrap.scrollLeft=keepLeft*(newInner/prevInner);
