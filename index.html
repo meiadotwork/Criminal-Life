@@ -387,10 +387,30 @@
     display:block;margin:0;line-height:1.02;letter-spacing:0;font-size:20px;}
 </style>
 <style id="dos82">
-  /* global text scale — affects players, dice, actions, console, and all cards */
+  /* UI ZOOM — scales whole panels (frames + everything) up or down together */
   .side{zoom:var(--uiz,1);}
   #cardWrap{zoom:var(--uiz,1);}
   .bar h1, #turnBanner{zoom:var(--uiz,1);}
+</style>
+<style id="dos82b">
+  /* FONT SIZE — grows just the letters inside the panels and cards, leaving the frames,
+     borders and padding where they are (that's what UI ZOOM is for). Panels have their own
+     scroll, so bigger text simply reflows instead of pushing the layout off-screen. */
+  #log{font-size:calc(14px * var(--fz,1)) !important;}
+  #players, #othersRow, #specBoardSide, #specBoard{font-size:calc(16px * var(--fz,1));}
+  .pl{font-size:calc(13.5px * var(--fz,1)) !important;}
+  .pl .nm{font-size:calc(18px * var(--fz,1)) !important;}
+  .ctx, #ctxHint{font-size:calc(11px * var(--fz,1)) !important;}
+  #cardEl .card .ttl, .card .ttl{font-size:calc(26px * var(--fz,1)) !important;}
+  .card .sub{font-size:calc(16px * var(--fz,1)) !important;}
+  .card .bd{font-size:calc(20px * var(--fz,1)) !important;}
+  .card .out{font-size:calc(18px * var(--fz,1)) !important;}
+  .fcHere{font-size:calc(11px * var(--fz,1)) !important;}
+  .fcName{font-size:calc(26px * var(--fz,1)) !important;}
+  .fcRow{font-size:calc(15px * var(--fz,1)) !important;}
+  .fcRow .k{font-size:calc(12px * var(--fz,1)) !important;}
+  .cvrow{font-size:calc(14px * var(--fz,1)) !important;}
+  .cvtitle{font-size:calc(26px * var(--fz,1)) !important;}
 </style>
 <style id="dos83">
   .topbtns button.tiny{padding:6px 9px !important;min-width:34px;letter-spacing:0;}
@@ -659,7 +679,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v16.5";
+const APP_VERSION="v16.6";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -1876,13 +1896,20 @@ function renderFocusCard(){
     <div class="fcHint">${L("follows your token · tap FULL BOARD for the whole map","segue sua peça · toque em MAPA COMPLETO")}</div>
   </div>`;
 }
-/* ===== GLOBAL TEXT SIZE: scales all info panels + cards (board has its own zoom) ===== */
+/* ===== UI ZOOM: scales whole panels + cards up/down together (board has its own zoom) ===== */
 let _uiz=1;
 function uiScale(dir){
   if(dir===0)_uiz=1; else _uiz=Math.max(0.6,Math.min(2.2,+(_uiz+dir*0.1).toFixed(2)));
   document.documentElement.style.setProperty("--uiz",_uiz);
   const b=document.getElementById("uizBtn"); if(b)b.textContent=Math.round(_uiz*100)+"%";
   try{ if(typeof fitBoard==="function") setTimeout(fitBoard,60); }catch(e){}
+}
+/* ===== FONT SIZE: scales just the letters inside panels + cards (frames stay put) ===== */
+let _fz=1;
+function fontScale(dir){
+  if(dir===0)_fz=1; else _fz=Math.max(0.8,Math.min(2.4,+(_fz+dir*0.1).toFixed(2)));
+  document.documentElement.style.setProperty("--fz",_fz);
+  const b=document.getElementById("fzBtn"); if(b)b.textContent=Math.round(_fz*100)+"%";
 }
 /* ===== PAUSE: opening the MENU freezes AI turns until it's closed ===== */
 let PAUSED=false;
@@ -1895,7 +1922,8 @@ function openSettings(){
     <div class="bd" style="text-align:left;font-size:15px !important">
     ${row(L("Rules / how to play","Regras / como jogar"),`<button onclick="openManual()">[ MANUAL ]</button>`)}
     ${row(L("Language / Idioma","Idioma / Language"),`<button class="${LANG!=='PT'?'amber':''}" onclick="switchLang('EN')">[ EN ]</button><button class="${LANG==='PT'?'amber':''}" onclick="switchLang('PT')">[ PT ]</button>`)}
-    ${row(L("Text size","Tamanho do texto"),`<button class="tiny" onclick="uiScale(-1)">−</button><button class="tiny" id="uizBtn" onclick="uiScale(0)">${Math.round((typeof _uiz!=="undefined"?_uiz:1)*100)}%</button><button class="tiny" onclick="uiScale(1)">+</button>`)}
+    ${row(L("Font size","Tamanho da fonte"),`<button class="tiny" onclick="fontScale(-1)">−</button><button class="tiny" id="fzBtn" onclick="fontScale(0)">${Math.round((typeof _fz!=="undefined"?_fz:1)*100)}%</button><button class="tiny" onclick="fontScale(1)">+</button>`)}
+    ${row(L("UI zoom","Zoom da tela"),`<button class="tiny" onclick="uiScale(-1)">−</button><button class="tiny" id="uizBtn" onclick="uiScale(0)">${Math.round((typeof _uiz!=="undefined"?_uiz:1)*100)}%</button><button class="tiny" onclick="uiScale(1)">+</button>`)}
     ${row(L("Follow token","Seguir peça"),`<button id="followBtn" onclick="toggleFollow()">${tr((S&&S.followAnim)?"[ FOLLOW: ON ]":"[ FOLLOW: OFF ]")}</button>`)}
     ${row(L("Display mode","Modo de tela"),`<button id="greenBtn" onclick="toggleGreenDos()">${DISPLAY_MODES[_dispMode].lbl}</button>`)}
     ${row(L("Sound","Som"),`<button id="sndBtn" onclick="toggleSnd()">${SND?"[ SND ]":"[ MUTE ]"}</button>`)}
