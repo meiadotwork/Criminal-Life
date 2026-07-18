@@ -586,7 +586,7 @@
 <div id="setup">
 <div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
 <div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
-<div id="verSub" style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v15.3</div>
+<div id="verSub" style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v15.4</div>
 <div id="setupStage"></div>
 </div>
 
@@ -594,7 +594,7 @@
 
 <div id="screen" style="display:none">
   <div class="bar">
-    <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL <span id="verTag" style="font-size:10px;letter-spacing:1px;opacity:.55;font-weight:normal;text-shadow:none">v15.3</span></h1>
+    <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL <span id="verTag" style="font-size:10px;letter-spacing:1px;opacity:.55;font-weight:normal;text-shadow:none">v15.4</span></h1>
     <div id="turnBanner">TURN 1</div>
     <div class="topbtns">
       <button class="amber" onclick="openSupport()" title="support the developer">[ &#9829; ]</button>
@@ -641,7 +641,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v15.3";
+const APP_VERSION="v15.4";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -712,6 +712,12 @@ const CITIES = {
     // drugs separated (cocaine, fentanyl, meth, heroin) + firearms, cargo/retail theft, fraud, laundering
     biz:{200:["cocaine","co"],180:["fentanyl","fn"],170:["meth","me"],150:["heroin","he"],110:["firearms","gn"],90:["cargo theft","cg"],80:["fraud/ID","id"],70:["retail theft","rt"],400:["laundering","$$"]},
     casino:["Card Room","CR"]
+  },
+  RIO: { name:"RIO DE JANEIRO", prison:"BANGU", law:{life:false, maxYears:40}, cur:"R$", scale:0.2, soldier:50,
+    streets:{20:"C.Alemão",30:"Cidade Deus",45:"Bangu",60:"Madureira",75:"Méier",90:"Tijuca",100:"Flamengo",210:"Botafogo",225:"Copacabana",230:"Barra",250:"Gávea",280:"Jd Botânico",300:"Lagoa",350:"Ipanema",400:"Leblon"},
+    // drugs separated (cocaína, crack, maconha) + milícia extortion, cargo theft, chop shop, PIX scam, smuggling, laundering
+    biz:{200:["cocaína","co"],180:["crack","ck"],170:["maconha","mc"],150:["milícia","ml"],110:["roubo carga","cr"],90:["desmanche","dm"],80:["golpe PIX","px"],70:["contrabando","cn"],400:["lavagem","$$"]},
+    casino:["Jogo do Bicho","JB"]
   }
 };
 function applyCity(key){
@@ -849,7 +855,7 @@ function renderSetupStart(){
      <div class="cfgline" id="playCount" style="opacity:.7">${PLAYCOUNT!=null?(L("CRIMINALS SERVED WORLDWIDE: ","CRIMINOSOS ATENDIDOS NO MUNDO: ")+PLAYCOUNT):L("CONNECTING TO CRIME NETWORK...","CONECTANDO \u00c0 REDE DO CRIME...")}</div>
      <div class="cfgline">${L('CONFIGURE SESSION_','CONFIGURAR SESS\u00c3O_')}</div>
      <div class="cfghead">1. ${L('CITY','CIDADE')} <span style="opacity:.55">${L('(map · prison · local law)','(mapa · prisão · lei local)')}</span></div>
-     <div class="choice">${cityB('NY','NEW YORK')}${cityB('LA','LOS ANGELES')}${cityB('CWB','CURITIBA')}</div>
+     <div class="choice">${cityB('NY','NEW YORK')}${cityB('LA','LOS ANGELES')}${cityB('CWB','CURITIBA')}${cityB('RIO','RIO')}</div>
      <div class="cfghead">2. ${L('INITIAL CAPITAL','CAPITAL INICIAL')} <span style="opacity:.55">${L('(what you start with)','(com quanto você começa)')}</span></div>
      <div class="choice">${cB(0,fmtK(0))}${cB(100,fmtK(100))}${cB(250,fmtK(250))}${cB(1000,fmtK(1000))}</div>
      ${cap!=null?`<div class="cfgflavor">&gt; ${capFlavor(cap)}</div>`:''}
@@ -1536,7 +1542,7 @@ function openManual(){ window.speechSynthesis&&window.speechSynthesis.cancel(); 
   Toque no dado para rolar e andar — você resolve a casa onde CAIR. Antes de rolar você também pode apertar [ COMETER CRIME ] (3 chances por ano) para um assalto, morte encomendada ou tráfico aleatório — é uma ação GRATUITA, você ainda rola depois (mas prisão ou hospital encerram seu turno). O botão [ CONTRATAR ] funciona a qualquer momento no seu turno: guarda-costas, soldados de rua e funcionários. Tudo o que acontece aparece como uma carta.
 
   ${H("A RUA (anel externo)")}
-  Uma volta completa = UM ANO. Toda vez que passa pelo IN\u00cdCIO: voc\u00ea envelhece +1, suas 3 chances de crime renovam, paga o sal\u00e1rio dos soldados ($${SOLDIER_WAGE}K cada), os LAVADORES limpam o dinheiro SUJO que voc\u00ea ganhou naquele ano — um corte \u00fanico de 30% (s\u00f3 10% se voc\u00ea for DONO do neg\u00f3cio de lavagem). Dinheiro limpo nunca \u00e9 cobrado de novo; o caixa inicial e vendas de bens j\u00e1 s\u00e3o limpos. Passar POR CIMA de uma propriedade sua coleta a renda \u2014 n\u00e3o precisa cair exatamente nela.
+  Uma volta completa = UM ANO. Toda vez que passa pelo IN\u00cdCIO: voc\u00ea envelhece +1, suas 3 chances de crime renovam, paga o sal\u00e1rio dos soldados (${fmtK(SOLDIER_WAGE)} cada), os LAVADORES limpam o dinheiro SUJO que voc\u00ea ganhou naquele ano — um corte \u00fanico de 30% (s\u00f3 10% se voc\u00ea for DONO do neg\u00f3cio de lavagem). Dinheiro limpo nunca \u00e9 cobrado de novo; o caixa inicial e vendas de bens j\u00e1 s\u00e3o limpos. Passar POR CIMA de uma propriedade sua coleta a renda \u2014 n\u00e3o precisa cair exatamente nela.
 
   ${H("AS CASAS")}
   \u25B8 ASSALTO / MATADOR / TR\u00c1FICO \u2014 uma carta de servi\u00e7o: pegue o dinheiro e sobreviva ao teste de pris\u00e3o (10% base + seu RISCO).<br>
@@ -1552,7 +1558,7 @@ function openManual(){ window.speechSynthesis&&window.speechSynthesis.cancel(); 
   \u25B8 Casa HOSPITAL \u2014 machucado? Pague ${fmtK(TREAT_COST)} para limpar uma visita.
 
   ${H("SOLDADOS")}
-  $${SOLDIER_COST}K para contratar, $${SOLDIER_WAGE}K/ano de sal\u00e1rio. Eles defendem e tomam \u00e1reas, ASSUMEM A CULPA (v\u00e3o presos no seu lugar), LEVAM A SURRA (hospital no seu lugar) \u2014 e com 10+ soldados voc\u00ea rola um dado B\u00d4NUS.
+  ${fmtK(SOLDIER_COST)} para contratar, ${fmtK(SOLDIER_WAGE)}/ano de sal\u00e1rio. Eles defendem e tomam \u00e1reas, ASSUMEM A CULPA (v\u00e3o presos no seu lugar), LEVAM A SURRA (hospital no seu lugar) \u2014 e com 10+ soldados voc\u00ea rola um dado B\u00d4NUS.
 
   ${H("RISCO (HEAT)")}
   Cada crime que você comete e cada negócio que você toca aumenta seu RISCO — golpes maiores e operações maiores atraem mais atenção federal. O risco esfria −5% a cada ano tranquilo, um POLICIAL CORRUPTO zera na hora, e cumprir a pena inteira reseta pra 0. O risco é o que te pega numa BATIDA — quanto mais quente, mais difícil escapar dela. Seu risco aparece no seu painel.
@@ -1591,7 +1597,7 @@ function openManual(){ window.speechSynthesis&&window.speechSynthesis.cancel(); 
   Tap the die to roll and move — you resolve the space you LAND on. Before rolling you can also press [ COMMIT CRIME ] (3 chances per year) for a random heist, hit or drug run — it's a FREE action, you still roll afterwards (but an arrest or a trip to the hospital ends your turn). The [ HIRE ] button works any time on your turn: bodyguard soldiers, street soldiers, and business workers. Everything that happens to you shows up as a card.
 
   ${H("THE STREET (outer ring)")}
-  One full lap = ONE YEAR. Every time you pass START: you age +1, your 3 crime chances refill, you pay soldier wages ($${SOLDIER_WAGE}K each), the LAUNDERERS clean the DIRTY money you earned that year — a one-time 30% cut (only 10% if you OWN the money laundering business). Once cleaned, money is never charged again; your starting cash and asset sales are already clean. Passing OVER a property you own collects its income \u2014 no need to land on it exactly.
+  One full lap = ONE YEAR. Every time you pass START: you age +1, your 3 crime chances refill, you pay soldier wages (${fmtK(SOLDIER_WAGE)} each), the LAUNDERERS clean the DIRTY money you earned that year — a one-time 30% cut (only 10% if you OWN the money laundering business). Once cleaned, money is never charged again; your starting cash and asset sales are already clean. Passing OVER a property you own collects its income \u2014 no need to land on it exactly.
 
   ${H("THE SPACES")}
   \u25B8 HEIST / HITMAN / DRUG \u2014 a job card: take the money, then survive the arrest roll (10% base + your HEAT).<br>
@@ -1607,7 +1613,7 @@ function openManual(){ window.speechSynthesis&&window.speechSynthesis.cancel(); 
   \u25B8 HOSPITAL space \u2014 hurt? Pay ${fmtK(TREAT_COST)} to clear one visit.
 
   ${H("SOLDIERS")}
-  $${SOLDIER_COST}K to hire, $${SOLDIER_WAGE}K/yr wages. They defend and take turf, take the FALL (prison in your place), take the BEATING (hospital in your place) \u2014 and with 10+ soldiers you roll a BONUS die.
+  ${fmtK(SOLDIER_COST)} to hire, ${fmtK(SOLDIER_WAGE)}/yr wages. They defend and take turf, take the FALL (prison in your place), take the BEATING (hospital in your place) \u2014 and with 10+ soldiers you roll a BONUS die.
 
   ${H("HEAT")}
   Every crime you pull and every business you run raises your HEAT — bigger jobs and bigger operations draw more federal attention. Heat cools −5% each quiet year around the board, a CROOKED COP payoff wipes it instantly, and serving a full prison sentence resets it to 0. Heat is what gets you caught in a RAID — the hotter you are, the harder a raid is to dodge. Your heat shows on your player panel.
@@ -1678,7 +1684,7 @@ function stepMove(p,left){
   if(ring==="outer"&&p.pos===0){p.age++;p.crimeOps=3;log(p.name+L(" makes it another year (now "," sobrevive mais um ano (agora ")+p.age+L(" yo). Crime chances refilled."," anos). Chances de crime renovadas."),"");
     if(p.heat>0){p.heat=Math.max(0,p.heat-5);log(p.name+L("'s heat cools a little (now ",": o risco esfria um pouco (agora ")+p.heat+"%).","");}
     {const _bz=Array.from(p.owns.keys()).filter(i=>OUTER[i]&&OUTER[i].k==="biz").length; if(_bz>0){const _bh=_bz*4; p.heat=Math.min(80,(p.heat||0)+_bh); log(p.name+L(" — the operation draws federal heat +"," — a operação atrai risco federal +")+_bh+"% ("+_bz+L(" biz)."," neg)."),"warn");}}
-    if(p.crew>0){const wages=p.crew*SOLDIER_WAGE;p.cash-=wages;log(p.name+L(" pays soldier wages: "," paga salário dos soldados: ")+fmtK(wages)+" ("+p.crew+" × $"+SOLDIER_WAGE+L("K/yr).","K/ano)."),"warn");}
+    if(p.crew>0){const wages=p.crew*SOLDIER_WAGE;p.cash-=wages;log(p.name+L(" pays soldier wages: "," paga salário dos soldados: ")+fmtK(wages)+" ("+p.crew+" × "+fmtK(SOLDIER_WAGE)+L("/yr).","/ano)."),"warn");}
     if((p.dirty||0)>0&&p.cash>0){
       const base=Math.min(p.dirty,p.cash);
       const ownML=p.owns.has(ML_POS);const rate=ownML?0.10:0.30;
@@ -2245,8 +2251,8 @@ function openBuyWorkers(){
   const tierBtns=(fn,idx,per)=>[1,5,25,100].filter(n=>p.cash>=per*n).map(n=>`<button style="padding:6px 8px;font-size:12px" onclick="${fn}(${idx===null?"":idx+","}${per},${n})">[ +${n} ]</button>`).join("");
   // BODYGUARDS (crew)
   const crewRow=`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin:3px 0;border-bottom:1px solid #1a2a1a;padding-bottom:4px">
-      <span>${L("Bodyguard soldiers","Soldados guarda-costas")} · ${p.crew}<br><span style="opacity:.6;font-size:11px">$${SOLDIER_COST}K ${L("each","cada")} · $${SOLDIER_WAGE}K/${L("yr","ano")} · ${L("take falls & beatings, fight attacks","assumem culpa e surra, lutam em ataques")}</span></span>
-      ${p.cash>=SOLDIER_COST?`<span style="display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-end">`+tierBtns("hireCrewN",null,SOLDIER_COST)+`</span>`:`<span style="opacity:.5;font-size:11px">${L("need ","precisa de ")}$${SOLDIER_COST}K</span>`}</div>`;
+      <span>${L("Bodyguard soldiers","Soldados guarda-costas")} · ${p.crew}<br><span style="opacity:.6;font-size:11px">${fmtK(SOLDIER_COST)} ${L("each","cada")} · ${fmtK(SOLDIER_WAGE)}/${L("yr","ano")} · ${L("take falls & beatings, fight attacks","assumem culpa e surra, lutam em ataques")}</span></span>
+      ${p.cash>=SOLDIER_COST?`<span style="display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-end">`+tierBtns("hireCrewN",null,SOLDIER_COST)+`</span>`:`<span style="opacity:.5;font-size:11px">${L("need ","precisa de ")}${fmtK(SOLDIER_COST)}</span>`}</div>`;
   // STREET SOLDIERS
   const sts=Array.from(p.owns.entries()).filter(([idx])=>OUTER[idx].k==="street");
   const stBody=sts.length?sts.map(([idx,cnt])=>{
@@ -2303,8 +2309,8 @@ function offerHire(){
   const pick=p._hirePick;
   el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('RECRUITING','RECRUTAMENTO')}</div>
     <div class="ttl">${L('Hire soldiers','Contratar soldados')}</div>
-    <div class="bd">${L("Soldiers take the fall for you (one goes to prison in your place if you're arrested) and fight in attacks. Buy as many as you can afford — $","Soldados assumem a culpa por voc\u00ea (um vai preso no seu lugar) e lutam nos ataques. Compre quantos puder — $")}${SOLDIER_COST}K ${L('each, then $','cada, depois $')}${SOLDIER_WAGE}K${L('/yr wages each.','/ano de sal\u00e1rio cada.')}</div>
-    <div class="out">${L('You have ','Voc\u00ea tem ')}${p.crew} soldado${p.crew===1?"":"s"} · $${SOLDIER_COST}K ${L('each','cada')}</div>
+    <div class="bd">${L("Soldiers take the fall for you (one goes to prison in your place if you're arrested) and fight in attacks. Buy as many as you can afford — ","Soldados assumem a culpa por voc\u00ea (um vai preso no seu lugar) e lutam nos ataques. Compre quantos puder — ")}${fmtK(SOLDIER_COST)} ${L('each, then ','cada, depois ')}${fmtK(SOLDIER_WAGE)}${L('/yr wages each.','/ano de sal\u00e1rio cada.')}</div>
+    <div class="out">${L('You have ','Voc\u00ea tem ')}${p.crew} soldado${p.crew===1?"":"s"} · ${fmtK(SOLDIER_COST)} ${L('each','cada')}</div>
     <div style="text-align:center;font-size:26px;font-weight:bold;margin:6px 0">
       ${L('Hiring','Contratando')}: ${pick} &nbsp;(${fmtK(pick*SOLDIER_COST)})
     </div>
@@ -2833,7 +2839,7 @@ function doHospital(p,visits){
     <div class="sub">${L('Put here by: ','Parou aqui por: ')}${p._hospCause||L("their injuries","ferimentos")}</div>
     <div class="bd">${trh.bd}</div>
     <div class="out" style="color:${oc==="good"?"var(--phos)":oc==="bad"?"var(--red)":"inherit"}">${ocLine}</div>
-    <div class="out">${L('Medical bill','Conta m\u00e9dica')}: $${bill}K${settle?` &nbsp;·&nbsp; <span style="color:var(--phos)">${L('settlement','indeniza\u00e7\u00e3o')} +$${settle}K</span>`:""}</div>
+    <div class="out">${L('Medical bill','Conta m\u00e9dica')}: ${fmtK(bill)}${settle?` &nbsp;·&nbsp; <span style="color:var(--phos)">${L('settlement','indeniza\u00e7\u00e3o')} +${fmtK(settle)}</span>`:""}</div>
     <div class="go"><button onclick="leaveHospital(${bill},'${oc}',${settle})">${L('[ CHECK OUT ]','[ RECEBER ALTA ]')}</button></div>${statusBar()}`;
   openModal();
 }
