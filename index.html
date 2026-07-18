@@ -586,7 +586,7 @@
 <div id="setup">
 <div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
 <div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
-<div id="verSub" style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v15.1</div>
+<div id="verSub" style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v15.2</div>
 <div id="setupStage"></div>
 </div>
 
@@ -594,7 +594,7 @@
 
 <div id="screen" style="display:none">
   <div class="bar">
-    <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL <span id="verTag" style="font-size:10px;letter-spacing:1px;opacity:.55;font-weight:normal;text-shadow:none">v15.1</span></h1>
+    <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL <span id="verTag" style="font-size:10px;letter-spacing:1px;opacity:.55;font-weight:normal;text-shadow:none">v15.2</span></h1>
     <div id="turnBanner">TURN 1</div>
     <div class="topbtns">
       <button class="amber" onclick="openSupport()" title="support the developer">[ &#9829; ]</button>
@@ -641,7 +641,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v15.1";
+const APP_VERSION="v15.2";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -673,7 +673,7 @@ const OUTER = [
   {t:"meth",ic:"me",k:"biz",income:170},
   {t:"CROOKED COP",ic:"$b",k:"cop"},
   {t:"Central Park W",ic:"#",k:"street",price:400}, // 20 top-right corner
-  {t:"heroine",ic:"he",k:"biz",income:180},         // right side, going down
+  {t:"heroin",ic:"he",k:"biz",income:180},         // right side, going down
   {t:"Park Ave",ic:"#",k:"street",price:210},
   {t:"Fifth Ave",ic:"#",k:"street",price:225},
   {t:"HOSPITAL",ic:"+",k:"hospital"},
@@ -704,7 +704,7 @@ const CITIES = {
     // streets keyed by their fixed price → local neighborhood (richest price = most prestigious area)
     streets:{20:"Caximba",30:"Tatuquara",45:"Cajuru",60:"CIC",75:"Sítio Cercado",90:"Boqueirão",100:"Portão",210:"Centro",225:"Centro Cívico",230:"Juvevê",250:"Cabral",280:"Água Verde",300:"Bigorrilho",350:"Ecoville",400:"Batel"},
     // businesses keyed by their fixed income → [name, 2-char icon]; 400 stays the laundering front
-    biz:{200:["tráfico","tf"],180:["roubo carga","cr"],170:["contrabando","cn"],150:["desmanche","dm"],110:["golpe PIX","px"],90:["combustível","cb"],80:["pirataria","pi"],70:["celulares","cl"],400:["lavagem","$$"]},
+    biz:{200:["tráfico","tf"],180:["roubo carga","cr"],170:["contrabando","cn"],150:["desmanche","dm"],110:["golpe PIX","px"],90:["golpe do gás","gs"],80:["pirataria","pi"],70:["roubo celular","cl"],400:["lavagem","$$"]},
     casino:["Jogo do Bicho","JB"]
   },
   LA: { name:"LOS ANGELES", prison:"TWIN TOWERS", law:{life:true, maxYears:99},
@@ -1180,7 +1180,7 @@ function buildBoardGrid(){
     `<div id="prisonFence"><span class="pfw t">x x x x x x x x x x x x</span><span class="pfw b">x x x x x x x x x x x x</span><span class="pfw l">x x x x x x x x</span><span class="pfw r">x x x x x x x x</span><div id="innerLabel">${cityPrison().split("").join(" ")}</div></div>`);
 }
 
-const CELL_PT={"HEIST · START":"ASSALTO · IN\u00cdCIO","POLICE RAID":"BATIDA POLICIAL","RECRUITING":"RECRUTAR","ATTACK":"ATAQUE","DRUG DEAL":"TR\u00c1FICO","CROOKED COP":"POLICIAL CORRUPTO","FATE":"DESTINO","PARTY":"FESTA","POKER NIGHT":"NOITE DE P\u00d4QUER","VISIT/JAIL":"VISITA/CADEIA","HOSPITAL":"HOSPITAL","HITMAN":"MATADOR","HEIST":"ASSALTO","weed":"maconha","meth":"metanfetamina","heroine":"hero\u00edna","cocaine":"coca\u00edna","guns":"armas","pills":"comprimidos","money laundering":"lavagem de dinheiro","fake documents":"documentos falsos","garage GTA":"desmanche GTA","prison entry":"entrada da pris\u00e3o","prison day":"dia de pris\u00e3o","prison fight":"briga na pris\u00e3o","riot":"rebeli\u00e3o"};
+const CELL_PT={"HEIST · START":"ASSALTO · IN\u00cdCIO","POLICE RAID":"BATIDA POLICIAL","RECRUITING":"RECRUTAR","ATTACK":"ATAQUE","DRUG DEAL":"TR\u00c1FICO","CROOKED COP":"POLICIAL CORRUPTO","FATE":"DESTINO","PARTY":"FESTA","POKER NIGHT":"NOITE DE P\u00d4QUER","VISIT/JAIL":"VISITA/CADEIA","HOSPITAL":"HOSPITAL","HITMAN":"MATADOR","HEIST":"ASSALTO","weed":"maconha","meth":"metanfetamina","heroin":"hero\u00edna","cocaine":"coca\u00edna","guns":"armas","pills":"comprimidos","money laundering":"lavagem de dinheiro","fake documents":"documentos falsos","garage GTA":"desmanche GTA","prison entry":"entrada da pris\u00e3o","prison day":"dia de pris\u00e3o","prison fight":"briga na pris\u00e3o","riot":"rebeli\u00e3o"};
 function render(){
   document.querySelectorAll("#board .cell").forEach(cell=>{
     const ring=cell.dataset.ring;if(!ring)return;
@@ -2618,7 +2618,7 @@ function applyCard(){
     const hb=crimeHeat(c);
     p.heat=Math.min(80,(p.heat||0)+hb);
     log(p.name+L(" pulls the job — heat +"," faz o serviço — risco +")+hb+"% (now "+p.heat+"%).","warn");
-    showNotice(L("CLEAN GETAWAY","FUGA LIMPA"),"$-$",L("You got away clean","Voc\u00ea escapou limpo"),L("The money is yours and no cuffs came out — but a job like this turns up the HEAT, and heat is exactly what gets you swept up in a RAID.","Sem pol\u00edcia, sem rabo, sem acusa\u00e7\u00e3o. O servi\u00e7o foi feito e ningu\u00e9m vem atr\u00e1s de voc\u00ea — desta vez."),()=>{afterMoney(p);if(!p._sentToHospital)finish();p._sentToHospital=false;});
+    showNotice(L("CLEAN GETAWAY","FUGA LIMPA"),"$-$",L("You got away clean","Voc\u00ea escapou limpo"),L("The money is yours and no cuffs came out — but a job like this turns up the HEAT, and heat is exactly what gets you swept up in a RAID.","Sem pol\u00edcia, sem vest\u00edgio, sem acusa\u00e7\u00e3o. O servi\u00e7o foi feito e ningu\u00e9m vem atr\u00e1s de voc\u00ea — desta vez."),()=>{afterMoney(p);if(!p._sentToHospital)finish();p._sentToHospital=false;});
     return;
   }
   if(c.raidArr){
