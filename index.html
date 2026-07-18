@@ -302,19 +302,12 @@
   body.spectating .curplayer-panel, body.spectating .others-panel{display:none !important;}
   /* board zoom bar is useless while spectating */
   body.spectating .board-panel .zoombar{display:none !important;}
-  /* DESKTOP: chart + leaderboard share the fixed-height board panel — cap the panel,
-     let the chart keep its (shortened) height, and give the leaderboard the rest with its
-     own scroll so it's always on screen no matter how many bosses are playing. */
+  /* the leaderboard rides in the right column, under the console (see .speclb-panel) */
+  .speclb-panel #specBoardSide{overflow-y:auto;}
   @media(min-width:901px){
-    body.spectating .board-panel{max-height:calc(100vh - 92px) !important;overflow:hidden !important;}
-    body.spectating #spectateView{display:flex !important;flex:1 1 auto;min-height:0;flex-direction:column;}
-    /* .cv carries an inline display:block (chart-width guard); force flex so the leaderboard
-       can take remaining height. The chart wrap is pinned to an explicit px width in JS, so it
-       won't collapse under flex. */
-    body.spectating #spectateView>.cv{display:flex !important;flex-direction:column !important;flex:1 1 auto;min-height:0;height:100%;gap:6px;}
-    body.spectating #spectateView #nwChartWrap{flex:0 0 auto;}
-    body.spectating #spectateView #specBoard{flex:1 1 auto;min-height:90px;overflow-y:auto;}
-    body.spectating #spectateView .go{flex:0 0 auto;margin-top:2px;}
+    /* right column: console stays short (few lines), leaderboard fills the rest and scrolls */
+    body.spectating .speclb-panel{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;}
+    body.spectating .speclb-panel #specBoardSide{flex:1 1 auto;min-height:120px;}
   }
   /* PLAYER ON TURN (full width) */
   .curplayer-panel{flex:0 0 auto;}
@@ -644,6 +637,10 @@
           <div class="ctx" id="ctxHint" style="display:none"></div>
         </div>
       </div>
+      <div class="panel speclb-panel" style="display:none">
+        <h2>LEADERBOARD</h2>
+        <div id="specBoardSide"></div>
+      </div>
       <div class="panel curplayer-panel">
         <h2>PLAYER ON TURN</h2>
         <div id="players"></div>
@@ -662,7 +659,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v16.4";
+const APP_VERSION="v16.5";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -1348,10 +1345,8 @@ let _chartData=[], _chartZoom=1;
 function renderChart(){
   const wrap=document.getElementById("nwChartWrap"); if(!wrap)return;
   const cw=Math.max(280,wrap.clientWidth||600);
-  // in spectate on desktop the leaderboard shares the panel, so keep the chart shorter so both fit
-  const ch=(SPECTATING&&window.innerWidth>=901)?200:250;
   const keepLeft=wrap.scrollLeft, prevInner=wrap.firstChild?wrap.firstChild.getBoundingClientRect().width:cw;
-  wrap.innerHTML=nwChartSVG(_chartData, cw*_chartZoom, ch);
+  wrap.innerHTML=nwChartSVG(_chartData, cw*_chartZoom);
   // keep the same spot centred-ish when zooming
   const newInner=wrap.firstChild?wrap.firstChild.getBoundingClientRect().width:cw;
   if(prevInner>0)wrap.scrollLeft=keepLeft*(newInner/prevInner);
@@ -1415,14 +1410,17 @@ function startSpectate(){ SPECTATING=true; _specTurn=-1; const sv=document.getEl
 function exitSpectate(){ SPECTATING=false; applySpectate(); }
 function applySpectate(){
   const board=document.getElementById("boardWrap"), fc=document.getElementById("focusCard"), sv=document.getElementById("spectateView");
+  const lbp=document.querySelector(".speclb-panel");
   document.body.classList.toggle("spectating",SPECTATING);
   if(SPECTATING){
     if(board)board.style.display="none"; if(fc)fc.style.display="none";
     if(sv)sv.style.display="block";
+    if(lbp)lbp.style.display="block";
     document.body.classList.add("focus-on");
     renderSpectate(true);
   } else {
     if(sv)sv.style.display="none";
+    if(lbp)lbp.style.display="none";
     document.body.classList.remove("focus-on");
     if(typeof FOCUS_MODE!=="undefined"&&FOCUS_MODE){ if(fc)fc.style.display="block"; if(typeof renderFocusCard==="function")renderFocusCard(); }
     else { if(board)board.style.display=""; try{fitBoard();}catch(e){} }
@@ -1437,15 +1435,12 @@ function renderSpectate(force){
       <div class="cvh" style="margin-top:2px">${L("NET WORTH OVER TIME","PATRIMÔNIO AO LONGO DO TEMPO")}</div>
       <div style="display:flex;justify-content:flex-end;gap:5px;margin:2px 0 4px"><button class="tiny" onclick="chartZoom(-1)">−</button><button class="tiny" id="chartZoomBtn" onclick="chartZoom(0)" title="reset zoom">100%</button><button class="tiny" onclick="chartZoom(1)">+</button></div>
       <div id="nwChartWrap" style="width:100%;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;border:1px solid #173a22"></div>
-      <div class="cvh" style="margin-top:6px">${L("LEADERBOARD","CLASSIFICAÇÃO")}</div>
-      <div id="specBoard"></div>
-      <div class="cvdim" style="font-size:10px;text-align:center;margin-top:4px">${L("the round console is just below ↓","o console da rodada está logo abaixo ↓")}</div>
       <div class="go"><button class="amber" onclick="exitSpectate()">${L("[ ⤢ BACK TO BOARD ]","[ ⤢ VOLTAR AO MAPA ]")}</button></div>
     </div>`;
     sv.dataset.built="1"; roundChanged=true;
   }
   const ss=document.getElementById("specSub"); if(ss)ss.textContent=`${L("TURN","TURNO")} ${S.turn} · ${S.players.filter(p=>p.alive).length}/${S.players.length} ${L("still standing","de pé")}`;
-  const sb=document.getElementById("specBoard"); if(sb)sb.innerHTML=standingsRows();
+  const sb=document.getElementById("specBoardSide"); if(sb)sb.innerHTML=standingsRows();
   if(roundChanged){ _specTurn=S.turn; _chartData=orderedPlayers();
     const doChart=()=>{ if(!SPECTATING)return; const wrap=document.getElementById("nwChartWrap"); if(!wrap)return;
       const par=wrap.parentElement; if(par&&par.clientWidth)wrap.style.width=par.clientWidth+"px";   // flex child won't stretch on its own
