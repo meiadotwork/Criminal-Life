@@ -687,7 +687,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v16.8";
+const APP_VERSION="v16.9";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -3170,17 +3170,78 @@ function ripEpitaph(p){
   else if(drugs>0)spec=L(" — a product mover who fed the streets"," — um fornecedor que alimentava as ruas");
   return {kind,spec,n,heists,hits,drugs,totalYears};
 }
+function cityName(){ const k=(typeof S!=="undefined"&&S&&S.city)?S.city:"NY"; return (CITIES[k]||CITIES.NY).name; }
+/* Weave a boss's whole permanent record — origin, empire, body count, rap sheet, network and
+   how they went out — into a short narrative. Adapts to city, language and outcome.
+   mode: "dead" | "last" (last boss standing) | "retire". Returns plain prose (READ speaks it). */
+function bossBio(p,mode){
+  const e=ripEpitaph(p), s=empireStats(p);
+  const nm=p.name, city=cityName(), prison=cityPrison(), nw=netWorth(p);
+  const start=p.startAge||p.age, end=(p.diedAt!==undefined)?p.diedAt:p.age;
+  const sk=p.soldierKills||0, bk=p.bossKills||0, served=p.yearsServed||0;
+  const yrs=Math.max(0,end-start);
+  // 1) origin
+  let bio = (p.startCash>0)
+    ? L(`${nm} came up in ${city} at ${start}, holding ${fmtK(p.startCash)} and a lot to prove.`,
+        `${nm} surgiu em ${city} aos ${start}, com ${fmtK(p.startCash)} no bolso e muito a provar.`)
+    : L(`${nm} came up in ${city} out of nothing — ${start} years old, not a coin to his name.`,
+        `${nm} surgiu em ${city} do nada — ${start} anos, sem um centavo no nome.`);
+  // 2) the empire + the body count
+  if(s.turf||s.biz){
+    bio+=L(` He built something real: ${s.turf} street${s.turf===1?"":"s"} and ${s.biz} racket${s.biz===1?"":"s"} under his flag`,
+           ` Construiu algo de verdade: ${s.turf} rua${s.turf===1?"":"s"} e ${s.biz} negócio${s.biz===1?"":"s"} sob sua bandeira`);
+    bio+= (sk||bk)?"":".";
+  } else {
+    bio+=L(` He never held much turf`,` Nunca segurou muita área`);
+    bio+= (sk||bk)?"":L(`, and he mostly kept his hands clean.`,`, e quase não sujou as mãos.`);
+  }
+  if(sk||bk){
+    bio+=L(`, backed by a crew that put ${sk} rival soldier${sk===1?"":"s"} in the ground`,
+           `, com uma equipe que colocou ${sk} soldado${sk===1?"":"s"} rival${sk===1?"":"is"} no chão`);
+    if(bk) bio+=L(` and ${bk} rival boss${bk===1?"":"es"} dead by his order`,` e ${bk} chefe${bk===1?"":"s"} rival${bk===1?"":"is"} morto${bk===1?"":"s"} por ordem dele`);
+    bio+=".";
+  }
+  // 3) reputation (only once they're a known name)
+  if(e.n>=3 && e.spec){ const kind=e.kind.charAt(0).toUpperCase()+e.kind.slice(1); bio+=` ${kind}${e.spec}.`; }
+  // 4) the law
+  if(e.n){
+    bio+=L(` The law wrote him up ${e.n} time${e.n===1?"":"s"} — ${e.totalYears} year${e.totalYears===1?"":"s"} of exposure on paper`,
+           ` A lei o fichou ${e.n} vez${e.n===1?"":"es"} — ${e.totalYears} ano${e.totalYears===1?"":"s"} de exposição no papel`);
+    bio+= served
+      ? L(`, and he did ${served} of them inside ${prison}.`,`, e cumpriu ${served} deles em ${prison}.`)
+      : L(`, though he never served a full day inside.`,`, mas nunca cumpriu um dia de verdade.`);
+  } else {
+    bio+=L(` The law never managed to pin a thing on him.`,` A lei nunca conseguiu provar nada contra ele.`);
+  }
+  // 5) the crooked network
+  if(p.network&&p.network.length){ const cnt=p.network.reduce((a,b)=>a+(b.n||1),0);
+    bio+=L(` He kept ${cnt} crooked official${cnt===1?"":"s"} on the payroll.`,` Mantinha ${cnt} agente${cnt===1?"":"s"} corrupto${cnt===1?"":"s"} na folha.`); }
+  // 6) the ending
+  if(mode==="dead"){
+    const cause=(p._deathCause||L("Gunned down","Baleado"));
+    bio+=L(` In the end it was ${cause.charAt(0).toLowerCase()+cause.slice(1)}, at ${end} — ${yrs} year${yrs===1?"":"s"} on the board. The streets will remember the name.`,
+           ` No fim foi ${cause.charAt(0).toLowerCase()+cause.slice(1)}, aos ${end} — ${yrs} ano${yrs===1?"":"s"} no jogo. As ruas vão lembrar do nome.`);
+  } else if(mode==="retire"){
+    bio+=L(` Then he did what almost nobody in this life manages — he walked away clean at ${end}: villa, new name, ${fmtK(nw)} that no longer smells. The city keeps fighting over what he left behind.`,
+           ` Aí fez o que quase ninguém nessa vida consegue — saiu limpo aos ${end}: mansão, nome novo, ${fmtK(nw)} que não cheiram mais. A cidade continua brigando pelo que ele deixou.`);
+  } else {
+    bio+=L(` He outlived every last rival to ${end}, ${fmtK(nw)} to his name. The city is his now.`,
+           ` Sobreviveu a todos os rivais até os ${end}, ${fmtK(nw)} no nome. A cidade é dele agora.`);
+  }
+  return bio;
+}
 function showRIP(id){
   const p=(typeof id==="object")?id:S.players[id];
   const e=ripEpitaph(p);
   const died=(p.diedAt!==undefined?p.diedAt:p.age);
   const el=document.getElementById("cardEl");
-  el.dataset.deck="death";
+  el.dataset.deck="death"; el.dataset.read="1";   // narrative memorial → show the READ button
   el.innerHTML=`<div class="lbl" style="background:${p.color}">R · I · P</div>
     <div class="art">[ + ]</div>
     <div class="ttl" style="color:${p.color}">${p.name}</div>
     <div class="sub">${L('Age','Idade')} ${p.startAge||died} – ${died} &nbsp;·&nbsp; ${L('Here lies','Aqui jaz')} ${e.kind}${e.spec}.</div>
-    <div class="out">${L('Died at <b>','Morreu aos <b>')}${died}</b> ${L('years old','anos')}\n${L('Rap sheet','Ficha')}: ${e.n} ${L('charges','acusa\u00e7\u00f5es')} · ${e.totalYears}${L('y exposure','a de exposi\u00e7\u00e3o')}\n${e.heists} ${L('robberies','roubos')} · ${e.hits} ${L('murders','homic\u00eddios')} · ${e.drugs} ${L('drug charges','crimes de drogas')}\n${L('Started with','Come\u00e7ou com')} ${fmtK(p.startCash||0)}.\n${L('The streets will remember the name.','As ruas v\u00e3o lembrar do nome.')}</div>
+    <div class="bd" style="text-align:left">${bossBio(p,'dead')}</div>
+    <div class="out">${L('Rap sheet','Ficha')}: ${e.n} ${L('charges','acusa\u00e7\u00f5es')} · ${e.totalYears}${L('y exposure','a de exposi\u00e7\u00e3o')} · ${e.heists} ${L('robberies','roubos')} · ${e.hits} ${L('murders','homic\u00eddios')} · ${e.drugs} ${L('drug charges','crimes de drogas')}</div>
     <div class="out" style="white-space:pre-wrap">${empireLine(p)}</div>
     <div class="go"><button onclick="afterRIP()">${L('[ LAY TO REST ]','[ ENTERRAR ]')}</button></div>`;
   openModal();
@@ -3210,11 +3271,12 @@ function showRetire(p){
   if(typeof SPECTATING!=="undefined"&&SPECTATING) exitSpectate();   // drop the dashboard so the result card shows
   S.over=true; clearSave(); SFX.win(); if(hofEligible(p))recordHof(p,"RETIRED");
   render(); updateControls();
-  const el=document.getElementById("cardEl");
+  const el=document.getElementById("cardEl"); el.dataset.read="1";
   el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('RETIRED UNTOUCHABLE','APOSENTADO INTOC\u00c1VEL')}</div>
     <div style="text-align:center;font-size:40px;line-height:1.1;margin:8px 0;letter-spacing:2px">$$$</div>
     <div class="ttl" style="color:${p.color};text-align:center;font-size:26px">${p.name} ${L('WINS — THE SMART WAY','VENCE — DO JEITO ESPERTO')}</div>
     <div class="sub" style="text-align:center">${fmtK(netWorth(p))} ${L('net worth at <b>','de patrim\u00f4nio aos <b>')}${p.age}</b> ${L("years old. Nobody retires from this life. ","anos. Ningu\u00e9m se aposenta dessa vida. ")}${p.name} ${L("just did — villa, new name, clean paper. The city keeps fighting over what's left.","acabou de conseguir — mans\u00e3o, nome novo, papel limpo. A cidade continua brigando pelo que sobrou.")}</div>
+    <div class="bd" style="text-align:left">${bossBio(p,'retire')}</div>
     <div class="out">${L('Age ','Idade ')}${p.age} · ${L('Net worth ','Patrim\u00f4nio ')}${fmtK(netWorth(p))} · ${p.owns.size} ${L('turf','\u00e1reas')} · ${p.crew} ${L('soldiers','soldados')} · ${empireStats(p).workers} ${L('workers','func.')} · ${L('started with ','come\u00e7ou com ')}${fmtK(p.startCash||0)}</div>
     <div class="out">${(()=>{const oc=oppCounts(p);return L("Outlasted ","Superou ")+oc.ai+L(" AI"," IA")+(oc.hum?L(" and "," e ")+oc.hum+L(" human rival"," rival humano")+(oc.hum>1?"s":""):"")+(S.diff?" \u00b7 "+S.diff:"")+".";})()}</div>
     <div class="go"><button onclick="openPause()">${L('[ ⇑ SEE CHART ]','[ ⇑ VER GRÁFICO ]')}</button><button class="amber" onclick="openSupport()">${L('[ ♥ TIP THE DEV ]','[ ♥ APOIAR ]')}</button><button onclick="location.reload()">${L('[ NEW GAME ]','[ NOVO JOGO ]')}</button></div>`;
@@ -3224,12 +3286,13 @@ function showGameOver(winner){
   if(typeof SPECTATING!=="undefined"&&SPECTATING) exitSpectate();   // drop the dashboard so the result card shows
   clearSave();SFX.win();
   if(hofEligible(winner))recordHof(winner,"LAST BOSS");
-  const el=document.getElementById("cardEl");
+  const el=document.getElementById("cardEl"); el.dataset.read="1";
   const w=winner?winner:null;
   el.innerHTML=`<div class="lbl" style="background:${w?w.color:'#888'}">${L('LAST BOSS STANDING','\u00daLTIMO CHEF\u00c3O DE P\u00c9')}</div>
     <div style="text-align:center;font-size:40px;line-height:1.1;margin:8px 0;letter-spacing:2px">#1</div>
     <div class="ttl" style="color:${w?w.color:'#fff'};text-align:center;font-size:28px">${w?w.name+L(" WINS"," VENCE"):L("No survivors","Sem sobreviventes")}</div>
     <div class="sub" style="text-align:center">${w?(L("Survived to <b>","Sobreviveu at\u00e9 os <b>")+w.age+L("</b> years old — started at ","</b> anos — come\u00e7ou aos ")+(w.startAge||w.age)+L(" and outlived them all, starting with "," e enterrou todos, come\u00e7ando com ")+fmtK(w.startCash||0)+L(". The city is theirs.",". A cidade \u00e9 dele.")):L("Everyone's dead. The streets win.","Todos mortos. As ruas vencem.")}</div>
+    ${w?`<div class="bd" style="text-align:left">${bossBio(w,'last')}</div>`:''}
     <div class="out">${w?L("Age ","Idade ")+w.age+L(" · Net worth "," · Patrim\u00f4nio ")+fmtK(netWorth(w))+L(" · "," · ")+w.owns.size+L(" turf · "," \u00e1reas · ")+soldierIcons(w.color,w.crew)+" · "+empireStats(w).workers+L(" workers"," func."):"—"}</div>
     <div class="out">${w?(()=>{const oc=oppCounts(w);return L("Outlasted ","Superou ")+oc.ai+L(" AI"," IA")+(oc.hum?L(" and "," e ")+oc.hum+L(" human rival"," rival humano")+(oc.hum>1?"s":""):"")+(S.diff?" · "+S.diff:"")+".";})():""}</div>
     <div class="go"><button onclick="openPause()">${L('[ ⇑ SEE CHART ]','[ ⇑ VER GRÁFICO ]')}</button><button class="amber" onclick="openSupport()">${L('[ ♥ TIP THE DEV ]','[ ♥ APOIAR ]')}</button><button onclick="location.reload()">${L('[ NEW GAME ]','[ NOVO JOGO ]')}</button></div>`;
