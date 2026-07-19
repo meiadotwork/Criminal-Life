@@ -687,7 +687,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v17.0";
+const APP_VERSION="v17.1";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -947,8 +947,26 @@ function afterSpeed(){
    <div style="margin-top:18px"><button class="cfg" onclick="renderSetupStart()">${L('[ ‹ BACK ]','[ ‹ VOLTAR ]')}</button></div>`;
 }
 /* mob names used to pre-fill AI seats (editable) */
-const AI_NAMES=["SCARFACE","LUCKY","THE CHIN","NUCKY","TONY","BUGSY","KNUCKLES","THE SHARK","CAPO","FRANKIE","MICKEY","THE RAT","VITO","SONNY","GOODFELLA","SLICK","THE BULL","DIAMOND","ACE","BIG PAULIE"];
-function aiName(){ const taken=(setupData.players||[]).map(p=>(p.name||"").toUpperCase()); const pool=AI_NAMES.filter(n=>!taken.includes(n)); const src=pool.length?pool:AI_NAMES; return src[Math.floor(Math.random()*src.length)]; }
+/* generic fallback pool (used when a city runs out of real names) */
+const AI_NAMES=["SCARFACE","LUCKY","THE CHIN","NUCKY","TONY","KNUCKLES","THE SHARK","CAPO","FRANKIE","THE RAT","GOODFELLA","SLICK","THE BULL","DIAMOND","ACE","BIG PAULIE"];
+/* Ghost names drawn from real, deceased infamous criminals tied to each city (nicknames where
+   they exist). Falls back to the generic pool above when a match needs more than the list holds. */
+const CITY_GHOSTS={
+  NY:  ["LUCKY","CAPONE","ANASTASIA","GOTTI","GALANTE","JOE THE BOSS","MARANZANO","MAD DOG","LEPKE","DUTCH","CRAZY JOE","DEMEO","THE SNAKE","JOE BANANAS","BUGSY"],
+  LA:  ["MICKEY COHEN","DRAGNA","THE WEASEL","BUGSY","BIG GREENIE","PEGLEG","TREJO","GRAY WOLF","MARCO","WHITEY","MACHINE GUN","THE BOMP","TOMMY D","FLYNN","ICE PICK"],
+  CWB: ["GONZAGUINHA","ESCADINHA","ERASMO","SEVERINO","SILVINO","CABO BRUNO"],
+  RIO: ["CASTOR","BEM-TE-VI","MATEMÁTICO","ELIAS MALUCO","GUARABU","ORLANDO","UÊ","ESCADINHA","MINEIRO","PLAYBOY","CASTORZINHO","CAPITÃO"],
+  CDMX:["DURAZO","AMADO","EL BARBAS","EL INGENIERO","RAMÓN","NIÑO DE ORO","EL COCHILOCO","EL CHAYO","NACHO CORONEL","EL LAZCA","Z-1"],
+  SP:  ["PAREJA","HIROITO","LUZ VERMELHA","MATADOR","CONSELHEIRO","GELEIÃO","CESINHA","BIRÔ","TONHÃO","CABEÇA BRANCA"]
+};
+function aiName(){
+  const taken=(setupData.players||[]).map(p=>(p.name||"").toUpperCase());
+  const k=(typeof _cityKey==="function")?_cityKey():"NY";
+  const free=arr=>arr.filter(n=>!taken.includes(n.toUpperCase()));
+  const city=free(CITY_GHOSTS[k]||[]);                 // prefer this city's real criminals
+  const src=city.length?city:(free(AI_NAMES).length?free(AI_NAMES):AI_NAMES);   // then the generic pool
+  return src[Math.floor(Math.random()*src.length)];
+}
 /* ===== GHOST AGGRESSION: 4 tiers, most → least aggressive. AGGRESSIVE & CAREFUL
    keep their original behaviour; CAUTIOUS & PASSIVE are the two calmer tiers. ===== */
 const AI_PROFILES={
@@ -3274,6 +3292,20 @@ function recordHof(p,how){ try{ const h=JSON.parse(localStorage.getItem(HOF_KEY)
 /* short "vs 3 AI + 1 human" string for a hall-of-fame record (guards old records with no counts) */
 function hofVs(x){ if(x.ai==null&&x.hum==null) return ""; const parts=[]; if(x.ai)parts.push(x.ai+" AI"); if(x.hum)parts.push(x.hum+" "+L("human","humano")+(x.hum>1?"s":"")); return parts.length?(L("vs ","contra ")+parts.join(" + ")):L("solo","solo"); }
 
+/* ===== REMATCH: run it back with the same roster + settings, but reshuffle who goes
+   first and reshuffle every card deck (a fresh game state gives fresh shuffle bags). ===== */
+function rematch(){
+  if(!S||!S.players)return;
+  const roster=S.players.map(p=>({name:p.name,pattern:p.pattern,ai:!!p.ai,temper:p.temper,age:p.startAge||25}));
+  for(let i=roster.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); const t=roster[i];roster[i]=roster[j];roster[j]=t; }   // shuffle turn order
+  setupData.city=S.city; setupData.dice=S.baseDice; setupData.dice0=S.baseDice; setupData.police=S.police;
+  setupData.startCash=(S.players[0]&&S.players[0].startCash)||0; setupData.capital=setupData.startCash;
+  setupData.players=roster; setupData.n=roster.length;
+  try{clearSave();}catch(e){}
+  try{SPECTATING=false;}catch(e){}
+  closeModal();
+  launch();   // fresh S ⇒ fresh, reshuffled card bags
+}
 /* ===== RETIRE UNTOUCHABLE: the second way to win ===== */
 function showRetire(p){
   if(typeof SPECTATING!=="undefined"&&SPECTATING) exitSpectate();   // drop the dashboard so the result card shows
@@ -3287,7 +3319,7 @@ function showRetire(p){
     <div class="bd" style="text-align:left">${bossBio(p,'retire')}</div>
     <div class="out">${L('Age ','Idade ')}${p.age} · ${L('Net worth ','Patrim\u00f4nio ')}${fmtK(netWorth(p))} · ${p.owns.size} ${L('turf','\u00e1reas')} · ${p.crew} ${L('soldiers','soldados')} · ${empireStats(p).workers} ${L('workers','func.')} · ${L('started with ','come\u00e7ou com ')}${fmtK(p.startCash||0)}</div>
     <div class="out">${(()=>{const oc=oppCounts(p);return L("Outlasted ","Superou ")+oc.ai+L(" AI"," IA")+(oc.hum?L(" and "," e ")+oc.hum+L(" human rival"," rival humano")+(oc.hum>1?"s":""):"")+(S.diff?" \u00b7 "+S.diff:"")+".";})()}</div>
-    <div class="go"><button onclick="openPause()">${L('[ ⇑ SEE CHART ]','[ ⇑ VER GRÁFICO ]')}</button><button class="amber" onclick="openSupport()">${L('[ ♥ TIP THE DEV ]','[ ♥ APOIAR ]')}</button><button onclick="location.reload()">${L('[ NEW GAME ]','[ NOVO JOGO ]')}</button></div>`;
+    <div class="go"><button class="amber" onclick="rematch()">${L('[ ↻ REMATCH ]','[ ↻ REVANCHE ]')}</button><button onclick="openPause()">${L('[ ⇑ SEE CHART ]','[ ⇑ VER GRÁFICO ]')}</button><button onclick="openSupport()">${L('[ ♥ TIP ]','[ ♥ APOIAR ]')}</button><button onclick="location.reload()">${L('[ NEW GAME ]','[ NOVO JOGO ]')}</button></div>`;
   openModal();
 }
 function showGameOver(winner){
@@ -3303,7 +3335,7 @@ function showGameOver(winner){
     ${w?`<div class="bd" style="text-align:left">${bossBio(w,'last')}</div>`:''}
     <div class="out">${w?L("Age ","Idade ")+w.age+L(" · Net worth "," · Patrim\u00f4nio ")+fmtK(netWorth(w))+L(" · "," · ")+w.owns.size+L(" turf · "," \u00e1reas · ")+soldierIcons(w.color,w.crew)+" · "+empireStats(w).workers+L(" workers"," func."):"—"}</div>
     <div class="out">${w?(()=>{const oc=oppCounts(w);return L("Outlasted ","Superou ")+oc.ai+L(" AI"," IA")+(oc.hum?L(" and "," e ")+oc.hum+L(" human rival"," rival humano")+(oc.hum>1?"s":""):"")+(S.diff?" · "+S.diff:"")+".";})():""}</div>
-    <div class="go"><button onclick="openPause()">${L('[ ⇑ SEE CHART ]','[ ⇑ VER GRÁFICO ]')}</button><button class="amber" onclick="openSupport()">${L('[ ♥ TIP THE DEV ]','[ ♥ APOIAR ]')}</button><button onclick="location.reload()">${L('[ NEW GAME ]','[ NOVO JOGO ]')}</button></div>`;
+    <div class="go"><button class="amber" onclick="rematch()">${L('[ ↻ REMATCH ]','[ ↻ REVANCHE ]')}</button><button onclick="openPause()">${L('[ ⇑ SEE CHART ]','[ ⇑ VER GRÁFICO ]')}</button><button onclick="openSupport()">${L('[ ♥ TIP ]','[ ♥ APOIAR ]')}</button><button onclick="location.reload()">${L('[ NEW GAME ]','[ NOVO JOGO ]')}</button></div>`;
   openModal();
 }
 
