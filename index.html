@@ -302,6 +302,9 @@
   body.spectating .curplayer-panel, body.spectating .others-panel{display:none !important;}
   /* board zoom bar is useless while spectating */
   body.spectating .board-panel .zoombar{display:none !important;}
+  /* spectating: the AI's own action cards are hidden (the game still resolves them, silently);
+     only a modal the user opened (menu / a boss's record) is allowed through. */
+  body.spectating:not(.usermodal) #modal{opacity:0 !important;pointer-events:none !important;}
   /* the leaderboard rides in the right column, under the console (see .speclb-panel) */
   .speclb-panel #specBoardSide{overflow-y:auto;}
   @media(min-width:901px){
@@ -609,6 +612,11 @@
   /* profile (criminal resume) section bars: navy + white in WIN, black + white on paper modes */
   body.win95 .cvh{background:#000080 !important;}
   body.win95 .cvh,body.win95 .cvh *{color:#fff !important;}
+  /* selected / active states use var(--phos) as a fill — which is BLACK in win95, so text
+     rendered #000 on it vanishes. Repaint them the Windows way: navy fill, white text. */
+  body.win95 #focusBtn.on{background:#000080 !important;color:#fff !important;border-color:#000 !important;}
+  body.win95 .cfg.sel,body.win95 .cfg.sel *{background:#000080 !important;color:#fff !important;}
+  body.win95 button.amber.sel,body.win95 .tiny.amber{background:#000080 !important;color:#fff !important;}
   body.colormode .cvh{background:#000 !important;}
   body.colormode .cvh,body.colormode .cvh *{color:#fff !important;}
 </style>
@@ -679,7 +687,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v16.6";
+const APP_VERSION="v16.7";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -855,7 +863,7 @@ let S=null;
 function newPlayer(i,name,pattern){return{id:i,name:name||("P"+(i+1)),color:"#33ff44",pattern:pattern||"solid",ring:"outer",pos:0,
   cash:100,crew:0,packs:0,alive:true,respawns:0,hosp:0,cleanLaps:0,
   inJail:false,sentence:0,owns:new Map(),skip:0,freeArrest:0,freeRaid:0,
-  crimes:[],network:[],stayCount:0,age:15,crimeOps:3,yearsServed:0,heat:0,dirty:0,nwHist:[]};}
+  crimes:[],network:[],stayCount:0,age:15,crimeOps:3,yearsServed:0,heat:0,dirty:0,nwHist:[],soldierKills:0,bossKills:0};}
 
 /* ===== GLOBAL PLAYER COUNTER: every person who starts a game, counted worldwide.
    Uses the free abacus hit-counter API; fails silently offline — the game never depends on it. ===== */
@@ -1075,7 +1083,7 @@ function openSaveCode(){
     <div class="bd" style="font-size:14px">${L("Your game as a code. Copy it and keep it somewhere — paste it on the START screen (any device) to continue. Works even where auto-save is blocked.","Seu jogo como um código. Copie e guarde — cole na tela INICIAL (qualquer aparelho) para continuar. Funciona até onde o salvamento automático é bloqueado.")}</div>
     <textarea id="saveCodeBox" readonly style="width:100%;height:120px;background:#000;color:var(--phos);border:1px solid var(--phos);font-family:inherit;font-size:11px;padding:6px;resize:none;-webkit-user-select:all;user-select:all">${code}</textarea>
     <div class="go"><button class="amber" onclick="copySaveCode()">${L("[ COPY ]","[ COPIAR ]")}</button><button onclick="closeModal()">${L("[ CLOSE ]","[ FECHAR ]")}</button></div>`;
-  openModal();
+  openModal(true);
   setTimeout(()=>{const t=document.getElementById("saveCodeBox"); if(t){t.focus();t.select();}},60);
 }
 function copySaveCode(){
@@ -1092,7 +1100,7 @@ function openLoadCode(){
     <textarea id="loadCodeBox" placeholder="${L("paste your code here","cole seu código aqui")}" style="width:100%;height:120px;background:#000;color:var(--phos);border:1px solid var(--phos);font-family:inherit;font-size:11px;padding:6px;resize:none"></textarea>
     <div id="loadCodeErr" style="color:var(--red);min-height:16px;font-size:12px"></div>
     <div class="go"><button class="amber" onclick="doLoadCode()">${L("[ LOAD GAME ]","[ CARREGAR ]")}</button><button onclick="closeModal()">${L("[ CANCEL ]","[ CANCELAR ]")}</button></div>`;
-  openModal();
+  openModal(true);
   setTimeout(()=>{const t=document.getElementById("loadCodeBox"); if(t)t.focus();},60);
 }
 function doLoadCode(){
@@ -1109,7 +1117,7 @@ function askReset(){
     <div class="ttl">Abandon this session?</div>
     <div class="bd">The saved game will be wiped and you'll go back to the boot screen.</div>
     <div class="go"><button class="red" onclick="clearSave();location.reload()">[ WIPE &amp; RESTART ]</button><button onclick="closeModal()">[ KEEP PLAYING ]</button></div>`;
-  openModal();
+  openModal(true);
 }
 
 /* ===== SOUND — tiny retro PC-speaker beeper (square wave), toggleable ===== */
@@ -1133,7 +1141,16 @@ const AI_SPEEDS={
 };
 const AI_SPEED_ORDER=["SLOW","MEDIUM","FAST"];   // slowest → fastest, shown in this order
 let AI_SPEED=(function(){try{const v=localStorage.getItem("ct_aispeed");return AI_SPEEDS[v]?v:"SLOW";}catch(e){return "SLOW";}})();
-function aiSpd(){return AI_SPEEDS[AI_SPEED]||AI_SPEEDS.SLOW;}
+/* SPECTATE speeds — much faster than normal play, since there's no card to read. */
+const SPEC_SPEEDS={
+  FAST: {roll:380, card:220, dice:22, step:110, lbl:["▶ FAST","▶ RÁPIDO"]},
+  TURBO:{roll:120, card:70,  dice:9,  step:40,  lbl:["▶▶ TURBO","▶▶ TURBO"]},
+  MAX:  {roll:20,  card:12,  dice:3,  step:8,   lbl:["▶▶▶ MAX","▶▶▶ MÁX"]}
+};
+const SPEC_SPEED_ORDER=["FAST","TURBO","MAX"];
+let _specSpeed=(function(){try{const v=localStorage.getItem("ct_specspeed");return SPEC_SPEEDS[v]?v:"TURBO";}catch(e){return "TURBO";}})();
+function setSpecSpeed(k){ if(!SPEC_SPEEDS[k])k="TURBO"; _specSpeed=k; try{localStorage.setItem("ct_specspeed",k);}catch(e){} const sv=document.getElementById("spectateView"); if(sv)sv.dataset.built=""; if(typeof renderSpectate==="function")renderSpectate(true); }
+function aiSpd(){ if(typeof SPECTATING!=="undefined"&&SPECTATING) return SPEC_SPEEDS[_specSpeed]||SPEC_SPEEDS.TURBO; return AI_SPEEDS[AI_SPEED]||AI_SPEEDS.SLOW; }
 function aiDelay(){return aiSpd().roll;}
 function aiCardMs(){return aiSpd().card;}
 function aiDiceTick(){return aiSpd().dice;}
@@ -1180,6 +1197,14 @@ function sirenWail(start,cycles){ // smooth up-down frequency glide — a real s
     o.connect(g);g.connect(_ac.destination);o.start(t0);o.stop(t0+n*per+.05);
   }catch(e){}
 }
+/* three gunshots in one of three cadences — the building block for a body-count firefight.
+   fast = tight SMG cracks · long = heavy spaced booms · sniper = huge cracks with an echo tail.
+   returns the seconds it consumes so volleys can be laid end-to-end. */
+function gunVolley3(flavor,t0){
+  if(flavor==="long"){ for(let i=0;i<3;i++) noiseBurst(.09,.30,t0+i*.13,900); return 3*.13+.06; }
+  if(flavor==="sniper"){ for(let i=0;i<3;i++){ noiseBurst(.14,.34,t0+i*.26,950); noiseBurst(.26,.07,t0+i*.26+.15,280); } return 3*.26+.12; }
+  /* fast */ for(let i=0;i<3;i++) noiseBurst(.035,.20,t0+i*.05,2000); return 3*.05+.05;
+}
 const SFX={
   tick:()=>beep(880,.03,.025),
   step:()=>beep(440,.04,.02),
@@ -1197,7 +1222,11 @@ const SFX={
   gunSniper:()=>{ noiseBurst(.16,.36,0,950); noiseBurst(.34,.10,.19,300); noiseBurst(.30,.06,.46,240); }, // single huge crack + rolling echo tail
   gunRandom:()=>{ const k=["gunHandgun","gunBurst","gunFullAuto","gunSMG","gunShotgun","gunSniper"]; SFX[k[Math.floor(Math.random()*k.length)]](); },
   ambulance:()=>{ const v=.05; const two=[880,1175]; let t=0; for(let i=0;i<6;i++){ beep(two[i%2],.24,v,t); t+=.26; } }, // hi-lo two-tone ambulance yelp — someone's hurt
-  soldierDown:(n=1)=>{ n=Math.max(1,Math.min(6,Math.round(n))); if(n>=4)SFX.gunFullAuto(); else if(n>=2)SFX.gunBurst(); else SFX.gunHandgun(); }, // bigger the body count, heavier the gun
+  /* THREE shots per soldier killed, cadence cycling fast → long → sniper down the line.
+     10 dead = 30 shots, and it plays out as a real drawn-out firefight. Capped so a huge
+     body count can't schedule minutes of audio. */
+  soldierDown:(n=1)=>{ if(!SND)return; n=Math.max(1,Math.min(60,Math.round(n))); const fl=["fast","long","sniper"]; let t=0; for(let i=0;i<n;i++){ t+=gunVolley3(fl[i%3],t); } },
+  gunTest:()=>{ SFX.soldierDown(3); },   // demo the mix: 3 kills = fast + long + sniper
   funeral:()=>{const seq=[[196,.55],[196,.28],[196,.28],[233,.75],[233,.38],[196,.38],[185,.38],[147,.9]];let t=0;seq.forEach(([f,d])=>{beep(f,d*0.92,.05,t);t+=d;});}, // slow minor dirge
   cash:()=>{beep(1245,.05,.045);beep(1568,.12,.05,.06);},                                 // register cha-ching
   shots:()=>{ SFX.gunRandom(); },                                                          // firefight — random firearm each time
@@ -1401,7 +1430,7 @@ function openPause(){
     <div>${rows}</div>
     <div class="go">${(allAI&&!S.over)?`<button onclick="startSpectate()">${L("[ ▶ SPECTATE ]","[ ▶ ASSISTIR ]")}</button>`:""}<button class="amber" onclick="closeModal()">${S.over?L("[ ▸ CLOSE ]","[ ▸ FECHAR ]"):L("[ ▶ RESUME ]","[ ▶ CONTINUAR ]")}</button></div>
   </div>`;
-  openModal();
+  openModal(true);
   if(anyHist){ _chartData=ordered; _chartZoom=1; setTimeout(renderChart,30); }
 }
 /* shared by the pause standings and the live spectate view */
@@ -1414,7 +1443,7 @@ function standingsRows(){
     const rk=p.alive?(aliveRank[p.id]===1?L("★","★"):"#"+aliveRank[p.id]):L("DEAD","MORTO");
     const hp=p.alive?("♥".repeat(Math.max(0,3-p.hosp))):"X";
     const tag=p.ai?` <span style="opacity:.5;font-size:10px">(Ghost)</span>`:"";
-    return `<div onclick="showProfile(${p.id},true)" style="display:flex;align-items:center;gap:9px;padding:8px 4px;border-bottom:1px solid var(--phos-dark);cursor:pointer">
+    return `<div onclick="showProfile(${p.id},${(typeof SPECTATING!=="undefined"&&SPECTATING)?2:1})" style="display:flex;align-items:center;gap:9px;padding:8px 4px;border-bottom:1px solid var(--phos-dark);cursor:pointer">
       <span style="width:13px;height:13px;flex:0 0 auto;background:${col};border:1px solid var(--phos)"></span>
       <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.name}${tag}</span>
       <span style="opacity:.7;font-size:11px;white-space:nowrap">${hp}</span>
@@ -1452,6 +1481,7 @@ function renderSpectate(force){
   if(force||sv.dataset.built!=="1"){
     sv.innerHTML=`<div class="cv" style="display:block">
       <div class="cvhead"><div class="cvtitle">▶ ${L("SPECTATING","ASSISTINDO")}</div><div class="cvsub" id="specSub"></div></div>
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:2px 0 4px"><span style="font-size:11px;opacity:.7;letter-spacing:1px">${L("SPEED","VELOCIDADE")}</span>${SPEC_SPEED_ORDER.map(k=>`<button class="tiny${_specSpeed===k?' amber':''}" onclick="setSpecSpeed('${k}')">${L(SPEC_SPEEDS[k].lbl[0],SPEC_SPEEDS[k].lbl[1])}</button>`).join("")}</div>
       <div class="cvh" style="margin-top:2px">${L("NET WORTH OVER TIME","PATRIMÔNIO AO LONGO DO TEMPO")}</div>
       <div style="display:flex;justify-content:flex-end;gap:5px;margin:2px 0 4px"><button class="tiny" onclick="chartZoom(-1)">−</button><button class="tiny" id="chartZoomBtn" onclick="chartZoom(0)" title="reset zoom">100%</button><button class="tiny" onclick="chartZoom(1)">+</button></div>
       <div id="nwChartWrap" style="width:100%;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;border:1px solid #173a22"></div>
@@ -1534,7 +1564,7 @@ function openActions(){
     <div class="bd" style="text-align:left">${rows}</div>
     <div class="go"><button onclick="closeModal()">${L("[ CLOSE ]","[ FECHAR ]")}</button></div>
     ${statusBar()}`;
-  openModal();
+  openModal(true);
 }
 function actDo(what){
   if(what==='crime')commitCrime();
@@ -1683,7 +1713,7 @@ function openManual(){ window.speechSynthesis&&window.speechSynthesis.cancel(); 
   \u25B8 O jogo salva sozinho a cada turno \u2014 feche a aba e volte depois.
   </div>
   <div class="go"><button onclick="closeModal()">[ FECHAR ]</button></div>`;
-  openModal(); return; }
+  openModal(true); return; }
   el.innerHTML=`<div class="lbl">MANUAL \u2014 HOW TO PLAY</div>
   <div class="bd" style="text-align:left;font-size:16px !important">
 
@@ -1928,6 +1958,7 @@ function openSettings(){
     ${row(L("Display mode","Modo de tela"),`<button id="greenBtn" onclick="toggleGreenDos()">${DISPLAY_MODES[_dispMode].lbl}</button>`)}
     ${row(L("Sound","Som"),`<button id="sndBtn" onclick="toggleSnd()">${SND?"[ SND ]":"[ MUTE ]"}</button>`)}
     ${row(L("Game volume","Volume do jogo"),`<button class="tiny${_gameVol==='L'?' amber':''}" onclick="setGameVol('L')">L</button><button class="tiny${_gameVol==='M'?' amber':''}" onclick="setGameVol('M')">M</button><button class="tiny${_gameVol==='H'?' amber':''}" onclick="setGameVol('H')">H</button>`)}
+    ${row(L("Gunfire test","Testar tiros"),`<button onclick="SFX.gunTest()">${L("[ ▶ FIRE ]","[ ▶ ATIRAR ]")}</button>`)}
     ${row(L("Police volume","Volume da polícia"),`<button class="tiny${_polVol==='L'?' amber':''}" onclick="setPoliceVol('L')">L</button><button class="tiny${_polVol==='M'?' amber':''}" onclick="setPoliceVol('M')">M</button><button class="tiny${_polVol==='H'?' amber':''}" onclick="setPoliceVol('H')">H</button>`)}
     ${row(L("AI cards","Cartas da IA"),`<button class="${AI_AUTOCARDS?'amber':''}" onclick="setAICards('auto')">${L('[ AUTO ]','[ AUTO ]')}</button><button class="${!AI_AUTOCARDS?'amber':''}" onclick="setAICards('manual')">${L('[ TAP ]','[ TOQUE ]')}</button>`)}
     ${row(L("AI speed","Velocidade IA"),AI_SPEED_ORDER.map(s=>`<button class="tiny${AI_SPEED===s?' amber':''}" onclick="setAISpeed('${s}')">${({SLOW:L('SLOW','LENTO'),MEDIUM:L('MEDIUM','MÉDIO'),FAST:L('FAST','RÁPIDO')})[s]}</button>`).join(""))}
@@ -1936,7 +1967,7 @@ function openSettings(){
     ${row(L("New game (reset)","Novo jogo (reiniciar)"),`<button class="red" onclick="askReset()">${L("[ RESET ]","[ REINICIAR ]")}</button>`)}
     </div>
     <div class="go"><button onclick="closeModal()">${L("[ CLOSE ]","[ FECHAR ]")}</button></div>`;
-  openModal();
+  openModal(true);
 }
 /* ===== SUPPORT / TIP THE DEVELOPER ===== */
 const SUPPORT_URL="https://meiadotwork.itch.io/criminal-terminal/donate";
@@ -1964,7 +1995,7 @@ function openSupport(){
       <button class="amber" onclick="supportGo()">${L("[ ♥ TIP THE DEV ]","[ ♥ APOIAR O DEV ]")}</button>
       <button onclick="closeModal()">${L("[ MAYBE LATER ]","[ TALVEZ DEPOIS ]")}</button>
     </div>`;
-  openModal();
+  openModal(true);
 }
 function toggleFollow(){ S.followAnim=!S.followAnim; const b=document.getElementById("followBtn"); if(b)b.textContent=tr(S.followAnim?"[ FOLLOW: ON ]":"[ FOLLOW: OFF ]"); }
 /* ===== LANGUAGE: interface translation (EN / PT). Card text stays EN for now. ===== */
@@ -2498,7 +2529,7 @@ function orderHit(oid){
     } else {
       o.hosp++; o.cleanLaps=0; SFX.ambulance();
       log(L("","O serviço de ")+p.name+L("'s contract shanks "," esfaqueia ")+o.name+L(" in prison — HOSPITAL ("," na prisão — HOSPITAL (")+o.hosp+"/3).","bad");
-      if(o.hosp>=3){ o._deathCause=L("Shanked on a contract in prison","Esfaqueado por contrato na prisão"); render(); killPlayer(o); return; }
+      if(o.hosp>=3){ o._deathCause=L("Shanked on a contract in prison","Esfaqueado por contrato na prisão"); render(); killPlayer(o,p); return; }
       showNotice(L("THE HIT","O SERVIÇO"),"x",L("Shanked on the block","Esfaqueado no pátio"),o.name+L(" caught a blade in the yard — paid for by you, carried out by someone inside. Rushed to the prison HOSPITAL (visit "," levou uma facada no pátio — pago por você, feito por alguém lá dentro. Correu pro HOSPITAL da prisão (visita ")+o.hosp+L("/3). One more bad day and it's over. (+10 HEAT)","/3). Mais um dia ruim e acabou. (+10 RISCO)"),()=>{render();finish();});
     }
     return;
@@ -2508,14 +2539,14 @@ function orderHit(oid){
     showNotice(L("THE HIT","O SERVI\u00c7O"),"x",L("The target went to ground","O alvo sumiu do mapa"),o.name+L(" changed cars, changed routes, slept somewhere new. The shooter waited three nights and walked. Money spent, nothing to show — and the streets are whispering your name (+10 HEAT)."," trocou de carro, trocou de rota, dormiu em outro canto. O atirador esperou tr\u00eas noites e foi embora. Dinheiro gasto, nada em troca — e a rua sussurra seu nome (+10 RISCO)."),()=>{render();finish();});
   } else if(r<2/3 && o.crew>0){
     const loss=Math.min(o.crew,1+Math.floor(Math.random()*3));
-    o.crew-=loss; SFX.soldierDown(loss);
+    o.crew-=loss; p.soldierKills=(p.soldierKills||0)+loss; SFX.soldierDown(loss);
     log(L("A hit ordered by ","Um serviço encomendado por ")+p.name+L(" kills "," mata ")+loss+L(" of "," soldados de ")+o.name+L("'s soldiers.","."),"bad");
     showNotice(L("THE HIT","O SERVI\u00c7O"),"x",L("The bodyguards ate the bullets","Os seguran\u00e7as comeram as balas"),LANG==='PT'?`O atirador pegou a equipe de ${o.name} na porta do ponto. ${loss} soldado(s) no ch\u00e3o, mas ${o.name} saiu vivo. V\u00e3o descobrir quem pagou. (+10 RISCO)`:`The shooter caught ${o.name}'s people outside the spot. ${loss} soldier${loss>1?"s":""} down, but ${o.name} made it out alive. They'll figure out who paid for it. (+10 HEAT)`,()=>{render();finish();});
   } else {
     o.hosp++; o.cleanLaps=0; SFX.gunBurst(); setTimeout(()=>SFX.ambulance(),520);
     if(o.ring==="outer"&&!o.inJail){const hi=OUTER.findIndex(c=>c.k==="hospital");if(hi>=0)o.pos=hi;}
     log(L("","O serviço de ")+p.name+L("'s hit puts "," coloca ")+o.name+L(" in the HOSPITAL ("," no HOSPITAL (")+o.hosp+"/3).","bad");
-    if(o.hosp>=3){ o._deathCause="Taken out by a contract hit"; render(); killPlayer(o); return; }
+    if(o.hosp>=3){ o._deathCause="Taken out by a contract hit"; render(); killPlayer(o,p); return; }
     showNotice(L("THE HIT","O SERVI\u00c7O"),"x",L("Direct hit","Acerto direto"),o.name+L(" took two in the ribs getting into the car. Rushed to the HOSPITAL (visit "," levou dois tiros nas costelas entrando no carro. Correu pro HOSPITAL (visita ")+o.hosp+L("/3) — one more bad day and it's over for them. (+10 HEAT)","/3) — mais um dia ruim e acabou para ele. (+10 RISCO)"),()=>{render();finish();});
   }
 }
@@ -2587,7 +2618,10 @@ function resolveAttack(p,o,idx,atk){
   closeModal();
   const def=o.owns.get(idx)||0;
   atk=Math.max(1,Math.min(atk||p.crew,p.crew));
-  SFX.soldierDown(2*Math.min(atk,def)||1);   // 3 gunshots per soldier killed in the battle
+  const killed=Math.min(atk,def);            // each side wipes out this many of the other's soldiers
+  p.soldierKills=(p.soldierKills||0)+killed;  // attacker downs the defenders
+  o.soldierKills=(o.soldierKills||0)+killed;  // defenders down that many attackers
+  SFX.soldierDown(killed||1);                 // 3 gunshots per soldier killed in the battle
   let title,body;
   if(atk>def){ p.crew-=atk; o.owns.delete(idx); p.owns.set(idx,Math.max(1,atk-def));
     title=L("TURF TAKEN","\u00c1REA TOMADA");
@@ -2629,7 +2663,7 @@ function drawStory(deck){
 /* AI story cards resolve themselves after a readable pause (a human tap still works) */
 function aiAutoApply(card){
   const p=S.players[S.cur]; if(!p.ai)return;
-  if(!AI_AUTOCARDS) return;   // MANUAL mode: leave the card open for a human to read and tap
+  if(!AI_AUTOCARDS && !SPECTATING) return;   // MANUAL mode: leave the card open for a human to read and tap (but spectate always auto-runs)
   setTimeout(()=>{
     const el=document.getElementById("cardEl");
     if(el._card===card && document.getElementById("modal").classList.contains("on")) applyCard();
@@ -3081,6 +3115,7 @@ function prisonDeath(p,why){
     <div class="out" style="white-space:pre-wrap">${empireLine(p)}</div>
     <div class="go"><button class="red" onclick="showRIP(${p.id})">[ MEMORIAL ]</button></div>`;
   openModal();
+  if(SPECTATING) setTimeout(()=>{ if(SPECTATING) showRIP(p); }, aiCardMs());   // auto-advance while spectating
 }
 
 /* ===== DEATH / WIN ===== */
@@ -3095,7 +3130,8 @@ function empireLine(p){const s=empireStats(p);
     s.crew+L(" bodyguards"," guarda-costas")+" · "+s.turf+L(" streets ("," ruas (")+s.stSol+L(" soldiers)"," soldados)")+"\n"+
     s.biz+L(" businesses ("," negócios (")+s.workers+L(" workers)"," funcionários)");
 }
-function killPlayer(p){
+function killPlayer(p,killer){
+  if(killer&&killer!==p&&killer.id!==p.id){ killer.bossKills=(killer.bossKills||0)+1; }   // credit the boss who ordered it
   SFX.flatline();setTimeout(()=>SFX.funeral(),350);
   if(!p._deathCause&&p._hospCause)p._deathCause=L("Flatlined in the hospital after ","Apagou no hospital depois de ")+p._hospCause;
   p.alive=false;p.diedAt=p.age;log(p.name+L(" DIES for good at "," MORRE de vez aos ")+p.age+L(". OUT.",". FORA."),"bad");
@@ -3112,6 +3148,7 @@ function showDeathAnnounce(p){
     <div class="out" style="white-space:pre-wrap">${empireLine(p)}</div>
     <div class="go"><button class="red" onclick="showRIP(${p.id})">[ MEMORIAL ]</button></div>`;
   openModal();
+  if(SPECTATING) setTimeout(()=>{ if(SPECTATING) showRIP(p); }, aiCardMs());   // no one to tap MEMORIAL — auto-advance
 }
 
 function ripEpitaph(p){
@@ -3145,6 +3182,7 @@ function showRIP(id){
     <div class="out" style="white-space:pre-wrap">${empireLine(p)}</div>
     <div class="go"><button onclick="afterRIP()">${L('[ LAY TO REST ]','[ ENTERRAR ]')}</button></div>`;
   openModal();
+  if(SPECTATING) setTimeout(()=>{ if(SPECTATING) afterRIP(); }, aiCardMs());   // auto-advance the memorial while spectating
 }
 function afterRIP(){
   closeModal();
@@ -3167,6 +3205,7 @@ function hofVs(x){ if(x.ai==null&&x.hum==null) return ""; const parts=[]; if(x.a
 
 /* ===== RETIRE UNTOUCHABLE: the second way to win ===== */
 function showRetire(p){
+  if(typeof SPECTATING!=="undefined"&&SPECTATING) exitSpectate();   // drop the dashboard so the result card shows
   S.over=true; clearSave(); SFX.win(); if(hofEligible(p))recordHof(p,"RETIRED");
   render(); updateControls();
   const el=document.getElementById("cardEl");
@@ -3180,6 +3219,7 @@ function showRetire(p){
   openModal();
 }
 function showGameOver(winner){
+  if(typeof SPECTATING!=="undefined"&&SPECTATING) exitSpectate();   // drop the dashboard so the result card shows
   clearSave();SFX.win();
   if(hofEligible(winner))recordHof(winner,"LAST BOSS");
   const el=document.getElementById("cardEl");
@@ -3260,6 +3300,8 @@ function recordNetwork(p,deck,c){
 
 /* ===== PROFILE (crime record) ===== */
 function showProfile(id,fromPause){
+  const spec=(fromPause===2);                       // opened from the live spectate leaderboard
+  if(spec && typeof PAUSED!=="undefined"){ PAUSED=true; }   // hold the sim while the record is up
   const p=S.players[id];const el=document.getElementById("cardEl");
   const list=p.crimes.filter(c=>typeof c==="object");
   const rebornCount=p.crimes.filter(c=>c==="(reborn)").length;
@@ -3302,12 +3344,16 @@ function showProfile(id,fromPause){
       </div>
       <div class="cvbox"><div class="cvh">${L("HOLDINGS","PROPRIEDADES")}</div><div class="cvlist">${holdings}</div></div>
       <div class="cvbox"><div class="cvh">${L("RAP SHEET","FICHA CRIMINAL")} · ${list.length} ${L("chg","acus.")} · ${total}${L("y","a")}${lifeTag}</div><div class="cvlist">${charges}</div></div>
+      <div class="cvbox" style="grid-column:1/-1"><div class="cvh">${L("BODY COUNT","MORTES")}</div>
+        <div class="cvrow"><span>${L("Enemy soldiers killed","Soldados inimigos mortos")}</span><span>${p.soldierKills||0}</span></div>
+        <div class="cvrow"><span>${L("Rival bosses killed","Chefes rivais mortos")}</span><span>${p.bossKills||0}</span></div>
+      </div>
       <div class="cvbox" style="grid-column:1/-1"><div class="cvh">${L("NETWORK","REDE")} · ${(p.network||[]).length} ${L("contact","contato")}${(p.network||[]).length===1?"":"s"}</div><div class="cvlist">${network}</div></div>
     </div>
     ${rebornCount>0?`<div class="cvnote cvdim">${L("reborn ","renasceu ")}${rebornCount}×${L(" — this cat's got lives"," — esse gato tem vidas")}</div>`:""}
-    <div class="go">${fromPause?`<button onclick="openPause()">${L('[ ‹ BACK ]','[ ‹ VOLTAR ]')}</button>`:''}<button onclick="closeModal()">[ CLOSE ]</button></div>
+    <div class="go">${(fromPause&&!spec)?`<button onclick="openPause()">${L('[ ‹ BACK ]','[ ‹ VOLTAR ]')}</button>`:''}<button onclick="closeModal()">${spec?L('[ ⤢ BACK TO SPECTATE ]','[ ⤢ VOLTAR ]'):'[ CLOSE ]'}</button></div>
   </div>`;
-  openModal();
+  openModal(true);
 }
 
 /* ===== TURN ADVANCE ===== */
@@ -3382,7 +3428,8 @@ function aiScene(inner,then){
   _aiSceneThen=then||null; _aiSceneDone=false;
   el.innerHTML=inner+`<div class="go"><button onclick="aiSceneGo()">${L('[ CONTINUE ]','[ CONTINUAR ]')}</button></div>`+statusBar();
   openModal();
-  if(AI_AUTOCARDS) setTimeout(aiSceneGo, aiCardMs());
+  // spectating always auto-advances (the card is hidden anyway); otherwise honour AI-cards setting
+  if(AI_AUTOCARDS || SPECTATING) setTimeout(aiSceneGo, aiCardMs());
 }
 function aiSceneGo(){ if(_aiSceneDone)return; _aiSceneDone=true; closeModal(); const f=_aiSceneThen; _aiSceneThen=null; if(f)f(); }
 function aiSceneCard(p,ttl,body,cls){ return `<div class="lbl" style="background:${p.color}">${p.name}</div><div class="ttl"${cls?` style="color:${cls}"`:''}>${ttl}</div><div class="bd">${body}</div>`; }
@@ -3439,14 +3486,17 @@ ${L("Your cash now:","Seu dinheiro agora:")} ${fmtK(Math.max(0,p.cash))}${shortf
 function statusBar(){const p=S.players[S.cur];const wealth=p.ring==="inner"?`<span>${L('PACKS','MA\u00c7OS')}: ${p.packs}</span>`:`<span>${fmtK(p.cash)}</span>`;
   const heat=p.ring==="inner"?"":`<span>${L('HEAT','RISCO')}: ${p.heat||0}%</span>`;
   return `<div class="status"><span>${p.name}</span>${wealth}${heat}<span>SOL: ${p.crew}</span><span>${L('TURF','\u00c1REA')}: ${p.owns.size}</span></div>`;}
-function openModal(){document.getElementById("modal").classList.add("on");
+function openModal(user){document.getElementById("modal").classList.add("on");
+  // while spectating, only a modal the USER asked for (menu, standings, a boss's record) should
+  // show — the AI's own action cards are suppressed so the dashboard isn't interrupted.
+  document.body.classList.toggle("usermodal",!!user);
   // READ (text-to-speech) only on narrative cards + the manual — they set dataset.read="1".
   // Hidden on menus, standings, settings, profile, buy/sell prompts, etc.
   const t=document.getElementById("cardTools"), ce=document.getElementById("cardEl");
   if(t) t.style.display=(ce&&ce.dataset.read==="1")?"flex":"none";
   if(ce) ce.dataset.read="";   // consume the flag so the next modal starts hidden
 }
-function closeModal(){document.getElementById("modal").classList.remove("on");const ce=document.getElementById("cardEl");if(ce)ce.dataset.deck="";try{window.speechSynthesis&&window.speechSynthesis.cancel();}catch(e){} if(typeof unpauseGame==="function")unpauseGame();}
+function closeModal(){document.getElementById("modal").classList.remove("on");document.body.classList.remove("usermodal");const ce=document.getElementById("cardEl");if(ce)ce.dataset.deck="";try{window.speechSynthesis&&window.speechSynthesis.cancel();}catch(e){} if(typeof unpauseGame==="function")unpauseGame();}
 
 /* ===== BOOT ===== */
 /* ===== DOS TERMINAL FRONT-END: password gate + MS-DOS boot ===== */
