@@ -687,7 +687,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v16.9";
+const APP_VERSION="v17.0";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -1157,8 +1157,14 @@ function aiCardMs(){return aiSpd().card;}
 function aiDiceTick(){return aiSpd().dice;}
 function aiStepMs(){return aiSpd().step;}
 let _ac=null;
+/* spectating an all-AI match at speed makes the full sound mix a mess — so while spectating
+   only gunshots are allowed through. gunNoise() flags the one noise type that survives. */
+let _gunSound=false;
+function specMuted(){ return typeof SPECTATING!=="undefined"&&SPECTATING; }
+function gunNoise(dur,vol,when,cutoff){ _gunSound=true; noiseBurst(dur,vol,when,cutoff); _gunSound=false; }
 function beep(freq,dur,vol,when){
   if(!SND)return;
+  if(specMuted())return;                 // spectate: mute tones (cash, sirens, stingers…)
   try{
     _ac=_ac||new (window.AudioContext||window.webkitAudioContext)();
     if(_ac.state==="suspended")_ac.resume();
@@ -1171,6 +1177,7 @@ function beep(freq,dur,vol,when){
 }
 function noiseBurst(dur,vol,when,cutoff){ // filtered white noise: gunshots, slams
   if(!SND)return;
+  if(specMuted()&&!_gunSound)return;     // spectate: only gunshots (via gunNoise) get through
   try{
     _ac=_ac||new (window.AudioContext||window.webkitAudioContext)();
     if(_ac.state==="suspended")_ac.resume();
@@ -1187,6 +1194,7 @@ function noiseBurst(dur,vol,when,cutoff){ // filtered white noise: gunshots, sla
 }
 function sirenWail(start,cycles){ // smooth up-down frequency glide — a real siren wail
   if(!SND)return;
+  if(specMuted())return;                 // spectate: no sirens
   try{
     _ac=_ac||new (window.AudioContext||window.webkitAudioContext)();
     if(_ac.state==="suspended")_ac.resume();
@@ -1202,9 +1210,9 @@ function sirenWail(start,cycles){ // smooth up-down frequency glide — a real s
    fast = tight SMG cracks · long = heavy spaced booms · sniper = huge cracks with an echo tail.
    returns the seconds it consumes so volleys can be laid end-to-end. */
 function gunVolley3(flavor,t0){
-  if(flavor==="long"){ for(let i=0;i<3;i++) noiseBurst(.09,.30,t0+i*.13,900); return 3*.13+.06; }
-  if(flavor==="sniper"){ for(let i=0;i<3;i++){ noiseBurst(.14,.34,t0+i*.26,950); noiseBurst(.26,.07,t0+i*.26+.15,280); } return 3*.26+.12; }
-  /* fast */ for(let i=0;i<3;i++) noiseBurst(.035,.20,t0+i*.05,2000); return 3*.05+.05;
+  if(flavor==="long"){ for(let i=0;i<3;i++) gunNoise(.09,.30,t0+i*.13,900); return 3*.13+.06; }
+  if(flavor==="sniper"){ for(let i=0;i<3;i++){ gunNoise(.14,.34,t0+i*.26,950); gunNoise(.26,.07,t0+i*.26+.15,280); } return 3*.26+.12; }
+  /* fast */ for(let i=0;i<3;i++) gunNoise(.035,.20,t0+i*.05,2000); return 3*.05+.05;
 }
 const SFX={
   tick:()=>beep(880,.03,.025),
