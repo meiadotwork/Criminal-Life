@@ -687,7 +687,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v17.1";
+const APP_VERSION="v17.2";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -1177,12 +1177,13 @@ function aiStepMs(){return aiSpd().step;}
 let _ac=null;
 /* spectating an all-AI match at speed makes the full sound mix a mess — so while spectating
    only gunshots are allowed through. gunNoise() flags the one noise type that survives. */
-let _gunSound=false;
+let _gunSound=false, _deathSound=false;
 function specMuted(){ return typeof SPECTATING!=="undefined"&&SPECTATING; }
 function gunNoise(dur,vol,when,cutoff){ _gunSound=true; noiseBurst(dur,vol,when,cutoff); _gunSound=false; }
+function deathBeep(freq,dur,vol,when){ _deathSound=true; beep(freq,dur,vol,when); _deathSound=false; }   // survives the spectate mute
 function beep(freq,dur,vol,when){
   if(!SND)return;
-  if(specMuted())return;                 // spectate: mute tones (cash, sirens, stingers…)
+  if(specMuted()&&!_deathSound)return;   // spectate: mute tones (cash, sirens, stingers…) except the death sound
   try{
     _ac=_ac||new (window.AudioContext||window.webkitAudioContext)();
     if(_ac.state==="suspended")_ac.resume();
@@ -1255,11 +1256,11 @@ const SFX={
   soldierDown:(n=1)=>{ if(!SND)return; n=Math.max(1,Math.min(60,Math.round(n))); const fl=["fast","long","sniper"]; let t=0,prev=-1; for(let i=0;i<n;i++){ let k=Math.floor(Math.random()*3); if(k===prev)k=(k+1+Math.floor(Math.random()*2))%3; prev=k; t+=gunVolley3(fl[k],t); } },   // random weapon each kill so a firefight never sounds the same twice
   gunTest:()=>{ if(!SND)return; let t=0; ["fast","long","sniper"].forEach(fl=>{ t+=gunVolley3(fl,t)+.4; }); },   // demo each of the three cadences, clearly spaced
   gunOne:(fl)=>{ if(!SND)return; gunVolley3(fl,0); },   // hear one weapon's 3 shots on its own
-  funeral:()=>{const seq=[[196,.55],[196,.28],[196,.28],[233,.75],[233,.38],[196,.38],[185,.38],[147,.9]];let t=0;seq.forEach(([f,d])=>{beep(f,d*0.92,.05,t);t+=d;});}, // slow minor dirge
+  funeral:()=>{const seq=[[196,.55],[196,.28],[196,.28],[233,.75],[233,.38],[196,.38],[185,.38],[147,.9]];let t=0;seq.forEach(([f,d])=>{deathBeep(f,d*0.92,.05,t);t+=d;});}, // slow minor dirge
   cash:()=>{beep(1245,.05,.045);beep(1568,.12,.05,.06);},                                 // register cha-ching
   shots:()=>{ SFX.gunRandom(); },                                                          // firefight — random firearm each time
   clang:()=>{beep(120,.3,.08);noiseBurst(.25,.12,.02,400);},                              // cell door slams
-  flatline:()=>{beep(1000,.09,.05);beep(1000,.09,.05,.4);beep(1000,.09,.05,.8);beep(1000,1.3,.055,1.2);}, // heart monitor
+  flatline:()=>{deathBeep(1000,.09,.05);deathBeep(1000,.09,.05,.4);deathBeep(1000,.09,.05,.8);deathBeep(1000,1.3,.055,1.2);}, // heart monitor
   win:()=>{[523,659,784,1047].forEach((f,i)=>beep(f,.12,.045,i*.13));},
 };
 function toggleSnd(){ SND=!SND; try{localStorage.setItem("ct_snd",SND?"on":"off");}catch(e){} const b=document.getElementById("sndBtn"); if(b)b.textContent=SND?"[ SND ]":"[ MUTE ]"; if(SND)SFX.card(); }
