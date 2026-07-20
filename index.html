@@ -11,6 +11,12 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="CRIMINAL TERMINAL">
 <title>CRIMINAL TERMINAL</title>
+<!-- PWA: install as a real app with an icon; works offline once visited (GitHub Pages). Fails silently where unsupported (itch iframe, file://). -->
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#010602">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' fill='%23000'/><text x='8' y='12.5' font-size='12' text-anchor='middle' fill='%2333ff44' font-family='monospace'>$</text></svg>">
 <style>
   :root{--phos:#39ff74;--phos-dim:#1c9c3c;--phos-dark:#0a3d18;--amber:#ffb642;--red:#ff5a52;--bg:#010602;--scan:rgba(0,0,0,.22)}
@@ -695,7 +701,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v17.8";
+const APP_VERSION="v17.9";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -1264,7 +1270,9 @@ const SFX={
   gunTest:()=>{ if(!SND)return; let t=0; ["fast","long","sniper"].forEach(fl=>{ t+=gunVolley3(fl,t)+.4; }); },   // demo each of the three cadences, clearly spaced
   gunOne:(fl)=>{ if(!SND)return; gunVolley3(fl,0); },   // hear one weapon's 3 shots on its own
   overkill:()=>{ if(!SND)return; let t=0; for(let i=0;i<20;i++){ gunNoise(.035+Math.random()*.03,.24,t,1500+Math.random()*900); t+=.05+Math.random()*.04; } beep(60,1.0,.05,0); },   // 20-round execution volley
-  funeral:()=>{const seq=[[196,.55],[196,.28],[196,.28],[233,.75],[233,.38],[196,.38],[185,.38],[147,.9]];let t=0;seq.forEach(([f,d])=>{deathBeep(f,d*0.92,.05,t);t+=d;});}, // slow minor dirge
+  funeral:()=>{const fast=(typeof SPECTATING!=="undefined"&&SPECTATING&&_specSpeed!=="FAST");
+    const seq=fast?[[196,.22],[185,.22],[147,.4]]:[[196,.55],[196,.28],[196,.28],[233,.75],[233,.38],[196,.38],[185,.38],[147,.9]];
+    let t=0;seq.forEach(([f,d])=>{deathBeep(f,d*0.92,.05,t);t+=d;});}, // slow minor dirge (clipped short at TURBO/MAX spectate so stacked deaths don't smear)
   cash:()=>{beep(1245,.05,.045);beep(1568,.12,.05,.06);},                                 // register cha-ching
   shots:()=>{ SFX.gunRandom(); },                                                          // firefight — random firearm each time
   clang:()=>{beep(120,.3,.08);noiseBurst(.25,.12,.02,400);},                              // cell door slams
@@ -1709,9 +1717,11 @@ function openManual(){ window.speechSynthesis&&window.speechSynthesis.cancel(); 
   Duas formas de vencer. Seja o \u00daLTIMO CHEF\u00c3O DE P\u00c9 \u2014 todos os outros jogadores morrem na pris\u00e3o, no hospital, ou quebrados e sangrando. Ou APOSENTE-SE INTOC\u00c1VEL: alcance $10M de patrim\u00f4nio e chegue aos 65 anos, e voc\u00ea sai vencedor enquanto a cidade briga pelo que sobrou.
 
   ${H("PREPARA\u00c7\u00c3O")}
-  \u25B8 DIFICULDADE define o dinheiro inicial: F\u00c1CIL $1M \u00b7 M\u00c9DIO $250K \u00b7 DIF\u00cdCIL $100K \u00b7 REALISTA $0.<br>
-  \u25B8 VELOCIDADE define o dado: LENTO = D6, NORMAL = D8, R\u00c1PIDO = D10. Um dado maior anda mais por rodada, ent\u00e3o as voltas (anos) passam mais r\u00e1pido \u2014 mas voc\u00ea para em menos casas por volta.<br>
-  \u25B8 SOLO = voc\u00ea contra 1\u20139 chef\u00f5es IA. PASSA E JOGA = 2\u201310 humanos. Escolha nome, padr\u00e3o e idade (teclado num\u00e9rico ou \u25B2\u25BC).
+  ▸ JOGADORES: 2–10 na mesa — cada lugar pode ser HUMANO ou FANTASMA (IA). Para cada Fantasma você escolhe a agressividade: AGRESSIVO, CAUTELOSO, RESERVADO ou PACÍFICO.<br>
+  ▸ CIDADE: New York, Los Angeles, Curitiba, Rio, Cidade do México ou São Paulo — muda o mapa, os negócios, a moeda, a prisão e a lei local.<br>
+  ▸ CAPITAL INICIAL: com quanto todos começam. DADOS: D6, D8 ou D10 — dado maior, anos passam mais rápido.<br>
+  ▸ POLÍCIA: MUITO BAIXA (¼) · BAIXA (½) · REALISTA · DIFÍCIL (toda batida prende) · BRASILEIRA (batida não prende — EXECUTA. Sem julgamento).<br>
+  ▸ Escolha nome, padrão e idade. Quantidades (soldados, funcionários) agora se digitam num teclado numérico — MAX preenche o que der.
 
   ${H("SEU TURNO")}
   Toque no dado para rolar e andar — você resolve a casa onde CAIR. Antes de rolar você também pode apertar [ COMETER CRIME ] (3 chances por ano) para um assalto, morte encomendada ou tráfico aleatório — é uma ação GRATUITA, você ainda rola depois (mas prisão ou hospital encerram seu turno). O botão [ CONTRATAR ] funciona a qualquer momento no seu turno: guarda-costas, soldados de rua e funcionários. Tudo o que acontece aparece como uma carta.
@@ -1750,6 +1760,14 @@ function openManual(){ window.speechSynthesis&&window.speechSynthesis.cancel(); 
   ${H("MORTE E VIT\u00d3RIA")}
   Morto na pris\u00e3o ou apagado no hospital: voc\u00ea recebe uma carta de morte, um memorial, e est\u00e1 FORA. O jogo segue at\u00e9 restar um chef\u00e3o \u2014 ou at\u00e9 algu\u00e9m se APOSENTAR INTOC\u00c1VEL ($10M + 65 anos, checado ao passar pelo IN\u00cdCIO). Ven\u00e7a a IA no REALISTA e seu nome \u00e9 gravado no HALL DA FAMA da tela inicial \u2014 \u00e9 o \u00fanico jeito de entrar.
 
+  ${H("ASSISTIR (SPECTATE)")}
+  ▸ Numa partida só de Fantasmas, pause e toque em [ ▶ ASSISTIR ]: gráfico ao vivo, classificação e console, com velocidade RÁPIDO / TURBO / MÁX e botão de pausa. As cartas da IA ficam ocultas e só os tiros e o som de morte tocam.<br>
+  ▸ Toque num chefe na classificação para ver a ficha dele sem parar a guerra por muito tempo.
+
+  ${H("REVANCHE E REINÍCIO")}
+  ▸ No fim da partida: [ ↻ REVANCHE ] repete a mesa embaralhando a ordem e as cartas · [ ≡ RESUMO ] mostra os destaques da guerra.<br>
+  ▸ No MENU: REINICIAR PARTIDA recomeça com os mesmos jogadores e a mesma ordem (pede confirmação).
+
   ${H("TELA E CONTROLES")}
   \u25B8 [ 87 ] alterna 5 visuais: 87 f\u00f3sforo verde \u2192 94 mono branco \u2192 INK mono preto no branco \u2192 COLOR papel colorido \u2192 WIN, um desktop Windows 95. Sua escolha fica salva.<br>
   \u25B8 [ SND ] liga/desliga o som \u00b7 [ READ ] em qualquer carta l\u00ea em voz alta \u00b7 os bot\u00f5es de zoom redimensionam o tabuleiro.<br>
@@ -1764,9 +1782,11 @@ function openManual(){ window.speechSynthesis&&window.speechSynthesis.cancel(); 
   Two ways to win. Be the LAST BOSS STANDING \u2014 every other player dies in prison, in the hospital, or broke and bleeding. Or RETIRE UNTOUCHABLE: reach $10M net worth and make it to age 65, and you walk away the winner while the city keeps fighting over what's left.
 
   ${H("SETUP")}
-  \u25B8 DIFFICULTY sets everyone's starting cash: EASY $1M \u00B7 MEDIUM $250K \u00B7 HARD $100K \u00B7 REALISTIC $0.<br>
-  \u25B8 SPEED sets the die you roll: SLOW = D6, NORMAL = D8, FAST = D10. A bigger die moves you further each roll, so laps (years) pass faster \u2014 but you stop on fewer spaces per lap.<br>
-  \u25B8 SOLO = you vs 1\u20139 AI bosses. PASS &amp; PLAY = 2\u201310 humans. Pick a name, a pattern, and your age (number keys or \u25B2\u25BC).
+  ▸ PLAYERS: 2–10 seats — each one HUMAN or GHOST (AI). Every Ghost gets an aggression level: AGGRESSIVE, CAREFUL, CAUTIOUS or PASSIVE.<br>
+  ▸ CITY: New York, Los Angeles, Curitiba, Rio, Mexico City or São Paulo — changes the map, the rackets, the currency, the prison and the local law.<br>
+  ▸ INITIAL CAPITAL: what everyone starts with. DICE: D6, D8 or D10 — a bigger die makes the years pass faster.<br>
+  ▸ POLICE: VERY LOW (¼) · LOW (½) · REALISTIC · HARD (every raid is an arrest) · BRAZILIAN (a raid doesn't arrest you — it GUNS YOU DOWN. No trial).<br>
+  ▸ Pick a name, a pattern and your age. Quantities (soldiers, workers) are typed on a number keypad — MAX fills what you can afford.
 
   ${H("YOUR TURN")}
   Tap the die to roll and move — you resolve the space you LAND on. Before rolling you can also press [ COMMIT CRIME ] (3 chances per year) for a random heist, hit or drug run — it's a FREE action, you still roll afterwards (but an arrest or a trip to the hospital ends your turn). The [ HIRE ] button works any time on your turn: bodyguard soldiers, street soldiers, and business workers. Everything that happens to you shows up as a card.
@@ -1804,6 +1824,14 @@ function openManual(){ window.speechSynthesis&&window.speechSynthesis.cancel(); 
 
   ${H("DEATH & WINNING")}
   Killed in prison or flatlined in the hospital: you get a death card, a memorial, and you're OUT. The game runs until one boss remains \u2014 or until someone RETIRES UNTOUCHABLE ($10M net worth + age 65, checked each time you pass START). Beat the AI on REALISTIC difficulty and your name gets carved into the HALL OF FAME on the title screen \u2014 that's the only way in.
+
+  ${H("SPECTATE")}
+  ▸ In an all-Ghost match, pause and hit [ ▶ SPECTATE ]: live chart, leaderboard and console, with FAST / TURBO / MAX speed and a pause button. AI cards stay hidden and only gunfire and the death cue play.<br>
+  ▸ Tap any boss on the leaderboard to read their record while the war holds.
+
+  ${H("REMATCH & RESTART")}
+  ▸ After a match: [ ↻ REMATCH ] runs the same table back with turn order and decks reshuffled · [ ≡ RECAP ] shows the war's highlights.<br>
+  ▸ In the MENU: RESTART MATCH replays the exact same roster and order (asks to confirm).
 
   ${H("SCREEN & CONTROLS")}
   \u25B8 [ 87 ] cycles 5 displays: 87 green phosphor \u2192 94 white-on-black mono \u2192 INK black-on-white mono \u2192 COLOR paper (cards and cells color-coded) \u2192 WIN, a Windows-95 desktop (teal wallpaper, silver windows, navy title bars). Your pick is remembered.<br>
@@ -2362,8 +2390,38 @@ function pokerRoll(idx){
     <div class="ttl">${win?L("WINNER","VENCEDOR"):L("YOU LOSE","VOC\u00ca PERDEU")}</div>
     <div class="bd">${L('You rolled a <b>','Voc\u00ea tirou <b>')}${r}</b>. ${win?(L("You won your bet - +","Voc\u00ea ganhou a aposta - +")+fmtK(stake)+"."):(L("You lost your bet","Voc\u00ea perdeu a aposta")+(owner&&owner.id!==p.id?" - "+owner.name+L(" collects."," recolhe."):"."))}</div>
     <div class="out">${fmtK(p.cash)} ${L('on hand','em m\u00e3os')}</div>
-    <div class="go"><button onclick="closeModal();finish()">[ ${win?L("CASH OUT","SACAR"):L("WALK AWAY","IR EMBORA")} ]</button></div>
+    <div class="go">${(win&&stake>0)?`<button class="amber" onclick="letItRide(${stake})">${L('[ LET IT RIDE \u00b7 risk ','[ DEIXAR ROLAR \u00b7 arrisca ')}${fmtK(stake)} ]</button>`:''}<button onclick="closeModal();finish()">[ ${win?L("CASH OUT","SACAR"):L("WALK AWAY","IR EMBORA")} ]</button></div>
     ${statusBar()}`;
+  render();openModal();
+}
+/* LET IT RIDE \u2014 double-or-nothing on the night's winnings. Each win doubles the pot;
+   one loss gives every won dollar back to the table. Pure nerve. */
+function letItRide(pot){
+  const p=S.players[S.cur]; if(!p||pot<=0)return;
+  const r=1+Math.floor(Math.random()*6); const win=r>=4;
+  const el=document.getElementById("cardEl");
+  if(win){
+    p.cash+=pot; mkDirty(p,pot); SFX.cash();
+    const next=pot*2;
+    log(p.name+L(" lets it ride \u2014 rolls a "," deixa rolar \u2014 tira ")+r+L(". The pot DOUBLES to +",". O pote DOBRA para +")+fmtK(next)+".","good");
+    el.dataset.read="1"; el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('LET IT RIDE','DEIXAR ROLAR')}</div>
+      <div class="art">$ $ $</div>
+      <div class="ttl">${L("STILL HOT","AINDA QUENTE")}</div>
+      <div class="bd">${L('You rolled a <b>','Voc\u00ea tirou <b>')}${r}</b>. ${L('The table goes quiet \u2014 your winnings double to <b>+','A mesa fica em sil\u00eancio \u2014 seus ganhos dobram para <b>+')}${fmtK(next)}</b>. ${L('Walk away\u2026 or push it all in again.','Sai agora\u2026 ou empurra tudo de novo.')}</div>
+      <div class="out">${fmtK(p.cash)} ${L('on hand','em m\u00e3os')}</div>
+      <div class="go"><button class="amber" onclick="letItRide(${next})">${L('[ RIDE AGAIN \u00b7 risk ','[ ROLAR DE NOVO \u00b7 arrisca ')}${fmtK(next)} ]</button><button onclick="closeModal();finish()">${L('[ CASH OUT ]','[ SACAR ]')}</button></div>
+      ${statusBar()}`;
+  } else {
+    p.cash-=pot; SFX.bad();
+    log(p.name+L(" pushes the pot once too far \u2014 rolls a "," for\u00e7a o pote uma vez demais \u2014 tira ")+r+L(" and hands back "," e devolve ")+fmtK(pot)+".","bad");
+    el.dataset.read="1"; el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('LET IT RIDE','DEIXAR ROLAR')}</div>
+      <div class="art">x x x</div>
+      <div class="ttl">${L("THE TABLE TAKES IT ALL","A MESA LEVA TUDO")}</div>
+      <div class="bd">${L('You rolled a <b>','Voc\u00ea tirou <b>')}${r}</b>. ${L('One roll too greedy \u2014 every dollar you won tonight goes back across the felt.','Uma rodada gananciosa demais \u2014 cada d\u00f3lar que voc\u00ea ganhou hoje volta pra mesa.')}</div>
+      <div class="out">${fmtK(p.cash)} ${L('on hand','em m\u00e3os')}</div>
+      <div class="go"><button onclick="closeModal();finish()">${L('[ WALK AWAY ]','[ IR EMBORA ]')}</button></div>
+      ${statusBar()}`;
+  }
   render();openModal();
 }
 /* ===== BUSINESS ===== */
@@ -3206,12 +3264,13 @@ const PRISON_DEATHS=[
 {t:"A contract from outside",bd:"Someone you crossed on the street had money and a phone call. Inside, a hit costs a carton."},
 {t:"Died of 'natural causes'",bd:"That's what the death certificate says. The bruises said different, but nobody reads a convict's autopsy."}
 ];
+function deathAutoAdv(){ return (typeof SPECTATING!=="undefined"&&SPECTATING) || (AI_AUTOCARDS&&S&&S.players&&S.players[S.cur]&&S.players[S.cur].ai); }
 function prisonDeath(p,why){
   const di=Math.floor(Math.random()*PRISON_DEATHS.length);
   const d=LANG==='PT'?{t:PRISON_DEATHS_PT[di].t,bd:PRISON_DEATHS_PT[di].b}:PRISON_DEATHS[di];
   p._deathCause=d.t;
   SFX.flatline();setTimeout(()=>SFX.funeral(),350);
-  p.alive=false;p.diedAt=p.age;
+  p.alive=false;p.diedAt=p.age;p.diedTurn=S.turn;
   log(p.name+L(" is KILLED IN PRISON — "," é MORTO NA PRISÃO — ")+d.t+L(". OUT.",". FORA."),"bad");
   render();
   const el=document.getElementById("cardEl");
@@ -3225,7 +3284,7 @@ function prisonDeath(p,why){
     <div class="out" style="white-space:pre-wrap">${empireLine(p)}</div>
     <div class="go"><button class="red" onclick="showRIP(${p.id})">[ MEMORIAL ]</button></div>`;
   openModal();
-  if(SPECTATING) setTimeout(()=>{ if(SPECTATING) showRIP(p); }, aiCardMs());   // auto-advance while spectating
+  if(deathAutoAdv()) setTimeout(()=>{ if(deathAutoAdv()) showRIP(p); }, aiCardMs());   // auto-advance while spectating / AI turns
 }
 
 /* ===== DEATH / WIN ===== */
@@ -3244,7 +3303,7 @@ function killPlayer(p,killer){
   if(killer&&killer!==p&&killer.id!==p.id){ killer.bossKills=(killer.bossKills||0)+1; }   // credit the boss who ordered it
   SFX.flatline();setTimeout(()=>SFX.funeral(),350);
   if(!p._deathCause&&p._hospCause)p._deathCause=L("Flatlined in the hospital after ","Apagou no hospital depois de ")+p._hospCause;
-  p.alive=false;p.diedAt=p.age;log(p.name+L(" DIES for good at "," MORRE de vez aos ")+p.age+L(". OUT.",". FORA."),"bad");
+  p.alive=false;p.diedAt=p.age;p.diedTurn=S.turn;log(p.name+L(" DIES for good at "," MORRE de vez aos ")+p.age+L(". OUT.",". FORA."),"bad");
   render();
   showDeathAnnounce(p); // big announcement → RIP memorial
 }
@@ -3258,7 +3317,7 @@ function showDeathAnnounce(p){
     <div class="out" style="white-space:pre-wrap">${empireLine(p)}</div>
     <div class="go"><button class="red" onclick="showRIP(${p.id})">[ MEMORIAL ]</button></div>`;
   openModal();
-  if(SPECTATING) setTimeout(()=>{ if(SPECTATING) showRIP(p); }, aiCardMs());   // no one to tap MEMORIAL — auto-advance
+  if(deathAutoAdv()) setTimeout(()=>{ if(deathAutoAdv()) showRIP(p); }, aiCardMs());   // no one to tap MEMORIAL — auto-advance
 }
 
 function ripEpitaph(p){
@@ -3432,7 +3491,7 @@ function showRIP(id){
     <div class="out" style="white-space:pre-wrap">${empireLine(p)}</div>
     <div class="go"><button onclick="afterRIP()">${L('[ LAY TO REST ]','[ ENTERRAR ]')}</button></div>`;
   openModal();
-  if(SPECTATING) setTimeout(()=>{ if(SPECTATING) afterRIP(); }, aiCardMs());   // auto-advance the memorial while spectating
+  if(deathAutoAdv()) setTimeout(()=>{ if(deathAutoAdv()) afterRIP(); }, aiCardMs());   // auto-advance the memorial while spectating / AI turns
 }
 function afterRIP(){
   closeModal();
@@ -3486,9 +3545,47 @@ function askRestartMatch(){
     <div class="go"><button class="red" onclick="restartMatch()">${L('[ RESTART ]','[ REINICIAR ]')}</button><button onclick="openSettings()">${L('[ ‹ CANCEL ]','[ ‹ CANCELAR ]')}</button></div>`;
   openModal(true);
 }
+/* ===== MATCH RECAP: the whole war on one screen — built from data the game already tracks ===== */
+let _lastResult=null;
+function showRecap(){
+  if(!S||!S.players)return;
+  const rounds=Math.max(1,...S.players.map(p=>(p.nwHist||[]).length));
+  let big={amt:0,name:"—",round:0};
+  S.players.forEach(p=>{(p.nwHist||[]).forEach((v,i)=>{const d=i?v-p.nwHist[i-1]:0; if(d>big.amt)big={amt:d,name:p.name,round:i+1};});});
+  let lead=null,changes=0;
+  for(let r=0;r<rounds;r++){ let best=null,bv=-Infinity;
+    S.players.forEach(p=>{const h=p.nwHist||[]; if(r<h.length&&h[r]>bv){bv=h[r];best=p;}});
+    if(best&&best!==lead){ if(lead!==null)changes++; lead=best; } }
+  const deaths=S.players.filter(p=>!p.alive).sort((a,b)=>(a.diedTurn||0)-(b.diedTurn||0));
+  const obits=deaths.length?deaths.map(p=>`<div class="cvrow"><span>R${p.diedTurn||"?"} · ${p.name}</span><span>${(p._deathCause||L("gunned down","baleado"))} · ${p.diedAt||p.age}${L("y","a")}</span></div>`).join("")
+    :`<div class="cvdim">${L("nobody died — a rare, polite war","ninguém morreu — uma guerra rara e educada")}</div>`;
+  const sk=S.players.reduce((s,p)=>s+(p.soldierKills||0),0), bk=S.players.reduce((s,p)=>s+(p.bossKills||0),0);
+  const el=document.getElementById("cardEl");
+  el.innerHTML=`<div class="cv">
+    <div class="cvhead"><div class="cvtitle">≡ ${L("MATCH RECAP","RESUMO DA PARTIDA")}</div>
+      <div class="cvsub">${rounds} ${L("ROUNDS OF WAR IN","RODADAS DE GUERRA EM")} ${cityName()}</div></div>
+    <div class="cvbox"><div class="cvh">${L("HIGHLIGHTS","DESTAQUES")}</div>
+      <div class="cvrow"><span>${L("Lead changes","Trocas de liderança")}</span><span>${changes}</span></div>
+      <div class="cvrow"><span>${L("Biggest single-year score","Maior golpe num ano")}</span><span>${big.amt>0?`${big.name} · +${fmtK(big.amt)} (R${big.round})`:"—"}</span></div>
+      <div class="cvrow"><span>${L("Soldiers killed in total","Soldados mortos no total")}</span><span>${sk}</span></div>
+      <div class="cvrow"><span>${L("Bosses assassinated","Chefes assassinados")}</span><span>${bk}</span></div>
+    </div>
+    <div class="cvh" style="margin-top:8px">${L("FINAL STANDINGS — tap a boss","CLASSIFICAÇÃO FINAL — toque num chefe")}</div>
+    <div>${standingsRows()}</div>
+    <div class="cvbox" style="margin-top:8px"><div class="cvh">${L("OBITUARIES","OBITUÁRIOS")}</div><div class="cvlist">${obits}</div></div>
+    <div class="go"><button onclick="recapBack()">${L("[ ‹ BACK ]","[ ‹ VOLTAR ]")}</button></div>
+  </div>`;
+  openModal(true);
+}
+function recapBack(){
+  if(!_lastResult){ closeModal(); return; }
+  if(_lastResult.mode==="retire") showRetire(S.players[_lastResult.id]);
+  else showGameOver(_lastResult.id!=null?S.players[_lastResult.id]:null);
+}
 /* ===== RETIRE UNTOUCHABLE: the second way to win ===== */
 function showRetire(p){
   if(typeof SPECTATING!=="undefined"&&SPECTATING) exitSpectate();   // drop the dashboard so the result card shows
+  _lastResult={mode:"retire",id:p.id};
   S.over=true; clearSave(); SFX.win(); if(hofEligible(p))recordHof(p,"RETIRED");
   render(); updateControls();
   const el=document.getElementById("cardEl"); el.dataset.read="1";
@@ -3499,11 +3596,12 @@ function showRetire(p){
     <div class="bd" style="text-align:left">${bossBio(p,'retire')}</div>
     <div class="out">${L('Age ','Idade ')}${p.age} · ${L('Net worth ','Patrim\u00f4nio ')}${fmtK(netWorth(p))} · ${p.owns.size} ${L('turf','\u00e1reas')} · ${p.crew} ${L('soldiers','soldados')} · ${empireStats(p).workers} ${L('workers','func.')} · ${L('started with ','come\u00e7ou com ')}${fmtK(p.startCash||0)}</div>
     <div class="out">${(()=>{const oc=oppCounts(p);return L("Outlasted ","Superou ")+oc.ai+L(" AI"," IA")+(oc.hum?L(" and "," e ")+oc.hum+L(" human rival"," rival humano")+(oc.hum>1?"s":""):"")+(S.diff?" \u00b7 "+S.diff:"")+".";})()}</div>
-    <div class="go"><button class="amber" onclick="rematch()">${L('[ ↻ REMATCH ]','[ ↻ REVANCHE ]')}</button><button onclick="openPause()">${L('[ ⇑ SEE CHART ]','[ ⇑ VER GRÁFICO ]')}</button><button onclick="openSupport()">${L('[ ♥ TIP ]','[ ♥ APOIAR ]')}</button><button onclick="location.reload()">${L('[ NEW GAME ]','[ NOVO JOGO ]')}</button></div>`;
+    <div class="go"><button class="amber" onclick="rematch()">${L('[ ↻ REMATCH ]','[ ↻ REVANCHE ]')}</button><button onclick="showRecap()">${L('[ ≡ RECAP ]','[ ≡ RESUMO ]')}</button><button onclick="openPause()">${L('[ ⇑ CHART ]','[ ⇑ GRÁFICO ]')}</button><button onclick="openSupport()">${L('[ ♥ TIP ]','[ ♥ APOIAR ]')}</button><button onclick="location.reload()">${L('[ NEW GAME ]','[ NOVO JOGO ]')}</button></div>`;
   openModal();
 }
 function showGameOver(winner){
   if(typeof SPECTATING!=="undefined"&&SPECTATING) exitSpectate();   // drop the dashboard so the result card shows
+  _lastResult={mode:"last",id:winner?winner.id:null};
   clearSave();SFX.win();
   if(hofEligible(winner))recordHof(winner,"LAST BOSS");
   const el=document.getElementById("cardEl"); el.dataset.read="1";
@@ -3515,7 +3613,7 @@ function showGameOver(winner){
     ${w?`<div class="bd" style="text-align:left">${bossBio(w,'last')}</div>`:''}
     <div class="out">${w?L("Age ","Idade ")+w.age+L(" · Net worth "," · Patrim\u00f4nio ")+fmtK(netWorth(w))+L(" · "," · ")+w.owns.size+L(" turf · "," \u00e1reas · ")+soldierIcons(w.color,w.crew)+" · "+empireStats(w).workers+L(" workers"," func."):"—"}</div>
     <div class="out">${w?(()=>{const oc=oppCounts(w);return L("Outlasted ","Superou ")+oc.ai+L(" AI"," IA")+(oc.hum?L(" and "," e ")+oc.hum+L(" human rival"," rival humano")+(oc.hum>1?"s":""):"")+(S.diff?" · "+S.diff:"")+".";})():""}</div>
-    <div class="go"><button class="amber" onclick="rematch()">${L('[ ↻ REMATCH ]','[ ↻ REVANCHE ]')}</button><button onclick="openPause()">${L('[ ⇑ SEE CHART ]','[ ⇑ VER GRÁFICO ]')}</button><button onclick="openSupport()">${L('[ ♥ TIP ]','[ ♥ APOIAR ]')}</button><button onclick="location.reload()">${L('[ NEW GAME ]','[ NOVO JOGO ]')}</button></div>`;
+    <div class="go"><button class="amber" onclick="rematch()">${L('[ ↻ REMATCH ]','[ ↻ REVANCHE ]')}</button><button onclick="showRecap()">${L('[ ≡ RECAP ]','[ ≡ RESUMO ]')}</button><button onclick="openPause()">${L('[ ⇑ CHART ]','[ ⇑ GRÁFICO ]')}</button><button onclick="openSupport()">${L('[ ♥ TIP ]','[ ♥ APOIAR ]')}</button><button onclick="location.reload()">${L('[ NEW GAME ]','[ NOVO JOGO ]')}</button></div>`;
   openModal();
 }
 
@@ -3675,6 +3773,8 @@ function rollDiceAI(){
   const act=()=>{
     if(!S||S.over||S.rolled) return;
     const pp=S.players[S.cur]; if(!pp||!pp.ai) return;
+    if(aiMaybeHit(pp)) return;                     // rich hostile AI puts paper on a rival — that IS its turn
+    if(aiMaybeCrime(pp)) return;                   // free score before the roll — the turn resumes after the card
     const tgt=aiAttackTarget(pp);
     if(tgt){                                       // an aggressive AI hits a rival instead of moving — attacking IS its turn
       S.rolled=true;
@@ -3714,6 +3814,43 @@ function aiAttackTarget(p){
   if(Math.random() >= pr.atkProb) return null;    // even when able, doesn't attack every single turn
   targets.sort((a,b)=>cellUnit(b.idx)*b.s-cellUnit(a.idx)*a.s);
   return targets[0];
+}
+/* A rich, hostile Ghost buys a contract instead of working the street. Prefers finishing a
+   boss who's already at 2/3 hospital visits; otherwise goes after the richest rival. */
+function aiMaybeHit(p){
+  if(p.ring!=="outer"||p.inJail) return false;
+  if(p.cash < HIT_COST*4) return false;            // never cripple the bankroll for a contract
+  const pr=aiProf(p);
+  if(Math.random() >= pr.atkProb*0.35) return false;   // rarer than a turf attack
+  const rivals=S.players.filter(o=>o.alive&&o.id!==p.id);
+  if(!rivals.length) return false;
+  const tgt=rivals.find(o=>o.hosp===2) || rivals.slice().sort((a,b)=>netWorth(b)-netWorth(a))[0];
+  S.rolled=true;                                   // the contract is the move for this round
+  log(p.name+L(" puts paper on "," põe a cabeça de ")+tgt.name+L("."," a prêmio."),"warn");
+  orderHit(tgt.id);
+  return true;
+}
+/* Ghosts also go looking for scores like humans do — a free crime before the roll,
+   using the same crime chances (crimeOps) players get. */
+function aiMaybeCrime(p){
+  if(p.ring!=="outer"||p.inJail||p.crimeOps<=0) return false;
+  const prob=({AGGRESSIVE:0.40,CAREFUL:0.22,CAUTIOUS:0.10,PASSIVE:0.04})[p.temper]||0.2;
+  if(Math.random()>=prob) return false;
+  p.crimeOps--;
+  log(p.name+L(" goes looking for a score."," sai atrás de um golpe."),"warn");
+  const jobs=["heist","hitman","drug"];
+  drawStory(jobs[Math.floor(Math.random()*jobs.length)]);
+  aiResumeTurn();                                  // crime is a free action — the roll comes after the card
+  return true;
+}
+/* after a free-action card resolves, put the AI back on the dice (waits out any open modal) */
+function aiResumeTurn(){
+  clearTimeout(S._aiResT);
+  const tick=()=>{ if(!S||S.over) return;
+    const p=S.players[S.cur]; if(!p||!p.ai||S.rolled) return;   // turn consumed (arrest, attack…) or control moved on
+    if(document.getElementById("modal").classList.contains("on")){ S._aiResT=setTimeout(tick,400); return; }
+    rollDiceAI(); };
+  S._aiResT=setTimeout(tick, aiDelay()+80);
 }
 
 /* ===== AI helpers ===== */
@@ -3795,6 +3932,9 @@ function openModal(user){document.getElementById("modal").classList.add("on");
 }
 function closeModal(){document.getElementById("modal").classList.remove("on");document.body.classList.remove("usermodal");const ce=document.getElementById("cardEl");if(ce)ce.dataset.deck="";try{window.speechSynthesis&&window.speechSynthesis.cancel();}catch(e){} if(typeof unpauseGame==="function")unpauseGame();}
 
+/* ===== PWA: register the service worker (offline start + installable). Silently skipped
+   on file:// and inside the itch iframe where it can't run — the game plays the same. ===== */
+try{ if("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register("sw.js").catch(()=>{}); }catch(e){}
 /* ===== BOOT ===== */
 /* ===== DOS TERMINAL FRONT-END: password gate + MS-DOS boot ===== */
 (function(){
