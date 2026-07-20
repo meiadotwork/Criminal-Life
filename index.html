@@ -362,6 +362,14 @@
   .agestep{display:flex;align-items:center;justify-content:center;gap:10px;margin:2px 0 4px;}
   .agestep button{font-size:20px;padding:4px 14px;line-height:1;}
   #pageval{font-size:20px;min-width:44px;text-align:center;}
+  /* ===== QUANTITY KEYPAD (type-the-number buy) — uses themed buttons so it fits every display mode ===== */
+  #cardEl .qkrow{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:4px}
+  #cardEl .qkrow button{font-size:21px !important;font-weight:bold !important;padding:12px 0 !important;letter-spacing:1px}
+  #cardEl .qkrow button.amber{font-size:14px !important;letter-spacing:1px}
+  #cardEl .qdisp{text-align:center;padding:8px 0 4px}
+  #cardEl .qdisp #qval{font-size:40px;font-weight:bold;letter-spacing:3px}
+  #cardEl .qcalc{display:flex;justify-content:space-between;font-size:12.5px;margin:8px 2px 4px}
+  #cardEl .qcalc .qtot{font-weight:bold}
 </style>
 <style id="dos79">
   /* board-cell chips: tiny, so give each pattern a solid readable mark (no hollow squares) */
@@ -687,7 +695,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v17.6";
+const APP_VERSION="v17.7";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -2229,8 +2237,7 @@ function ownStreetOptions(idx){
     <div class="sub">${L('You hold this with ','Voc\u00ea segura isto com ')}${cur} soldado${cur>1?"s":""} (${fmtK(per*cur)}/${L('yr','ano')}). ${L('Add more, or sell.','Adicione mais, ou venda.')}</div>
     <div class="out">${L('Each extra soldier','Cada soldado extra')}: ${fmtK(per)} · ${L('earns','rende')} ${fmtK(per)}/${L('yr','ano')}</div>
     <div class="go" style="flex-wrap:wrap">
-      ${[1,5,25,100].filter(n=>maxN>=n).map(n=>`<button onclick="addSoldierTo(${idx},${per},${n})">[ +${n} · ${fmtK(per*n)} ]</button>`).join("")}
-      ${maxN>=1?`<button class="amber" onclick="addSoldierTo(${idx},${per},${maxN})">[ MAX +${maxN} ]</button>`:''}
+      ${maxN>=1?`<button class="amber" onclick="qpCell(${idx},'st')">${L('[ + ADD SOLDIERS ]','[ + SOLDADOS ]')}</button>`:`<span style="opacity:.6">${L('need ','precisa de ')}${fmtK(per)}</span>`}
       <button class="red" onclick="sellProp(${idx})">${L('[ SELL ]','[ VENDER ]')}</button>
       <button onclick="closeModal();finish()">${L('[ DONE ]','[ CONCLUIR ]')}</button></div>
     ${statusBar()}`;
@@ -2385,8 +2392,7 @@ function ownBizOptions(idx){
     <div class="sub">${cur} ${L('worker'+(cur>1?'s':''),'funcion\u00e1rio'+(cur>1?'s':''))} ${L('earning','rendendo')} ${fmtK(per*cur)}/${L('yr','ano')}. ${L('Add workers, or sell the business (with workers).','Adicione funcion\u00e1rios, ou venda o neg\u00f3cio (com eles).')}</div>
     <div class="out">${L('Each extra worker','Cada funcion\u00e1rio extra')}: ${fmtK(per)}</div>
     <div class="go" style="flex-wrap:wrap">
-      ${[1,5,25,100].filter(n=>maxN>=n).map(n=>`<button onclick="addWorker(${idx},${per},${n})">[ +${n} · ${fmtK(per*n)} ]</button>`).join("")}
-      ${maxN>=1?`<button class="amber" onclick="addWorker(${idx},${per},${maxN})">[ MAX +${maxN} ]</button>`:''}
+      ${maxN>=1?`<button class="amber" onclick="qpCell(${idx},'bz')">${L('[ + ADD WORKERS ]','[ + FUNCIONÁRIOS ]')}</button>`:`<span style="opacity:.6">${L('need ','precisa de ')}${fmtK(per)}</span>`}
       <button class="red" onclick="sellProp(${idx})">${L('[ SELL ]','[ VENDER ]')}</button>
       <button onclick="closeModal();finish()">${L('[ DONE ]','[ CONCLUIR ]')}</button></div>
     ${statusBar()}`;
@@ -2429,14 +2435,14 @@ function openBuyWorkers(){
   // BODYGUARDS (crew)
   const crewRow=`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin:3px 0;border-bottom:1px solid #1a2a1a;padding-bottom:4px">
       <span>${L("Bodyguard soldiers","Soldados guarda-costas")} · ${p.crew}<br><span style="opacity:.6;font-size:11px">${fmtK(SOLDIER_COST)} ${L("each","cada")} · ${fmtK(SOLDIER_WAGE)}/${L("yr","ano")} · ${L("take falls & beatings, fight attacks","assumem culpa e surra, lutam em ataques")}</span></span>
-      ${p.cash>=SOLDIER_COST?`<span style="display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-end">`+tierBtns("hireCrewN",null,SOLDIER_COST)+`</span>`:`<span style="opacity:.5;font-size:11px">${L("need ","precisa de ")}${fmtK(SOLDIER_COST)}</span>`}</div>`;
+      ${p.cash>=SOLDIER_COST?`<button style="padding:6px 12px;font-size:12px" class="amber" onclick="qpCrew()">${L("[ + HIRE ]","[ + CONTRATAR ]")}</button>`:`<span style="opacity:.5;font-size:11px">${L("need ","precisa de ")}${fmtK(SOLDIER_COST)}</span>`}</div>`;
   // STREET SOLDIERS
   const sts=Array.from(p.owns.entries()).filter(([idx])=>OUTER[idx].k==="street");
   const stBody=sts.length?sts.map(([idx,cnt])=>{
     const c=OUTER[idx];const per=c.incomeBase||c.price;const can=p.cash>=per;
     return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin:3px 0;border-bottom:1px solid #1a2a1a;padding-bottom:4px">
       <span>${c.t} · ${cnt} ${L("soldier","soldado")}${cnt>1?"s":""}<br><span style="opacity:.6;font-size:11px">${fmtK(per)} ${L("each · earns","cada · rende")} ${fmtK(per*cnt)}/${L("yr","ano")}</span></span>
-      ${can?`<span style="display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-end">`+tierBtns("addSoldierAnytime",idx,per)+`</span>`:`<span style="opacity:.5;font-size:11px">${L("need ","precisa de ")}${fmtK(per)}</span>`}</div>`;
+      ${can?`<button style="padding:6px 12px;font-size:12px" class="amber" onclick="qpCell(${idx},'bw')">${L("[ + ADD ]","[ + ADD ]")}</button>`:`<span style="opacity:.5;font-size:11px">${L("need ","precisa de ")}${fmtK(per)}</span>`}</div>`;
   }).join(""):"<div style='opacity:.6'>"+L("No streets yet — land on a STREET space to claim one.","Nenhuma rua ainda — caia numa casa de RUA para tomar uma.")+"</div>";
   // BUSINESS WORKERS
   const biz=Array.from(p.owns.entries()).filter(([idx])=>OUTER[idx].k==="biz");
@@ -2444,7 +2450,7 @@ function openBuyWorkers(){
     const c=OUTER[idx];const per=c.incomeBase||c.income;const can=p.cash>=per;
     return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin:3px 0;border-bottom:1px solid #1a2a1a;padding-bottom:4px">
       <span>${c.t} · ${cnt} ${L("worker","funcionário")}${cnt>1?"s":""}<br><span style="opacity:.6;font-size:11px">${fmtK(per)} ${L("each · earns","cada · rende")} ${fmtK(per*cnt)}/${L("yr","ano")}</span></span>
-      ${can?`<span style="display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-end">`+tierBtns("addWorkerAnytime",idx,per)+`</span>`:`<span style="opacity:.5;font-size:11px">${L("need ","precisa de ")}${fmtK(per)}</span>`}</div>`;
+      ${can?`<button style="padding:6px 12px;font-size:12px" class="amber" onclick="qpCell(${idx},'bw')">${L("[ + ADD ]","[ + ADD ]")}</button>`:`<span style="opacity:.5;font-size:11px">${L("need ","precisa de ")}${fmtK(per)}</span>`}</div>`;
   }).join(""):"<div style='opacity:.6'>"+L("No businesses yet — land on a BUSINESS space to open one.","Nenhum negócio ainda — caia numa casa de NEGÓCIO para abrir um.")+"</div>";
   el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('HIRE','CONTRATAR')}</div>
     <div class="ttl">${L('Staff your empire','Monte seu império')}</div>
@@ -2463,6 +2469,66 @@ function openBuyWorkers(){
 function hireCrewN(per,n){const p=S.players[S.cur];n=Math.min(n,Math.floor(p.cash/SOLDIER_COST));if(n<1)return;p.cash-=SOLDIER_COST*n;p.crew+=n;log(p.name+L(" hires "," contrata ")+n+L(" bodyguard"," guarda-costas")+(n>1?(LANG==='PT'?"":"s"):"")+L(" (now "," (agora ")+p.crew+").","good");render();openBuyWorkers();}
 function addSoldierAnytime(idx,per,n){const p=S.players[S.cur];n=Math.min(n,Math.floor(p.cash/per));if(n<1)return;p.cash-=per*n;p.owns.set(idx,p.owns.get(idx)+n);log(p.name+L(" posts "," coloca ")+n+L(" soldier"," soldado")+(n>1?"s":"")+L(" at "," em ")+OUTER[idx].t+L(" (now "," (agora ")+p.owns.get(idx)+").","good");render();openBuyWorkers();}
 function addWorkerAnytime(idx,per,n){n=n||1;n=Math.min(n,Math.floor(S.players[S.cur].cash/per));const p=S.players[S.cur];if(n<1)return;p.cash-=per*n;p.owns.set(idx,p.owns.get(idx)+n);log(p.name+L(" hires "," contrata ")+n+L(" worker"," funcionário")+(n>1?"s":"")+L(" at "," em ")+OUTER[idx].t+L(" (now "," (agora ")+p.owns.get(idx)+").","good");render();openBuyWorkers();}
+
+/* ===== QUANTITY KEYPAD: type how many to buy (soldiers / workers) instead of +1/+5/+25/+100 ===== */
+let _qp=null;
+function qpNum(){ if(!_qp)return 0; let n=parseInt(_qp.val||"0",10)||0; if(n<0)n=0; if(n>_qp.max)n=_qp.max; return n; }
+function qtyPad(cfg){
+  const per=cfg.per; if(!per||per<=0){ if(cfg.done)cfg.done(); return; }
+  _qp={ ...cfg, val:"", max:Math.max(0,Math.floor(cfg.max||0)) };
+  const p=S.players[S.cur]; const el=document.getElementById("cardEl"); if(!el)return; el.dataset.deck="";
+  el.innerHTML=`<div class="lbl">${cfg.title}</div>
+    <div style="font-size:14px;color:#eaffef;margin:10px 0 2px">${cfg.unit} · ${L("you have","você tem")} ${cfg.have||0}</div>
+    <div style="font-size:12px;opacity:.7;margin-bottom:8px">${fmtK(per)} ${L("each","cada")} · ${fmtK(p.cash)} ${L("cash","em caixa")} · ${L("max","máx")} ${_qp.max}</div>
+    <div class="out qdisp"><span id="qval">0</span></div>
+    <div class="qcalc"><span class="qtot" id="qtot"></span><span id="qleft" style="opacity:.7"></span></div>
+    <div class="qkrow">
+      <button onclick="qpKey('7')">7</button><button onclick="qpKey('8')">8</button><button onclick="qpKey('9')">9</button>
+      <button onclick="qpKey('4')">4</button><button onclick="qpKey('5')">5</button><button onclick="qpKey('6')">6</button>
+      <button onclick="qpKey('1')">1</button><button onclick="qpKey('2')">2</button><button onclick="qpKey('3')">3</button>
+      <button class="amber" onclick="qpMax()">MAX</button><button onclick="qpKey('0')">0</button><button onclick="qpDel()">&#9003;</button>
+    </div>
+    <div class="go" style="margin-top:10px"><button class="amber" id="qbuy" onclick="qpBuy()">[ ${L("BUY","COMPRAR")} ]</button><button onclick="qpBack()">${L("[ DONE ]","[ CONCLUIR ]")}</button></div>
+    ${statusBar()}`;
+  openModal(true);
+  qpUpdate();
+}
+function qpUpdate(){
+  if(!_qp)return; const p=S.players[S.cur]; const n=qpNum(); const per=_qp.per; const tot=per*n;
+  const set=(id,t)=>{const e=document.getElementById(id);if(e)e.textContent=t;};
+  set("qval", n);
+  set("qtot", `${n} × ${fmtK(per)} = ${fmtK(tot)}`);
+  set("qleft", L("cash left: ","sobra: ")+fmtK(Math.max(0,p.cash-tot)));
+  set("qbuy", n>0?`[ ${L("BUY","COMPRAR")} ${n} · ${fmtK(tot)} ]`:L("[ BUY · none ]","[ COMPRAR · nada ]"));
+}
+function qpKey(d){ if(!_qp)return; if((_qp.val+d).length<=7)_qp.val=(_qp.val==="0"?"":_qp.val)+d; qpUpdate(); }
+function qpDel(){ if(!_qp)return; _qp.val=_qp.val.slice(0,-1); qpUpdate(); }
+function qpMax(){ if(!_qp)return; _qp.val=String(_qp.max); qpUpdate(); }
+function qpBuy(){ if(!_qp)return; const n=qpNum(); const c=_qp; _qp=null; if(n>0&&c.apply)c.apply(n); if(c.done)c.done(); }
+function qpBack(){ if(!_qp)return; const c=_qp; _qp=null; if(c.done)c.done(); }
+/* physical keyboard support while the keypad is up */
+document.addEventListener("keydown",function(e){
+  if(!_qp||!document.getElementById("qval"))return;
+  if(e.key>="0"&&e.key<="9"){qpKey(e.key);e.preventDefault();}
+  else if(e.key==="Backspace"){qpDel();e.preventDefault();}
+  else if(e.key==="Enter"){qpBuy();e.preventDefault();}
+  else if(e.key==="Escape"){qpBack();e.preventDefault();}
+});
+/* openers — build the right config for each buy spot, then hand off to the keypad */
+function qpCrew(){ const p=S.players[S.cur];
+  qtyPad({ title:L("HIRE SOLDIERS","CONTRATAR SOLDADOS"), unit:L("bodyguard soldiers","soldados guarda-costas"),
+    have:p.crew, per:SOLDIER_COST, max:Math.floor(p.cash/SOLDIER_COST),
+    apply:(n)=>{ p.cash-=SOLDIER_COST*n; p.crew+=n; log(p.name+L(" hires "," contrata ")+n+L(" bodyguard"," guarda-costas")+((n>1&&LANG!=='PT')?"s":"")+L(" (now "," (agora ")+p.crew+").","good"); render(); },
+    done:openBuyWorkers });
+}
+function qpCell(idx,ret){ const p=S.players[S.cur]; const c=OUTER[idx]; const per=c.incomeBase||c.price||c.income;
+  const isBiz=c.k==="biz"; const unit=isBiz?L("workers","funcionários"):L("soldiers","soldados");
+  const done = ret==='st'?(()=>ownStreetOptions(idx)) : ret==='bz'?(()=>ownBizOptions(idx)) : openBuyWorkers;
+  qtyPad({ title:c.t, unit, have:p.owns.get(idx)||0, per, max:Math.floor(p.cash/per),
+    apply:(n)=>{ p.cash-=per*n; p.owns.set(idx,(p.owns.get(idx)||0)+n);
+      log(p.name+L(" adds "," adiciona ")+n+" "+(isBiz?L("worker","funcionário"):L("soldier","soldado"))+((n>1&&LANG!=='PT')?"s":"")+L(" to "," a ")+c.t+L(" (now "," (agora ")+p.owns.get(idx)+").","good"); render(); },
+    done });
+}
 function commitCrime(){
   const p=S.players[S.cur];
   if(p.ai||!p.alive||S.over||S.rolled||p.ring!=="outer"||p.inJail||p.crimeOps<=0)return;
