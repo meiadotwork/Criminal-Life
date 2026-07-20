@@ -687,7 +687,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v17.5";
+const APP_VERSION="v17.6";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -3216,61 +3216,140 @@ function cityName(){ const k=(typeof S!=="undefined"&&S&&S.city)?S.city:"NY"; re
 /* Weave a boss's whole permanent record — origin, empire, body count, rap sheet, network and
    how they went out — into a short narrative. Adapts to city, language and outcome.
    mode: "dead" | "last" (last boss standing) | "retire". Returns plain prose (READ speaks it). */
-function bossBio(p,mode){
+function _bioData(p){
   const e=ripEpitaph(p), s=empireStats(p);
-  const nm=p.name, city=cityName(), prison=cityPrison(), nw=netWorth(p);
+  const cause=(p._deathCause||L("Gunned down","Baleado"));
   const start=p.startAge||p.age, end=(p.diedAt!==undefined)?p.diedAt:p.age;
-  const sk=p.soldierKills||0, bk=p.bossKills||0, served=p.yearsServed||0;
-  const yrs=Math.max(0,end-start);
-  // 1) origin
-  let bio = (p.startCash>0)
-    ? L(`${nm} came up in ${city} at ${start}, holding ${fmtK(p.startCash)} and a lot to prove.`,
-        `${nm} surgiu em ${city} aos ${start}, com ${fmtK(p.startCash)} no bolso e muito a provar.`)
-    : L(`${nm} came up in ${city} out of nothing — ${start} years old, not a coin to his name.`,
-        `${nm} surgiu em ${city} do nada — ${start} anos, sem um centavo no nome.`);
-  // 2) the empire + the body count
-  if(s.turf||s.biz){
-    bio+=L(` He built something real: ${s.turf} street${s.turf===1?"":"s"} and ${s.biz} racket${s.biz===1?"":"s"} under his flag`,
-           ` Construiu algo de verdade: ${s.turf} rua${s.turf===1?"":"s"} e ${s.biz} negócio${s.biz===1?"":"s"} sob sua bandeira`);
-    bio+= (sk||bk)?"":".";
-  } else {
-    bio+=L(` He never held much turf`,` Nunca segurou muita área`);
-    bio+= (sk||bk)?"":L(`, and he mostly kept his hands clean.`,`, e quase não sujou as mãos.`);
-  }
-  if(sk||bk){
-    bio+=L(`, backed by a crew that put ${sk} rival soldier${sk===1?"":"s"} in the ground`,
-           `, com uma equipe que colocou ${sk} soldado${sk===1?"":"s"} rival${sk===1?"":"is"} no chão`);
-    if(bk) bio+=L(` and ${bk} rival boss${bk===1?"":"es"} dead by his order`,` e ${bk} chefe${bk===1?"":"s"} rival${bk===1?"":"is"} morto${bk===1?"":"s"} por ordem dele`);
-    bio+=".";
-  }
-  // 3) reputation (only once they're a known name)
-  if(e.n>=3 && e.spec){ const kind=e.kind.charAt(0).toUpperCase()+e.kind.slice(1); bio+=` ${kind}${e.spec}.`; }
-  // 4) the law
-  if(e.n){
-    bio+=L(` The law wrote him up ${e.n} time${e.n===1?"":"s"} — ${e.totalYears} year${e.totalYears===1?"":"s"} of exposure on paper`,
-           ` A lei o fichou ${e.n} vez${e.n===1?"":"es"} — ${e.totalYears} ano${e.totalYears===1?"":"s"} de exposição no papel`);
-    bio+= served
-      ? L(`, and he did ${served} of them inside ${prison}.`,`, e cumpriu ${served} deles em ${prison}.`)
-      : L(`, though he never served a full day inside.`,`, mas nunca cumpriu um dia de verdade.`);
-  } else {
-    bio+=L(` The law never managed to pin a thing on him.`,` A lei nunca conseguiu provar nada contra ele.`);
-  }
-  // 5) the crooked network
-  if(p.network&&p.network.length){ const cnt=p.network.reduce((a,b)=>a+(b.n||1),0);
-    bio+=L(` He kept ${cnt} crooked official${cnt===1?"":"s"} on the payroll.`,` Mantinha ${cnt} agente${cnt===1?"":"s"} corrupto${cnt===1?"":"s"} na folha.`); }
-  // 6) the ending
-  if(mode==="dead"){
-    const cause=(p._deathCause||L("Gunned down","Baleado"));
-    bio+=L(` In the end it was ${cause.charAt(0).toLowerCase()+cause.slice(1)}, at ${end} — ${yrs} year${yrs===1?"":"s"} on the board. The streets will remember the name.`,
-           ` No fim foi ${cause.charAt(0).toLowerCase()+cause.slice(1)}, aos ${end} — ${yrs} ano${yrs===1?"":"s"} no jogo. As ruas vão lembrar do nome.`);
-  } else if(mode==="retire"){
-    bio+=L(` Then he did what almost nobody in this life manages — he walked away clean at ${end}: villa, new name, ${fmtK(nw)} that no longer smells. The city keeps fighting over what he left behind.`,
-           ` Aí fez o que quase ninguém nessa vida consegue — saiu limpo aos ${end}: mansão, nome novo, ${fmtK(nw)} que não cheiram mais. A cidade continua brigando pelo que ele deixou.`);
-  } else {
-    bio+=L(` He outlived every last rival to ${end}, ${fmtK(nw)} to his name. The city is his now.`,
-           ` Sobreviveu a todos os rivais até os ${end}, ${fmtK(nw)} no nome. A cidade é dele agora.`);
-  }
-  return bio;
+  return { nm:p.name, city:cityName(), prison:cityPrison(),
+    start, end, yrs:Math.max(0,end-start),
+    sk:p.soldierKills||0, bk:p.bossKills||0, served:p.yearsServed||0,
+    nwF:fmtK(netWorth(p)), startF:fmtK(p.startCash||0), broke:!(p.startCash>0),
+    turf:s.turf, biz:s.biz, crew:p.crew, charges:e.n, exposure:e.totalYears,
+    kindCap:e.kind.charAt(0).toUpperCase()+e.kind.slice(1), spec:e.spec, specTrim:(e.spec||"").replace(/^ — /,"").replace(/^ — /,""),
+    causeLo:cause.charAt(0).toLowerCase()+cause.slice(1),
+    net:(p.network&&p.network.length)?p.network.reduce((a,b)=>a+(b.n||1),0):0 };
+}
+/* ===== BIO FRAGMENT POOLS — each returns a movie-synopsis sentence. Random picks across the
+   beats give tens of thousands of distinct write-ups so a memorial/win never reads the same. ===== */
+const BIO_OPEN=[
+ d=>L(`Every city keeps its ghosts, and ${d.city} will be telling ${d.nm}'s story for years.`,`Toda cidade guarda seus fantasmas, e ${d.city} vai contar a história de ${d.nm} por anos.`),
+ d=>d.broke?L(`${d.nm} came up in ${d.city} with nothing — ${d.start} years old, not a coin to his name.`,`${d.nm} surgiu em ${d.city} do nada — ${d.start} anos, sem um centavo no nome.`):L(`${d.nm} came up in ${d.city} at ${d.start}, ${d.startF} in his pocket and everything to prove.`,`${d.nm} surgiu em ${d.city} aos ${d.start}, ${d.startF} no bolso e tudo a provar.`),
+ d=>L(`It begins, like all these stories do, on a corner in ${d.city}: ${d.nm}, ${d.start}, and hungry.`,`Começa, como todas essas histórias, numa esquina de ${d.city}: ${d.nm}, ${d.start} anos, com fome.`),
+ d=>L(`They swore ${d.nm} would never amount to anything. ${d.city} learned how wrong that was.`,`Juravam que ${d.nm} não daria em nada. ${d.city} descobriu o quanto estavam errados.`),
+ d=>L(`A ${d.city} story: one kid, ${d.start} years old, and a first choice there was no taking back.`,`Uma história de ${d.city}: um moleque de ${d.start} anos e uma primeira escolha sem volta.`),
+ d=>L(`Before the name meant a thing, ${d.nm} was just another face in ${d.city}.`,`Antes do nome valer algo, ${d.nm} era só mais um rosto em ${d.city}.`),
+ d=>L(`Picture ${d.city} at street level — the noise, the cash, the blood. Down in it, a ${d.start}-year-old named ${d.nm} is just getting started.`,`Imagine ${d.city} lá embaixo — o barulho, a grana, o sangue. No meio disso, um ${d.nm} de ${d.start} anos só está começando.`),
+ d=>L(`${d.nm}. ${d.city}. ${d.start} years old. Remember the name — the city won't forget it.`,`${d.nm}. ${d.city}. ${d.start} anos. Guarde o nome — a cidade não vai esquecer.`),
+ d=>L(`This is how a nobody out of ${d.city} became a name people said quietly — and it starts at ${d.start}.`,`É assim que um joão-ninguém de ${d.city} virou um nome dito baixinho — e começa aos ${d.start}.`),
+ d=>L(`The ${d.city} underworld has a thousand stories. This one is ${d.nm}'s, who started with ${d.broke?"nothing":d.startF} at ${d.start}.`,`O submundo de ${d.city} tem mil histórias. Esta é a de ${d.nm}, que começou com ${d.broke?"nada":d.startF} aos ${d.start}.`),
+];
+const BIO_RISE_AK=[
+ d=>L(` He carved out an empire — ${d.turf} block${d.turf===1?"":"s"} and ${d.biz} racket${d.biz===1?"":"s"} flying his colors — and a crew that left ${d.sk} rival soldier${d.sk===1?"":"s"} in the dirt${d.bk?` and ${d.bk} boss${d.bk===1?"":"es"} in the ground`:""}.`,` Ergueu um império — ${d.turf} quarteirão${d.turf===1?"":"s"} e ${d.biz} negócio${d.biz===1?"":"s"} com a bandeira dele — e uma equipe que deixou ${d.sk} soldado${d.sk===1?"":"s"} rival${d.sk===1?"":"is"} no chão${d.bk?` e ${d.bk} chefe${d.bk===1?"":"s"} enterrado${d.bk===1?"":"s"}`:""}.`),
+ d=>L(` The money came fast and the bodies came with it: ${d.turf} street${d.turf===1?"":"s"}, ${d.biz} racket${d.biz===1?"":"s"}, ${d.sk} enemy soldier${d.sk===1?"":"s"} dead${d.bk?`, ${d.bk} rival boss${d.bk===1?"":"es"} buried`:""}.`,` O dinheiro veio rápido e os corpos junto: ${d.turf} rua${d.turf===1?"":"s"}, ${d.biz} negócio${d.biz===1?"":"s"}, ${d.sk} soldado${d.sk===1?"":"s"} inimigo${d.sk===1?"":"s"} morto${d.sk===1?"":"s"}${d.bk?`, ${d.bk} chefe${d.bk===1?"":"s"} enterrado${d.bk===1?"":"s"}`:""}.`),
+ d=>L(` Block by block he took ${d.city} — ${d.turf} of them, plus ${d.biz} racket${d.biz===1?"":"s"} — and anyone in the way joined the ${d.sk} rival${d.sk===1?"":"s"} his crew put down.`,` Quarteirão por quarteirão ele tomou ${d.city} — ${d.turf} deles, mais ${d.biz} negócio${d.biz===1?"":"s"} — e quem atravessou virou mais um dos ${d.sk} rival${d.sk===1?"":"is"} que a equipe derrubou.`),
+ d=>L(` An empire of ${d.turf} street${d.turf===1?"":"s"} and ${d.biz} racket${d.biz===1?"":"s"}, built on ${d.sk} ${d.sk===1?"body":"bodies"}${d.bk?` and ${d.bk} dead rival${d.bk===1?"":"s"} at the top`:""}.`,` Um império de ${d.turf} rua${d.turf===1?"":"s"} e ${d.biz} negócio${d.biz===1?"":"s"}, erguido sobre ${d.sk} corpo${d.sk===1?"":"s"}${d.bk?` e ${d.bk} rival${d.bk===1?"":"is"} morto${d.bk===1?"":"s"} no topo`:""}.`),
+ d=>L(` They followed him because he won: ${d.turf} block${d.turf===1?"":"s"}, ${d.biz} racket${d.biz===1?"":"s"}, ${d.sk} rival soldier${d.sk===1?"":"s"} gone${d.bk?`, ${d.bk} boss${d.bk===1?"":"es"} with them`:""}.`,` Seguiam ele porque ele vencia: ${d.turf} quarteirão${d.turf===1?"":"s"}, ${d.biz} negócio${d.biz===1?"":"s"}, ${d.sk} soldado${d.sk===1?"":"s"} rival${d.sk===1?"":"is"} a menos${d.bk?`, ${d.bk} chefe${d.bk===1?"":"s"} junto`:""}.`),
+ d=>L(` He ran ${d.biz} racket${d.biz===1?"":"s"} and held ${d.turf} block${d.turf===1?"":"s"}, and the graveyard filled: ${d.sk} soldier${d.sk===1?"":"s"}${d.bk?` and ${d.bk} boss${d.bk===1?"":"es"}`:""} on his tab.`,` Tocava ${d.biz} negócio${d.biz===1?"":"s"} e segurava ${d.turf} quarteirão${d.turf===1?"":"s"}, e o cemitério encheu: ${d.sk} soldado${d.sk===1?"":"s"}${d.bk?` e ${d.bk} chefe${d.bk===1?"":"s"}`:""} na conta dele.`),
+];
+const BIO_RISE_A=[
+ d=>L(` He played it like a businessman — ${d.turf} block${d.turf===1?"":"s"} and ${d.biz} racket${d.biz===1?"":"s"} under his flag, and remarkably little blood.`,` Jogou como empresário — ${d.turf} quarteirão${d.turf===1?"":"s"} e ${d.biz} negócio${d.biz===1?"":"s"} sob a bandeira dele, e pouquíssimo sangue.`),
+ d=>L(` Quietly, patiently, he assembled ${d.turf} street${d.turf===1?"":"s"} and ${d.biz} racket${d.biz===1?"":"s"} without ever needing a war.`,` Em silêncio, com paciência, juntou ${d.turf} rua${d.turf===1?"":"s"} e ${d.biz} negócio${d.biz===1?"":"s"} sem nunca precisar de guerra.`),
+ d=>L(` Money over muscle: ${d.turf} block${d.turf===1?"":"s"}, ${d.biz} racket${d.biz===1?"":"s"}, and a reputation for keeping things clean.`,` Dinheiro no lugar de porrada: ${d.turf} quarteirão${d.turf===1?"":"s"}, ${d.biz} negócio${d.biz===1?"":"s"} e fama de manter tudo limpo.`),
+ d=>L(` He built ${d.turf} street${d.turf===1?"":"s"} and ${d.biz} racket${d.biz===1?"":"s"} of steady, laundered income and let rivals underestimate him.`,` Construiu ${d.turf} rua${d.turf===1?"":"s"} e ${d.biz} negócio${d.biz===1?"":"s"} de renda lavada e deixou os rivais o subestimarem.`),
+];
+const BIO_RISE_K=[
+ d=>L(` He never cared for real estate — his trade was violence, and ${d.sk} rival soldier${d.sk===1?"":"s"} learned it${d.bk?`, along with ${d.bk} boss${d.bk===1?"":"es"}`:""}.`,` Nunca ligou pra propriedade — o ramo dele era a violência, e ${d.sk} soldado${d.sk===1?"":"s"} rival${d.sk===1?"":"is"} aprendeu isso${d.bk?`, junto de ${d.bk} chefe${d.bk===1?"":"s"}`:""}.`),
+ d=>L(` No turf, no rackets — just a reputation written in ${d.sk} ${d.sk===1?"body":"bodies"}${d.bk?` and ${d.bk} dead boss${d.bk===1?"":"es"}`:""}.`,` Sem área, sem negócio — só uma fama escrita em ${d.sk} corpo${d.sk===1?"":"s"}${d.bk?` e ${d.bk} chefe${d.bk===1?"":"s"} morto${d.bk===1?"":"s"}`:""}.`),
+ d=>L(` He was the gun others pointed — ${d.sk} rival soldier${d.sk===1?"":"s"} in the ground${d.bk?`, ${d.bk} boss${d.bk===1?"":"es"} too`:""}, and never a deed to his name.`,` Era a arma que os outros apontavam — ${d.sk} soldado${d.sk===1?"":"s"} rival${d.sk===1?"":"is"} no chão${d.bk?`, ${d.bk} chefe${d.bk===1?"":"s"} também`:""}, e nenhuma escritura no nome.`),
+ d=>L(` He built no empire — only a body count: ${d.sk} rival soldier${d.sk===1?"":"s"}${d.bk?` and ${d.bk} boss${d.bk===1?"":"es"}`:""} in the dirt.`,` Não ergueu império — só corpos: ${d.sk} soldado${d.sk===1?"":"s"} rival${d.sk===1?"":"is"}${d.bk?` e ${d.bk} chefe${d.bk===1?"":"s"}`:""} no chão.`),
+];
+const BIO_RISE_N=[
+ d=>L(` Truth be told, the big time never came — no turf worth the name, no war stories, just a small operator scraping by.`,` Verdade seja dita, o auge nunca veio — nenhuma área de respeito, nenhuma história de guerra, só um pequeno se virando.`),
+ d=>L(` He talked a bigger game than he ever played — no blocks, no rackets, no bodies to speak of.`,` Falava mais do que fazia — sem quarteirões, sem negócios, sem corpos pra contar.`),
+ d=>L(` The city barely noticed him: no empire, no crew worth fearing, a career that stayed small.`,` A cidade mal o notou: sem império, sem equipe temida, uma carreira que ficou pequena.`),
+ d=>L(` For all the ambition, he stayed a footnote — no turf, no rackets, no reputation for blood.`,` Com toda a ambição, ficou como nota de rodapé — sem área, sem negócio, sem fama de sangue.`),
+];
+const BIO_REP=[
+ d=>L(` By then they knew what he was: ${d.specTrim}.`,` A essa altura já sabiam o que ele era: ${d.specTrim}.`),
+ d=>L(` ${d.kindCap}${d.spec} — that was the word on him.`,` ${d.kindCap}${d.spec} — era o que diziam dele.`),
+ d=>L(` The name carried weight now: ${d.specTrim}.`,` O nome já pesava: ${d.specTrim}.`),
+ d=>L(` Ask anyone in ${d.city} and they'd tell you: ${d.specTrim}.`,` Pergunte a qualquer um em ${d.city}: ${d.specTrim}.`),
+];
+const BIO_LAW_S=[
+ d=>L(` The law caught up plenty — ${d.charges} charge${d.charges===1?"":"s"}, ${d.exposure} year${d.exposure===1?"":"s"} of exposure — and ${d.served} of them were served behind the walls of ${d.prison}.`,` A lei o pegou várias vezes — ${d.charges} acusação${d.charges===1?"":"ões"}, ${d.exposure} ano${d.exposure===1?"":"s"} de exposição — e ${d.served} deles foram cumpridos dentro de ${d.prison}.`),
+ d=>L(` ${d.prison} knew his face: ${d.served} year${d.served===1?"":"s"} served out of ${d.exposure} on a sheet ${d.charges} charge${d.charges===1?"":"s"} long.`,` ${d.prison} conhecia o rosto dele: ${d.served} ano${d.served===1?"":"s"} cumpridos de ${d.exposure} numa ficha de ${d.charges} acusação${d.charges===1?"":"ões"}.`),
+ d=>L(` He did his time — ${d.served} year${d.served===1?"":"s"} inside ${d.prison} — one stretch off a ${d.charges}-charge sheet worth ${d.exposure} years on paper.`,` Cumpriu pena — ${d.served} ano${d.served===1?"":"s"} em ${d.prison} — um pedaço de uma ficha de ${d.charges} acusações que valia ${d.exposure} anos no papel.`),
+ d=>L(` The state got its pound of flesh: ${d.served} year${d.served===1?"":"s"} in ${d.prison}, off a record of ${d.charges} charge${d.charges===1?"":"s"}.`,` O Estado cobrou o seu: ${d.served} ano${d.served===1?"":"s"} em ${d.prison}, de uma ficha de ${d.charges} acusação${d.charges===1?"":"ões"}.`),
+];
+const BIO_LAW_N=[
+ d=>L(` He collected ${d.charges} charge${d.charges===1?"":"s"} and ${d.exposure} years of exposure, and beat every one — never a full day inside.`,` Juntou ${d.charges} acusação${d.charges===1?"":"ões"} e ${d.exposure} anos de exposição, e escapou de todas — nunca um dia de cadeia.`),
+ d=>L(` On paper he owed ${d.exposure} years across ${d.charges} charge${d.charges===1?"":"s"}. He paid none of it.`,` No papel devia ${d.exposure} anos em ${d.charges} acusação${d.charges===1?"":"ões"}. Não pagou nada.`),
+ d=>L(` ${d.charges} charge${d.charges===1?"":"s"}, ${d.exposure} years hanging over him, and a lawyer good enough that none of it stuck.`,` ${d.charges} acusação${d.charges===1?"":"ões"}, ${d.exposure} anos sobre a cabeça, e um advogado bom o bastante pra nada colar.`),
+ d=>L(` The paperwork said ${d.exposure} years. ${d.prison} never once had his bunk made up.`,` Os papéis diziam ${d.exposure} anos. ${d.prison} nunca teve a cama dele arrumada.`),
+];
+const BIO_LAW_CLEAN=[
+ d=>L(` And through all of it, not one charge ever stuck — a clean sheet the law hated.`,` E em tudo isso, nenhuma acusação colou — uma ficha limpa que a lei odiava.`),
+ d=>L(` The remarkable part: the law never pinned a single thing on him.`,` O impressionante: a lei nunca conseguiu provar uma coisa sequer.`),
+ d=>L(` Not a charge, not a night in a cell — on paper, ${d.nm} was a model citizen.`,` Nenhuma acusação, nenhuma noite na cela — no papel, ${d.nm} era um cidadão modelo.`),
+ d=>L(` He left no record at all — ${d.prison} never learned his name.`,` Não deixou ficha nenhuma — ${d.prison} nunca soube o nome dele.`),
+];
+const BIO_NET=[
+ d=>L(` It helped that ${d.net} crooked official${d.net===1?"":"s"} were on his payroll.`,` Ajudava ter ${d.net} agente${d.net===1?"":"s"} corrupto${d.net===1?"":"s"} na folha.`),
+ d=>L(` ${d.net} bought official${d.net===1?"":"s"} made sure the right people looked away.`,` ${d.net} agente${d.net===1?"":"s"} comprado${d.net===1?"":"s"} garantiam que as pessoas certas olhassem pro outro lado.`),
+ d=>L(` A network of ${d.net} corrupt official${d.net===1?"":"s"} kept the machine oiled.`,` Uma rede de ${d.net} agente${d.net===1?"":"s"} corrupto${d.net===1?"":"s"} mantinha a máquina azeitada.`),
+ d=>L(` Nothing moved without the ${d.net} official${d.net===1?"":"s"} he had in his pocket.`,` Nada rolava sem os ${d.net} agente${d.net===1?"":"s"} que ele tinha no bolso.`),
+];
+const BIO_END_DEAD=[
+ d=>L(` In the end it was ${d.causeLo}, at ${d.end} — ${d.yrs} year${d.yrs===1?"":"s"} in the life. The streets will remember the name.`,` No fim foi ${d.causeLo}, aos ${d.end} — ${d.yrs} ano${d.yrs===1?"":"s"} na vida. As ruas vão lembrar do nome.`),
+ d=>L(` It ended the only way it could: ${d.causeLo}, at ${d.end}. Roll credits.`,` Terminou do único jeito possível: ${d.causeLo}, aos ${d.end}. Sobem os créditos.`),
+ d=>L(` ${d.causeLo.charAt(0).toUpperCase()+d.causeLo.slice(1)} at ${d.end} — that's the last page. ${d.city} barely paused.`,` ${d.causeLo.charAt(0).toUpperCase()+d.causeLo.slice(1)} aos ${d.end} — é a última página. ${d.city} mal deu uma pausa.`),
+ d=>L(` He always knew how it would go: ${d.causeLo}, ${d.end} years old, ${d.yrs} year${d.yrs===1?"":"s"} in.`,` Ele sempre soube como terminaria: ${d.causeLo}, aos ${d.end}, ${d.yrs} ano${d.yrs===1?"":"s"} de crime.`),
+ d=>L(` The reel runs out at ${d.end}: ${d.causeLo}. No sequel.`,` A fita acaba aos ${d.end}: ${d.causeLo}. Sem continuação.`),
+ d=>L(` Every empire has a last day. His came at ${d.end} — ${d.causeLo}.`,` Todo império tem um último dia. O dele veio aos ${d.end} — ${d.causeLo}.`),
+ d=>L(` ${d.causeLo.charAt(0).toUpperCase()+d.causeLo.slice(1)}. ${d.end} years old. In this life, that counts as a long run.`,` ${d.causeLo.charAt(0).toUpperCase()+d.causeLo.slice(1)}. ${d.end} anos. Nessa vida, isso já é uma longa jornada.`),
+ d=>L(` They'll tell it wrong at the bar, but the ending's true: ${d.causeLo}, at ${d.end}.`,` Vão contar errado no bar, mas o final é verdade: ${d.causeLo}, aos ${d.end}.`),
+ d=>L(` The city gives, the city takes. It took ${d.nm} at ${d.end} — ${d.causeLo}.`,` A cidade dá, a cidade tira. Tirou ${d.nm} aos ${d.end} — ${d.causeLo}.`),
+ d=>L(` Fade to black at ${d.end}: ${d.causeLo}. The corner he started on already belongs to someone else.`,` Escurece aos ${d.end}: ${d.causeLo}. A esquina onde ele começou já é de outro.`),
+ d=>L(` He outran it for ${d.yrs} year${d.yrs===1?"":"s"}. At ${d.end} it caught him — ${d.causeLo}.`,` Correu dele por ${d.yrs} ano${d.yrs===1?"":"s"}. Aos ${d.end} foi alcançado — ${d.causeLo}.`),
+ d=>L(` ${d.causeLo.charAt(0).toUpperCase()+d.causeLo.slice(1)}, at ${d.end}. Somewhere in ${d.city} a kid is already learning his name.`,` ${d.causeLo.charAt(0).toUpperCase()+d.causeLo.slice(1)}, aos ${d.end}. Em algum canto de ${d.city} um moleque já está decorando o nome dele.`),
+];
+const BIO_END_RETIRE=[
+ d=>L(` Then he did the impossible: walked away clean at ${d.end} — villa, new name, ${d.nwF} that no longer smells. ${d.city} still fights over the scraps.`,` Aí fez o impossível: saiu limpo aos ${d.end} — mansão, nome novo, ${d.nwF} que não cheiram mais. ${d.city} ainda briga pelas sobras.`),
+ d=>L(` Nobody retires from this. ${d.nm} did — ${d.nwF} at ${d.end}, and a plane out before anyone could argue.`,` Ninguém se aposenta disso. ${d.nm} se aposentou — ${d.nwF} aos ${d.end}, e um avião antes que alguém reclamasse.`),
+ d=>L(` He cashed out at the top: ${d.nwF}, ${d.end} years old, untouched and untouchable.`,` Sacou no topo: ${d.nwF}, ${d.end} anos, intocado e intocável.`),
+ d=>L(` The smart ones leave before the last act. ${d.nm} left at ${d.end} with ${d.nwF} and a clean passport.`,` Os espertos saem antes do último ato. ${d.nm} saiu aos ${d.end} com ${d.nwF} e um passaporte limpo.`),
+ d=>L(` Happy endings don't exist here — except his: ${d.nwF}, a new life, gone at ${d.end}.`,` Final feliz não existe aqui — só o dele: ${d.nwF}, uma vida nova, sumiu aos ${d.end}.`),
+ d=>L(` He turned ${d.nwF} into a quiet life somewhere warm and let ${d.city} tear itself apart over what he left.`,` Transformou ${d.nwF} numa vida tranquila em algum lugar quente e deixou ${d.city} se despedaçar pelo que sobrou.`),
+ d=>L(` Retired untouchable at ${d.end}: ${d.nwF}, no cuffs, no coffin — the rarest ending in the book.`,` Aposentado e intocável aos ${d.end}: ${d.nwF}, sem algemas, sem caixão — o final mais raro que existe.`),
+ d=>L(` The credits roll on a beach, not in a morgue: ${d.nwF} banked, ${d.end} years old, free.`,` Os créditos sobem numa praia, não num necrotério: ${d.nwF} no banco, ${d.end} anos, livre.`),
+ d=>L(` He beat the one game that never lets you win — out at ${d.end} with ${d.nwF} and a name nobody can prove.`,` Venceu o único jogo que nunca deixa vencer — fora aos ${d.end} com ${d.nwF} e um nome que ninguém prova.`),
+ d=>L(` ${d.nwF} and a new identity at ${d.end}. The city keeps his throne warm and wonders where he went.`,` ${d.nwF} e uma identidade nova aos ${d.end}. A cidade mantém o trono quente e se pergunta pra onde ele foi.`),
+];
+const BIO_END_WIN=[
+ d=>L(` He outlived every rival to ${d.end}, ${d.nwF} to his name. ${d.city} is his now — what's left of it.`,` Sobreviveu a todos os rivais até os ${d.end}, ${d.nwF} no nome. ${d.city} é dele agora — o que sobrou dela.`),
+ d=>L(` When the smoke cleared, only ${d.nm} was still standing — ${d.end} years old, ${d.nwF}, and a city with no one left to challenge him.`,` Quando a fumaça baixou, só ${d.nm} continuava de pé — ${d.end} anos, ${d.nwF}, e uma cidade sem ninguém pra enfrentá-lo.`),
+ d=>L(` Last man breathing at ${d.end}: ${d.nwF} and every throne in ${d.city} empty but his.`,` Último respirando aos ${d.end}: ${d.nwF} e todos os tronos de ${d.city} vazios menos o dele.`),
+ d=>L(` The others are in the ground or in the wind. ${d.nm} is on top — ${d.nwF}, ${d.end} years old.`,` Os outros estão embaixo da terra ou sumiram. ${d.nm} está no topo — ${d.nwF}, ${d.end} anos.`),
+ d=>L(` He didn't retire and he didn't die — he just won. ${d.nwF} at ${d.end}, and ${d.city} bows.`,` Não se aposentou e não morreu — só venceu. ${d.nwF} aos ${d.end}, e ${d.city} se curva.`),
+ d=>L(` Every rival tested him. Every rival lost. At ${d.end}, ${d.nm} holds ${d.city} and ${d.nwF}.`,` Todo rival testou. Todo rival perdeu. Aos ${d.end}, ${d.nm} tem ${d.city} e ${d.nwF}.`),
+ d=>L(` The crown was never given — he took it and kept it: ${d.nwF}, ${d.end}, last boss standing.`,` A coroa nunca foi dada — ele tomou e segurou: ${d.nwF}, ${d.end} anos, o último chefão de pé.`),
+ d=>L(` One boss left in ${d.city}, and it's ${d.nm}: ${d.nwF} at ${d.end}, king of a graveyard.`,` Sobrou um chefão em ${d.city}, e é ${d.nm}: ${d.nwF} aos ${d.end}, rei de um cemitério.`),
+ d=>L(` They all came for the throne. ${d.nm} is the one still sitting on it — ${d.nwF}, ${d.end} years old.`,` Todos vieram pelo trono. ${d.nm} é quem ainda está sentado nele — ${d.nwF}, ${d.end} anos.`),
+ d=>L(` Survival was the whole game, and he won it — ${d.end}, ${d.nwF}, and ${d.city} in his fist.`,` Sobreviver era o jogo inteiro, e ele ganhou — ${d.end} anos, ${d.nwF}, e ${d.city} no punho.`),
+];
+function _bpick(a){ return a[Math.floor(Math.random()*a.length)]; }
+function bossBio(p,mode){
+  const d=_bioData(p);
+  const parts=[];
+  parts.push(_bpick(BIO_OPEN)(d));
+  const rise=(d.turf||d.biz)?((d.sk||d.bk)?BIO_RISE_AK:BIO_RISE_A):((d.sk||d.bk)?BIO_RISE_K:BIO_RISE_N);
+  parts.push(_bpick(rise)(d).replace(/^ /,""));
+  if(d.charges>=3 && d.spec && Math.random()<0.7) parts.push(_bpick(BIO_REP)(d).replace(/^ /,""));
+  const law=d.charges?(d.served?BIO_LAW_S:BIO_LAW_N):BIO_LAW_CLEAN;
+  parts.push(_bpick(law)(d).replace(/^ /,""));
+  if(d.net && Math.random()<0.8) parts.push(_bpick(BIO_NET)(d).replace(/^ /,""));
+  parts.push(_bpick(mode==="dead"?BIO_END_DEAD:mode==="retire"?BIO_END_RETIRE:BIO_END_WIN)(d).replace(/^ /,""));
+  return parts.join(" ");
 }
 function showRIP(id){
   const p=(typeof id==="object")?id:S.players[id];
@@ -3525,24 +3604,36 @@ function endTurn(){ if(S.over)return; if(!S.rolled)return;
 function rollDiceAI(){
   if(PAUSED){ if(S)S._resume=rollDiceAI; return; }   // menu is open — hold this AI turn
   const p=S&&S.players?S.players[S.cur]:null; if(!p||!p.ai||S.rolled) return;
-  aiRecruit(p);                                   // build an army with spare cash before acting
-  const tgt=aiAttackTarget(p);
-  if(tgt){                                        // an aggressive AI hits a rival instead of moving — attacking IS its turn
-    S.rolled=true;
-    log(p.name+L(" moves on "," parte pra cima de ")+tgt.o.name+L("'s "," em ")+OUTER[tgt.idx].t+".","warn");
-    resolveAttack(p,tgt.o,tgt.idx,Math.min(p.crew,tgt.s+1)); return;
-  }
-  rollDice();
+  const added=aiRecruit(p);                       // build an army with spare cash before acting
+  // after any recruiting, take the turn — attack a rival if it can, otherwise roll to move
+  const act=()=>{
+    if(!S||S.over||S.rolled) return;
+    const pp=S.players[S.cur]; if(!pp||!pp.ai) return;
+    const tgt=aiAttackTarget(pp);
+    if(tgt){                                       // an aggressive AI hits a rival instead of moving — attacking IS its turn
+      S.rolled=true;
+      log(pp.name+L(" moves on "," parte pra cima de ")+tgt.o.name+L("'s "," em ")+OUTER[tgt.idx].t+".","warn");
+      resolveAttack(pp,tgt.o,tgt.idx,Math.min(pp.crew,tgt.s+1)); return;
+    }
+    rollDice();
+  };
+  if(added>0){   // show the recruitment the same way a human would see it, then act
+    const cost=added*SOLDIER_COST;
+    const body=L(`${p.name} hires ${added} soldier${added===1?"":"s"} for ${fmtK(cost)} — crew now ${p.crew}.`,`${p.name} contrata ${added} soldado${added===1?"":"s"} por ${fmtK(cost)} — equipe agora ${p.crew}.`);
+    aiScene(aiSceneCard(p,L("RECRUITS SOLDIERS","RECRUTA SOLDADOS"),body), act);
+  } else act();
 }
-/* AI stocks up on bodyguards with spare cash — more soldiers = more attacks and the 10+ bonus die */
+/* AI stocks up on bodyguards with spare cash — more soldiers = more attacks and the 10+ bonus die.
+   Returns how many it hired (so the turn can show a recruitment card, like a human would see). */
 function aiRecruit(p){
-  if(p.ring!=="outer"||p.inJail) return;
+  if(p.ring!=="outer"||p.inJail) return 0;
   const pr=aiProf(p);
   const cap=Math.min(pr.recruitCap, (typeof MAX_SOLDIERS!=="undefined"?MAX_SOLDIERS:99));
   const reserve=SOLDIER_COST*pr.recruitReserve;   // more aggressive spends down to a thinner reserve
   let added=0;
   while(p.crew<cap && p.cash-SOLDIER_COST>=reserve){ p.cash-=SOLDIER_COST; p.crew++; added++; }
   if(added>0){ render(); log(p.name+L(" recruits "," recruta ")+added+L(" soldier"," soldado")+(added>1?"s":"")+L(" (now "," (agora ")+p.crew+").","good"); }
+  return added;
 }
 /* pick the richest rival turf this AI can actually take; returns null if it shouldn't attack this turn */
 function aiAttackTarget(p){
