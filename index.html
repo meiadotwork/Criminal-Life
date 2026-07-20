@@ -687,7 +687,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version â€” shown on the top bar and setup screen */
-const APP_VERSION="v17.3";
+const APP_VERSION="v17.4";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -977,13 +977,13 @@ const AI_AGGRO_ORDER=["AGGRESSIVE","CAREFUL","CAUTIOUS","PASSIVE"];   // most â†
 function aiProf(p){ return AI_PROFILES[p&&p.temper]||AI_PROFILES.CAREFUL; }
 function temperLabel(t){ const pr=AI_PROFILES[t]||AI_PROFILES.CAREFUL; return LANG==='PT'?pr.lbl[1]:pr.lbl[0]; }
 function chooseCount(n){ setupData.n=n; setupData.players=[]; setupData.idx=0; setupData._seatAI=undefined; setupData._seatName=undefined; setupData._seatAggro=undefined; nextPlayerSetup(); }
-function setSeatType(ai){ setupData._seatAI=!!ai; setupData._seatName=ai?aiName():""; setupData._seatAggro=ai?"AGGRESSIVE":undefined; nextPlayerSetup(); }
-function setSeatAggro(k){ const inp=document.getElementById("pname"); if(inp)setupData._seatName=inp.value; setupData._seatAggro=k; nextPlayerSetup(); }
+function setSeatType(ai){ setupData._seatAI=!!ai; setupData._seatName=ai?aiName():""; setupData._seatAggro=ai?(setupData._lastAggro||"AGGRESSIVE"):undefined; nextPlayerSetup(); }
+function setSeatAggro(k){ const inp=document.getElementById("pname"); if(inp)setupData._seatName=inp.value; setupData._seatAggro=k; setupData._lastAggro=k; nextPlayerSetup(); }
 function nextPlayerSetup(){
   const i=setupData.idx;
   if(i>=setupData.n){ launch(); return; }
   if(setupData._seatAI===undefined){ setupData._seatAI=(i>0); setupData._seatName=setupData._seatAI?aiName():""; }
-  if(setupData._seatAI && setupData._seatAggro===undefined) setupData._seatAggro="AGGRESSIVE";
+  if(setupData._seatAI && setupData._seatAggro===undefined) setupData._seatAggro=setupData._lastAggro||"AGGRESSIVE";
   const isAI=setupData._seatAI;
   const used=setupData.players.map(p=>p.pattern);
   const sw=PATTERNS.map(pt=>`<div class="sw pat-${pt.k}" style="${used.includes(pt.k)?'opacity:.2;pointer-events:none':''}" data-c="${pt.k}" title="${pt.label}" onclick="pickColor(this)"></div>`).join("");
@@ -1032,7 +1032,7 @@ function confirmPlayer(){
   if(!pattern){ const used=setupData.players.map(p=>p.pattern); pattern=(PATTERNS.find(pt=>!used.includes(pt.k))||PATTERNS[0]).k; }
   const age=Math.max(1,Math.min(120,parseInt((document.getElementById("page")||{}).value)||(isAI?21:25)));
   const seat={name,pattern,ai:isAI,age};
-  if(isAI) seat.temper=setupData._seatAggro||"AGGRESSIVE";
+  if(isAI){ seat.temper=setupData._seatAggro||"AGGRESSIVE"; setupData._lastAggro=seat.temper; }   // remember it as the default for the next Ghost
   setupData.players.push(seat);
   setupData._seatAI=undefined; setupData._seatName=undefined; setupData._seatAggro=undefined;
   setupData.idx++; nextPlayerSetup();
