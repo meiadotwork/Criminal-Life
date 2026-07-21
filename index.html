@@ -701,7 +701,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v17.9";
+const APP_VERSION="v18.0";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -1488,12 +1488,22 @@ function standingsRows(){
     const rk=p.alive?(aliveRank[p.id]===1?L("★","★"):"#"+aliveRank[p.id]):L("DEAD","MORTO");
     const hp=p.alive?("♥".repeat(Math.max(0,3-p.hosp))):"X";
     const tag=p.ai?` <span style="opacity:.5;font-size:10px">(Ghost)</span>`:"";
-    return `<div onclick="showProfile(${p.id},${(typeof SPECTATING!=="undefined"&&SPECTATING)?2:1})" style="display:flex;align-items:center;gap:9px;padding:8px 4px;border-bottom:1px solid var(--phos-dark);cursor:pointer">
+    const turf=Array.from(p.owns.keys()).filter(i=>OUTER[i]&&OUTER[i].k==="street").length;
+    const jailed=(p.ring==="inner")||p.inJail;
+    const jailTag=jailed?` <span style="font-size:9px;border:1px solid var(--phos);border-radius:2px;padding:0 3px;opacity:.9;vertical-align:1px">${p.inJail?L("JAIL","CADEIA"):L("PRISON","PRISÃO")}</span>`:"";
+    // at-a-glance stats: heat · bodyguards · turf · kills (soldiers put down) · cash
+    const sub=p.alive
+      ? `${L("HEAT","RISCO")} ${p.heat||0}% · ${L("BG","GC")} ${p.crew} · ${L("TURF","ÁREAS")} ${turf} · ☠ ${p.soldierKills||0} · ${fmtK(p.cash)}`
+      : `${L("died at","morto aos")} ${p.diedAt||p.age} · ☠ ${p.soldierKills||0} · ${L("TURF","ÁREAS")} ${turf}`;
+    return `<div onclick="showProfile(${p.id},${(typeof SPECTATING!=="undefined"&&SPECTATING)?2:1})" style="display:flex;align-items:center;gap:9px;padding:7px 4px;border-bottom:1px solid var(--phos-dark);cursor:pointer">
       <span style="width:13px;height:13px;flex:0 0 auto;background:${col};border:1px solid var(--phos)"></span>
-      <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.name}${tag}</span>
+      <span style="flex:1;min-width:0">
+        <span style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.name}${tag}${jailTag}</span>
+        <span style="display:block;font-size:10px;opacity:.62;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px">${sub}</span>
+      </span>
       <span style="opacity:.7;font-size:11px;white-space:nowrap">${hp}</span>
       <span style="font-weight:bold;min-width:56px;text-align:right;white-space:nowrap">${fmtK(netWorth(p))}</span>
-      <span style="opacity:.75;min-width:38px;text-align:right;white-space:nowrap">${rk}</span>
+      <span style="opacity:.75;min-width:34px;text-align:right;white-space:nowrap">${rk}</span>
       <span style="opacity:.45">›</span>
     </div>`;}).join("");
 }
