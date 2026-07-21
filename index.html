@@ -701,7 +701,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v18.0";
+const APP_VERSION="v18.1";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -940,7 +940,7 @@ function renderSetupStart(){
      <div class="cfghead">5. ${L('POLICE','POLÍCIA')} <span style="opacity:.55">${L('(how likely a raid puts you away)','(chance de uma batida te prender)')}</span></div>
      <div class="choice">${pB(0.25,L('VERY LOW · ¼','MUITO BAIXA · ¼'))}${pB(0.5,L('LOW · ½','BAIXA · ½'))}${pB(1,L('REALISTIC','REALISTA'))}${pB(3,L('HARD','DIFÍCIL'))}${pB(4,L('BRAZILIAN','BRASILEIRA'))}</div>
      ${pol===3?`<div class="cfgflavor">&gt; ${L('brutal — every police raid ends in an arrest. no escapes.','brutal — toda batida policial termina em prisão. sem escapatória.')}</div>`:''}
-     ${pol===4?`<div class="cfgflavor">&gt; ${L('no arrests, no trial — get raided and the police gun you down on the spot.','sem prisão, sem julgamento — tomou uma batida e a polícia te executa na hora.')}</div>`:''}
+     ${pol===4?`<div class="cfgflavor">&gt; ${L('raids escalate — 1st: tortured to the hospital · 2nd: shot to the hospital · 3rd: twenty rounds, dead. no arrests, no trial.','as batidas escalam — 1ª: torturado, pro hospital · 2ª: baleado, pro hospital · 3ª: vinte tiros, morto. sem prisão, sem julgamento.')}</div>`:''}
      <div class="cfghead">6. ${ready?L('READY.','PRONTO.'):L('&lt; finish the setup above &gt;','&lt; complete a configuração acima &gt;')}</div>
      <button class="cfggo" ${ready?'':'disabled'} onclick="afterSpeed()">${L('[ CONTINUE » ]','[ CONTINUAR » ]')}</button>
      <div class="hint">${L('Outer ring = the street (1 lap = 1 year). Arrested → JAIL → COURT → PRISON. Broke+hurt → HOSPITAL (3 = dead). 10+ soldiers = bonus die. Win: last boss standing, or retire with $10M at 65.','Anel externo = a rua (1 volta = 1 ano). Preso → CADEIA → TRIBUNAL → PRIS\u00c3O. Quebrado+ferido → HOSPITAL (3 = morto). 10+ soldados = dado b\u00f4nus. Vit\u00f3ria: \u00faltimo chef\u00e3o de p\u00e9, ou se aposente com $10M aos 65.')}</div>
@@ -2864,7 +2864,7 @@ function outcomeAndButton(c,deck){
     if(c.cut>0){lines.push(L("Collect ","Receba ")+fmtK(c.cut));btn=L("[ COLLECT ]","[ RECEBER ]");}
     if(c.cut<0){lines.push(L("Pay ","Pague ")+fmtK(-c.cut));btn=L("[ PAY ]","[ PAGAR ]");}
     if(c.crew){lines.push(L("Gain ","Ganhe ")+c.crew+L(" soldier"," soldado"));btn="[ OK ]";}
-    if(c.raidArr){const bz=policeFactor()>=4;lines.push(bz?L("GUNNED DOWN","EXECUTADO"):L("ARRESTED","PRESO"));btn=bz?L("[ FACE THE GUNS ]","[ ENCARAR AS ARMAS ]"):L("[ FACE THE LAW ]","[ ENCARAR A LEI ]");}
+    if(c.raidArr){const bz=policeFactor()>=4;const bn=((S.players[S.cur]&&S.players[S.cur]._brRaids)||0)+1;lines.push(bz?(bn>=3?L("EXECUTED","EXECUTADO"):L("HOSPITALIZED","HOSPITALIZADO")):L("ARRESTED","PRESO"));btn=bz?(bn>=3?L("[ FACE THE GUNS ]","[ ENCARAR AS ARMAS ]"):L("[ TAKE IT ]","[ AGUENTAR ]")):L("[ FACE THE LAW ]","[ ENCARAR A LEI ]");}
     if(c.note&&!lines.length){lines.push(c.note);btn="[ OK ]";}
     return {text:lines.join("\n")||"...",btn};
   }
@@ -2876,7 +2876,11 @@ function outcomeAndButton(c,deck){
   if(c.crew)lines.push(L("Gain ","Ganhe ")+c.crew+L(" soldier"," soldado"));
   if(c.arr!==undefined)lines.push(L("Heat +","Risco +")+crimeHeat(c)+"% "+L("— heat gets you busted in RAIDS","— o risco te pega em BATIDAS"));
   if(c.hosp){lines.push(L("Hurt bad — HOSPITAL","Ferido feio — HOSPITAL"));}
-  if(c.raidArr&&policeFactor()>=4){lines.push(L("☠ GUNNED DOWN — the police open fire and don't stop","☠ EXECUTADO — a pol\u00edcia abre fogo e n\u00e3o para"));btn=L("[ FACE THE GUNS ]","[ ENCARAR AS ARMAS ]");}
+  if(c.raidArr&&policeFactor()>=4){const bn=((S.players[S.cur]&&S.players[S.cur]._brRaids)||0)+1;
+    lines.push(bn>=3?L("☠ EXECUTED — twenty rounds. No arrest, no trial.","☠ EXECUTADO — vinte tiros. Sem pris\u00e3o, sem julgamento.")
+      :bn===2?L("SHOT in the raid — straight to the HOSPITAL (one more raid ends you)","BALEADO na batida — direto pro HOSPITAL (mais uma batida te mata)")
+      :L("TORTURED in the raid — dragged to the HOSPITAL","TORTURADO na batida — arrastado pro HOSPITAL"));
+    btn=bn>=3?L("[ FACE THE GUNS ]","[ ENCARAR AS ARMAS ]"):L("[ TAKE IT ]","[ AGUENTAR ]");}
   else if(c.raidArr){lines.push(L("ARRESTED","PRESO"));
     if(c._sLoss!==undefined) lines.push(c._sLoss==="all"?L("⚑ The WHOLE crew is swept up — ALL soldiers arrested","⚑ A equipe INTEIRA foi levada — TODOS os soldados presos"):"⚑ "+c._sLoss+L(" of your soldiers get arrested"," dos seus soldados s\u00e3o presos"));
     btn=L("[ FACE THE LAW ]","[ ENCARAR A LEI ]");}
@@ -2951,12 +2955,25 @@ function applyCard(){
   }
   if(c.raidArr){
     if(p.freeRaid>0){p.freeRaid--;log(p.name+L(" was tipped off — dodges the raid (crew safe)."," foi avisado — escapa da batida (equipe a salvo)."),"good");afterMoney(p);if(!p._sentToHospital)finish();p._sentToHospital=false;return;}
-    if(policeFactor()>=4){   // BRAZILIAN: the raid is an execution — no arrest, no trial
-      p.crew=0;
-      SFX.overkill();
-      p._deathCause=L("Gunned down in a police raid","Executado numa batida policial");
-      log(p.name+L(" is GUNNED DOWN in the raid — police empty their magazines. OUT."," é EXECUTADO na batida — a polícia esvazia os pentes. FORA."),"bad");
-      render(); killPlayer(p); return;
+    if(policeFactor()>=4){   // BRAZILIAN: raids escalate — torture, then a shooting, then execution
+      p._brRaids=(p._brRaids||0)+1;
+      if(p._brRaids>=3){      // THIRD raid — twenty rounds, no arrest, no trial
+        p.crew=0; SFX.overkill();
+        p._deathCause=L("Executed in a police raid — twenty rounds","Executado numa batida policial — vinte tiros");
+        log(p.name+L(" — third raid. The police empty their magazines. OUT."," — terceira batida. A polícia esvazia os pentes. FORA."),"bad");
+        render(); killPlayer(p); return;
+      }
+      if(p._brRaids===1){     // FIRST raid — tortured into the hospital
+        p._hospCause=L("Tortured in a police raid","Torturado numa batida policial");
+        SFX.bad(); setTimeout(()=>SFX.ambulance(),300);
+        log(p.name+L(" is TORTURED in the raid — dragged half-dead to the HOSPITAL."," é TORTURADO na batida — arrastado meio morto pro HOSPITAL."),"bad");
+      } else {                // SECOND raid — shot into the hospital
+        p._hospCause=L("Shot in a police raid","Baleado numa batida policial");
+        SFX.gunBurst(); setTimeout(()=>SFX.ambulance(),400);
+        log(p.name+L(" is SHOT in the raid — rushed to the HOSPITAL. One more and it's over."," é BALEADO na batida — levado às pressas pro HOSPITAL. Mais uma e acabou."),"bad");
+      }
+      p.crew=0;               // the crew doesn't survive a Brazilian raid either
+      doHospital(p,1); return;
     }
     if(p.crew>0){
       const loss = (c._sLoss==="all") ? p.crew : Math.min(p.crew, c._sLoss||1);
