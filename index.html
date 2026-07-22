@@ -105,6 +105,12 @@
   #log .rd b{color:var(--amber)}
   #log .l{margin-bottom:1px;padding-left:4px}
   #log .l.warn{color:var(--amber)} #log .l.bad{color:var(--red)} #log .l.good{color:var(--phos)}
+  .expicon{font-size:9px;letter-spacing:1px;color:var(--amber);border:1px solid var(--amber);padding:1px 5px;margin-left:6px;vertical-align:middle;white-space:nowrap}
+  #logBig{font-size:18px;line-height:1.55;white-space:pre-wrap;word-break:break-word;max-height:64vh;overflow-y:auto;text-align:left;padding:2px}
+  #logBig .rd{border:1px solid var(--phos-dark);padding:6px 8px;margin-bottom:8px}
+  #logBig .rd b{color:var(--amber)}
+  #logBig .l{margin-bottom:3px;padding-left:4px}
+  #logBig .l.warn{color:var(--amber)} #logBig .l.bad{color:var(--red)} #logBig .l.good{color:var(--phos)}
   .controls{display:flex;gap:6px;flex-wrap:wrap}
   button{background:linear-gradient(180deg,rgba(10,61,24,.3),rgba(1,6,2,.3));color:var(--phos);border:1px solid var(--phos);border-radius:2px;font-family:inherit;font-size:12px;padding:8px 12px;cursor:pointer;letter-spacing:1px;font-weight:bold;text-shadow:inherit;transition:all .1s;box-shadow:0 0 8px rgba(57,255,116,.15),inset 0 0 8px rgba(10,61,24,.3)}
   button:hover:not(:disabled){background:var(--phos);color:#020a04;text-shadow:none;box-shadow:0 0 16px rgba(57,255,116,.6)}
@@ -667,8 +673,8 @@
     </div>
     <div class="side">
       <div class="panel condice-panel">
-        <div class="concol">
-          <h2>CONSOLE — this round</h2>
+        <div class="concol" onclick="openBigConsole()" title="tap to enlarge" style="cursor:pointer">
+          <h2>CONSOLE — this round <span class="expicon">[ TAP TO ZOOM ]</span></h2>
           <div id="log"></div>
         </div>
         <div class="dicecol">
@@ -701,7 +707,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v18.4";
+const APP_VERSION="v18.5";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -1562,7 +1568,21 @@ function log(m,cls=""){const d=document.createElement("div");d.className="l "+cl
   const box=(S.roundEl||document.getElementById("log"));
   // newest line goes right under the round header so the latest action is always on top — no scrolling
   const anchor=box.firstChild?box.firstChild.nextSibling:null;
-  box.insertBefore(d,anchor);}
+  box.insertBefore(d,anchor);
+  // keep the enlarged console (if open) in sync
+  const big=document.getElementById("logBig"),src=document.getElementById("log");
+  if(big&&src) big.innerHTML=src.innerHTML;}
+
+/* tap the CONSOLE panel → read it in a big, scrollable modal (easier on phones) */
+function openBigConsole(){
+  const src=document.getElementById("log"); const ce=document.getElementById("cardEl");
+  if(!ce) return;
+  ce.dataset.read="";
+  ce.innerHTML='<div class="lbl">CONSOLE — THIS ROUND</div>'
+    +'<div id="logBig">'+(src?src.innerHTML:'<div class="l">• (nothing yet)</div>')+'</div>'
+    +'<div class="go"><button onclick="closeModal()">[ CLOSE ]</button></div>';
+  openModal(true);
+}
 
 /* ===== DICE ===== */
 const PIPS={1:["p1"],2:["p2a","p2b"],3:["p3a","p3b","p3c"],4:["p4a","p4b","p4c","p4d"],5:["p5a","p5b","p5c","p5d","p5e"],6:["p6a","p6b","p6c","p6d","p6e","p6f"]};
