@@ -716,7 +716,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v18.6";
+const APP_VERSION="v18.7";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -947,9 +947,9 @@ function renderSetupStart(){
      <div class="choice">${[2,3,4,5,6,7,8,9,10].map(pC).join('')}</div>
      <div class="cfghead">2. ${L('CITY','CIDADE')} <span style="opacity:.55">${L('(map · prison · local law)','(mapa · prisão · lei local)')}</span></div>
      <div class="choice">${cityB('NY','NEW YORK')}${cityB('LA','LOS ANGELES')}${cityB('CWB','CURITIBA')}${cityB('RIO','RIO')}${cityB('CDMX','CDMX')}${cityB('SP','SÃO PAULO')}</div>
-     <div class="cfghead">3. ${L('INITIAL CAPITAL','CAPITAL INICIAL')} <span style="opacity:.55">${L('(what you start with)','(com quanto você começa)')}</span></div>
-     <div class="choice">${cB(0,fmtK(0))}${cB(100,fmtK(100))}${cB(250,fmtK(250))}${cB(1000,fmtK(1000))}</div>
-     ${cap!=null?`<div class="cfgflavor">&gt; ${capFlavor(cap)}</div>`:''}
+     <div class="cfghead">3. ${L('INITIAL CAPITAL','CAPITAL INICIAL')} <span style="opacity:.55">${L('(type any amount)','(digite qualquer valor)')}</span></div>
+     <div class="choice"><button class="cfg${cap!=null?' sel':''}" onclick="openCapitalPad()">[ ${cap!=null?fmtK(cap):L('SET AMOUNT »','DEFINIR VALOR »')} ]</button></div>
+     ${cap!=null?`<div class="cfgflavor">&gt; ${capFlavor(cap)||(fmtK(cap)+L(' to start with',' pra começar'))}</div>`:''}
      <div class="cfghead">4. ${L('DICE','DADOS')} <span style="opacity:.55">${L('(bigger die = years pass faster)','(dado maior = anos passam mais rápido)')}</span></div>
      <div class="choice">${sB(6,'D6')}${sB(8,'D8')}${sB(10,'D10')}</div>
      <div class="cfghead">5. ${L('POLICE','POLÍCIA')} <span style="opacity:.55">${L('(how likely a raid puts you away)','(chance de uma batida te prender)')}</span></div>
@@ -972,6 +972,35 @@ function selectCapital(c){ setupData.capital=c; setupData.startCash=c; renderSet
 function selectSpeed(n){ setupData.dice0=n; setupData.dice=n; renderSetupStart(); }
 function selectPolice(f){ setupData.police=f; renderSetupStart(); }
 function selectCount(n){ setupData.n=n; renderSetupStart(); }
+/* INITIAL CAPITAL: type any amount on a keypad, with quick suggested amounts */
+let _cp=null;
+function openCapitalPad(){
+  _cp={ val:(setupData.capital!=null?String(setupData.capital):"") };
+  const el=document.getElementById("cardEl"); if(!el)return; el.dataset.deck=""; el.dataset.read="";
+  el.innerHTML=`<div class="lbl">${L("STARTING CAPITAL","CAPITAL INICIAL")}</div>
+    <div style="font-size:13px;opacity:.8;margin:9px 0 3px;line-height:1.45">${L("Type any amount in thousands. 500 = ","Digite qualquer valor em milhares. 500 = ")}${fmtK(500)} · 1000 = ${fmtK(1000)}.</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin:4px 0 8px">
+      ${[0,100,250,500,1000,5000].map(a=>`<button style="padding:5px 9px;font-size:12px" onclick="cpSuggest(${a})">${fmtK(a)}</button>`).join("")}
+    </div>
+    <div class="out qdisp"><span id="cpval">0</span></div>
+    <div class="qcalc" style="justify-content:center"><span id="cpprev"></span></div>
+    <div class="qkrow">
+      <button onclick="cpKey('7')">7</button><button onclick="cpKey('8')">8</button><button onclick="cpKey('9')">9</button>
+      <button onclick="cpKey('4')">4</button><button onclick="cpKey('5')">5</button><button onclick="cpKey('6')">6</button>
+      <button onclick="cpKey('1')">1</button><button onclick="cpKey('2')">2</button><button onclick="cpKey('3')">3</button>
+      <button onclick="cpKey('00')">00</button><button onclick="cpKey('0')">0</button><button onclick="cpDel()">&#9003;</button>
+    </div>
+    <div class="go" style="margin-top:10px"><button onclick="cpBack()">${L("[ CANCEL ]","[ CANCELAR ]")}</button><button class="amber" onclick="cpOK()">${L("[ SET ]","[ DEFINIR ]")}</button></div>`;
+  openModal(true);
+  cpUpd();
+}
+function cpNum(){ return _cp?(parseInt(_cp.val||"0",10)||0):0; }
+function cpUpd(){ if(!_cp)return; const v=document.getElementById("cpval"); if(v)v.textContent=cpNum(); const pv=document.getElementById("cpprev"); if(pv)pv.textContent="= "+fmtK(cpNum()); }
+function cpKey(d){ if(!_cp)return; if((_cp.val+d).length<=7)_cp.val=(_cp.val==="0"?"":_cp.val)+d; cpUpd(); }
+function cpDel(){ if(!_cp)return; _cp.val=_cp.val.slice(0,-1); cpUpd(); }
+function cpSuggest(a){ if(!_cp)return; _cp.val=String(a); cpUpd(); }
+function cpOK(){ const n=cpNum(); _cp=null; setupData.capital=n; setupData.startCash=n; closeModal(); renderSetupStart(); }
+function cpBack(){ _cp=null; closeModal(); renderSetupStart(); }
 /* CONTINUE from the config screen → straight into per-seat setup with the chosen count */
 function afterSpeed(){ if(!setupData.n)return; chooseCount(setupData.n); }
 /* mob names used to pre-fill AI seats (editable) */
@@ -1006,13 +1035,13 @@ const AI_PROFILES={
 const AI_AGGRO_ORDER=["AGGRESSIVE","CAREFUL","CAUTIOUS","PASSIVE"];   // most → least aggressive
 function aiProf(p){ return AI_PROFILES[p&&p.temper]||AI_PROFILES.CAREFUL; }
 function temperLabel(t){ const pr=AI_PROFILES[t]||AI_PROFILES.CAREFUL; return LANG==='PT'?pr.lbl[1]:pr.lbl[0]; }
-function chooseCount(n){ setupData.n=n; setupData.players=[]; setupData.idx=0; setupData._seatAI=undefined; setupData._seatName=undefined; setupData._seatAggro=undefined; nextPlayerSetup(); }
+function chooseCount(n){ setupData.n=n; setupData.players=[]; setupData.idx=0; setupData._seatAI=undefined; setupData._seatName=undefined; setupData._seatAggro=undefined; setupData._lastAI=undefined; nextPlayerSetup(); }
 function setSeatType(ai){ setupData._seatAI=!!ai; setupData._seatName=ai?aiName():""; setupData._seatAggro=ai?(setupData._lastAggro||"AGGRESSIVE"):undefined; nextPlayerSetup(); }
 function setSeatAggro(k){ const inp=document.getElementById("pname"); if(inp)setupData._seatName=inp.value; setupData._seatAggro=k; setupData._lastAggro=k; nextPlayerSetup(); }
 function nextPlayerSetup(){
   const i=setupData.idx;
   if(i>=setupData.n){ launch(); return; }
-  if(setupData._seatAI===undefined){ setupData._seatAI=(i>0); setupData._seatName=setupData._seatAI?aiName():""; }
+  if(setupData._seatAI===undefined){ setupData._seatAI=(i===0?false:(setupData._lastAI!==undefined?setupData._lastAI:(i>0))); setupData._seatName=setupData._seatAI?aiName():""; }
   if(setupData._seatAI && setupData._seatAggro===undefined) setupData._seatAggro=setupData._lastAggro||"AGGRESSIVE";
   const isAI=setupData._seatAI;
   const used=setupData.players.map(p=>p.pattern);
@@ -1064,6 +1093,7 @@ function confirmPlayer(){
   const seat={name,pattern,ai:isAI,age};
   if(isAI){ seat.temper=setupData._seatAggro||"AGGRESSIVE"; setupData._lastAggro=seat.temper; }   // remember it as the default for the next Ghost
   setupData.players.push(seat);
+  setupData._lastAI=isAI;   // next seat defaults to the same type (human/ghost) — less tapping with many humans
   setupData._seatAI=undefined; setupData._seatName=undefined; setupData._seatAggro=undefined;
   setupData.idx++; nextPlayerSetup();
 }
@@ -2283,17 +2313,7 @@ function tryStreet(c){
     rentCard(p,owner,toll,L("toll on ","pedágio em ")+c.t);return;
   }
   if(p.ai){ aiBuyStreet(idx,c); return; }
-  const ladder=soldierLadder(c.price);
-  let rows=ladder.map(l=>`<div><span>${l.n} soldier${l.n>1?"s":""}</span><span>${fmtK(l.v)}/yr</span></div>`).join("");
-  let btns=`<button onclick="buyStreet(${idx},1,${c.price})">${L('[ BUY 1 · ','[ COMPRAR 1 · ')}${fmtK(c.price)} ]</button>`;
-  const el=document.getElementById("cardEl");
-  el.dataset.read="1"; el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('STREET · FOR SALE','RUA · \u00c0 VENDA')}</div>
-    <div class="art">${ART.street}</div><div class="ttl">${c.t}</div>
-    <div class="sub">${L('Price per soldier = their yearly take. Buy soldiers one at a time; add more later.','Pre\u00e7o por soldado = o que ele rende por ano. Compre um por vez; adicione mais depois.')}</div>
-    <div class="out ladder">${rows}</div>
-    <div class="go">${p.cash>=c.price?btns:'<span style="opacity:.6">'+L('need ','precisa de ')+fmtK(c.price)+'</span>'}<button onclick="closeModal();finish()">${L('[ PASS ]','[ PASSAR ]')}</button></div>
-    ${statusBar()}`;
-  openModal();
+  qpOpenStreet(idx,c);   // one screen: choose soldiers, claim, done
 }
 function ownStreetOptions(idx){
   const p=S.players[S.cur];const c=OUTER[idx];const per=OUTER[idx].incomeBase||c.price;const cur=p.owns.get(idx);
@@ -2470,14 +2490,7 @@ function tryBiz(c){
   if(owner&&owner.id===p.id){ collectOne(p,idx); if(p.ai){render();finish();return;} ownBizOptions(idx); return; }
   if(owner&&owner.id!==p.id){ buyProduct(p,owner,idx,c); return; }
   if(p.ai){ aiBuyBiz(idx,c); return; }
-  const el=document.getElementById("cardEl");const can=p.cash>=c.income;
-  el.dataset.read="1"; el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('BUSINESS · FOR SALE','NEG\u00d3CIO · \u00c0 VENDA')}</div>
-    <div class="art">${ART.biz}</div><div class="ttl">${c.t}</div>
-    <div class="sub">${L('Staff with 1 worker to open. Buy more workers later. Rivals landing here pay you — everybody eats.','Abra com 1 funcion\u00e1rio. Compre mais depois. Rivais que ca\u00edrem aqui pagam a voc\u00ea — todo mundo come.')}</div>
-    <div class="out">${L('Open with 1 worker','Abrir com 1 funcion\u00e1rio')}: ${fmtK(c.income)} · ${L('earns','rende')} ${fmtK(c.income)}/${L('yr each','ano cada')}</div>
-    <div class="go">${can?`<button onclick="buyBiz(${idx},${c.income})">${L('[ OPEN ','[ ABRIR ')}${fmtK(c.income)} ]</button>`:'<span style="opacity:.6">'+L('need ','precisa de ')+fmtK(c.income)+'</span>'}<button onclick="closeModal();finish()">${L('[ PASS ]','[ PASSAR ]')}</button></div>
-    ${statusBar()}`;
-  openModal();
+  qpOpenBiz(idx,c);   // one screen: choose workers, open, done
 }
 function buyBiz(idx,cost){const p=S.players[S.cur];p.cash-=cost;p.owns.set(idx,1);log(p.name+L(" opens "," abre ")+OUTER[idx].t+" ("+fmtK(cost)+").","good");render();ownBizOptions(idx);}
 function ownBizOptions(idx){
@@ -2572,9 +2585,10 @@ let _qp=null;
 function qpNum(){ if(!_qp)return 0; let n=parseInt(_qp.val||"0",10)||0; if(n<0)n=0; if(n>_qp.max)n=_qp.max; return n; }
 function qtyPad(cfg){
   const per=cfg.per; if(!per||per<=0){ if(cfg.done)cfg.done(); return; }
-  _qp={ ...cfg, val:"", max:Math.max(0,Math.floor(cfg.max||0)) };
+  _qp={ ...cfg, val:(cfg.start?String(cfg.start):""), max:Math.max(0,Math.floor(cfg.max||0)) };
   const p=S.players[S.cur]; const el=document.getElementById("cardEl"); if(!el)return; el.dataset.deck="";
   el.innerHTML=`<div class="lbl">${cfg.title}</div>
+    ${cfg.note?`<div style="font-size:12px;opacity:.82;margin:8px 2px 0;line-height:1.45">${cfg.note}</div>`:''}
     <div style="font-size:14px;color:#eaffef;margin:10px 0 2px">${cfg.unit} · ${L("you have","você tem")} ${cfg.have||0}</div>
     <div style="font-size:12px;opacity:.7;margin-bottom:8px">${fmtK(per)} ${L("each","cada")} · ${fmtK(p.cash)} ${L("cash","em caixa")} · ${L("max","máx")} ${_qp.max}</div>
     <div class="out qdisp"><span id="qval">0</span></div>
@@ -2625,6 +2639,25 @@ function qpCell(idx,ret){ const p=S.players[S.cur]; const c=OUTER[idx]; const pe
     apply:(n)=>{ p.cash-=per*n; p.owns.set(idx,(p.owns.get(idx)||0)+n);
       log(p.name+L(" adds "," adiciona ")+n+" "+(isBiz?L("worker","funcionário"):L("soldier","soldado"))+((n>1&&LANG!=='PT')?"s":"")+L(" to "," a ")+c.t+L(" (now "," (agora ")+p.owns.get(idx)+").","good"); render(); },
     done });
+}
+/* OPEN a new business / CLAIM new turf — one screen: pick how many workers/soldiers, buy, done */
+function qpOpenBiz(idx,c){ const p=S.players[S.cur]; const per=c.income; OUTER[idx].incomeBase=c.income;
+  const afford=Math.floor(p.cash/per);
+  qtyPad({ title:c.t, unit:L("workers","funcionários"),
+    note:L("Open this business — rivals landing here buy your product and you both profit. Each worker earns "+fmtK(per)+"/yr.","Abra este negócio — rivais que caírem aqui compram seu produto e os dois lucram. Cada funcionário rende "+fmtK(per)+"/ano."),
+    have:0, per, start:(afford>=1?1:0), max:afford,
+    apply:(n)=>{ n=Math.min(n,Math.floor(p.cash/per)); if(n<1)return; p.cash-=per*n; p.owns.set(idx,n);
+      log(p.name+L(" opens "," abre ")+c.t+L(" with "," com ")+n+" "+((n>1&&LANG!=='PT')?L("workers","funcionário"):L("worker","funcionário"))+" ("+fmtK(per*n)+").","good"); render(); },
+    done:()=>{ closeModal(); finish(); } });
+}
+function qpOpenStreet(idx,c){ const p=S.players[S.cur]; const per=c.price; OUTER[idx].incomeBase=c.price;
+  const afford=Math.floor(p.cash/per);
+  qtyPad({ title:c.t, unit:L("soldiers","soldados"),
+    note:L("Claim this turf — rivals landing here pay you a toll. Each soldier earns "+fmtK(per)+"/yr and defends it.","Tome esta área — rivais que caírem aqui pagam pedágio. Cada soldado rende "+fmtK(per)+"/ano e defende."),
+    have:0, per, start:(afford>=1?1:0), max:afford,
+    apply:(n)=>{ n=Math.min(n,Math.floor(p.cash/per)); if(n<1)return; p.cash-=per*n; p.owns.set(idx,n);
+      log(p.name+L(" claims "," toma ")+c.t+L(" with "," com ")+n+" "+((n>1&&LANG!=='PT')?L("soldiers","soldado"):L("soldier","soldado"))+" ("+fmtK(per*n)+").","good"); render(); },
+    done:()=>{ closeModal(); finish(); } });
 }
 function commitCrime(){
   const p=S.players[S.cur];
