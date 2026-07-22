@@ -127,6 +127,9 @@
   .p4a{grid-area:1/1}.p4b{grid-area:1/3}.p4c{grid-area:3/1}.p4d{grid-area:3/3}
   .p5a{grid-area:1/1}.p5b{grid-area:1/3}.p5c{grid-area:2/2}.p5d{grid-area:3/1}.p5e{grid-area:3/3}
   .p6a{grid-area:1/1}.p6b{grid-area:1/3}.p6c{grid-area:2/1}.p6d{grid-area:2/3}.p6e{grid-area:3/1}.p6f{grid-area:3/3}
+  #specCtl{position:fixed;top:10px;right:10px;z-index:10001;display:none;gap:7px}
+  #specCtl button{font-family:inherit;font-size:13px;font-weight:bold;letter-spacing:1px;padding:9px 13px;cursor:pointer;border-radius:2px;color:var(--phos);background:rgba(1,6,2,.92);border:1px solid var(--phos);box-shadow:0 0 10px rgba(0,0,0,.6)}
+  #specCtl button.amber{color:var(--amber);border-color:var(--amber)}
   #modal{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.8);padding:14px}
   #modal.on{display:flex}
   .card{width:340px;max-width:calc(94vw / var(--uiz,1));background:linear-gradient(180deg,#06180c,#020a05);color:#c8ffd6;border:1px solid var(--phos);border-radius:3px;
@@ -653,6 +656,12 @@
 
 <div id="modal"><div id="cardWrap"><div id="cardTools"><button onclick="speakCard()">[ READ ]</button></div><div class="card" id="cardEl"></div></div></div>
 
+<!-- floating controls: stay reachable on top of AI/auto cards during a match (esp. all-Ghost) -->
+<div id="specCtl" style="display:none">
+  <button class="amber" onclick="openPause()" title="pause &amp; standings">[ PAUSE ]</button>
+  <button onclick="openSettings()" title="menu">[ MENU ]</button>
+</div>
+
 <div id="screen" style="display:none">
   <div class="bar">
     <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL <span id="verTag" style="font-size:10px;letter-spacing:1px;opacity:.55;font-weight:normal;text-shadow:none">v16.3</span></h1>
@@ -707,7 +716,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v18.5";
+const APP_VERSION="v18.6";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -3976,8 +3985,19 @@ function openModal(user){document.getElementById("modal").classList.add("on");
   const t=document.getElementById("cardTools"), ce=document.getElementById("cardEl");
   if(t) t.style.display=(ce&&ce.dataset.read==="1")?"flex":"none";
   if(ce) ce.dataset.read="";   // consume the flag so the next modal starts hidden
+  try{updateSpecCtl();}catch(e){}
 }
-function closeModal(){document.getElementById("modal").classList.remove("on");document.body.classList.remove("usermodal");const ce=document.getElementById("cardEl");if(ce)ce.dataset.deck="";try{window.speechSynthesis&&window.speechSynthesis.cancel();}catch(e){} if(typeof unpauseGame==="function")unpauseGame();}
+/* keep PAUSE/MENU reachable on top of AI/auto cards (mainly all-Ghost matches) */
+function updateSpecCtl(){
+  const sc=document.getElementById("specCtl"); if(!sc) return;
+  const modalOn=document.getElementById("modal").classList.contains("on");
+  const userModal=document.body.classList.contains("usermodal");
+  const running=!!(typeof S!=="undefined"&&S&&S.players&&S.players.length&&!S.over);
+  const curAI=running&&S.players[S.cur]&&S.players[S.cur].ai;
+  const spec=(typeof SPECTATING!=="undefined"&&SPECTATING);
+  sc.style.display=(running&&modalOn&&!userModal&&(spec||curAI))?"flex":"none";
+}
+function closeModal(){document.getElementById("modal").classList.remove("on");document.body.classList.remove("usermodal");const ce=document.getElementById("cardEl");if(ce)ce.dataset.deck="";try{window.speechSynthesis&&window.speechSynthesis.cancel();}catch(e){} if(typeof unpauseGame==="function")unpauseGame();try{updateSpecCtl();}catch(e){}}
 
 /* ===== PWA: register the service worker (offline start + installable). Silently skipped
    on file:// and inside the itch iframe where it can't run — the game plays the same. ===== */
