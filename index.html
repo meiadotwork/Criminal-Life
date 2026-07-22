@@ -701,7 +701,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v18.2";
+const APP_VERSION="v18.3";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -763,7 +763,7 @@ const CITIES = {
     streets:{20:"Mott Haven",30:"South Bronx",45:"Brownsville",60:"East New York",75:"Sunset Park",90:"Jackson Hts",100:"Bay Ridge",210:"Astoria",225:"Long Is City",230:"Bklyn Heights",250:"Greenwich Vil",280:"Hudson Yards",300:"SoHo",350:"Tribeca",400:"Upper E Side"},
     biz:{200:["cocaine","co"],180:["fentanyl","fn"],170:["heroin","he"],150:["weed","wd"],110:["loan shark","ls"],90:["cargo theft","cg"],80:["extortion","ex"],70:["card fraud","id"],400:["laundering","$$"]},
     casino:["Poker Club","PC"] },
-  CWB: { name:"CURITIBA", prison:"PIRAQUARA", law:{life:false, maxYears:40}, cur:"R$", scale:0.2, soldier:50,
+  CWB: { name:"CURITIBA", prison:"PIRAQUARA", law:{life:false, maxYears:40}, cur:"R$", scale:5, soldier:50,
     // streets keyed by their fixed price → local neighborhood (richest price = most prestigious area)
     streets:{20:"Caximba",30:"Tatuquara",45:"Cajuru",60:"CIC",75:"Sítio Cercado",90:"Boqueirão",100:"Portão",210:"Centro",225:"Centro Cívico",230:"Juvevê",250:"Cabral",280:"Água Verde",300:"Bigorrilho",350:"Ecoville",400:"Batel"},
     // businesses keyed by their fixed income → [name, icon]; drugs are separated. 400 = the laundering front
@@ -776,18 +776,18 @@ const CITIES = {
     biz:{200:["cocaine","co"],180:["fentanyl","fn"],170:["meth","me"],150:["heroin","he"],110:["firearms","gn"],90:["cargo theft","cg"],80:["fraud/ID","id"],70:["retail theft","rt"],400:["laundering","$$"]},
     casino:["Card Room","CR"]
   },
-  RIO: { name:"RIO DE JANEIRO", prison:"BANGU", law:{life:false, maxYears:40}, cur:"R$", scale:0.2, soldier:50,
+  RIO: { name:"RIO DE JANEIRO", prison:"BANGU", law:{life:false, maxYears:40}, cur:"R$", scale:5, soldier:50,
     streets:{20:"C.Alemão",30:"Cidade Deus",45:"Bangu",60:"Madureira",75:"Méier",90:"Tijuca",100:"Flamengo",210:"Botafogo",225:"Copacabana",230:"Barra",250:"Gávea",280:"Jd Botânico",300:"Lagoa",350:"Ipanema",400:"Leblon"},
     // drugs separated (cocaína, crack, maconha) + milícia extortion, cargo theft, chop shop, PIX scam, smuggling, laundering
     biz:{200:["cocaína","co"],180:["crack","ck"],170:["maconha","mc"],150:["milícia","ml"],110:["roubo carga","cr"],90:["desmanche","dm"],80:["golpe PIX","px"],70:["contrabando","cn"],400:["lavagem","$$"]},
     casino:["Jogo do Bicho","JB"]
   },
-  CDMX:{ name:"MEXICO CITY", prison:"ALTIPLANO", law:{life:false, maxYears:60}, cur:"MX$", scale:0.3, soldier:60,
+  CDMX:{ name:"MEXICO CITY", prison:"ALTIPLANO", law:{life:false, maxYears:60}, cur:"MX$", scale:20, soldier:60,
     streets:{20:"Neza",30:"Tepito",45:"Iztapalapa",60:"Doctores",75:"Centro Hist.",90:"Escandón",100:"Narvarte",210:"Del Valle",225:"Coyoacán",230:"Roma Norte",250:"Condesa",280:"Santa Fe",300:"Bosques Lomas",350:"Lomas Chap.",400:"Polanco"},
     // drugs separated (cocaína, cristal, mota) + cobro de piso extortion, huachicol, robo de carga, autopartes, piratería, lavado
     biz:{200:["cocaína","co"],180:["cristal","cr"],170:["mota","mt"],150:["cobro de piso","cp"],110:["huachicol","hu"],90:["robo carga","rc"],80:["secuestro","sq"],70:["piratería","pi"],400:["lavado","$$"]},
     casino:["Casino","CS"] },
-  SP:  { name:"SÃO PAULO", prison:"CARANDIRU", law:{life:false, maxYears:40}, cur:"R$", scale:0.2, soldier:50,
+  SP:  { name:"SÃO PAULO", prison:"CARANDIRU", law:{life:false, maxYears:40}, cur:"R$", scale:5, soldier:50,
     streets:{20:"Heliópolis",30:"Cid Tiradentes",45:"Capão Redondo",60:"Brás",75:"Santana",90:"Tatuapé",100:"Vila Mariana",210:"Perdizes",225:"Higienópolis",230:"Pinheiros",250:"Moema",280:"Itaim Bibi",300:"V.N. Conceição",350:"Jardim América",400:"Jardim Europa"},
     // drugs separated (cocaína, crack, maconha — SP's Cracolândia) + cargo theft, PIX scam, chop shop, phone theft, piracy, laundering
     biz:{200:["cocaína","co"],180:["crack","ck"],170:["maconha","mc"],150:["roubo carga","cr"],110:["golpe PIX","px"],90:["desmanche","dm"],80:["roubo celular","cl"],70:["pirataria","pi"],400:["lavagem","$$"]},
@@ -802,9 +802,9 @@ function applyCity(key){
     else if(c.k==="poker"){ c.t=city.casino?city.casino[0]:base.t; c.ic=city.casino?city.casino[1]:base.ic; }
     else { c.t=base.t; c.ic=base.ic; }
   });
-  // local labour is cheaper in some places (Brazil) — soldiers cost & pay less
-  SOLDIER_COST = city.soldier || 100;
-  SOLDIER_WAGE = city.soldier || 100;
+  // one shared economy in every city — only the currency it's shown in changes
+  SOLDIER_COST = 100;
+  SOLDIER_WAGE = 100;
 }
 function _cityKey(){ if(typeof S!=="undefined"&&S&&S.city)return S.city; if(typeof setupData!=="undefined"&&setupData&&setupData.city)return setupData.city; return "NY"; }
 function cityCur(){ return (CITIES[_cityKey()]||CITIES.NY).cur || "$"; }
@@ -943,13 +943,13 @@ function renderSetupStart(){
      ${pol===4?`<div class="cfgflavor">&gt; ${L('raids escalate — 1st: tortured to the hospital · 2nd: shot to the hospital · 3rd: twenty rounds, dead. no arrests, no trial.','as batidas escalam — 1ª: torturado, pro hospital · 2ª: baleado, pro hospital · 3ª: vinte tiros, morto. sem prisão, sem julgamento.')}</div>`:''}
      <div class="cfghead">6. ${ready?L('READY.','PRONTO.'):L('&lt; finish the setup above &gt;','&lt; complete a configuração acima &gt;')}</div>
      <button class="cfggo" ${ready?'':'disabled'} onclick="afterSpeed()">${L('[ CONTINUE » ]','[ CONTINUAR » ]')}</button>
-     <div class="hint">${L('Outer ring = the street (1 lap = 1 year). Arrested → JAIL → COURT → PRISON. Broke+hurt → HOSPITAL (3 = dead). 10+ soldiers = bonus die. Win: last boss standing, or retire with $10M at 65.','Anel externo = a rua (1 volta = 1 ano). Preso → CADEIA → TRIBUNAL → PRIS\u00c3O. Quebrado+ferido → HOSPITAL (3 = morto). 10+ soldados = dado b\u00f4nus. Vit\u00f3ria: \u00faltimo chef\u00e3o de p\u00e9, ou se aposente com $10M aos 65.')}</div>
+     <div class="hint">${L('Outer ring = the street (1 lap = 1 year). Arrested → JAIL → COURT → PRISON. Broke+hurt → HOSPITAL (3 = dead). 10+ soldiers = bonus die. Win: last boss standing, or retire with '+fmtK(10000)+' at 65.','Anel externo = a rua (1 volta = 1 ano). Preso → CADEIA → TRIBUNAL → PRIS\u00c3O. Quebrado+ferido → HOSPITAL (3 = morto). 10+ soldados = dado b\u00f4nus. Vit\u00f3ria: \u00faltimo chef\u00e3o de p\u00e9, ou se aposente com '+fmtK(10000)+' aos 65.')}</div>
    </div>
    ${(()=>{let h=[];try{h=JSON.parse(localStorage.getItem("ct_hof_v1")||"[]").slice(0,5);}catch(e){}
      return `<div class="dosconfig" style="margin-top:16px">
        <div class="cfgline">C:\\> TYPE ${L("HALLOFFAME.TXT","HALLDAFAMA.TXT")}</div>
        ${h.length?h.map((x,i)=>`<div class="cfgline">${i+1}. ${x.n} — ${fmtK(x.nw)} · age ${x.age} · ${x.how}${hofVs(x)?" · "+hofVs(x):""}${x.diff?" · "+x.diff:""} · ${x.d}</div>`).join("")
-         :`<div class="cfgline" style="opacity:.6">${L('NO BOSSES ON RECORD. Win any game — last boss standing, or retire with $10M at 65 — and your name gets carved here, with how many rivals you buried.','NENHUM CHEF\u00c3O REGISTRADO. Ven\u00e7a qualquer partida — \u00faltimo de p\u00e9, ou aposente com $10M aos 65 — e seu nome fica gravado aqui, com quantos rivais voc\u00ea enterrou.')}</div>`}
+         :`<div class="cfgline" style="opacity:.6">${L('NO BOSSES ON RECORD. Win any game — last boss standing, or retire with '+fmtK(10000)+' at 65 — and your name gets carved here, with how many rivals you buried.','NENHUM CHEF\u00c3O REGISTRADO. Ven\u00e7a qualquer partida — \u00faltimo de p\u00e9, ou aposente com '+fmtK(10000)+' aos 65 — e seu nome fica gravado aqui, com quantos rivais voc\u00ea enterrou.')}</div>`}
      </div>`})()}`;
 }
 function selectCity(k){ setupData.city=k; renderSetupStart(); }
@@ -1724,7 +1724,7 @@ function openManual(){ window.speechSynthesis&&window.speechSynthesis.cancel(); 
   <div class="bd" style="text-align:left;font-size:16px !important">
 
   ${H("O OBJETIVO")}
-  Duas formas de vencer. Seja o \u00daLTIMO CHEF\u00c3O DE P\u00c9 \u2014 todos os outros jogadores morrem na pris\u00e3o, no hospital, ou quebrados e sangrando. Ou APOSENTE-SE INTOC\u00c1VEL: alcance $10M de patrim\u00f4nio e chegue aos 65 anos, e voc\u00ea sai vencedor enquanto a cidade briga pelo que sobrou.
+  Duas formas de vencer. Seja o \u00daLTIMO CHEF\u00c3O DE P\u00c9 \u2014 todos os outros jogadores morrem na pris\u00e3o, no hospital, ou quebrados e sangrando. Ou APOSENTE-SE INTOC\u00c1VEL: alcance ${fmtK(10000)} de patrim\u00f4nio e chegue aos 65 anos, e voc\u00ea sai vencedor enquanto a cidade briga pelo que sobrou.
 
   ${H("PREPARA\u00c7\u00c3O")}
   ▸ JOGADORES: 2–10 na mesa — cada lugar pode ser HUMANO ou FANTASMA (IA). Para cada Fantasma você escolhe a agressividade: AGRESSIVO, CAUTELOSO, RESERVADO ou PACÍFICO.<br>
@@ -1741,13 +1741,13 @@ function openManual(){ window.speechSynthesis&&window.speechSynthesis.cancel(); 
 
   ${H("AS CASAS")}
   \u25B8 ASSALTO / MATADOR / TR\u00c1FICO \u2014 uma carta de servi\u00e7o: pegue o dinheiro e sobreviva ao teste de pris\u00e3o (10% base + seu RISCO).<br>
-  \u25B8 O MATADOR tamb\u00e9m aceita CONTRATOS \u2014 pague $150K para encomendar a morte de um rival: 1/3 ele escapa, 1/3 os soldados dele morrem, 1/3 ele vai pro HOSPITAL. Encomendar soma +10 de RISCO.<br>
+  \u25B8 O MATADOR tamb\u00e9m aceita CONTRATOS \u2014 pague ${fmtK(HIT_COST)} para encomendar a morte de um rival: 1/3 ele escapa, 1/3 os soldados dele morrem, 1/3 ele vai pro HOSPITAL. Encomendar soma +10 de RISCO.<br>
   \u25B8 RUAS \u2014 compre \u00e1reas. Rival que cair na sua paga PARA VOC\u00ca. Guarne\u00e7a com soldados para defender.<br>
   \u25B8 NEG\u00d3CIOS \u2014 abra com 1 funcion\u00e1rio; cada funcion\u00e1rio rende o mesmo valor por ano. Quando um RIVAL cai no seu neg\u00f3cio ele compra PRODUTO: a prateleira tem renda \u00d7 funcion\u00e1rios, o comprador dobra o dinheiro \u2014 e o DONO recebe o DOBRO da compra. Todo mundo come, mas a casa come em dobro.<br>
   \u25B8 ATAQUE \u2014 em vez de rolar, aperte o bot\u00e3o A\u00c7\u00c3O e mande soldados contra a \u00e1rea ou neg\u00f3cio de um rival. Mande MAIS do que ele tem defendendo e ela \u00e9 sua. Atacar \u00c9 sua jogada da rodada \u2014 voc\u00ea n\u00e3o rola naquele turno.<br>
-  \u25B8 NOITE DE P\u00d4QUER \u2014 o cassino. Compre a casa: rende $1M POR ANO e cada aposta perdida por rivais vai pra voc\u00ea. Se n\u00e3o for sua, aposte: 4\u20136 DOBRA a aposta, 1\u20133 PERDE. Com outro humano na mesa, jogue M\u00c3O A M\u00c3O: uma rolagem cada, o maior leva.<br>
+  \u25B8 NOITE DE P\u00d4QUER \u2014 o cassino. Compre a casa: rende ${fmtK(1000)} POR ANO e cada aposta perdida por rivais vai pra voc\u00ea. Se n\u00e3o for sua, aposte: 4\u20136 DOBRA a aposta, 1\u20133 PERDE. Com outro humano na mesa, jogue M\u00c3O A M\u00c3O: uma rolagem cada, o maior leva.<br>
   \u25B8 FESTA / DESTINO \u2014 cartas de evento: golpes de sorte, encrenca, extors\u00e3o.<br>
-  \u25B8 POLICIAL CORRUPTO \u2014 ele faz sua ficha sumir: pague $3K por ponto de RISCO para zerar, ou ou\u00e7a o que ele tem (carta de evento).<br>
+  \u25B8 POLICIAL CORRUPTO \u2014 ele faz sua ficha sumir: pague ${fmtK(3)} por ponto de RISCO para zerar, ou ou\u00e7a o que ele tem (carta de evento).<br>
   \u25B8 BATIDA POLICIAL \u2014 soldados s\u00e3o levados e voc\u00ea encara a lei (a menos que tenha sido avisado).<br>
   \u25B8 VISITA \u00c0 PRIS\u00c3O \u2014 na maioria corres e contatos: receptadores, servi\u00e7os, esconderijos, favores. Dinheiro entrando, \u00e0s vezes saindo \u2014 e uma pequena chance de dar muito errado.<br>
   \u25B8 Casa HOSPITAL \u2014 machucado? Pague ${fmtK(TREAT_COST)} para limpar uma visita.
@@ -1768,7 +1768,7 @@ function openManual(){ window.speechSynthesis&&window.speechSynthesis.cancel(); 
   Tr\u00eas visitas ao hospital = MORTO. Cada interna\u00e7\u00e3o tira uma carta: quase sempre s\u00f3 a conta, \u00e0s vezes uma recupera\u00e7\u00e3o (uma limpa) e raramente uma complica\u00e7\u00e3o (visita extra). Uma complica\u00e7\u00e3o pode te deixar cr\u00edtico em 2/3 mas nunca te mata na mesma interna\u00e7\u00e3o \u2014 a terceira tem que vir de um novo ferimento, ent\u00e3o uma ida ruim n\u00e3o te acaba. N\u00e3o pode pagar uma d\u00edvida? Venda for\u00e7ada \u2014 propriedades mais baratas primeiro, depois soldados. Quebrado sem nada pra vender = surra e cama de hospital.
 
   ${H("MORTE E VIT\u00d3RIA")}
-  Morto na pris\u00e3o ou apagado no hospital: voc\u00ea recebe uma carta de morte, um memorial, e est\u00e1 FORA. O jogo segue at\u00e9 restar um chef\u00e3o \u2014 ou at\u00e9 algu\u00e9m se APOSENTAR INTOC\u00c1VEL ($10M + 65 anos, checado ao passar pelo IN\u00cdCIO). Ven\u00e7a a IA no REALISTA e seu nome \u00e9 gravado no HALL DA FAMA da tela inicial \u2014 \u00e9 o \u00fanico jeito de entrar.
+  Morto na pris\u00e3o ou apagado no hospital: voc\u00ea recebe uma carta de morte, um memorial, e est\u00e1 FORA. O jogo segue at\u00e9 restar um chef\u00e3o \u2014 ou at\u00e9 algu\u00e9m se APOSENTAR INTOC\u00c1VEL (${fmtK(10000)} + 65 anos, checado ao passar pelo IN\u00cdCIO). Ven\u00e7a a IA no REALISTA e seu nome \u00e9 gravado no HALL DA FAMA da tela inicial \u2014 \u00e9 o \u00fanico jeito de entrar.
 
   ${H("ASSISTIR (SPECTATE)")}
   ▸ Numa partida só de Fantasmas, pause e toque em [ ▶ ASSISTIR ]: gráfico ao vivo, classificação e console, com velocidade RÁPIDO / TURBO / MÁX e botão de pausa. As cartas da IA ficam ocultas e só os tiros e o som de morte tocam.<br>
@@ -1789,7 +1789,7 @@ function openManual(){ window.speechSynthesis&&window.speechSynthesis.cancel(); 
   <div class="bd" style="text-align:left;font-size:16px !important">
 
   ${H("THE GOAL")}
-  Two ways to win. Be the LAST BOSS STANDING \u2014 every other player dies in prison, in the hospital, or broke and bleeding. Or RETIRE UNTOUCHABLE: reach $10M net worth and make it to age 65, and you walk away the winner while the city keeps fighting over what's left.
+  Two ways to win. Be the LAST BOSS STANDING \u2014 every other player dies in prison, in the hospital, or broke and bleeding. Or RETIRE UNTOUCHABLE: reach ${fmtK(10000)} net worth and make it to age 65, and you walk away the winner while the city keeps fighting over what's left.
 
   ${H("SETUP")}
   ▸ PLAYERS: 2–10 seats — each one HUMAN or GHOST (AI). Every Ghost gets an aggression level: AGGRESSIVE, CAREFUL, CAUTIOUS or PASSIVE.<br>
@@ -1806,13 +1806,13 @@ function openManual(){ window.speechSynthesis&&window.speechSynthesis.cancel(); 
 
   ${H("THE SPACES")}
   \u25B8 HEIST / HITMAN / DRUG \u2014 a job card: take the money, then survive the arrest roll (10% base + your HEAT).<br>
-  \u25B8 The HITMAN also takes CONTRACTS \u2014 pay $150K to put a hit on a rival: 1/3 they dodge it, 1/3 their soldiers eat the bullets, 1/3 they land in the HOSPITAL. Ordering a hit adds +10 HEAT.<br>
+  \u25B8 The HITMAN also takes CONTRACTS \u2014 pay ${fmtK(HIT_COST)} to put a hit on a rival: 1/3 they dodge it, 1/3 their soldiers eat the bullets, 1/3 they land in the HOSPITAL. Ordering a hit adds +10 HEAT.<br>
   \u25B8 STREETS \u2014 buy turf. Land on a rival's and you pay THEM. Staff turf with soldiers to defend it.<br>
   \u25B8 BUSINESSES \u2014 open one for the price of 1 worker; every worker on staff earns that same amount per year. When a RIVAL lands on your business they buy PRODUCT: the shelf holds income \u00D7 workers, the buyer pays in and doubles their money \u2014 and the OWNER collects TWICE the buy. Everybody eats, but the house eats double. More workers = bigger deals for both sides.<br>
   \u25B8 ATTACK \u2014 instead of rolling, hit the ACTION button and send soldiers at a rival's turf or business. Send MORE than they have defending and it's yours. Attacking IS your move for the round \u2014 you don't roll that turn.<br>
-  \u25B8 POKER NIGHT \u2014 the casino. Land on an unowned house and you can BUY it: the house pays you $1M A YEAR as you come around, plus every bet a rival loses at the tables goes straight to you (and you never have to gamble). Land on a house you don't own and you can play: set any stake up to your whole roll, then roll the die \u2014 4\u20136 DOUBLES your bet, 1\u20133 LOSES it, and if a rival owns the house your lost bet lands in their pocket. With another human at the table you can also go HEADS-UP: one roll each, high roll takes the stake.<br>
+  \u25B8 POKER NIGHT \u2014 the casino. Land on an unowned house and you can BUY it: the house pays you ${fmtK(1000)} A YEAR as you come around, plus every bet a rival loses at the tables goes straight to you (and you never have to gamble). Land on a house you don't own and you can play: set any stake up to your whole roll, then roll the die \u2014 4\u20136 DOUBLES your bet, 1\u20133 LOSES it, and if a rival owns the house your lost bet lands in their pocket. With another human at the table you can also go HEADS-UP: one roll each, high roll takes the stake.<br>
   \u25B8 PARTY / FATE \u2014 event cards: windfalls, trouble, shakedowns.<br>
-  \u25B8 CROOKED COP \u2014 he can make your file disappear: pay $3K per point of HEAT to wipe it to zero, or hear him out for an event card.<br>
+  \u25B8 CROOKED COP \u2014 he can make your file disappear: pay ${fmtK(3)} per point of HEAT to wipe it to zero, or hear him out for an event card.<br>
   \u25B8 POLICE RAID \u2014 soldiers get swept up and you face the law (unless you were tipped off).<br>
   \u25B8 VISIT PRISON \u2014 mostly hustles and connections: fences, jobs, stashes, favors. Money in, sometimes money out \u2014 and a small chance the visit goes very wrong.<br>
   \u25B8 HOSPITAL space \u2014 hurt? Pay ${fmtK(TREAT_COST)} to clear one visit.
@@ -1833,7 +1833,7 @@ function openManual(){ window.speechSynthesis&&window.speechSynthesis.cancel(); 
   Three hospital visits = DEAD. Each stay draws a card: usually just a bill, sometimes a recovery (one cleared), and rarely a complication (extra visit). A complication can leave you critical at 2/3 but never kills you on the same stay \u2014 the third strike has to come from a fresh injury, so one bad trip won't finish you. Can't pay a debt? Forced sale \u2014 cheapest property first, then soldiers. Broke with nothing left to sell = a beating and a hospital bed.
 
   ${H("DEATH & WINNING")}
-  Killed in prison or flatlined in the hospital: you get a death card, a memorial, and you're OUT. The game runs until one boss remains \u2014 or until someone RETIRES UNTOUCHABLE ($10M net worth + age 65, checked each time you pass START). Beat the AI on REALISTIC difficulty and your name gets carved into the HALL OF FAME on the title screen \u2014 that's the only way in.
+  Killed in prison or flatlined in the hospital: you get a death card, a memorial, and you're OUT. The game runs until one boss remains \u2014 or until someone RETIRES UNTOUCHABLE (${fmtK(10000)} net worth + age 65, checked each time you pass START). Beat the AI on REALISTIC difficulty and your name gets carved into the HALL OF FAME on the title screen \u2014 that's the only way in.
 
   ${H("SPECTATE")}
   ▸ In an all-Ghost match, pause and hit [ ▶ SPECTATE ]: live chart, leaderboard and console, with FAST / TURBO / MAX speed and a pause button. AI cards stay hidden and only gunfire and the death cue play.<br>
@@ -2299,7 +2299,7 @@ function pokerNight(){
     const el=document.getElementById("cardEl");
     el.dataset.read="1"; el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('POKER NIGHT - YOUR HOUSE','NOITE DE P\u00d4QUER - SUA CASA')}</div>
       <div class="ttl">${L('You run the tables','Voc\u00ea comanda as mesas')}</div>
-      <div class="bd">${L("This is your casino. It earns you <b>$1M a year</b>, and every bet a rival loses at these tables comes straight to you. The house doesn't gamble against itself — you just count the take.","Este \u00e9 o seu cassino. Rende <b>$1M por ano</b>, e cada aposta que um rival perde nestas mesas vai direto pra voc\u00ea. A casa n\u00e3o aposta contra si mesma — voc\u00ea s\u00f3 conta o dinheiro.")}</div>
+      <div class="bd">${L("This is your casino. It earns you <b>"+fmtK(1000)+" a year</b>, and every bet a rival loses at these tables comes straight to you. The house doesn't gamble against itself — you just count the take.","Este \u00e9 o seu cassino. Rende <b>"+fmtK(1000)+" por ano</b>, e cada aposta que um rival perde nestas mesas vai direto pra voc\u00ea. A casa n\u00e3o aposta contra si mesma — voc\u00ea s\u00f3 conta o dinheiro.")}</div>
       <div class="go"><button class="red" onclick="sellPoker(${idx})">${L('[ SELL HOUSE - ','[ VENDER CASA - ')}${fmtK(c.price)} ]</button><button onclick="closeModal();finish()">${L('[ DONE ]','[ CONCLUIR ]')}</button></div>
       ${statusBar()}`;
     openModal();return;
