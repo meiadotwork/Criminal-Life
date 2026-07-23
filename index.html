@@ -748,7 +748,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v19.6";
+const APP_VERSION="v19.7";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -1633,7 +1633,6 @@ function newRound(){
   box.insertBefore(rd,box.firstChild);
   S.roundEl=rd;
   recordNW();
-  grantContracts();   // every 10 rounds, each surviving boss banks a contract (cumulative)
 }
 /* record every boss's net worth at the start of each round — feeds the stock-style chart on PAUSE.
    dead players flatline at their last value so their line just stops climbing. */
@@ -1885,10 +1884,6 @@ function openActions(){
     canHire?`<button onclick="actDo('hire')">${L("[ HIRE ]","[ CONTRATAR ]")}</button>`:off);
   rows+=row(L("Attack a rival","Atacar um rival"), L("send soldiers at a rival's turf or business \u2014 this is your move (no roll)","envie soldados contra a \u00e1rea ou neg\u00f3cio de um rival \u2014 \u00e9 sua jogada (sem rolar)"),
     canAttack?`<button class="red" onclick="actDo('attack')">${L("[ ATTACK \u00b7 ","[ ATACAR \u00b7 ")}${p.crew}${L(" sol ]"," sol ]")}</button>`:off);
-  const rivalAlive=S.players.some(o=>o.id!==p.id&&o.alive);
-  const canContract=(p.hitLicense||0)>0 && rivalAlive;
-  rows+=row(L("Place a contract","Encomendar contrato"), L("call in a hit you earned \u2014 you bank 1 every 10 rounds","use uma morte que voc\u00ea ganhou \u2014 1 a cada 10 rodadas"),
-    (p.hitLicense||0)>0?(rivalAlive?`<button class="red" onclick="actDo('contract')">${L("[ CALL \u00b7 ","[ LIGAR \u00b7 ")}${p.hitLicense}${L(" ]"," ]")}</button>`:`<span style="opacity:.5;font-size:11px">${L("no targets","sem alvos")}</span>`):off);
   rows+=row(L("Sell assets","Vender bens"), L("cash out property or businesses","liquidar propriedades ou neg\u00f3cios"),
     canSell?`<button class="red" onclick="actDo('sell')">${L("[ SELL ]","[ VENDER ]")}</button>`:off);
   rows+=row(L("Auto-play","Jogo autom\u00e1tico"), L("let the game play your turns","deixe o jogo jogar por voc\u00ea"),
@@ -1905,7 +1900,6 @@ function actDo(what){
   else if(what==='hire')openBuyWorkers();
   else if(what==='sell')openSellAssets();
   else if(what==='attack')doAttack(true);
-  else if(what==='contract')openContractCaller();
 }
 function openSellAssets(){
   const p=S.players[S.cur];
@@ -2947,7 +2941,7 @@ function hitmanStop(){
     <div class="out">${L('Order a hit: 1/3 they dodge it · 1/3 their soldiers eat the bullets · 1/3 they wake up in the HOSPITAL.\nOrdering a hit adds +10 HEAT.','Encomende: 1/3 o alvo escapa · 1/3 os soldados dele comem as balas · 1/3 ele acorda no HOSPITAL.\nEncomendar soma +10 de RISCO.')}</div>
     <div class="go" style="flex-direction:column">
       <button onclick="closeModal();drawStory('hitman')">${L('[ TAKE A JOB YOURSELF ]','[ FAZER UM SERVI\u00c7O VOC\u00ca ]')}</button>
-      <button class="red" onclick="orderHitMenu()">${L('[ ORDER A HIT · ','[ ENCOMENDAR MORTE · ')}${fmtK(HIT_COST)} ]</button>
+      <button class="red" onclick="_hitBackTo='hitman';orderHitMenu()">${L('[ ORDER A HIT · ','[ ENCOMENDAR MORTE · ')}${fmtK(HIT_COST)} ]</button>
     </div>${statusBar()}`;
   openModal();
 }
@@ -2960,48 +2954,13 @@ function orderHitMenu(){
     <div class="bd">${L('He slides a napkin across the table. You write one name.','Ele desliza um guardanapo pela mesa. Voc\u00ea escreve um nome.')}</div>
     <div class="go" style="flex-direction:column">
       ${rivals.map(o=>`<button class="red" onclick="orderHit(${o.id})">[ ${o.name} — ${o.ring==="inner"?"IN PRISON":OUTER[o.pos].t} · ${o.crew} sol · ${3-o.hosp}/3 hp ]</button>`).join("")}
-      <button onclick="hitmanStop()">${L('[ ‹ BACK ]','[ ‹ VOLTAR ]')}</button>
+      <button onclick="hitBack()">${L('[ ‹ BACK ]','[ ‹ VOLTAR ]')}</button>
     </div>${statusBar()}`;
 }
-/* every 10 years a boss survives, they bank a CONTRACT — a hit they can place later.
-   Contracts are cumulative: skip a decade and they pile up. */
-/* every 10 ROUNDS, each surviving boss banks another CONTRACT — a hit to place on a
-   rival. Cumulative: they stack up until spent. */
-function grantContracts(){
-  if(!S||!S.players||!(S.turn>0)||S.turn%10!==0) return;
-  S.players.forEach(p=>{
-    if(!p.alive) return;
-    p.hitLicense=(p.hitLicense||0)+1;
-    log(p.name+L(" banks a CONTRACT — a hit to place ("," ganha um CONTRATO — uma morte pra encomendar (")+p.hitLicense+L(" saved)."," guardadas)."),"warn");
-  });
-}
-/* CALLER — the Windows blue-screen line where you spend a banked contract on a rival */
-function openContractCaller(){
-  const p=S.players[S.cur];
-  if(!p||p.ai||!p.alive||S.over||(p.hitLicense||0)<1) return;
-  const rivals=S.players.filter(o=>o.alive&&o.id!==p.id);
-  if(!rivals.length) return;
-  const el=document.getElementById("cardEl"); if(!el) return; el.dataset.deck="";
-  const rows=rivals.map(o=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 2px;border-bottom:1px solid var(--phos-dim)"><span>${o.name}<br><span style="opacity:.55;font-size:11px">${o.ring==="inner"?L("in prison","na prisão"):(OUTER[o.pos]?OUTER[o.pos].t:L("the street","na rua"))} · ${o.crew} ${L("sol","sol")} · ${"♥".repeat(Math.max(0,3-o.hosp))||"X"}</span></span><span style="white-space:nowrap"><button class="red" onclick="pickContract(${o.id})">${L("[ PLACE ]","[ ENCOMENDAR ]")}</button></span></div>`).join("");
-  el.innerHTML=`<div class="lbl" style="background:${p.color}">${L("PLACE A CONTRACT","ENCOMENDAR CONTRATO")}</div>
-    <div class="ttl">${L("Call in a hit you earned","Use uma morte que você ganhou")}</div>
-    <div class="bd" style="text-align:left">
-      <p style="opacity:.7;font-size:11px;margin:0 0 8px">${L("The shooter is already paid — you earned this by surviving ten rounds, not with cash. Placing a hit adds +10% HEAT.","O atirador já está pago — você ganhou isso sobrevivendo dez rodadas, não com dinheiro. Encomendar adiciona +10% de RISCO.")}</p>
-      ${rows}
-      <p style="opacity:.7;font-size:11px;margin:8px 0 0">${L("Contracts banked","Contratos guardados")}: <b>${p.hitLicense}</b> · ${L("cancel and you keep them.","cancele e você os mantém.")}</p>
-    </div>
-    <div class="go"><button onclick="closeCaller()">${L("[ CANCEL ]","[ CANCELAR ]")}</button></div>
-    ${statusBar()}`;
-  openModal(true);
-}
-function closeCaller(){ closeModal(); }
-function pickContract(oid){
-  const p=S.players[S.cur]; if(!p||(p.hitLicense||0)<1){ closeCaller(); return; }
-  const o=S.players[oid]; if(!o||!o.alive){ closeCaller(); return; }
-  p.hitLicense--; closeCaller();
-  log(p.name+L(" cashes a CONTRACT on "," resgata um CONTRATO em ")+o.name+L(" ("," (")+p.hitLicense+L(" left)."," restantes)."),"warn");
-  orderHit(oid,true);   // prepaid — no cash cost
-}
+/* the ORDER-A-HIT menu can be reached from the HITMAN space or the CROOKED COP space;
+   its BACK button returns to whichever one you came from. */
+let _hitBackTo="hitman";
+function hitBack(){ (_hitBackTo==="cop"?copStop:hitmanStop)(); }
 function orderHit(oid,free){
   const p=S.players[S.cur];const o=S.players[oid];
   if(!free && p.cash<HIT_COST)return;
@@ -3346,16 +3305,25 @@ function copStop(){
   const p=S.players[S.cur];
   const cost=(p.heat||0)*3; // $3K per point of heat
   if(p.ai){ const th=aiProf(p).copHeat; if(p.heat>=th&&p.cash>=cost*2){p.cash-=cost;p.heat=0;log(p.name+L(" pays off a crooked cop (-"," paga um policial corrupto (-")+fmtK(cost)+L(") — heat wiped.",") — risco zerado."),"warn");render();finish();} else drawStory("cop"); return; }
-  if(!p.heat||p.cash<cost){ drawStory("cop"); return; }
+  const rivals=S.players.filter(o=>o.alive&&o.id!==p.id);
+  const canPayoff = p.heat>0 && p.cash>=cost;
+  const canHit    = rivals.length>0 && p.cash>=HIT_COST;
+  if(!canPayoff && !canHit){ drawStory("cop"); return; }   // nothing he can do for you today — just hear him out
   const el=document.getElementById("cardEl");
   el.dataset.deck="cop";
+  let opts="";
+  if(canPayoff) opts+=`<button class="amber" onclick="copPayoff(${cost})">${L('[ PAY ','[ PAGAR ')}${fmtK(cost)}${L(' — WIPE HEAT ]',' — ZERAR RISCO ]')}</button>`;
+  if(canHit)    opts+=`<button class="red" onclick="_hitBackTo='cop';orderHitMenu()">${L('[ ORDER A HIT · ','[ ENCOMENDAR MORTE · ')}${fmtK(HIT_COST)} ]</button>`;
+  opts+=`<button onclick="closeModal();drawStory('cop')">${L('[ HEAR HIM OUT ]','[ OUVIR O QUE ELE TEM ]')}</button>`;
+  const heatLine = p.heat>0
+    ? `${L('Your HEAT','Seu RISCO')}: ${p.heat}% (${L('arrest risk','risco de prisão')} ${Math.round(arrestChance(p)*100)}%)${canPayoff?`\n${L('Pay ','Pague ')}${fmtK(cost)} → ${L('heat wiped to 0%','risco zerado para 0%')}`:''}`
+    : L("The badge is for sale — his loyalty goes to whoever pays.","O distintivo está à venda — a lealdade é de quem paga melhor.");
+  const hitLine = canHit ? `\n${L('Order a hit','Encomende uma morte')} ${fmtK(HIT_COST)} — 1/3 ${L('they dodge it','ele escapa')} · 1/3 ${L('soldiers die','soldados morrem')} · 1/3 ${L('HOSPITAL','HOSPITAL')}. +10 ${L('HEAT','RISCO')}.` : "";
   el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('CROOKED COP','POLICIAL CORRUPTO')}</div>
-    <div class="art">$b</div><div class="ttl">${L('He can make it go away','Ele pode fazer sumir')}</div>
-    <div class="bd">${L('The detective slides into the booth across from you. "Your name comes up a lot lately. Files get lost all the time — for a price."','O detetive senta na sua frente. "Seu nome anda aparecendo demais. Arquivos somem toda hora — por um pre\u00e7o."')}</div>
-    <div class="out">${L('Your HEAT','Seu RISCO')}: ${p.heat}% (${L('arrest risk','risco de pris\u00e3o')} ${Math.round(arrestChance(p)*100)}%)\n${L('Pay ','Pague ')}${fmtK(cost)} → ${L('heat wiped to 0%','risco zerado para 0%')}</div>
-    <div class="go">
-      <button class="amber" onclick="copPayoff(${cost})">${L('[ PAY ','[ PAGAR ')}${fmtK(cost)}${L(' — WIPE HEAT ]',' — ZERAR RISCO ]')}</button>
-      <button onclick="closeModal();drawStory('cop')">${L('[ HEAR HIM OUT ]','[ OUVIR O QUE ELE TEM ]')}</button></div>
+    <div class="art">$b</div><div class="ttl">${L('He can make things go away','Ele pode fazer as coisas sumirem')}</div>
+    <div class="bd">${L('The detective slides into the booth across from you. "Your name comes up a lot lately. Files get lost — and so do people. Everything has its price."','O detetive senta na sua frente. "Seu nome anda aparecendo demais. Arquivos somem — e gente também. Tudo tem seu preço."')}</div>
+    <div class="out">${heatLine}${hitLine}</div>
+    <div class="go" style="flex-direction:column">${opts}</div>
     ${statusBar()}`;
   openModal();
 }
@@ -4176,16 +4144,15 @@ function aiAttackTarget(p){
    boss who's already at 2/3 hospital visits; otherwise goes after the richest rival. */
 function aiMaybeHit(p){
   if(p.ring!=="outer"||p.inJail) return false;
-  const hasLicense=(p.hitLicense||0)>0;
-  if(!hasLicense && p.cash < HIT_COST*4) return false;   // pay-cash hits never cripple the bankroll
+  if(p.cash < HIT_COST*4) return false;            // pay-cash hits never cripple the bankroll
   const pr=aiProf(p);
-  if(Math.random() >= pr.atkProb*(hasLicense?0.6:0.35)) return false;   // more eager with a free contract in hand
+  if(Math.random() >= pr.atkProb*0.35) return false;
   const rivals=S.players.filter(o=>o.alive&&o.id!==p.id);
   if(!rivals.length) return false;
   const tgt=rivals.find(o=>o.hosp===2) || rivals.slice().sort((a,b)=>netWorth(b)-netWorth(a))[0];
-  S.rolled=true;                                   // the contract is the move for this round
+  S.rolled=true;                                   // the hit is the move for this round
   log(p.name+L(" puts paper on "," põe a cabeça de ")+tgt.name+L("."," a prêmio."),"warn");
-  if(hasLicense){ p.hitLicense--; orderHit(tgt.id,true); } else orderHit(tgt.id);
+  orderHit(tgt.id);
   return true;
 }
 /* Ghosts also go looking for scores like humans do — a free crime before the roll,
