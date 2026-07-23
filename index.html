@@ -130,6 +130,25 @@
   #specCtl{position:fixed;top:10px;right:10px;z-index:10001;display:none;gap:7px}
   #specCtl button{font-family:inherit;font-size:13px;font-weight:bold;letter-spacing:1px;padding:9px 13px;cursor:pointer;border-radius:2px;color:var(--phos);background:rgba(1,6,2,.92);border:1px solid var(--phos);box-shadow:0 0 10px rgba(0,0,0,.6)}
   #specCtl button.amber{color:var(--amber);border-color:var(--amber)}
+  /* CALLER — Windows blue-screen contract line (force white-on-blue over the phosphor skin) */
+  #caller{position:fixed;inset:0;z-index:10002;display:none;background:#0a0ac0 !important;color:#f4f4f8 !important;
+    font-family:'IBM VGA 437','Courier New',monospace;padding:7vh 8vw;overflow:auto;font-size:15px;line-height:1.7;letter-spacing:.4px;text-shadow:none !important}
+  #caller *{color:#f4f4f8 !important;text-shadow:none !important}
+  #caller .ctitle{background:#c9c9c9;color:#0a0ac0 !important;font-weight:bold;padding:2px 12px;letter-spacing:3px;display:inline-block}
+  #caller .center{text-align:center}
+  #caller p{margin:11px 0;max-width:70ch}
+  #caller b{color:#ffffff !important}
+  #caller .tlist{margin:16px 0}
+  #caller .tbtn{display:block;width:100%;max-width:70ch;text-align:left;background:transparent !important;border:none !important;box-shadow:none !important;
+    font-family:inherit;font-size:15px;padding:5px 8px;cursor:pointer;letter-spacing:.4px}
+  #caller .tbtn:hover,#caller .tbtn:focus{background:#f4f4f8 !important;color:#0a0ac0 !important;outline:none}
+  #caller .tbtn:hover *,#caller .tbtn:focus *{color:#0a0ac0 !important}
+  #caller .cerr{margin-top:20px;opacity:.92}
+  #caller .cgo{display:flex;gap:12px;margin-top:22px}
+  #caller .cgo button{font-family:inherit;background:#c9c9c9 !important;color:#0a0ac0 !important;border:2px solid #f4f4f8 !important;padding:8px 18px;font-weight:bold;cursor:pointer;font-size:14px;letter-spacing:1px}
+  #caller .cfoot{margin-top:16px}
+  #caller .blink{animation:cblink 1.1s steps(1) infinite}
+  @keyframes cblink{50%{opacity:0}}
   #modal{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.8);padding:14px}
   #modal.on{display:flex}
   .card{width:340px;max-width:calc(94vw / var(--uiz,1));background:linear-gradient(180deg,#06180c,#020a05);color:#c8ffd6;border:1px solid var(--phos);border-radius:3px;
@@ -662,6 +681,9 @@
   <button onclick="openSettings()" title="menu">[ MENU ]</button>
 </div>
 
+<!-- CALLER: a Windows-blue-screen line to place a banked contract hit -->
+<div id="caller" style="display:none"></div>
+
 <div id="screen" style="display:none">
   <div class="bar">
     <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL <span id="verTag" style="font-size:10px;letter-spacing:1px;opacity:.55;font-weight:normal;text-shadow:none">v16.3</span></h1>
@@ -716,7 +738,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v18.8";
+const APP_VERSION="v18.9";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -1675,6 +1697,10 @@ function openActions(){
     canHire?`<button onclick="actDo('hire')">${L("[ HIRE ]","[ CONTRATAR ]")}</button>`:off);
   rows+=row(L("Attack a rival","Atacar um rival"), L("send soldiers at a rival's turf or business \u2014 this is your move (no roll)","envie soldados contra a \u00e1rea ou neg\u00f3cio de um rival \u2014 \u00e9 sua jogada (sem rolar)"),
     canAttack?`<button class="red" onclick="actDo('attack')">${L("[ ATTACK \u00b7 ","[ ATACAR \u00b7 ")}${p.crew}${L(" sol ]"," sol ]")}</button>`:off);
+  const rivalAlive=S.players.some(o=>o.id!==p.id&&o.alive);
+  const canContract=(p.hitLicense||0)>0 && rivalAlive;
+  rows+=row(L("Place a contract","Encomendar contrato"), L("call in a hit you earned \u2014 you bank 1 every 10 years survived","use uma morte que voc\u00ea ganhou \u2014 1 a cada 10 anos vividos"),
+    (p.hitLicense||0)>0?(rivalAlive?`<button class="red" onclick="actDo('contract')">${L("[ CALL \u00b7 ","[ LIGAR \u00b7 ")}${p.hitLicense}${L(" ]"," ]")}</button>`:`<span style="opacity:.5;font-size:11px">${L("no targets","sem alvos")}</span>`):off);
   rows+=row(L("Sell assets","Vender bens"), L("cash out property or businesses","liquidar propriedades ou neg\u00f3cios"),
     canSell?`<button class="red" onclick="actDo('sell')">${L("[ SELL ]","[ VENDER ]")}</button>`:off);
   rows+=row(L("Auto-play","Jogo autom\u00e1tico"), L("let the game play your turns","deixe o jogo jogar por voc\u00ea"),
@@ -1691,6 +1717,7 @@ function actDo(what){
   else if(what==='hire')openBuyWorkers();
   else if(what==='sell')openSellAssets();
   else if(what==='attack')doAttack(true);
+  else if(what==='contract')openContractCaller();
 }
 function openSellAssets(){
   const p=S.players[S.cur];
@@ -1953,7 +1980,7 @@ function stepMove(p,left){
   if(ring==="outer" && left>1 && p.owns.has(p.pos)) collectOne(p,p.pos);
   if(ring==="inner"&&p.pos===0){p.sentence-=1;p.age++;p.yearsServed=(p.yearsServed||0)+1;log(p.name+L(" finishes a prison lap. 1 year done (now "," completa uma volta na prisão. 1 ano cumprido (agora ")+p.age+L(" yo). "," anos). ")+(p.sentence>0?p.sentence+L("y left","a restantes"):L("TIME SERVED","PENA CUMPRIDA")),p.sentence>0?"":"good");
     if(p.sentence<=0){render();setTimeout(()=>releaseFromPrison(p),300);return;}}
-  if(ring==="outer"&&p.pos===0){p.age++;p.crimeOps=3;log(p.name+L(" makes it another year (now "," sobrevive mais um ano (agora ")+p.age+L(" yo). Crime chances refilled."," anos). Chances de crime renovadas."),"");
+  if(ring==="outer"&&p.pos===0){p.age++;p.crimeOps=3;grantContract(p);log(p.name+L(" makes it another year (now "," sobrevive mais um ano (agora ")+p.age+L(" yo). Crime chances refilled."," anos). Chances de crime renovadas."),"");
     if(p.heat>0){p.heat=Math.max(0,p.heat-5);log(p.name+L("'s heat cools a little (now ",": o risco esfria um pouco (agora ")+p.heat+"%).","");}
     {const _bz=Array.from(p.owns.keys()).filter(i=>OUTER[i]&&OUTER[i].k==="biz").length; if(_bz>0){const _bh=_bz*4; p.heat=Math.min(80,(p.heat||0)+_bh); log(p.name+L(" — the operation draws federal heat +"," — a operação atrai risco federal +")+_bh+"% ("+_bz+L(" biz)."," neg)."),"warn");}}
     if(p.crew>0){const wages=p.crew*SOLDIER_WAGE;p.cash-=wages;log(p.name+L(" pays soldier wages: "," paga salário dos soldados: ")+fmtK(wages)+" ("+p.crew+" × "+fmtK(SOLDIER_WAGE)+L("/yr).","/ano)."),"warn");}
@@ -2747,10 +2774,43 @@ function orderHitMenu(){
       <button onclick="hitmanStop()">${L('[ ‹ BACK ]','[ ‹ VOLTAR ]')}</button>
     </div>${statusBar()}`;
 }
-function orderHit(oid){
+/* every 10 years a boss survives, they bank a CONTRACT — a hit they can place later.
+   Contracts are cumulative: skip a decade and they pile up. */
+function grantContract(p){
+  const yp=p.age-(p.startAge||p.age);
+  if(yp>0 && yp%10===0){ p.hitLicense=(p.hitLicense||0)+1;
+    log(p.name+L(" banks a CONTRACT — a hit to place ("," ganha um CONTRATO — uma morte pra encomendar (")+p.hitLicense+L(" saved)."," guardadas)."),"warn"); }
+}
+/* CALLER — the Windows blue-screen line where you spend a banked contract on a rival */
+function openContractCaller(){
+  const p=S.players[S.cur];
+  if(!p||p.ai||!p.alive||S.over||(p.hitLicense||0)<1) return;
+  const rivals=S.players.filter(o=>o.alive&&o.id!==p.id);
+  if(!rivals.length) return;
+  const el=document.getElementById("caller"); if(!el) return;
+  el.innerHTML=`<div class="center"><span class="ctitle">CALLER</span></div>
+    <p>A contract line is open. An old favor is calling itself in.</p>
+    <p>To place a hit, tap a name. The shooter is already paid — this cost you ten years of loyalty, not cash. Placing it adds <b>+10% HEAT</b>.</p>
+    <div class="tlist">${rivals.map(o=>`<button class="tbtn" onclick="pickContract(${o.id})">&#9656; ${o.name}&nbsp; &mdash; &nbsp;${o.ring==="inner"?L("IN PRISON","NA PRISÃO"):(OUTER[o.pos]?OUTER[o.pos].t:L("the street","na rua"))} · ${o.crew} ${L("sol","sol")} · ${"♥".repeat(Math.max(0,3-o.hosp))||"X"}</button>`).join("")}</div>
+    <p>${L("Contracts banked","Contratos guardados")}: <b>${p.hitLicense}</b> &nbsp;·&nbsp; ${L("hang up and you keep them.","desligue e você os mantém.")}</p>
+    <p class="cerr">Error: 0E : 016F : BFF9B3D4</p>
+    <div class="cgo"><button onclick="closeCaller()">${L("[ HANG UP ]","[ DESLIGAR ]")}</button></div>
+    <p class="cfoot">${L("Select a name to continue","Escolha um nome para continuar")} <span class="blink">_</span></p>`;
+  el.style.display="block";
+}
+function closeCaller(){ const el=document.getElementById("caller"); if(el)el.style.display="none"; }
+function pickContract(oid){
+  const p=S.players[S.cur]; if(!p||(p.hitLicense||0)<1){ closeCaller(); return; }
+  const o=S.players[oid]; if(!o||!o.alive){ closeCaller(); return; }
+  p.hitLicense--; closeCaller();
+  log(p.name+L(" cashes a CONTRACT on "," resgata um CONTRATO em ")+o.name+L(" ("," (")+p.hitLicense+L(" left)."," restantes)."),"warn");
+  orderHit(oid,true);   // prepaid — no cash cost
+}
+function orderHit(oid,free){
   const p=S.players[S.cur];const o=S.players[oid];
-  if(p.cash<HIT_COST)return;
-  p.cash-=HIT_COST; p.heat=Math.min(70,(p.heat||0)+10);
+  if(!free && p.cash<HIT_COST)return;
+  if(!free) p.cash-=HIT_COST;
+  p.heat=Math.min(70,(p.heat||0)+10);
   closeModal(); SFX.shots();
   const r=Math.random();
   if(o.ring==="inner"){
@@ -3915,15 +3975,16 @@ function aiAttackTarget(p){
    boss who's already at 2/3 hospital visits; otherwise goes after the richest rival. */
 function aiMaybeHit(p){
   if(p.ring!=="outer"||p.inJail) return false;
-  if(p.cash < HIT_COST*4) return false;            // never cripple the bankroll for a contract
+  const hasLicense=(p.hitLicense||0)>0;
+  if(!hasLicense && p.cash < HIT_COST*4) return false;   // pay-cash hits never cripple the bankroll
   const pr=aiProf(p);
-  if(Math.random() >= pr.atkProb*0.35) return false;   // rarer than a turf attack
+  if(Math.random() >= pr.atkProb*(hasLicense?0.6:0.35)) return false;   // more eager with a free contract in hand
   const rivals=S.players.filter(o=>o.alive&&o.id!==p.id);
   if(!rivals.length) return false;
   const tgt=rivals.find(o=>o.hosp===2) || rivals.slice().sort((a,b)=>netWorth(b)-netWorth(a))[0];
   S.rolled=true;                                   // the contract is the move for this round
   log(p.name+L(" puts paper on "," põe a cabeça de ")+tgt.name+L("."," a prêmio."),"warn");
-  orderHit(tgt.id);
+  if(hasLicense){ p.hitLicense--; orderHit(tgt.id,true); } else orderHit(tgt.id);
   return true;
 }
 /* Ghosts also go looking for scores like humans do — a free crime before the roll,
