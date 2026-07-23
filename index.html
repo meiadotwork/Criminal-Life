@@ -716,7 +716,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v18.7";
+const APP_VERSION="v18.8";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -3012,7 +3012,7 @@ function applyCard(){
     const hb=crimeHeat(c);
     p.heat=Math.min(80,(p.heat||0)+hb);
     log(p.name+L(" pulls the job — heat +"," faz o serviço — risco +")+hb+"% (now "+p.heat+"%).","warn");
-    showNotice(L("CLEAN GETAWAY","FUGA LIMPA"),"$-$",L("You got away clean","Voc\u00ea escapou limpo"),L("The money is yours and no cuffs came out — but a job like this turns up the HEAT, and heat is exactly what gets you swept up in a RAID.","Sem pol\u00edcia, sem vest\u00edgio, sem acusa\u00e7\u00e3o. O servi\u00e7o foi feito e ningu\u00e9m vem atr\u00e1s de voc\u00ea — desta vez."),()=>{afterMoney(p);if(!p._sentToHospital)finish();p._sentToHospital=false;});
+    showNotice(L("CLEAN GETAWAY","FUGA LIMPA"),"$-$",L("You got away clean","Voc\u00ea escapou limpo"),L("The money is yours and no cuffs came out — but a job like this turns up the HEAT, and heat is exactly what gets you swept up in a RAID.","Sem pol\u00edcia, sem vest\u00edgio, sem acusa\u00e7\u00e3o. O servi\u00e7o foi feito e ningu\u00e9m vem atr\u00e1s de voc\u00ea — desta vez."),()=>{afterMoney(p);const more=(!S.rolled&&p.alive&&!S.over&&p.crimeOps>0&&p.ring==="outer"&&!p.inJail);if(p._sentToHospital){}else if(more){openActions();}else{finish();}p._sentToHospital=false;});
     return;
   }
   if(c.raidArr){
@@ -3359,7 +3359,7 @@ function prisonDeath(p,why){
   const d=LANG==='PT'?{t:PRISON_DEATHS_PT[di].t,bd:PRISON_DEATHS_PT[di].b}:PRISON_DEATHS[di];
   p._deathCause=d.t;
   SFX.flatline();setTimeout(()=>SFX.funeral(),350);
-  p.alive=false;p.diedAt=p.age;p.diedTurn=S.turn;
+  p.alive=false;p.diedAt=p.age;p.diedTurn=S.turn;releaseHoldings(p);
   log(p.name+L(" is KILLED IN PRISON — "," é MORTO NA PRISÃO — ")+d.t+L(". OUT.",". FORA."),"bad");
   render();
   const el=document.getElementById("cardEl");
@@ -3383,7 +3383,14 @@ function empireStats(p){
   return {nw:netWorth(p),cash:p.cash,crew:p.crew,turf:streets.length,biz:biz.length,
     workers:biz.reduce((s,[i,c])=>s+c,0),stSol:streets.reduce((s,[i,c])=>s+c,0)};
 }
-function empireLine(p){const s=empireStats(p);
+/* when a boss dies: snapshot their empire (for the memorial), then release turf & rackets
+   back to the board so nobody's left buying product from a corpse or unable to attack it */
+function releaseHoldings(p){
+  p._empire=empireStats(p);
+  if(p.owns&&p.owns.size)log(p.name+L("'s turf & rackets go up for grabs.","— áreas e negócios ficam pra quem quiser."),"warn");
+  p.owns=new Map(); p.crew=0;
+}
+function empireLine(p){const s=(!p.alive&&p._empire)?p._empire:empireStats(p);
   return L("Net worth ","Patrimônio ")+fmtK(s.nw)+" · "+L("Cash ","Dinheiro ")+fmtK(s.cash)+"\n"+
     s.crew+L(" bodyguards"," guarda-costas")+" · "+s.turf+L(" streets ("," ruas (")+s.stSol+L(" soldiers)"," soldados)")+"\n"+
     s.biz+L(" businesses ("," negócios (")+s.workers+L(" workers)"," funcionários)");
@@ -3392,7 +3399,7 @@ function killPlayer(p,killer){
   if(killer&&killer!==p&&killer.id!==p.id){ killer.bossKills=(killer.bossKills||0)+1; }   // credit the boss who ordered it
   SFX.flatline();setTimeout(()=>SFX.funeral(),350);
   if(!p._deathCause&&p._hospCause)p._deathCause=L("Flatlined in the hospital after ","Apagou no hospital depois de ")+p._hospCause;
-  p.alive=false;p.diedAt=p.age;p.diedTurn=S.turn;log(p.name+L(" DIES for good at "," MORRE de vez aos ")+p.age+L(". OUT.",". FORA."),"bad");
+  p.alive=false;p.diedAt=p.age;p.diedTurn=S.turn;releaseHoldings(p);log(p.name+L(" DIES for good at "," MORRE de vez aos ")+p.age+L(". OUT.",". FORA."),"bad");
   render();
   showDeathAnnounce(p); // big announcement → RIP memorial
 }
@@ -3565,7 +3572,7 @@ function bossBio(p,mode){
   parts.push(_bpick(mode==="dead"?BIO_END_DEAD:mode==="retire"?BIO_END_RETIRE:BIO_END_WIN)(d).replace(/^ /,""));
   return parts.join(" ");
 }
-function showRIP(id){
+function showRIP(id,viewer){
   const p=(typeof id==="object")?id:S.players[id];
   const e=ripEpitaph(p);
   const died=(p.diedAt!==undefined?p.diedAt:p.age);
@@ -3578,9 +3585,9 @@ function showRIP(id){
     <div class="bd" style="text-align:left">${bossBio(p,'dead')}</div>
     <div class="out">${L('Rap sheet','Ficha')}: ${e.n} ${L('charges','acusa\u00e7\u00f5es')} · ${e.totalYears}${L('y exposure','a de exposi\u00e7\u00e3o')} · ${e.heists} ${L('robberies','roubos')} · ${e.hits} ${L('murders','homic\u00eddios')} · ${e.drugs} ${L('drug charges','crimes de drogas')}</div>
     <div class="out" style="white-space:pre-wrap">${empireLine(p)}</div>
-    <div class="go"><button onclick="afterRIP()">${L('[ LAY TO REST ]','[ ENTERRAR ]')}</button></div>`;
-  openModal();
-  if(deathAutoAdv()) setTimeout(()=>{ if(deathAutoAdv()) afterRIP(); }, aiCardMs());   // auto-advance the memorial while spectating / AI turns
+    <div class="go">${viewer?`<button onclick="showProfile(${p.id},${viewer})">${L('[ ‹ BACK ]','[ ‹ VOLTAR ]')}</button>`:`<button onclick="afterRIP()">${L('[ LAY TO REST ]','[ ENTERRAR ]')}</button>`}</div>`;
+  openModal(!!viewer);
+  if(!viewer && deathAutoAdv()) setTimeout(()=>{ if(deathAutoAdv()) afterRIP(); }, aiCardMs());   // auto-advance the memorial while spectating / AI turns
 }
 function afterRIP(){
   closeModal();
@@ -3734,7 +3741,7 @@ function totalChargeYears(p){return p.crimes.reduce((s,ch)=>s+(typeof ch==="obje
 function hasLifeCharge(p){return p.crimes.some(ch=>typeof ch==="object"&&ch.years===99);}
 /* ===== NET WORTH: cash + everything invested in businesses & property ===== */
 function assetValue(p){let a=0;p.owns.forEach((cnt,idx)=>{const cell=OUTER[idx];const unit=cell.incomeBase||cell.price||cell.income||0;a+=unit*cnt;});return a;}
-function netWorth(p){return p.cash+assetValue(p);}
+function netWorth(p){return (!p.alive&&p._empire)?p._empire.nw:p.cash+assetValue(p);}
 
 /* ===== NETWORK (contacts the player builds up) ===== */
 const NETWORK_ROLES=[
@@ -3823,7 +3830,7 @@ function showProfile(id,fromPause){
       <div class="cvbox" style="grid-column:1/-1"><div class="cvh">${L("NETWORK","REDE")} · ${(p.network||[]).length} ${L("contact","contato")}${(p.network||[]).length===1?"":"s"}</div><div class="cvlist">${network}</div></div>
     </div>
     ${rebornCount>0?`<div class="cvnote cvdim">${L("reborn ","renasceu ")}${rebornCount}×${L(" — this cat's got lives"," — esse gato tem vidas")}</div>`:""}
-    <div class="go">${(fromPause&&!spec)?`<button onclick="openPause()">${L('[ ‹ BACK ]','[ ‹ VOLTAR ]')}</button>`:''}<button onclick="closeModal()">${spec?L('[ ⤢ BACK TO SPECTATE ]','[ ⤢ VOLTAR ]'):'[ CLOSE ]'}</button></div>
+    <div class="go">${!p.alive?`<button class="amber" onclick="showRIP(${id},${fromPause||1})">${L('[ READ OBITUARY ]','[ LER OBITUÁRIO ]')}</button>`:''}${(fromPause&&!spec)?`<button onclick="openPause()">${L('[ ‹ BACK ]','[ ‹ VOLTAR ]')}</button>`:''}<button onclick="closeModal()">${spec?L('[ ⤢ BACK TO SPECTATE ]','[ ⤢ VOLTAR ]'):'[ CLOSE ]'}</button></div>
   </div>`;
   openModal(true);
 }
