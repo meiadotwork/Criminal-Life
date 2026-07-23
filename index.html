@@ -748,7 +748,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v19.8";
+const APP_VERSION="v19.9";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -1523,7 +1523,7 @@ const SFX={
   /* THREE shots per soldier killed, cadence cycling fast → long → sniper down the line.
      10 dead = 30 shots, and it plays out as a real drawn-out firefight. Capped so a huge
      body count can't schedule minutes of audio. */
-  soldierDown:(n=1)=>{ if(!SND)return; n=Math.max(1,Math.min(60,Math.round(n))); const fl=["fast","long","sniper"]; let t=0,prev=-1; for(let i=0;i<n;i++){ let k=Math.floor(Math.random()*3); if(k===prev)k=(k+1+Math.floor(Math.random()*2))%3; prev=k; t+=gunVolley3(fl[k],t); } },   // random weapon each kill so a firefight never sounds the same twice
+  soldierDown:(n=1)=>{ if(!SND)return; n=Math.max(1,Math.min(200,Math.round(n))); const fl=["fast","long","sniper"]; let t=0,prev=-1; for(let i=0;i<n;i++){ let k=Math.floor(Math.random()*3); if(k===prev)k=(k+1+Math.floor(Math.random()*2))%3; prev=k; t+=gunVolley3(fl[k],t); } },   // random weapon each kill so a firefight never sounds the same twice
   gunTest:()=>{ if(!SND)return; let t=0; ["fast","long","sniper"].forEach(fl=>{ t+=gunVolley3(fl,t)+.4; }); },   // demo each of the three cadences, clearly spaced
   gunOne:(fl)=>{ if(!SND)return; gunVolley3(fl,0); },   // hear one weapon's 3 shots on its own
   overkill:()=>{ if(!SND)return; let t=0; for(let i=0;i<20;i++){ gunNoise(.035+Math.random()*.03,.24,t,1500+Math.random()*900); t+=.05+Math.random()*.04; } beep(60,1.0,.05,0); },   // 20-round execution volley
