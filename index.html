@@ -748,7 +748,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v19.4";
+const APP_VERSION="v19.5";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -1633,6 +1633,7 @@ function newRound(){
   box.insertBefore(rd,box.firstChild);
   S.roundEl=rd;
   recordNW();
+  grantContracts();   // every 10 rounds, each surviving boss banks a contract (cumulative)
 }
 /* record every boss's net worth at the start of each round — feeds the stock-style chart on PAUSE.
    dead players flatline at their last value so their line just stops climbing. */
@@ -1886,7 +1887,7 @@ function openActions(){
     canAttack?`<button class="red" onclick="actDo('attack')">${L("[ ATTACK \u00b7 ","[ ATACAR \u00b7 ")}${p.crew}${L(" sol ]"," sol ]")}</button>`:off);
   const rivalAlive=S.players.some(o=>o.id!==p.id&&o.alive);
   const canContract=(p.hitLicense||0)>0 && rivalAlive;
-  rows+=row(L("Place a contract","Encomendar contrato"), L("call in a hit you earned \u2014 you bank 1 every 10 years survived","use uma morte que voc\u00ea ganhou \u2014 1 a cada 10 anos vividos"),
+  rows+=row(L("Place a contract","Encomendar contrato"), L("call in a hit you earned \u2014 you bank 1 every 10 rounds","use uma morte que voc\u00ea ganhou \u2014 1 a cada 10 rodadas"),
     (p.hitLicense||0)>0?(rivalAlive?`<button class="red" onclick="actDo('contract')">${L("[ CALL \u00b7 ","[ LIGAR \u00b7 ")}${p.hitLicense}${L(" ]"," ]")}</button>`:`<span style="opacity:.5;font-size:11px">${L("no targets","sem alvos")}</span>`):off);
   rows+=row(L("Sell assets","Vender bens"), L("cash out property or businesses","liquidar propriedades ou neg\u00f3cios"),
     canSell?`<button class="red" onclick="actDo('sell')">${L("[ SELL ]","[ VENDER ]")}</button>`:off);
@@ -2167,7 +2168,7 @@ function stepMove(p,left){
   if(ring==="outer" && left>1 && p.owns.has(p.pos)) collectOne(p,p.pos);
   if(ring==="inner"&&p.pos===0){p.sentence-=1;p.age++;p.yearsServed=(p.yearsServed||0)+1;log(p.name+L(" finishes a prison lap. 1 year done (now "," completa uma volta na prisão. 1 ano cumprido (agora ")+p.age+L(" yo). "," anos). ")+(p.sentence>0?p.sentence+L("y left","a restantes"):L("TIME SERVED","PENA CUMPRIDA")),p.sentence>0?"":"good");
     if(p.sentence<=0){render();setTimeout(()=>releaseFromPrison(p),300);return;}}
-  if(ring==="outer"&&p.pos===0){p.age++;p.crimeOps=3;grantContract(p);log(p.name+L(" makes it another year (now "," sobrevive mais um ano (agora ")+p.age+L(" yo). Crime chances refilled."," anos). Chances de crime renovadas."),"");
+  if(ring==="outer"&&p.pos===0){p.age++;p.crimeOps=3;log(p.name+L(" makes it another year (now "," sobrevive mais um ano (agora ")+p.age+L(" yo). Crime chances refilled."," anos). Chances de crime renovadas."),"");
     if(p.heat>0){p.heat=Math.max(0,p.heat-5);log(p.name+L("'s heat cools a little (now ",": o risco esfria um pouco (agora ")+p.heat+"%).","");}
     {const _bz=Array.from(p.owns.keys()).filter(i=>OUTER[i]&&OUTER[i].k==="biz").length; if(_bz>0){const _bh=_bz*4; p.heat=Math.min(80,(p.heat||0)+_bh); log(p.name+L(" — the operation draws federal heat +"," — a operação atrai risco federal +")+_bh+"% ("+_bz+L(" biz)."," neg)."),"warn");}}
     if(p.crew>0){const wages=p.crew*SOLDIER_WAGE;p.cash-=wages;log(p.name+L(" pays soldier wages: "," paga salário dos soldados: ")+fmtK(wages)+" ("+p.crew+" × "+fmtK(SOLDIER_WAGE)+L("/yr).","/ano)."),"warn");}
@@ -2964,10 +2965,15 @@ function orderHitMenu(){
 }
 /* every 10 years a boss survives, they bank a CONTRACT — a hit they can place later.
    Contracts are cumulative: skip a decade and they pile up. */
-function grantContract(p){
-  const yp=p.age-(p.startAge||p.age);
-  if(yp>0 && yp%10===0){ p.hitLicense=(p.hitLicense||0)+1;
-    log(p.name+L(" banks a CONTRACT — a hit to place ("," ganha um CONTRATO — uma morte pra encomendar (")+p.hitLicense+L(" saved)."," guardadas)."),"warn"); }
+/* every 10 ROUNDS, each surviving boss banks another CONTRACT — a hit to place on a
+   rival. Cumulative: they stack up until spent. */
+function grantContracts(){
+  if(!S||!S.players||!(S.turn>0)||S.turn%10!==0) return;
+  S.players.forEach(p=>{
+    if(!p.alive) return;
+    p.hitLicense=(p.hitLicense||0)+1;
+    log(p.name+L(" banks a CONTRACT — a hit to place ("," ganha um CONTRATO — uma morte pra encomendar (")+p.hitLicense+L(" saved)."," guardadas)."),"warn");
+  });
 }
 /* CALLER — the Windows blue-screen line where you spend a banked contract on a rival */
 function openContractCaller(){
@@ -2980,7 +2986,7 @@ function openContractCaller(){
   el.innerHTML=`<div class="lbl" style="background:${p.color}">${L("PLACE A CONTRACT","ENCOMENDAR CONTRATO")}</div>
     <div class="ttl">${L("Call in a hit you earned","Use uma morte que você ganhou")}</div>
     <div class="bd" style="text-align:left">
-      <p style="opacity:.7;font-size:11px;margin:0 0 8px">${L("The shooter is already paid — this cost you ten years of loyalty, not cash. Placing a hit adds +10% HEAT.","O atirador já está pago — isso custou dez anos de lealdade, não dinheiro. Encomendar adiciona +10% de RISCO.")}</p>
+      <p style="opacity:.7;font-size:11px;margin:0 0 8px">${L("The shooter is already paid — you earned this by surviving ten rounds, not with cash. Placing a hit adds +10% HEAT.","O atirador já está pago — você ganhou isso sobrevivendo dez rodadas, não com dinheiro. Encomendar adiciona +10% de RISCO.")}</p>
       ${rows}
       <p style="opacity:.7;font-size:11px;margin:8px 0 0">${L("Contracts banked","Contratos guardados")}: <b>${p.hitLicense}</b> · ${L("cancel and you keep them.","cancele e você os mantém.")}</p>
     </div>
