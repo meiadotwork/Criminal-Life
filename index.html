@@ -653,20 +653,20 @@
   body.blue .cell{border:1px solid #3a5ac0 !important;box-shadow:none !important;}
   body.blue .cell.hollow{border:none !important;background:transparent !important;}
   body.blue input{background:#00008a !important;}
-  /* inverted highlight bars: white fill, blue text (DOS selection bar) */
-  body.blue .lbl,body.blue .card .lbl,body.blue .panel h2,body.blue #turnBanner,body.blue .dosbar,body.blue .card .status{background:#ffffff !important;border:none !important;}
+  /* inverted highlight bars: gray fill, blue text (the BSOD "Windows" chip) */
+  body.blue .lbl,body.blue .card .lbl,body.blue .panel h2,body.blue #turnBanner,body.blue .dosbar,body.blue .card .status{background:#aaaaaa !important;border:none !important;}
   body.blue .lbl,body.blue .lbl *,body.blue .card .lbl,body.blue .card .lbl *,body.blue .panel h2,body.blue .panel h2 *,body.blue #turnBanner,body.blue #turnBanner *,body.blue .dosbar,body.blue .dosbar *,body.blue .card .status,body.blue .card .status *{color:#0000aa !important;}
   /* current board cell = white selection bar, blue glyphs */
   body.blue .cell.here{background:#ffffff !important;border:1px solid #ffffff !important;}
   body.blue .cell.here *{color:#0000aa !important;}
-  /* buttons: hover = white bar, blue text */
-  body.blue button:hover:not(:disabled),body.blue button:focus,body.blue button:active{background:#ffffff !important;color:#0000aa !important;}
+  /* buttons: hover = gray bar, blue text (DOS selection) */
+  body.blue button:hover:not(:disabled),body.blue button:focus,body.blue button:active{background:#aaaaaa !important;color:#0000aa !important;}
   body.blue button:hover:not(:disabled) *,body.blue button:focus *,body.blue button:active *{color:#0000aa !important;}
   body.blue button:disabled{opacity:.4 !important;}
-  /* selected / active states (amber fill in green mode) → white bar, blue text */
-  body.blue #focusBtn.on,body.blue .cfg.sel,body.blue button.amber.sel,body.blue .tiny.amber{background:#ffffff !important;}
+  /* selected / active states (amber fill in green mode) → gray bar, blue text */
+  body.blue #focusBtn.on,body.blue .cfg.sel,body.blue button.amber.sel,body.blue .tiny.amber{background:#aaaaaa !important;}
   body.blue #focusBtn.on,body.blue #focusBtn.on *,body.blue .cfg.sel,body.blue .cfg.sel *,body.blue button.amber.sel,body.blue button.amber.sel *,body.blue .tiny.amber,body.blue .tiny.amber *{color:#0000aa !important;}
-  body.blue .cvh{background:#ffffff !important;}
+  body.blue .cvh{background:#aaaaaa !important;}
   body.blue .cvh,body.blue .cvh *{color:#0000aa !important;}
   /* dice pips + inline svg glyphs white */
   body.blue .pip{background:#ffffff !important;}
@@ -748,7 +748,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v19.2";
+const APP_VERSION="v19.3";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
