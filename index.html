@@ -685,6 +685,7 @@
 <div id="dosgate"><pre id="dosout"></pre></div>
 
 <div id="setup">
+<button id="setupOptBtn" onclick="openSettings()" title="options" style="position:absolute;top:14px;right:14px;z-index:5">[ OPT ]</button>
 <div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
 <div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
 <div id="verSub" style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v16.3</div>
@@ -695,8 +696,8 @@
 
 <!-- floating controls: stay reachable on top of AI/auto cards during a match (esp. all-Ghost) -->
 <div id="specCtl" style="display:none">
-  <button class="amber" onclick="openPause()" title="pause &amp; standings">[ PAUSE ]</button>
-  <button onclick="openSettings()" title="menu">[ MENU ]</button>
+  <button class="amber" onclick="openPause()" title="standings &amp; chart">[ CHART ]</button>
+  <button onclick="openSettings()" title="options">[ OPT ]</button>
 </div>
 
 <!-- CALLER: a Windows-blue-screen line to place a banked contract hit -->
@@ -707,8 +708,8 @@
     <div id="turnBanner">TURN 1</div>
     <div class="topbtns">
       <button class="amber" onclick="openSupport()" title="support the developer">[ &#9829; ]</button>
-      <button onclick="openPause()" title="pause & standings">[ PAUSE ]</button>
-      <button id="settingsBtn" onclick="openSettings()" title="settings">[ MENU ]</button>
+      <button onclick="openPause()" title="standings & net-worth chart">[ CHART ]</button>
+      <button id="settingsBtn" onclick="openSettings()" title="options">[ OPT ]</button>
     </div>
   </div>
   <div class="main">
@@ -755,7 +756,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v20.1";
+const APP_VERSION="v20.2";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -2325,7 +2326,8 @@ function openSettings(){
     ${row(L("Language / Idioma","Idioma / Language"),`<button class="${LANG!=='PT'?'amber':''}" onclick="switchLang('EN')">[ EN ]</button><button class="${LANG==='PT'?'amber':''}" onclick="switchLang('PT')">[ PT ]</button>`)}
     ${row(L("Font size","Tamanho da fonte"),`<button class="tiny" onclick="fontScale(-1)">−</button><button class="tiny" id="fzBtn" onclick="fontScale(0)">${Math.round((typeof _fz!=="undefined"?_fz:1)*100)}%</button><button class="tiny" onclick="fontScale(1)">+</button>`)}
     ${row(L("UI zoom","Zoom da tela"),`<button class="tiny" onclick="uiScale(-1)">−</button><button class="tiny" id="uizBtn" onclick="uiScale(0)">${Math.round((typeof _uiz!=="undefined"?_uiz:1)*100)}%</button><button class="tiny" onclick="uiScale(1)">+</button>`)}
-    ${row(L("Follow token","Seguir peça"),`<button id="followBtn" onclick="toggleFollow()">${tr((S&&S.followAnim)?"[ FOLLOW: ON ]":"[ FOLLOW: OFF ]")}</button>`)}
+    ${S?row(L("Follow token","Seguir peça"),`<button id="followBtn" onclick="toggleFollow()">${tr((S&&S.followAnim)?"[ FOLLOW: ON ]":"[ FOLLOW: OFF ]")}</button>`):""}
+    ${S?row(L("Map zoom","Zoom do mapa"),`<button class="tiny" onclick="boardZoom(-1);openSettings()">−</button><button class="tiny" onclick="boardZoom(0);openSettings()">${Math.round((typeof _bz!=="undefined"?_bz:1)*100)}%</button><button class="tiny" onclick="boardZoom(1);openSettings()">+</button>`):""}
     ${row(L("Display mode","Modo de tela"),`<button id="greenBtn" onclick="toggleGreenDos()">${DISPLAY_MODES[_dispMode].lbl}</button>`)}
     ${row(L("Sound","Som"),`<button id="sndBtn" onclick="toggleSnd()">${SND?"[ SND ]":"[ MUTE ]"}</button>`)}
     ${row(L("Game volume","Volume do jogo"),`<button class="tiny${_gameVol==='L'?' amber':''}" onclick="setGameVol('L')">L</button><button class="tiny${_gameVol==='M'?' amber':''}" onclick="setGameVol('M')">M</button><button class="tiny${_gameVol==='H'?' amber':''}" onclick="setGameVol('H')">H</button>`)}
@@ -2333,10 +2335,10 @@ function openSettings(){
     ${row(L("Police volume","Volume da polícia"),`<button class="tiny${_polVol==='L'?' amber':''}" onclick="setPoliceVol('L')">L</button><button class="tiny${_polVol==='M'?' amber':''}" onclick="setPoliceVol('M')">M</button><button class="tiny${_polVol==='H'?' amber':''}" onclick="setPoliceVol('H')">H</button>`)}
     ${row(L("AI cards","Cartas da IA"),`<button class="${AI_AUTOCARDS?'amber':''}" onclick="setAICards('auto')">${L('[ AUTO ]','[ AUTO ]')}</button><button class="${!AI_AUTOCARDS?'amber':''}" onclick="setAICards('manual')">${L('[ TAP ]','[ TOQUE ]')}</button>`)}
     ${row(L("AI speed","Velocidade IA"),AI_SPEED_ORDER.map(s=>`<button class="tiny${AI_SPEED===s?' amber':''}" onclick="setAISpeed('${s}')">${({SLOW:L('SLOW','LENTO'),MEDIUM:L('MEDIUM','MÉDIO'),FAST:L('FAST','RÁPIDO')})[s]}</button>`).join(""))}
-    ${row(L("Save code","Código de jogo"),`<button onclick="openSaveCode()">${L("[ GET ]","[ OBTER ]")}</button><button onclick="openLoadCode()">${L("[ LOAD ]","[ CARREGAR ]")}</button>`)}
+    ${S?row(L("Save code","Código de jogo"),`<button onclick="openSaveCode()">${L("[ GET ]","[ OBTER ]")}</button><button onclick="openLoadCode()">${L("[ LOAD ]","[ CARREGAR ]")}</button>`):""}
     ${row(L("Support the dev","Apoiar o dev"),`<button class="amber" onclick="openSupport()">${L("[ ♥ TIP ]","[ ♥ APOIAR ]")}</button>`)}
-    ${row(L("Restart match","Reiniciar partida"),`<button onclick="askRestartMatch()">${L("[ ↻ RESTART ]","[ ↻ REINICIAR ]")}</button>`)}
-    ${row(L("New game (reset)","Novo jogo (reiniciar)"),`<button class="red" onclick="askReset()">${L("[ RESET ]","[ REINICIAR ]")}</button>`)}
+    ${S?row(L("Restart match","Reiniciar partida"),`<button onclick="askRestartMatch()">${L("[ ↻ RESTART ]","[ ↻ REINICIAR ]")}</button>`):""}
+    ${S?row(L("New game (reset)","Novo jogo (reiniciar)"),`<button class="red" onclick="askReset()">${L("[ RESET ]","[ REINICIAR ]")}</button>`):""}
     </div>
     <div class="go"><button onclick="closeModal()">${L("[ CLOSE ]","[ FECHAR ]")}</button></div>`;
   openModal(true);
