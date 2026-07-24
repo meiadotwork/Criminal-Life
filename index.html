@@ -130,6 +130,11 @@
   #specCtl{position:fixed;top:10px;right:10px;z-index:10001;display:none;gap:7px}
   #specCtl button{font-family:inherit;font-size:13px;font-weight:bold;letter-spacing:1px;padding:9px 13px;cursor:pointer;border-radius:2px;color:var(--phos);background:rgba(1,6,2,.92);border:1px solid var(--phos);box-shadow:0 0 10px rgba(0,0,0,.6)}
   #specCtl button.amber{color:var(--amber);border-color:var(--amber)}
+  /* a card/modal is up: hide the top header (♥ / CHART / OPT) so nothing clutters the card.
+     During spectate the AI's own card is invisible (suppressed), so keep the header reachable there. */
+  body.cardup .bar{visibility:hidden !important;}
+  body.cardup #setupOptBtn{visibility:hidden !important;}
+  body.spectating.cardup:not(.usermodal) .bar{visibility:visible !important;}
   #modal{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.8);padding:14px}
   #modal.on{display:flex}
   .card{width:340px;max-width:calc(94vw / var(--uiz,1));background:linear-gradient(180deg,#06180c,#020a05);color:#c8ffd6;border:1px solid var(--phos);border-radius:3px;
@@ -756,7 +761,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v20.2";
+const APP_VERSION="v20.3";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -4295,6 +4300,7 @@ function statusBar(){const p=S.players[S.cur];const wealth=p.ring==="inner"?`<sp
   const heat=p.ring==="inner"?"":`<span>${L('HEAT','RISCO')}: ${p.heat||0}%</span>`;
   return `<div class="status"><span>${p.name}</span>${wealth}${heat}<span>SOL: ${p.crew}</span><span>${L('TURF','\u00c1REA')}: ${p.owns.size}</span></div>`;}
 function openModal(user){document.getElementById("modal").classList.add("on");
+  document.body.classList.add("cardup");   // a card is up — hide the header + floating controls around it
   // while spectating, only a modal the USER asked for (menu, standings, a boss's record) should
   // show — the AI's own action cards are suppressed so the dashboard isn't interrupted.
   document.body.classList.toggle("usermodal",!!user);
@@ -4308,14 +4314,9 @@ function openModal(user){document.getElementById("modal").classList.add("on");
 /* keep PAUSE/MENU reachable on top of AI/auto cards (mainly all-Ghost matches) */
 function updateSpecCtl(){
   const sc=document.getElementById("specCtl"); if(!sc) return;
-  const modalOn=document.getElementById("modal").classList.contains("on");
-  const userModal=document.body.classList.contains("usermodal");
-  const running=!!(typeof S!=="undefined"&&S&&S.players&&S.players.length&&!S.over);
-  const curAI=running&&S.players[S.cur]&&S.players[S.cur].ai;
-  const spec=(typeof SPECTATING!=="undefined"&&SPECTATING);
-  sc.style.display=(running&&modalOn&&!userModal&&(spec||curAI))?"flex":"none";
+  sc.style.display="none";   // per request: no controls float over a card — the header holds CHART/OPT
 }
-function closeModal(){document.getElementById("modal").classList.remove("on");document.body.classList.remove("usermodal");const ce=document.getElementById("cardEl");if(ce)ce.dataset.deck="";try{window.speechSynthesis&&window.speechSynthesis.cancel();}catch(e){} if(typeof unpauseGame==="function")unpauseGame();try{updateSpecCtl();}catch(e){}}
+function closeModal(){document.getElementById("modal").classList.remove("on");document.body.classList.remove("usermodal","cardup");const ce=document.getElementById("cardEl");if(ce)ce.dataset.deck="";try{window.speechSynthesis&&window.speechSynthesis.cancel();}catch(e){} if(typeof unpauseGame==="function")unpauseGame();try{updateSpecCtl();}catch(e){}}
 
 /* ===== PWA: register the service worker (offline start + installable). Silently skipped
    on file:// and inside the itch iframe where it can't run — the game plays the same. ===== */
