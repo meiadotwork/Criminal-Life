@@ -313,7 +313,7 @@
   /* spectating an all-AI match: the chart + leaderboard (in the board panel) are the show.
      Drop the dice, shrink the console to a line or two, and hide the player-info panels. */
   body.spectating .condice-panel .dicecol{display:none !important;}
-  body.spectating .condice-panel #log{min-height:0 !important;max-height:4.4em !important;}
+  body.spectating .condice-panel #log{min-height:5.5em !important;max-height:11em !important;}
   body.spectating .curplayer-panel, body.spectating .others-panel{display:none !important;}
   /* board zoom bar is useless while spectating */
   body.spectating .board-panel .zoombar{display:none !important;}
@@ -748,7 +748,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v19.9";
+const APP_VERSION="v20.0";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -1403,10 +1403,22 @@ function doLoadCode(){
 function askReset(){
   const el=document.getElementById("cardEl");
   el.innerHTML=`<div class="lbl">RESET</div>
-    <div class="ttl">Abandon this session?</div>
-    <div class="bd">The saved game will be wiped and you'll go back to the boot screen.</div>
-    <div class="go"><button class="red" onclick="clearSave();location.reload()">[ WIPE &amp; RESTART ]</button><button onclick="closeModal()">[ KEEP PLAYING ]</button></div>`;
+    <div class="ttl">${L("Abandon this session?","Abandonar esta sessão?")}</div>
+    <div class="bd">${L("The saved game will be wiped and you'll go back to the main menu.","O jogo salvo será apagado e você volta ao menu principal.")}</div>
+    <div class="go"><button class="red" onclick="toMainMenu()">${L("[ TO MAIN MENU ]","[ IR AO MENU ]")}</button><button onclick="closeModal()">${L("[ KEEP PLAYING ]","[ CONTINUAR JOGANDO ]")}</button></div>`;
   openModal(true);
+}
+/* return to the setup / main menu WITHOUT a page reload (a reload would replay the DOS boot + passcode) */
+function toMainMenu(){
+  try{clearSave();}catch(e){}
+  try{closeModal();}catch(e){}
+  try{SPECTATING=false;PAUSED=false;}catch(e){}
+  document.body.classList.remove("spectating","usermodal");
+  const scr=document.getElementById("screen"); if(scr)scr.style.display="none";
+  const set=document.getElementById("setup"); if(set)set.style.display="";
+  S=null;
+  try{renderSetupStart();}catch(e){}
+  try{window.scrollTo(0,0);}catch(e){}
 }
 
 /* ===== SOUND — tiny retro PC-speaker beeper (square wave), toggleable ===== */
@@ -3115,9 +3127,10 @@ function drawStory(deck){
 function aiAutoApply(card){
   const p=S.players[S.cur]; if(!p.ai)return;
   if(!AI_AUTOCARDS && !SPECTATING) return;   // MANUAL mode: leave the card open for a human to read and tap (but spectate always auto-runs)
-  setTimeout(()=>{
+  setTimeout(function go(){
+    if(typeof PAUSED!=="undefined"&&PAUSED){ if(S)S._resume=go; return; }   // held while PAUSE/MENU is open — resumes on unpause
     const el=document.getElementById("cardEl");
-    if(el._card===card && document.getElementById("modal").classList.contains("on")) applyCard();
+    if(el&&el._card===card) applyCard();
   },aiCardMs());
 }
 function renderStoryCard(card,deck,isAI){
@@ -3924,7 +3937,7 @@ function showRetire(p){
     <div class="bd" style="text-align:left">${bossBio(p,'retire')}</div>
     <div class="out">${L('Age ','Idade ')}${p.age} · ${L('Net worth ','Patrim\u00f4nio ')}${fmtK(netWorth(p))} · ${p.owns.size} ${L('turf','\u00e1reas')} · ${p.crew} ${L('soldiers','soldados')} · ${empireStats(p).workers} ${L('workers','func.')} · ${L('started with ','come\u00e7ou com ')}${fmtK(p.startCash||0)}</div>
     <div class="out">${(()=>{const oc=oppCounts(p);return L("Outlasted ","Superou ")+oc.ai+L(" AI"," IA")+(oc.hum?L(" and "," e ")+oc.hum+L(" human rival"," rival humano")+(oc.hum>1?"s":""):"")+(S.diff?" \u00b7 "+S.diff:"")+".";})()}</div>
-    <div class="go"><button class="amber" onclick="rematch()">${L('[ ↻ REMATCH ]','[ ↻ REVANCHE ]')}</button><button onclick="showRecap()">${L('[ ≡ RECAP ]','[ ≡ RESUMO ]')}</button><button onclick="openPause()">${L('[ ⇑ CHART ]','[ ⇑ GRÁFICO ]')}</button><button onclick="openSupport()">${L('[ ♥ TIP ]','[ ♥ APOIAR ]')}</button><button onclick="location.reload()">${L('[ NEW GAME ]','[ NOVO JOGO ]')}</button></div>`;
+    <div class="go"><button class="amber" onclick="rematch()">${L('[ ↻ REMATCH ]','[ ↻ REVANCHE ]')}</button><button onclick="showRecap()">${L('[ ≡ RECAP ]','[ ≡ RESUMO ]')}</button><button onclick="openPause()">${L('[ ⇑ CHART ]','[ ⇑ GRÁFICO ]')}</button><button onclick="openSupport()">${L('[ ♥ TIP ]','[ ♥ APOIAR ]')}</button><button onclick="toMainMenu()">${L('[ NEW GAME ]','[ NOVO JOGO ]')}</button></div>`;
   openModal();
 }
 function showGameOver(winner){
@@ -3941,7 +3954,7 @@ function showGameOver(winner){
     ${w?`<div class="bd" style="text-align:left">${bossBio(w,'last')}</div>`:''}
     <div class="out">${w?L("Age ","Idade ")+w.age+L(" · Net worth "," · Patrim\u00f4nio ")+fmtK(netWorth(w))+L(" · "," · ")+w.owns.size+L(" turf · "," \u00e1reas · ")+soldierIcons(w.color,w.crew)+" · "+empireStats(w).workers+L(" workers"," func."):"—"}</div>
     <div class="out">${w?(()=>{const oc=oppCounts(w);return L("Outlasted ","Superou ")+oc.ai+L(" AI"," IA")+(oc.hum?L(" and "," e ")+oc.hum+L(" human rival"," rival humano")+(oc.hum>1?"s":""):"")+(S.diff?" · "+S.diff:"")+".";})():""}</div>
-    <div class="go"><button class="amber" onclick="rematch()">${L('[ ↻ REMATCH ]','[ ↻ REVANCHE ]')}</button><button onclick="showRecap()">${L('[ ≡ RECAP ]','[ ≡ RESUMO ]')}</button><button onclick="openPause()">${L('[ ⇑ CHART ]','[ ⇑ GRÁFICO ]')}</button><button onclick="openSupport()">${L('[ ♥ TIP ]','[ ♥ APOIAR ]')}</button><button onclick="location.reload()">${L('[ NEW GAME ]','[ NOVO JOGO ]')}</button></div>`;
+    <div class="go"><button class="amber" onclick="rematch()">${L('[ ↻ REMATCH ]','[ ↻ REVANCHE ]')}</button><button onclick="showRecap()">${L('[ ≡ RECAP ]','[ ≡ RESUMO ]')}</button><button onclick="openPause()">${L('[ ⇑ CHART ]','[ ⇑ GRÁFICO ]')}</button><button onclick="openSupport()">${L('[ ♥ TIP ]','[ ♥ APOIAR ]')}</button><button onclick="toMainMenu()">${L('[ NEW GAME ]','[ NOVO JOGO ]')}</button></div>`;
   openModal();
 }
 
@@ -4215,7 +4228,9 @@ function aiScene(inner,then){
   // spectating always auto-advances (the card is hidden anyway); otherwise honour AI-cards setting
   if(AI_AUTOCARDS || SPECTATING) setTimeout(aiSceneGo, aiCardMs());
 }
-function aiSceneGo(){ if(_aiSceneDone)return; _aiSceneDone=true; closeModal(); const f=_aiSceneThen; _aiSceneThen=null; if(f)f(); }
+function aiSceneGo(){ if(_aiSceneDone)return;
+  if(typeof PAUSED!=="undefined"&&PAUSED){ if(S)S._resume=aiSceneGo; return; }   // held while PAUSE/MENU is open — resumes on unpause
+  _aiSceneDone=true; closeModal(); const f=_aiSceneThen; _aiSceneThen=null; if(f)f(); }
 function aiSceneCard(p,ttl,body,cls){ return `<div class="lbl" style="background:${p.color}">${p.name}</div><div class="ttl"${cls?` style="color:${cls}"`:''}>${ttl}</div><div class="bd">${body}</div>`; }
 function aiBuyStreet(idx,c){const p=S.players[S.cur];const mult=aiProf(p).buyMult;
   let ttl,body;
