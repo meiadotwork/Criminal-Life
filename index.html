@@ -761,7 +761,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v20.3";
+const APP_VERSION="v20.4";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -1741,7 +1741,7 @@ function openPause(){
   try{if(typeof saveGame==="function")saveGame();}catch(e){}
   const el=document.getElementById("cardEl");
   const ordered=orderedPlayers();
-  const rows=standingsRows();
+  const rows=standingsRows(true);
   const anyHist=S.players.some(p=>(p.nwHist||[]).length);
   const allAI=S.players.length>0 && S.players.filter(p=>p.alive).every(p=>p.ai);
   el.innerHTML=`<div class="cv">
@@ -1762,7 +1762,7 @@ function openPause(){
 }
 /* shared by the pause standings and the live spectate view */
 function orderedPlayers(){ return S.players.slice().sort((a,b)=>{if(a.alive!==b.alive)return a.alive?-1:1;return netWorth(b)-netWorth(a);}); }
-function standingsRows(){
+function standingsRows(withToggle){
   const alive=S.players.filter(p=>p.alive).slice().sort((a,b)=>netWorth(b)-netWorth(a));
   const aliveRank={};alive.forEach((p,i)=>aliveRank[p.id]=i+1);
   return orderedPlayers().map(p=>{
@@ -1786,13 +1786,52 @@ function standingsRows(){
       <span style="opacity:.7;font-size:11px;white-space:nowrap">${hp}</span>
       <span style="font-weight:bold;min-width:56px;text-align:right;white-space:nowrap">${fmtK(netWorth(p))}</span>
       <span style="opacity:.75;min-width:34px;text-align:right;white-space:nowrap">${rk}</span>
+      ${(withToggle&&p.alive&&!S.over)?`<button onclick="event.stopPropagation();togglePlayerAI(${p.id})" title="${L('switch AI / human control','trocar controle IA / humano')}" style="font-size:10px;padding:3px 6px;white-space:nowrap;flex:0 0 auto">${p.ai?L("AI","IA"):L("HUMAN","HUMANO")}</button>`:``}
       <span style="opacity:.45">›</span>
     </div>`;}).join("");
+}
+/* ===== SWAP CONTROL: hand any living boss to the AI, or take one over as a human.
+   Spectate is gated to run only while EVERY living boss is an AI. ===== */
+function allAliveAI(){ return !!(S&&S.players&&S.players.some(p=>p.alive)&&S.players.filter(p=>p.alive).every(p=>p.ai)); }
+function togglePlayerAI(id){
+  const p=S&&S.players&&S.players[id]; if(!p||!p.alive||S.over) return;
+  p.ai=!p.ai;
+  log(p.name+L(p.ai?" — handed to the AI.":" — now played by a human.", p.ai?" — passa para a IA.":" — agora jogado por um humano."),"warn");
+  if(typeof SPECTATING!=="undefined"&&SPECTATING&&!allAliveAI()){ SPECTATING=false; try{applySpectate();}catch(e){} }
+  try{render();updateControls();}catch(e){}
+  if(id===S.cur && !S.over){
+    if(p.ai){ if(!S.rolled) rollDiceAI(); else finish(); }   // AI takes the wheel (held by PAUSE until you close the chart)
+    else { if(S)S._resume=null; }                            // a human takes over — they act on resume
+  }
+  try{if(typeof saveGame==="function")saveGame();}catch(e){}
+  openPause();   // refresh the chart
+}
+function offerTakeover(deadId){
+  const living=S.players.filter(x=>x.alive&&x.ai);
+  if(!living.length){ showRIP(deadId); return; }
+  const el=document.getElementById("cardEl"); if(!el)return; el.dataset.deck="";
+  el.innerHTML=`<div class="lbl">${L('PLAY ON','CONTINUAR')}</div>
+    <div class="ttl">${L('Take over a Ghost','Assumir um Ghost')}</div>
+    <div class="bd">${L("Your boss is finished — but the night isn't. Step into a living Ghost and keep playing as them.","Seu chefe já era — mas a noite não. Assuma um Ghost vivo e continue no lugar dele.")}</div>
+    <div class="go" style="flex-direction:column">
+      ${living.slice().sort((a,b)=>netWorth(b)-netWorth(a)).map(o=>`<button class="amber" onclick="takeOverGhost(${o.id})">[ ${o.name} — ${fmtK(netWorth(o))} · ${o.crew} ${L('sol','sol')} ]</button>`).join("")}
+      <button onclick="showRIP(${deadId})">${L('[ NO — REST IN PEACE ]','[ NÃO — DESCANSAR EM PAZ ]')}</button>
+    </div>${statusBar()}`;
+  openModal(true);
+}
+function takeOverGhost(oid){
+  const g=S&&S.players&&S.players[oid];
+  if(!g||!g.alive||!g.ai){ closeModal(); afterRIP(); return; }
+  g.ai=false;
+  log(L('A fallen boss takes the wheel — ','Um chefe caído assume o volante — ')+g.name+L(' is now played by a human.',' agora é jogado por um humano.'),"warn");
+  try{render();updateControls();}catch(e){}
+  closeModal();
+  afterRIP();   // continue the match, advancing past the dead player
 }
 /* ===== SPECTATE: watch an all-AI match as a live dashboard (chart + leaderboard),
    with the round console right below. Unlike PAUSE, the game keeps running. ===== */
 let SPECTATING=false, _specTurn=-1;
-function startSpectate(){ SPECTATING=true; _specTurn=-1; const sv=document.getElementById("spectateView"); if(sv)sv.dataset.built=""; closeModal(); const ce=document.getElementById("cardEl"); if(ce)ce.innerHTML=""; /* drop the pause card's duplicate #nwChartWrap */ applySpectate(); }
+function startSpectate(){ if(!allAliveAI())return; SPECTATING=true; _specTurn=-1; const sv=document.getElementById("spectateView"); if(sv)sv.dataset.built=""; closeModal(); const ce=document.getElementById("cardEl"); if(ce)ce.innerHTML=""; /* drop the pause card's duplicate #nwChartWrap */ applySpectate(); }
 function exitSpectate(){ SPECTATING=false; if(PAUSED&&typeof unpauseGame==="function")unpauseGame(); applySpectate(); }
 /* freeze / unfreeze the AI turns while watching (no modal — reuses the PAUSED gate) */
 function toggleSpecPause(){
@@ -1820,6 +1859,7 @@ function applySpectate(){
 }
 function renderSpectate(force){
   const sv=document.getElementById("spectateView"); if(!sv||!S||!S.players)return;
+  if(SPECTATING && typeof allAliveAI==="function" && !allAliveAI()){ exitSpectate(); return; }   // a human took the wheel — stop spectating
   let roundChanged=(S.turn!==_specTurn);
   if(force||sv.dataset.built!=="1"){
     sv.innerHTML=`<div class="cv" style="display:block">
@@ -3837,6 +3877,7 @@ function showRIP(id,viewer){
   const died=(p.diedAt!==undefined?p.diedAt:p.age);
   const el=document.getElementById("cardEl");
   el.dataset.deck="death"; el.dataset.read="1";   // narrative memorial → show the READ button
+  const canTakeover = !viewer && !p.ai && !(typeof SPECTATING!=="undefined"&&SPECTATING) && S.players.some(x=>x.alive&&x.ai);
   el.innerHTML=`<div class="lbl" style="background:${p.color}">R · I · P</div>
     <div class="art">[ + ]</div>
     <div class="ttl" style="color:${p.color}">${p.name}</div>
@@ -3844,9 +3885,9 @@ function showRIP(id,viewer){
     <div class="bd" style="text-align:left">${bossBio(p,'dead')}</div>
     <div class="out">${L('Rap sheet','Ficha')}: ${e.n} ${L('charges','acusa\u00e7\u00f5es')} · ${e.totalYears}${L('y exposure','a de exposi\u00e7\u00e3o')} · ${e.heists} ${L('robberies','roubos')} · ${e.hits} ${L('murders','homic\u00eddios')} · ${e.drugs} ${L('drug charges','crimes de drogas')}</div>
     <div class="out" style="white-space:pre-wrap">${empireLine(p)}</div>
-    <div class="go">${viewer?`<button onclick="showProfile(${p.id},${viewer})">${L('[ ‹ BACK ]','[ ‹ VOLTAR ]')}</button>`:`<button onclick="afterRIP()">${L('[ LAY TO REST ]','[ ENTERRAR ]')}</button>`}</div>`;
+    <div class="go">${viewer?`<button onclick="showProfile(${p.id},${viewer})">${L('[ ‹ BACK ]','[ ‹ VOLTAR ]')}</button>`:`${canTakeover?`<button class="amber" onclick="offerTakeover(${p.id})">${L('[ PLAY ON AS A GHOST ]','[ CONTINUAR COMO GHOST ]')}</button>`:''}<button onclick="afterRIP()">${L('[ LAY TO REST ]','[ ENTERRAR ]')}</button>`}</div>`;
   openModal(!!viewer);
-  if(!viewer && deathAutoAdv()) setTimeout(()=>{ if(deathAutoAdv()) afterRIP(); }, aiCardMs());   // auto-advance the memorial while spectating / AI turns
+  if(!viewer && !canTakeover && deathAutoAdv()) setTimeout(()=>{ if(deathAutoAdv()) afterRIP(); }, aiCardMs());   // auto-advance the memorial while spectating / AI turns
 }
 function afterRIP(){
   closeModal();
