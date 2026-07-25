@@ -763,7 +763,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v21.0";
+const APP_VERSION="v21.1";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -3791,7 +3791,7 @@ function deathAutoAdv(){ if(typeof SPECTATING!=="undefined"&&SPECTATING) return 
 function prisonDeath(p,why){
   const di=Math.floor(Math.random()*PRISON_DEATHS.length);
   const d=LANG==='PT'?{t:PRISON_DEATHS_PT[di].t,bd:PRISON_DEATHS_PT[di].b}:PRISON_DEATHS[di];
-  p._deathCause=d.t;
+  p._deathCause=d.t; p._diedInPrison=true;
   SFX.flatline();setTimeout(()=>SFX.funeral(),350);
   p.alive=false;p.diedAt=p.age;p.diedTurn=S.turn;releaseHoldings(p);
   log(p.name+L(" is KILLED IN PRISON — "," é MORTO NA PRISÃO — ")+d.t+L(". OUT.",". FORA."),"bad");
@@ -3803,7 +3803,7 @@ function prisonDeath(p,why){
     <div class="ttl" style="color:${p.color};text-align:center">${d.t}</div>
     ${why?`<div class="sub" style="text-align:center">${why}</div>`:""}
     <div class="bd">${d.bd}</div>
-    <div class="out" style="color:var(--red)">${p.name} ${L('dies inside at','morre l\u00e1 dentro aos')} ${p.diedAt} ${L('years old. Never made it back to the street.','anos. Nunca voltou para a rua.')}</div>
+    <div class="out" style="color:var(--red)">${p.name} ${L('dies inside at','morre l\u00e1 dentro aos')} ${p.diedAt} ${L('years old','anos')}${(p.yearsServed||0)>0?" \u2014 "+(p.yearsServed||0)+L("y served","a cumpridos"):""}. ${L('Never made it back to the street.','Nunca voltou para a rua.')}</div>
     <div class="out" style="white-space:pre-wrap">${empireLine(p)}</div>
     <div class="go"><button class="red" onclick="showRIP(${p.id})">[ MEMORIAL ]</button></div>`;
   openModal(typeof SPECTATING!=="undefined"&&SPECTATING&&_specDeaths);
@@ -3833,6 +3833,7 @@ function killPlayer(p,killer){
   if(killer&&killer!==p&&killer.id!==p.id){ killer.bossKills=(killer.bossKills||0)+1; }   // credit the boss who ordered it
   SFX.flatline();setTimeout(()=>SFX.funeral(),350);
   if(!p._deathCause&&p._hospCause)p._deathCause=L("Flatlined in the hospital after ","Apagou no hospital depois de ")+p._hospCause;
+  if(p.ring==="inner"){ p._diedInPrison=true; if(!p._deathCause){ const _di=Math.floor(Math.random()*PRISON_DEATHS.length); p._deathCause=(LANG==='PT'?PRISON_DEATHS_PT[_di].t:PRISON_DEATHS[_di].t); } }
   p.alive=false;p.diedAt=p.age;p.diedTurn=S.turn;releaseHoldings(p);log(p.name+L(" DIES for good at "," MORRE de vez aos ")+p.age+L(". OUT.",". FORA."),"bad");
   render();
   showDeathAnnounce(p); // big announcement → RIP memorial
@@ -3840,16 +3841,21 @@ function killPlayer(p,killer){
 function showDeathAnnounce(p){
   const el=document.getElementById("cardEl");
   el.dataset.deck="death";
-  el.innerHTML=`<div class="lbl" style="background:#7a0d0d">${L('PLAYER DOWN','JOGADOR CA\u00cdDO')}</div>
+  const inPrison=!!p._diedInPrison;
+  const served=p.yearsServed||0;
+  const cause=p._deathCause?p._deathCause:L("Gunned down","Baleado");
+  const sub=inPrison
+    ? `${cause} ${L('at','aos')} <b>${p.diedAt}</b> ${L('years old \u2014 behind bars.','anos \u2014 atr\u00e1s das grades.')}<br>${served>0?L('Served ','Cumpriu ')+served+L('y inside. ','a preso. '):''}${L('Never made it back to the street.','Nunca voltou para a rua.')}`
+    : `${cause} ${L('at','aos')} <b>${p.diedAt}</b> ${L('years old.','anos.')}<br>${L('Started at ','Come\u00e7ou aos ')}${p.startAge||p.age} ${L('with','com')} ${fmtK(p.startCash||0)}. ${L('The game caught up with them.','O jogo finalmente o alcan\u00e7ou.')}`;
+  el.innerHTML=`<div class="lbl" style="background:#7a0d0d">${inPrison?L('DIED IN PRISON','MORREU NA PRIS\u00c3O'):L('PLAYER DOWN','JOGADOR CA\u00cdDO')}</div>
     <div style="text-align:center;font-size:40px;line-height:1.1;margin:10px 0;letter-spacing:4px">R.I.P</div>
     <div class="ttl" style="color:${p.color};text-align:center;font-size:30px">${p.name} ${L('IS DEAD','EST\u00c1 MORTO')}</div>
-    <div class="sub" style="text-align:center;font-size:16px">${p._deathCause?p._deathCause:L("Gunned down","Baleado")} ${L('at','aos')} <b>${p.diedAt}</b> ${L('years old.','anos.')}<br>${L('Started at ','Come\u00e7ou aos ')}${p.startAge||p.age} ${L('with','com')} ${fmtK(p.startCash||0)}. ${L('The game caught up with them.','O jogo finalmente o alcan\u00e7ou.')}</div>
+    <div class="sub" style="text-align:center;font-size:16px">${sub}</div>
     <div class="out" style="white-space:pre-wrap">${empireLine(p)}</div>
     <div class="go"><button class="red" onclick="showRIP(${p.id})">[ MEMORIAL ]</button></div>`;
   openModal(typeof SPECTATING!=="undefined"&&SPECTATING&&_specDeaths);
-  if(deathAutoAdv()) setTimeout(()=>{ if(deathAutoAdv()) showRIP(p); }, aiCardMs());   // no one to tap MEMORIAL — auto-advance
+  if(deathAutoAdv()) setTimeout(()=>{ if(deathAutoAdv()) showRIP(p); }, aiCardMs());
 }
-
 function ripEpitaph(p){
   const list=p.crimes.filter(c=>typeof c==="object");
   const n=list.length;
@@ -4038,7 +4044,7 @@ function hofEligible(p){ return !!(p&&!p.ai); }   // any human victory is carved
 function oppCounts(p){ const opp=(S&&S.players)?S.players.filter(x=>x.id!==p.id):[]; return {ai:opp.filter(x=>x.ai).length, hum:opp.filter(x=>!x.ai).length}; }
 function recordHof(p,how){ try{ const h=JSON.parse(localStorage.getItem(HOF_KEY)||"[]");
   const oc=oppCounts(p);
-  h.push({n:p.name,age:p.age,nw:netWorth(p),how:how,d:new Date().toISOString().slice(0,10),ai:oc.ai,hum:oc.hum,diff:(S&&S.diff)||""});
+  h.push({n:p.name,age:p.age,nw:netWorth(p),how:how,served:p.yearsServed||0,d:new Date().toISOString().slice(0,10),ai:oc.ai,hum:oc.hum,diff:(S&&S.diff)||""});
   h.sort((a,b)=>b.nw-a.nw); localStorage.setItem(HOF_KEY,JSON.stringify(h.slice(0,10))); }catch(e){} }
 /* short "vs 3 AI + 1 human" string for a hall-of-fame record (guards old records with no counts) */
 function hofVs(x){ if(x.ai==null&&x.hum==null) return ""; const parts=[]; if(x.ai)parts.push(x.ai+" AI"); if(x.hum)parts.push(x.hum+" "+L("human","humano")+(x.hum>1?"s":"")); return parts.length?(L("vs ","contra ")+parts.join(" + ")):L("solo","solo"); }
