@@ -765,7 +765,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v21.6";
+const APP_VERSION="v21.7";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -1975,6 +1975,7 @@ function log(m,cls=""){const d=document.createElement("div");d.className="l "+cl
 function openBigConsole(){
   const src=document.getElementById("log"); const ce=document.getElementById("cardEl");
   if(!ce) return;
+  if(typeof PAUSED!=="undefined")PAUSED=true;   // touching the console freezes AI turns so you can read — closeModal() resumes
   ce.dataset.read="";
   ce.innerHTML='<div class="lbl">CONSOLE — THIS ROUND</div>'
     +'<div id="logBig">'+(src?src.innerHTML:'<div class="l">• (nothing yet)</div>')+'</div>'
