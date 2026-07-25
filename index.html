@@ -763,7 +763,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v21.3";
+const APP_VERSION="v21.4";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -3685,6 +3685,22 @@ function prisonDayMenu(){
   openModal();
 }
 function afterPrisonAction(){ render(); updateControls(); }
+/* how a prison hit went down — one concise line of flavor per contract */
+const PRISON_HIT_METHODS=[
+ {en:"a sharpened toothbrush between the ribs in the chow line",pt:"uma escova afiada entre as costelas na fila do rango"},
+ {en:"a shank in the shower blind spot the cameras never reach",pt:"uma chucha no ponto cego do banho que a câmera nunca pega"},
+ {en:"a garrote in his cell the second the lights went out",pt:"um garrote na cela dele no segundo que a luz apagou"},
+ {en:"a padlock swung in a sock, one hit in the stairwell",pt:"um cadeado numa meia, um golpe na escada"},
+ {en:"a razor line opened across the throat out in the yard",pt:"uma gilete rasgando o pescoço no meio do pátio"},
+ {en:"a weight plate to the head in the gym's camera gap",pt:"uma anilha na cabeça no ponto sem câmera da academia"},
+ {en:"a sharpened bedspring driven in behind the laundry",pt:"um espeto de mola cravado atrás da lavanderia"},
+ {en:"a wedged cell door, done before the guards even moved",pt:"a porta da cela travada, feito antes dos agentes reagirem"},
+ {en:"an old debt finally collected in blood on the tier",pt:"uma dívida velha enfim cobrada em sangue no corredor"},
+ {en:"a cellmate who owed the crew and paid it off with this",pt:"um companheiro de cela que devia pra quadrilha e pagou com isso"},
+ {en:"boiling water and sugar to the face, then the blade",pt:"água fervendo com açúcar na cara, depois a lâmina"},
+ {en:"a shiv passed hand to hand, back in the drain before the count",pt:"uma chucha passada de mão em mão, de volta no ralo antes da contagem"}
+];
+function prisonHitMethod(){ const m=PRISON_HIT_METHODS[Math.floor(Math.random()*PRISON_HIT_METHODS.length)]; return L(m.en,m.pt); }
 function prisonRoll(){ const sides=(typeof S!=="undefined"&&S&&S.baseDice)||6; const r=1+Math.floor(Math.random()*sides); return {r:r,sides:sides,win:r>sides/2}; }
 function pdayRob(){
   const p=S.players[S.cur]; p._prisonActed=true; closeModal();
@@ -3700,13 +3716,15 @@ function pdayRob(){
 function pdayHit(){
   const p=S.players[S.cur]; p._prisonActed=true; closeModal();
   const rr=prisonRoll(); const _hc=(typeof activeDeck==="function"&&activeDeck("hitman"))||[]; const cash=(_hc.length?(_hc[Math.floor(Math.random()*_hc.length)].cut||20):20); const pk=1+Math.floor(Math.random()*3);
-  p.packs+=pk; p.cash+=cash; p.kills=(p.kills||0)+1; const tag=L('YOU ROLLED ','VOCÊ TIROU ')+rr.r+'/'+rr.sides;
+  p.packs+=pk; p.cash+=cash; p.kills=(p.kills||0)+1;
+  const tag=L('YOU ROLLED ','VOCÊ TIROU ')+rr.r+'/'+rr.sides;
+  const m=prisonHitMethod(); const M=m.charAt(0).toUpperCase()+m.slice(1);
   if(rr.win){ render();
-    log(p.name+L(' takes a hit contract (',' aceita um serviço (')+rr.r+'/'+rr.sides+L(') — clean kill. +',') — morte limpa. +')+pk+L(' pk, +',' mç, +')+fmtK(cash)+'.','good');
-    showNotice(L('HIT JOB','SERVIÇO'),')|(',tag+' — '+L('CLEAN KILL','MORTE LIMPA'),L('The contract is done and nobody saw the shank change hands. The block pays you ','O serviço tá feito e ninguém viu a chucha passar de mão. O pavilhão te paga ')+pk+L(' pack(s) and ',' maço(s) e ')+fmtK(cash)+L('. No extra time.','. Sem tempo extra.'),()=>afterPrisonAction());
+    log(p.name+L(' — clean hit: ',' — serviço limpo: ')+m+' (+'+pk+L(' pk, +',' mç, +')+fmtK(cash)+').','good');
+    showNotice(L('HIT JOB','SERVIÇO'),')|(',tag+' — '+L('CLEAN KILL','MORTE LIMPA'),M+L('. Nobody saw it. The block pays you ','. Ninguém viu. O pavilhão te paga ')+pk+L(' pack(s) and ',' maço(s) e ')+fmtK(cash)+L('. No extra time.','. Sem tempo extra.'),()=>afterPrisonAction());
   } else { p.sentence+=1; render();
-    log(p.name+L(' takes a hit contract (',' aceita um serviço (')+rr.r+'/'+rr.sides+L(') — killed but caught: +1 year. +',') — matou mas rodou: +1 ano. +')+pk+L(' pk, +',' mç, +')+fmtK(cash)+'.','warn');
-    showNotice(L('HIT JOB','SERVIÇO'),')|(',tag+' — '+L('KILLED — BUT CAUGHT','MATOU — MAS RODOU'),L('The target is gone and you got paid — +','O alvo já era e você recebeu — +')+pk+L(' pack(s), ',' maço(s), ')+fmtK(cash)+L(' — but the story points at you. +1 YEAR on the clock.',' — mas a história aponta pra você. +1 ANO na conta.'),()=>afterPrisonAction());
+    log(p.name+L(' — killed but caught: ',' — matou mas rodou: ')+m+' (+1'+L('y, +','a, +')+pk+L(' pk, +',' mç, +')+fmtK(cash)+').','warn');
+    showNotice(L('HIT JOB','SERVIÇO'),')|(',tag+' — '+L('KILLED — BUT CAUGHT','MATOU — MAS RODOU'),M+L('. You got paid — +','. Você recebeu — +')+pk+L(' pack(s), ',' maço(s), ')+fmtK(cash)+L(' — but the story points at you. +1 YEAR.',' — mas a história aponta pra você. +1 ANO.'),()=>afterPrisonAction());
   }
 }
 function pdayDrugs(){
@@ -3723,7 +3741,7 @@ function pdayDrugs(){
 /* AI prison moves — silent (log only, no modal) */
 function aiPrisonRob(p){ const rr=prisonRoll(); if(rr.win){const got=rr.r+Math.floor(Math.random()*3);p.packs+=got;log(p.name+L(' robs an inmate (',' assalta um preso (')+rr.r+'/'+rr.sides+L(') — +',') — +')+got+L(' pk.',' mç.'),'warn');}else{const lost=Math.min(p.packs,1+Math.floor(Math.random()*3));p.packs-=lost;log(p.name+L(' botches a robbery (',' erra um assalto (')+rr.r+'/'+rr.sides+L(') — -',') — -')+lost+L(' pk.',' mç.'),'warn');} render(); finish(); }
 function aiPrisonDrugs(p){ const rr=prisonRoll(); if(rr.win){const cash=20+Math.floor(Math.random()*31),pk=2+Math.floor(Math.random()*3);p.cash+=cash;p.packs+=pk;log(p.name+L(' deals on the block (',' vende no pavilhão (')+rr.r+'/'+rr.sides+L(') — +',') — +')+fmtK(cash)+L(', +',', +')+pk+L(' pk.',' mç.'),'warn');}else{const lost=Math.min(p.packs,2+Math.floor(Math.random()*2));p.packs-=lost;p.heat=(p.heat||0)+1;log(p.name+L(' is shaken down in a search.',' é revistado numa batida.'),'warn');} render(); finish(); }
-function aiPrisonHit(p){ const rr=prisonRoll(); const _hc=(typeof activeDeck==="function"&&activeDeck("hitman"))||[]; const cash=(_hc.length?(_hc[Math.floor(Math.random()*_hc.length)].cut||20):20),pk=1+Math.floor(Math.random()*3); p.packs+=pk; p.cash+=cash; p.kills=(p.kills||0)+1; if(!rr.win)p.sentence+=1; log(p.name+L(' pulls a prison hit (',' faz um serviço na cadeia (')+rr.r+'/'+rr.sides+L(') — +',') — +')+pk+L(' pk, +',' mç, +')+fmtK(cash)+(rr.win?'':L(', +1y',', +1a'))+'.','warn'); render(); finish(); }
+function aiPrisonHit(p){ const rr=prisonRoll(); const _hc=(typeof activeDeck==="function"&&activeDeck("hitman"))||[]; const cash=(_hc.length?(_hc[Math.floor(Math.random()*_hc.length)].cut||20):20),pk=1+Math.floor(Math.random()*3); p.packs+=pk; p.cash+=cash; p.kills=(p.kills||0)+1; if(!rr.win)p.sentence+=1; const m=prisonHitMethod(); log(p.name+L(' — prison hit: ',' — serviço na cadeia: ')+m+' ('+rr.r+'/'+rr.sides+', +'+pk+L(' pk, +',' mç, +')+fmtK(cash)+(rr.win?'':L(', +1y',', +1a'))+').','warn'); render(); finish(); }
 
 function pdayLayLow(){const p=S.players[S.cur];closeModal();pdayResolve(p);}
 function pdayPacks(){const p=S.players[S.cur];if(p.cash<10)return;p.cash-=10;p.packs+=5;log(p.name+L(" stocks up at the commissary: +5 packs (-$10K). Quiet day."," se abastece na cantina: +5 maços (-$10K). Dia tranquilo."),"good");closeModal();render();finish();}
