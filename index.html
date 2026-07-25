@@ -763,7 +763,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v20.9";
+const APP_VERSION="v21.0";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -1990,7 +1990,7 @@ function updateControls(){
   if(!p.alive)h.textContent="";
   else if(p.ai)h.textContent=L("AI is thinking...","IA pensando...");
   else if(p.inJail)h.textContent=L("In JAIL. Tap die to face COURT DAY.","Na CADEIA. Toque no dado para ir ao TRIBUNAL.");
-  else if(p.ring==="inner")h.textContent=L("PRISON. Each full lap = 1 year served.","PRIS\u00c3O. Cada volta completa = 1 ano cumprido.");
+  else if(p.ring==="inner")h.textContent=L("PRISON. Tap ACTION for a move, then the die to do your time.","PRISÃO. Toque em AÇÃO pra um corre, depois no dado pra cumprir a pena.");
   else if(!S.rolled)h.textContent=L("Tap the die to move.","Toque no dado para andar.");
   else h.textContent=L("Move resolved — next player up...","Jogada resolvida — pr\u00f3ximo jogador...");
   const ab=document.getElementById("actionBtn");
@@ -2013,6 +2013,24 @@ function openActions(){
   const p=S.players[S.cur];
   if(!p||p.ai||!p.alive||S.over)return;
   const el=document.getElementById("cardEl"); el.dataset.deck="";
+  if(p.ring==="inner"){
+    const acted=!!p._prisonActed;
+    const A=(fn,lbl)=> acted?`<span style="opacity:.4">${L('used this turn','usado neste turno')}</span>`:`<button class="amber" onclick="${fn}">${lbl}</button>`;
+    const prow=(label,desc,btn)=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 2px;border-bottom:1px solid var(--phos-dim)"><span>${label}${desc?`<br><span style="opacity:.55;font-size:11px">${desc}</span>`:""}</span><span style="white-space:nowrap">${btn}</span></div>`;
+    let prs="";
+    prs+=prow(L("Rob an inmate","Assaltar um preso"),L("roll over half the die = grab packs; miss = lose a few. No death.","dado acima da metade = leva maços; falha = perde alguns. Sem morte."),A("pdayRob()",L("[ ROB ]","[ ASSALTAR ]")));
+    prs+=prow(L("Hit job","Serviço"),L("always kill for packs + cash; a low roll = caught, +1 year.","sempre mata por maços + grana; dado baixo = rodou, +1 ano."),A("pdayHit()",L("[ HIT ]","[ SERVIÇO ]")));
+    prs+=prow(L("Sell drugs","Vender droga"),L("roll for cash + packs; a low roll = a search seizes stock.","dado por grana + maços; dado baixo = revista apreende."),A("pdayDrugs()",L("[ DEAL ]","[ VENDER ]")));
+    prs+=prow(L("Auto-play","Jogo automático"),L("let the game play your turns","deixe o jogo jogar por você"),`<button id="autoBtn" onclick="toggleAuto()">${tr(p.auto?"[ AUTO: ON ]":"[ AUTO: OFF ]")}</button>`);
+    el.innerHTML=`<div class="lbl" style="background:${p.color}">${L("PRISON ACTIONS","AÇÕES DE PRISÃO")}</div>
+      <div class="ttl">${L("One move, then roll","Um corre, depois role")}</div>
+      <div class="sub" style="opacity:.7;text-align:left">${acted?L("You already made your move this turn — tap the die to do your time.","Você já fez seu corre neste turno — toque no dado pra cumprir a pena."):L("Pick a move — it rolls the dice and shows the result. Then tap the die to do your time.","Escolha um corre — ele joga o dado e mostra o resultado. Depois toque no dado pra cumprir a pena.")}</div>
+      <div class="bd" style="text-align:left">${prs}</div>
+      <div class="go"><button onclick="closeModal()">${L("[ CLOSE ]","[ FECHAR ]")}</button></div>
+      ${statusBar()}`;
+    openModal(true);
+    return;
+  }
   const canCrime=!S.rolled&&p.ring==="outer"&&!p.inJail&&p.crimeOps>0;
   const canHire=p.ring==="outer"&&!p.inJail;
   const canSell=p.owns.size>0||p.crew>0;
@@ -2627,8 +2645,8 @@ function resolveInner(){
     case "pentry":log(L("Prison entry. Do your time.","Entrada da prisão. Cumpra sua pena."));finish();break;
     case "pday":
       if(p.ai){
-        if(p.packs<=1){ if(p.cash>=10){p.cash-=10;p.packs+=5;log(p.name+L(" buys 5 packs at the commissary (-$10K)."," compra 5 maços na cantina (-$10K)."),"warn");render();finish();break;} aiPrisonRob(p); break; }
-        { const _r=Math.random(); if(_r<0.28){ aiPrisonDrugs(p); break; } if(_r<0.42){ aiPrisonHit(p); break; } }
+        // AI restocks protection when low, else does its time
+        if(p.packs<=1&&p.cash>=10){p.cash-=10;p.packs+=5;log(p.name+L(" buys 5 packs at the commissary (-$10K)."," compra 5 maços na cantina (-$10K)."),"warn");render();finish();break;}
         pdayResolve(p);break;
       }
       prisonDayMenu();
@@ -3643,54 +3661,56 @@ function prisonDayMenu(){
   const p=S.players[S.cur];
   const el=document.getElementById("cardEl");
   el.dataset.deck="pday";
+  const packCost=2; // $2K/pack — commissary markup over the CO's $1K
+  const canPacks=p.cash>=packCost*5;
   const canBribe=p.cash>=40&&p.sentence>1;
   el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('PRISON DAY','DIA DE PRISÃO')}</div>
     <div class="art">.</div><div class="ttl">${L('Another day inside','Mais um dia lá dentro')}</div>
-    <div class="bd">${L('You have ','Você tem ')}${p.packs}${LANG==='PT'?' maço(s)':(p.packs===1?' pack':' packs')} ${L('and ','e ')}${p.sentence}${L('y left. Do your time, or make a move — one action, roll the dice.','a restando. Cumpra a pena, ou faça um corre — uma ação, jogue o dado.')}</div>
-    <div class="out">${p.packs<=0?L('⚠ NO PACKS — lay low unprotected and the block may beat you. Rob or deal to stock up.','⚠ SEM MAÇOS — ficar quieto sem proteção pode dar surra. Assalte ou venda pra estocar.'):L('One move per prison day. No limit across your whole sentence.','Um corre por dia de prisão. Sem limite ao longo da pena.')}</div>
+    <div class="bd">${L('Count clears at dawn. You have ','A contagem fecha de madrugada. Você tem ')}${p.packs}${LANG==='PT'?' maço(s)':(p.packs===1?' pack':' packs')} ${L('and ','e ')}${p.sentence}${L('y left on the clock. How do you spend the day?','a restando no relógio. Como vai passar o dia?')}</div>
+    <div class="out">${p.packs<=0?L("⚠ NO PACKS — laying low unprotected can get you beaten or killed.","⚠ SEM MAÇOS — ficar quieto sem proteção pode acabar em surra ou morte."):L("Packs keep the block off your back.","Maços mantêm o pátio longe de você.")}</div>
     <div class="go" style="flex-direction:column">
-      <button onclick="pdayLayLow()">${L('[ ROLL — do your time ]','[ JOGAR — cumprir a pena ]')}</button>
-      <button class="amber" onclick="pdayRob()">${L('[ ROB AN INMATE — roll for packs ]','[ ASSALTAR UM PRESO — dado por maços ]')}</button>
-      <button class="amber" onclick="pdayHit()">${L('[ HIT JOB — kill for packs + cash ]','[ SERVIÇO — matar por maços + grana ]')}</button>
-      <button class="amber" onclick="pdayDrugs()">${L('[ SELL DRUGS — packs + cash ]','[ VENDER DROGA — maços + grana ]')}</button>
-      ${canBribe?`<button onclick="pdayBribe()">${L('[ BRIBE A CO — −1 YEAR · $40K ]','[ SUBORNAR AGENTE — −1 ANO · $40K ]')}</button>`:""}
+      <button onclick="pdayLayLow()">${L('[ LAY LOW — do your time ]','[ FICAR QUIETO — cumprir a pena ]')}</button>
+      ${canPacks?`<button onclick="pdayPacks()">${L('[ COMMISSARY — 5 packs · $10K ]','[ CANTINA — 5 maços · $10K ]')}</button>`:""}
+      ${canBribe?`<button class="amber" onclick="pdayBribe()">${L('[ BRIBE A CO — −1 YEAR · $40K ]','[ SUBORNAR AGENTE — −1 ANO · $40K ]')}</button>`:""}
+      <button class="red" onclick="pdayYard()">${L('[ RUN THE YARD — hustle for packs, risk a brawl ]','[ CORRER O PÁTIO — ganhar maços, arriscar briga ]')}</button>
     </div>
     ${statusBar()}`;
   openModal();
 }
+function afterPrisonAction(){ render(); updateControls(); }
 function prisonRoll(){ const sides=(typeof S!=="undefined"&&S&&S.baseDice)||6; const r=1+Math.floor(Math.random()*sides); return {r:r,sides:sides,win:r>sides/2}; }
 function pdayRob(){
-  const p=S.players[S.cur]; closeModal();
+  const p=S.players[S.cur]; p._prisonActed=true; closeModal();
   const rr=prisonRoll(); const tag=L('YOU ROLLED ','VOCÊ TIROU ')+rr.r+'/'+rr.sides;
   if(rr.win){ const got=rr.r+Math.floor(Math.random()*3); p.packs+=got; render();
     log(p.name+L(' robs an inmate (',' assalta um preso (')+rr.r+'/'+rr.sides+L(') — +',') — +')+got+L(' pack(s).',' maço(s).'),'good');
-    showNotice(L('ROB AN INMATE','ASSALTAR UM PRESO'),'$$',tag+' — '+L('SUCCESS','SUCESSO'),L('You cornered him at the sinks and walked off with his stash — +','Você o encurralou na pia e saiu com o bagulho dele — +')+got+L(' pack(s). No blood, no guards.',' maço(s). Sem sangue, sem agente.'),()=>finish());
+    showNotice(L('ROB AN INMATE','ASSALTAR UM PRESO'),'$$',tag+' — '+L('SUCCESS','SUCESSO'),L('You cornered him at the sinks and walked off with his stash — +','Você o encurralou na pia e saiu com o bagulho dele — +')+got+L(' pack(s). No blood, no guards.',' maço(s). Sem sangue, sem agente.'),()=>afterPrisonAction());
   } else { const lost=Math.min(p.packs,1+Math.floor(Math.random()*3)); p.packs-=lost; render();
     log(p.name+L(' botches a robbery (',' erra um assalto (')+rr.r+'/'+rr.sides+L(') — -',') — -')+lost+L(' pack(s).',' maço(s).'),'warn');
-    showNotice(L('ROB AN INMATE','ASSALTAR UM PRESO'),'$$',tag+' — '+L('BOTCHED','FRACASSO'),L('He was ready for you — nothing gained, and you dropped ','Ele te esperava — não levou nada e ainda perdeu ')+lost+L(' of your own. Nobody dies over cigarettes today.',' dos seus. Ninguém morre por cigarro hoje.'),()=>finish());
+    showNotice(L('ROB AN INMATE','ASSALTAR UM PRESO'),'$$',tag+' — '+L('BOTCHED','FRACASSO'),L('He was ready for you — nothing gained, and you dropped ','Ele te esperava — não levou nada e ainda perdeu ')+lost+L(' of your own. Nobody dies over cigarettes today.',' dos seus. Ninguém morre por cigarro hoje.'),()=>afterPrisonAction());
   }
 }
 function pdayHit(){
-  const p=S.players[S.cur]; closeModal();
+  const p=S.players[S.cur]; p._prisonActed=true; closeModal();
   const rr=prisonRoll(); const pk=4+Math.floor(Math.random()*5); const cash=30+Math.floor(Math.random()*41);
   p.packs+=pk; p.cash+=cash; const tag=L('YOU ROLLED ','VOCÊ TIROU ')+rr.r+'/'+rr.sides;
   if(rr.win){ render();
     log(p.name+L(' takes a hit contract (',' aceita um serviço (')+rr.r+'/'+rr.sides+L(') — clean kill. +',') — morte limpa. +')+pk+L(' pk, +',' mç, +')+fmtK(cash)+'.','good');
-    showNotice(L('HIT JOB','SERVIÇO'),')|(',tag+' — '+L('CLEAN KILL','MORTE LIMPA'),L('The contract is done and nobody saw the shank change hands. The block pays you ','O serviço tá feito e ninguém viu a chucha passar de mão. O pavilhão te paga ')+pk+L(' pack(s) and ',' maço(s) e ')+fmtK(cash)+L('. No extra time.','. Sem tempo extra.'),()=>finish());
+    showNotice(L('HIT JOB','SERVIÇO'),')|(',tag+' — '+L('CLEAN KILL','MORTE LIMPA'),L('The contract is done and nobody saw the shank change hands. The block pays you ','O serviço tá feito e ninguém viu a chucha passar de mão. O pavilhão te paga ')+pk+L(' pack(s) and ',' maço(s) e ')+fmtK(cash)+L('. No extra time.','. Sem tempo extra.'),()=>afterPrisonAction());
   } else { p.sentence+=1; render();
     log(p.name+L(' takes a hit contract (',' aceita um serviço (')+rr.r+'/'+rr.sides+L(') — killed but caught: +1 year. Prize paid.',') — matou mas rodou: +1 ano. Prêmio pago.'),'warn');
-    showNotice(L('HIT JOB','SERVIÇO'),')|(',tag+' — '+L('KILLED — BUT CAUGHT','MATOU — MAS RODOU'),L('The target is gone and you got paid — +','O alvo já era e você recebeu — +')+pk+L(' pack(s), ',' maço(s), ')+fmtK(cash)+L(' — but the story points at you. +1 YEAR on the clock.',' — mas a história aponta pra você. +1 ANO na conta.'),()=>finish());
+    showNotice(L('HIT JOB','SERVIÇO'),')|(',tag+' — '+L('KILLED — BUT CAUGHT','MATOU — MAS RODOU'),L('The target is gone and you got paid — +','O alvo já era e você recebeu — +')+pk+L(' pack(s), ',' maço(s), ')+fmtK(cash)+L(' — but the story points at you. +1 YEAR on the clock.',' — mas a história aponta pra você. +1 ANO na conta.'),()=>afterPrisonAction());
   }
 }
 function pdayDrugs(){
-  const p=S.players[S.cur]; closeModal();
+  const p=S.players[S.cur]; p._prisonActed=true; closeModal();
   const rr=prisonRoll(); const tag=L('YOU ROLLED ','VOCÊ TIROU ')+rr.r+'/'+rr.sides;
   if(rr.win){ const cash=20+Math.floor(Math.random()*31); const pk=2+Math.floor(Math.random()*3); p.cash+=cash; p.packs+=pk; render();
     log(p.name+L(' moves product on the block (',' gira o produto no pavilhão (')+rr.r+'/'+rr.sides+L(') — +',') — +')+fmtK(cash)+L(', +',', +')+pk+L(' pk.',' mç.'),'good');
-    showNotice(L('SELL DRUGS','VENDER DROGA'),'Rx',tag+' — '+L('GOOD RUN','BOM CORRE'),L('Your people outside kept the supply coming and the block kept buying — +','Sua gente na rua manteve o abastecimento e o pavilhão comprando — +')+fmtK(cash)+L(' and ',' e ')+pk+L(' pack(s) banked.',' maço(s) no bolso.'),()=>finish());
+    showNotice(L('SELL DRUGS','VENDER DROGA'),'Rx',tag+' — '+L('GOOD RUN','BOM CORRE'),L('Your people outside kept the supply coming and the block kept buying — +','Sua gente na rua manteve o abastecimento e o pavilhão comprando — +')+fmtK(cash)+L(' and ',' e ')+pk+L(' pack(s) banked.',' maço(s) no bolso.'),()=>afterPrisonAction());
   } else { const lost=Math.min(p.packs,2+Math.floor(Math.random()*2)); p.packs-=lost; p.heat=(p.heat||0)+1; render();
     log(p.name+L(' gets shaken down (',' é revistado (')+rr.r+'/'+rr.sides+L(') — -',') — -')+lost+L(' pk, +1 heat.',' mç, +1 risco.'),'warn');
-    showNotice(L('SELL DRUGS','VENDER DROGA'),'Rx',tag+' — '+L('SHOOK DOWN','REVISTADO'),L('A cell search hit at the worst time — they took ','Uma revista veio na pior hora — levaram ')+lost+L(' pack(s) and flagged your file (+1 heat). No time added.',' maço(s) e marcaram sua ficha (+1 risco). Sem tempo extra.'),()=>finish());
+    showNotice(L('SELL DRUGS','VENDER DROGA'),'Rx',tag+' — '+L('SHOOK DOWN','REVISTADO'),L('A cell search hit at the worst time — they took ','Uma revista veio na pior hora — levaram ')+lost+L(' pack(s) and flagged your file (+1 heat). No time added.',' maço(s) e marcaram sua ficha (+1 risco). Sem tempo extra.'),()=>afterPrisonAction());
   }
 }
 /* AI prison moves — silent (log only, no modal) */
@@ -4271,6 +4291,7 @@ function endTurn(){ if(S.over)return; if(!S.rolled)return;
     if(np.alive)break;
   }while(g<30);
   S.rolled=false;document.getElementById("diceLbl").textContent="roll to move";
+  if(S.players[S.cur]) S.players[S.cur]._prisonActed=false;
   render();updateControls();
   saveGame();
   const np=S.players[S.cur];
