@@ -105,12 +105,14 @@
   #log .rd b{color:var(--amber)}
   #log .l{margin-bottom:1px;padding-left:4px}
   #log .l.warn{color:var(--amber)} #log .l.bad{color:var(--red)} #log .l.good{color:var(--phos)}
+  #log .l.story{opacity:.9;font-style:italic;border-left:2px solid var(--phos-dim);padding-left:6px;margin:2px 0}
   .expicon{font-size:9px;letter-spacing:1px;color:var(--amber);border:1px solid var(--amber);padding:1px 5px;margin-left:6px;vertical-align:middle;white-space:nowrap}
   #logBig{font-size:18px;line-height:1.55;white-space:pre-wrap;word-break:break-word;max-height:64vh;overflow-y:auto;text-align:left;padding:2px}
   #logBig .rd{border:1px solid var(--phos-dark);padding:6px 8px;margin-bottom:8px}
   #logBig .rd b{color:var(--amber)}
   #logBig .l{margin-bottom:3px;padding-left:4px}
   #logBig .l.warn{color:var(--amber)} #logBig .l.bad{color:var(--red)} #logBig .l.good{color:var(--phos)}
+  #logBig .l.story{opacity:.9;font-style:italic;border-left:2px solid var(--phos-dim);padding-left:6px;margin:3px 0}
   .controls{display:flex;gap:6px;flex-wrap:wrap}
   button{background:linear-gradient(180deg,rgba(10,61,24,.3),rgba(1,6,2,.3));color:var(--phos);border:1px solid var(--phos);border-radius:2px;font-family:inherit;font-size:12px;padding:8px 12px;cursor:pointer;letter-spacing:1px;font-weight:bold;text-shadow:inherit;transition:all .1s;box-shadow:0 0 8px rgba(57,255,116,.15),inset 0 0 8px rgba(10,61,24,.3)}
   button:hover:not(:disabled){background:var(--phos);color:#020a04;text-shadow:none;box-shadow:0 0 16px rgba(57,255,116,.6)}
@@ -763,7 +765,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v21.5";
+const APP_VERSION="v21.6";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -3345,6 +3347,8 @@ function outcomeAndButton(c,deck){
 }
 
 /* ===== APPLY CARD ===== */
+/* decks whose card narrative gets echoed into the console as a story beat */
+const STORY_DECKS={heist:1,hitman:1,drug:1,party:1,fate:1,cop:1,pfight:1,riot:1,court:1,raid:1};
 function applyCard(){
   const el=document.getElementById("cardEl");
   const c=el._card;const deck=el._deck;const p=S.players[S.cur];
@@ -3353,6 +3357,8 @@ function applyCard(){
   // record crime for profile with real charge name + years exposure
   recordCharge(p,deck,c);
   recordNetwork(p,deck,c);
+  // STORY BEATS: echo the card's own narrative into the console so the log reads like a story
+  if(STORY_DECKS[deck]){ try{ const _t=trCard(deck,c); if(_t&&_t.bd) log(p.name+" · "+(_t.ttl?_t.ttl+": ":"")+_t.bd,"story"); }catch(e){} }
   // PARTY poker bets
   if(deck==="party"&&c.tag==="poker"){ p.cash+=(c.win?c.bet:-c.bet);if(c.win)mkDirty(p,c.bet); log(p.name+(c.win?L(" wins $"," ganha $"):L(" loses $"," perde $"))+c.bet+L("K at ","K em ")+(LANG==='PT'?(TTL_PT[c.ttl]||c.ttl):c.ttl),c.win?"good":"warn"); afterMoney(p); if(!c.raidArr){finish();return;} }
   if(c.cut){
