@@ -763,7 +763,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v21.4";
+const APP_VERSION="v21.5";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -3715,7 +3715,7 @@ function pdayRob(){
 }
 function pdayHit(){
   const p=S.players[S.cur]; p._prisonActed=true; closeModal();
-  const rr=prisonRoll(); const _hc=(typeof activeDeck==="function"&&activeDeck("hitman"))||[]; const cash=(_hc.length?(_hc[Math.floor(Math.random()*_hc.length)].cut||20):20); const pk=1+Math.floor(Math.random()*3);
+  const rr=prisonRoll(); const cash=5+Math.floor(Math.random()*21); const pk=1+Math.floor(Math.random()*3);   // modest prison payout (5-25 base); scales with local currency for display
   p.packs+=pk; p.cash+=cash; p.kills=(p.kills||0)+1;
   const tag=L('YOU ROLLED ','VOCÊ TIROU ')+rr.r+'/'+rr.sides;
   const m=prisonHitMethod(); const M=m.charAt(0).toUpperCase()+m.slice(1);
@@ -3741,7 +3741,7 @@ function pdayDrugs(){
 /* AI prison moves — silent (log only, no modal) */
 function aiPrisonRob(p){ const rr=prisonRoll(); if(rr.win){const got=rr.r+Math.floor(Math.random()*3);p.packs+=got;log(p.name+L(' robs an inmate (',' assalta um preso (')+rr.r+'/'+rr.sides+L(') — +',') — +')+got+L(' pk.',' mç.'),'warn');}else{const lost=Math.min(p.packs,1+Math.floor(Math.random()*3));p.packs-=lost;log(p.name+L(' botches a robbery (',' erra um assalto (')+rr.r+'/'+rr.sides+L(') — -',') — -')+lost+L(' pk.',' mç.'),'warn');} render(); finish(); }
 function aiPrisonDrugs(p){ const rr=prisonRoll(); if(rr.win){const cash=20+Math.floor(Math.random()*31),pk=2+Math.floor(Math.random()*3);p.cash+=cash;p.packs+=pk;log(p.name+L(' deals on the block (',' vende no pavilhão (')+rr.r+'/'+rr.sides+L(') — +',') — +')+fmtK(cash)+L(', +',', +')+pk+L(' pk.',' mç.'),'warn');}else{const lost=Math.min(p.packs,2+Math.floor(Math.random()*2));p.packs-=lost;p.heat=(p.heat||0)+1;log(p.name+L(' is shaken down in a search.',' é revistado numa batida.'),'warn');} render(); finish(); }
-function aiPrisonHit(p){ const rr=prisonRoll(); const _hc=(typeof activeDeck==="function"&&activeDeck("hitman"))||[]; const cash=(_hc.length?(_hc[Math.floor(Math.random()*_hc.length)].cut||20):20),pk=1+Math.floor(Math.random()*3); p.packs+=pk; p.cash+=cash; p.kills=(p.kills||0)+1; if(!rr.win)p.sentence+=1; const m=prisonHitMethod(); log(p.name+L(' — prison hit: ',' — serviço na cadeia: ')+m+' ('+rr.r+'/'+rr.sides+', +'+pk+L(' pk, +',' mç, +')+fmtK(cash)+(rr.win?'':L(', +1y',', +1a'))+').','warn'); render(); finish(); }
+function aiPrisonHit(p){ const rr=prisonRoll(); const cash=5+Math.floor(Math.random()*21),pk=1+Math.floor(Math.random()*3); p.packs+=pk; p.cash+=cash; p.kills=(p.kills||0)+1; if(!rr.win)p.sentence+=1; const m=prisonHitMethod(); log(p.name+L(' — prison hit: ',' — serviço na cadeia: ')+m+' ('+rr.r+'/'+rr.sides+', +'+pk+L(' pk, +',' mç, +')+fmtK(cash)+(rr.win?'':L(', +1y',', +1a'))+').','warn'); render(); finish(); }
 
 function pdayLayLow(){const p=S.players[S.cur];closeModal();pdayResolve(p);}
 function pdayPacks(){const p=S.players[S.cur];if(p.cash<10)return;p.cash-=10;p.packs+=5;log(p.name+L(" stocks up at the commissary: +5 packs (-$10K). Quiet day."," se abastece na cantina: +5 maços (-$10K). Dia tranquilo."),"good");closeModal();render();finish();}
