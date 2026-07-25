@@ -691,6 +691,7 @@
 
 <div id="setup">
 <button id="setupOptBtn" onclick="openSettings()" title="options" style="position:absolute;top:14px;right:14px;z-index:5">[ OPT ]</button>
+<button id="fsBtnSetup" onclick="toggleFullscreen()" title="fullscreen" style="position:absolute;top:14px;left:14px;z-index:5;display:none">[ &#9974; ]</button>
 <div style="font-size:clamp(36px,11vw,68px);font-weight:bold;letter-spacing:8px;line-height:1;text-align:center">CRIMINAL</div>
 <div style="font-size:clamp(16px,5vw,30px);font-weight:bold;letter-spacing:12px;text-align:center;line-height:1.1">TERMINAL</div>
 <div id="verSub" style="font-size:clamp(10px,2.6vw,13px);letter-spacing:2px;text-align:center;opacity:.6;margin:4px 0 10px">// crime terminal v16.3</div>
@@ -713,6 +714,7 @@
     <div id="turnBanner">TURN 1</div>
     <div class="topbtns">
       <button class="amber" onclick="openSupport()" title="support the developer">[ &#9829; ]</button>
+      <button id="fsBtn" onclick="toggleFullscreen()" title="fullscreen" style="display:none">[ &#9974; ]</button>
       <button onclick="openPause()" title="standings & net-worth chart">[ CHART ]</button>
       <button id="settingsBtn" onclick="openSettings()" title="options">[ OPT ]</button>
     </div>
@@ -761,7 +763,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v20.6";
+const APP_VERSION="v20.7";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -1566,6 +1568,19 @@ const SFX={
   win:()=>{[523,659,784,1047].forEach((f,i)=>beep(f,.12,.045,i*.13));},
 };
 function toggleSnd(){ SND=!SND; try{localStorage.setItem("ct_snd",SND?"on":"off");}catch(e){} const b=document.getElementById("sndBtn"); if(b)b.textContent=SND?"[ SND ]":"[ MUTE ]"; if(SND)SFX.card(); }
+/* ===== Fullscreen ===== iOS Safari (iPhone) has no Fullscreen API, so these no-op there and the
+   buttons hide themselves. On Android/desktop the game fills the screen. Fullscreen must be entered
+   from a user gesture (browser rule), so autoFS() rides the first language tap. */
+function fsSupported(){ try{ const el=document.documentElement; return !!(el.requestFullscreen||el.webkitRequestFullscreen||el.webkitRequestFullScreen)&&document.fullscreenEnabled!==false; }catch(e){ return false; } }
+function fsActive(){ return !!(document.fullscreenElement||document.webkitFullscreenElement); }
+function fsEnter(){ try{ const el=document.documentElement; const rf=el.requestFullscreen||el.webkitRequestFullscreen||el.webkitRequestFullScreen; if(rf){ const r=rf.call(el); if(r&&r.catch)r.catch(function(){}); } }catch(e){} }
+function fsExit(){ try{ const xf=document.exitFullscreen||document.webkitExitFullscreen; if(xf)xf.call(document); }catch(e){} }
+function toggleFullscreen(){ if(fsActive())fsExit(); else fsEnter(); setTimeout(syncFSBtn,60); }
+function syncFSBtn(){ const on=fsActive(),ok=fsSupported(); ["fsBtn","fsBtnSetup"].forEach(function(id){ const b=document.getElementById(id); if(!b)return; b.style.display=ok?"":"none"; b.textContent=on?"[ ⤡ ]":"[ ⛶ ]"; b.title=on?"exit fullscreen":"fullscreen"; }); }
+let _fsTried=false;
+function autoFS(){ if(_fsTried)return; _fsTried=true; if(fsSupported()&&!fsActive())fsEnter(); setTimeout(syncFSBtn,80); }
+document.addEventListener("fullscreenchange",syncFSBtn);
+document.addEventListener("webkitfullscreenchange",syncFSBtn);
 function setPoliceVol(v){ if(!POLICE_VOLS[v])v="M"; _polVol=v; try{localStorage.setItem("ct_polvol",v);}catch(e){} if(SND){SFX.siren();} openSettings(); }
 function setGameVol(v){ if(!GAME_VOLS[v])v="M"; _gameVol=v; try{localStorage.setItem("ct_gamevol",v);}catch(e){} if(SND){SFX.gunHandgun();} openSettings(); }
 function setAICards(m){ AI_AUTOCARDS=(m!=="manual"); try{localStorage.setItem("ct_aicards",AI_AUTOCARDS?"auto":"manual");}catch(e){} openSettings(); }
@@ -4558,7 +4573,7 @@ const CODES={"666": {"tag": "6 6 6  ·  D E V I L", "art": ["    ░▓▓▓░
   }
   function finish(){ if(phase==="done")return; phase="done"; gate.classList.add("hidden"); const k=document.getElementById("doskeys"); if(k)k.remove(); }
 
-  window._pickLang=function(l){ setLang(l); try{applyStaticLang();}catch(e){} startLogin(); };
+  window._pickLang=function(l){ try{autoFS();}catch(e){} setLang(l); try{applyStaticLang();}catch(e){} startLogin(); };
   function langScreen(){
     out.innerHTML="";
     nl("CRIMINAL TERMINAL (R) "+APP_VERSION);
@@ -4590,6 +4605,7 @@ window.addEventListener("resize",()=>{try{if(typeof fitBoard==="function")fitBoa
 try{ if(window.ResizeObserver){ let _rt; const _ro=new ResizeObserver(()=>{ clearTimeout(_rt); _rt=setTimeout(()=>{try{fitBoard();}catch(e){}},120); }); const _bp=document.querySelector(".board-panel"); if(_bp)_ro.observe(_bp); else document.addEventListener("DOMContentLoaded",()=>{const p=document.querySelector(".board-panel");if(p)_ro.observe(p);}); } }catch(e){}
 renderSetupStart(); dosBoot();
 (function(){ const b=document.getElementById("sndBtn"); if(b&&!SND)b.textContent="[ MUTE ]"; })();
+try{ syncFSBtn(); }catch(e){}
 </script>
 </body>
 </html>
