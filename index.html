@@ -763,7 +763,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v20.8";
+const APP_VERSION="v20.9";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -1129,7 +1129,7 @@ function bumpPlayCount(n){try{for(let i=0;i<(n||1);i++)fetch(CNT_URL+"/hit/"+CNT
 fetchPlayCount();
 
 /* ===== SETUP FLOW ===== */
-let setupData={n:0,players:[],idx:0,city:"NY",capital:null,startCash:null,dice:1,dice0:null,police:null,year:1987};
+let setupData={n:0,players:[],idx:0,city:"NY",capital:null,startCash:null,dice:1,dice0:null,police:null,year:1987,status:"free"};
 /* POLICE = how hard the law comes down — a multiplier on arrest odds.
    VERY LOW = a quarter, LOW = half, REALISTIC = full (the balanced game). */
 const POLICE_LABELS={0.25:"VERY LOW",0.5:"LOW",1:"REALISTIC",3:"HARD",4:"BRAZILIAN"};
@@ -1149,6 +1149,8 @@ function renderSetupStart(){
   const cB=(c,lbl)=>`<button class="cfg${cap===c?' sel':''}" onclick="selectCapital(${c})">[ ${lbl} ]</button>`;
   const sB=(n,lbl)=>`<button class="cfg${sp===n?' sel':''}" onclick="selectSpeed(${n})">[ ${lbl} ]</button>`;
   const pB=(f,lbl)=>`<button class="cfg${pol===f?' sel':''}" onclick="selectPolice(${f})">[ ${lbl} ]</button>`;
+  const st=setupData.status||'free';
+  const stB=(k,lbl)=>`<button class="cfg${st===k?' sel':''}" onclick="selectStatus('${k}')">[ ${lbl} ]</button>`;
   const pC=(n)=>`<button class="cfg${setupData.n===n?' sel':''}" onclick="selectCount(${n})">[ ${n} ]</button>`;
   const ready=(cap!=null)&&sp&&(pol!=null)&&setupData.n;
   const sv=loadSave();
@@ -1174,17 +1176,20 @@ function renderSetupStart(){
      <div class="cfghead">3. ${L('YEAR','ANO')} <span style="opacity:.55">${L('(the year play begins)','(o ano em que o jogo come\u00e7a)')}</span></div>
      <div class="choice"><button class="cfg sel" onclick="openYearPad()">[ ${setupData.year||1987} ]</button></div>
      <div class="cfgflavor">&gt; ${L('the clock starts in ','o rel\u00f3gio come\u00e7a em ')}${setupData.year||1987}${L(' \u2014 each year on the street rolls it forward',' \u2014 cada ano na rua avan\u00e7a o calend\u00e1rio')}</div>
-     <div class="cfghead">4. ${L('INITIAL CAPITAL','CAPITAL INICIAL')} <span style="opacity:.55">${L('(type any amount)','(digite qualquer valor)')}</span></div>
+     <div class="cfghead">4. ${L('STATUS','SITUAÇÃO')} <span style="opacity:.55">${L('(how everyone starts)','(como todos começam)')}</span></div>
+     <div class="choice">${stB('free',L('FREE','LIVRE'))}${stB('prison',L('IN PRISON · 5Y','PRESO · 5A'))}</div>
+     ${st==='prison'?`<div class="cfgflavor">&gt; ${L('every player opens the game inside, serving 5 years — do your time, rob, deal or hit your way out.','todos começam presos, cumprindo 5 anos — cumpra a pena, assalte, venda ou faça serviço pra sair.')}</div>`:''}
+     <div class="cfghead">5. ${L('INITIAL CAPITAL','CAPITAL INICIAL')} <span style="opacity:.55">${L('(type any amount)','(digite qualquer valor)')}</span></div>
      <div class="choice"><button class="cfg${cap!=null?' sel':''}" onclick="openCapitalPad()">[ ${cap!=null?fmtK(cap):L('SET AMOUNT »','DEFINIR VALOR »')} ]</button></div>
      ${cap!=null?`<div class="cfgflavor">&gt; ${capFlavor(cap)||(fmtK(cap)+L(' to start with',' pra começar'))}</div>`:''}
-     <div class="cfghead">5. ${L('DICE','DADOS')} <span style="opacity:.55">${L('(bigger die = years pass faster)','(dado maior = anos passam mais rápido)')}</span></div>
+     <div class="cfghead">6. ${L('DICE','DADOS')} <span style="opacity:.55">${L('(bigger die = years pass faster)','(dado maior = anos passam mais rápido)')}</span></div>
      <div class="choice">${sB(6,'D6')}${sB(8,'D8')}${sB(10,'D10')}</div>
      ${sp?`<div class="cfgflavor">&gt; ${L('about ','cerca de ')}${roundsPerYear(sp)}${L(' rounds \u2248 1 year at this speed',' rodadas \u2248 1 ano nessa velocidade')}</div>`:''}
-     <div class="cfghead">6. ${L('POLICE','POLÍCIA')} <span style="opacity:.55">${L('(how likely a raid puts you away)','(chance de uma batida te prender)')}</span></div>
+     <div class="cfghead">7. ${L('POLICE','POLÍCIA')} <span style="opacity:.55">${L('(how likely a raid puts you away)','(chance de uma batida te prender)')}</span></div>
      <div class="choice">${pB(0.25,L('VERY LOW · ¼','MUITO BAIXA · ¼'))}${pB(0.5,L('LOW · ½','BAIXA · ½'))}${pB(1,L('REALISTIC','REALISTA'))}${pB(3,L('HARD','DIFÍCIL'))}${pB(4,L('BRAZILIAN','BRASILEIRA'))}</div>
      ${pol===3?`<div class="cfgflavor">&gt; ${L('brutal — every police raid ends in an arrest. no escapes.','brutal — toda batida policial termina em prisão. sem escapatória.')}</div>`:''}
      ${pol===4?`<div class="cfgflavor">&gt; ${L('raids escalate — 1st: tortured to the hospital · 2nd: shot to the hospital · 3rd: twenty rounds, dead. no arrests, no trial.','as batidas escalam — 1ª: torturado, pro hospital · 2ª: baleado, pro hospital · 3ª: vinte tiros, morto. sem prisão, sem julgamento.')}</div>`:''}
-     <div class="cfghead">7. ${ready?L('READY.','PRONTO.'):L('&lt; finish the setup above &gt;','&lt; complete a configuração acima &gt;')}</div>
+     <div class="cfghead">8. ${ready?L('READY.','PRONTO.'):L('&lt; finish the setup above &gt;','&lt; complete a configuração acima &gt;')}</div>
      <button class="cfggo" ${ready?'':'disabled'} onclick="afterSpeed()">${L('[ CONTINUE » ]','[ CONTINUAR » ]')}</button>
      <div class="hint">${L('Outer ring = the street (1 lap = 1 year). Arrested → JAIL → COURT → PRISON. Broke+hurt → HOSPITAL (3 = dead). 10+ soldiers = bonus die. Win: last boss standing, or retire with '+fmtK(10000)+' at 65.','Anel externo = a rua (1 volta = 1 ano). Preso → CADEIA → TRIBUNAL → PRIS\u00c3O. Quebrado+ferido → HOSPITAL (3 = morto). 10+ soldados = dado b\u00f4nus. Vit\u00f3ria: \u00faltimo chef\u00e3o de p\u00e9, ou se aposente com '+fmtK(10000)+' aos 65.')}</div>
    </div>
@@ -1199,6 +1204,7 @@ function selectCity(k){ setupData.city=k; renderSetupStart(); }
 function selectCapital(c){ setupData.capital=c; setupData.startCash=c; renderSetupStart(); }
 function selectSpeed(n){ setupData.dice0=n; setupData.dice=n; renderSetupStart(); }
 function selectPolice(f){ setupData.police=f; renderSetupStart(); }
+function selectStatus(k){ setupData.status=k; renderSetupStart(); }
 function selectCount(n){ setupData.n=n; renderSetupStart(); }
 /* INITIAL CAPITAL: type any amount on a keypad, with quick suggested amounts */
 let _cp=null;
@@ -1367,6 +1373,10 @@ function launch(){
   for(let i=roster.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));const t=roster[i];roster[i]=roster[j];roster[j]=t;}
   S.players=roster.map((p,i)=>{const pl=newPlayer(i,p.name,p.pattern);pl.ai=p.ai;pl.cash=startCash;pl.age=p.age||25;pl.startAge=pl.age;pl.startCash=startCash;
     if(pl.ai)pl.temper=p.temper||(Math.random()<.72?"AGGRESSIVE":"CAREFUL");return pl;});
+  // STATUS: everyone can open the game already inside, serving 5 years
+  if((setupData.status||"free")==="prison"){
+    S.players.forEach(pl=>{ pl.ring="inner"; pl.pos=0; pl.sentence=5; pl.packs=Math.max(pl.packs||0,6); pl.inJail=false; pl.yearsServed=0; });
+  }
   document.getElementById("setup").style.display="none";
   document.getElementById("screen").style.display="flex";
   buildBoardGrid();
