@@ -763,7 +763,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v21.1";
+const APP_VERSION="v21.2";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -1116,7 +1116,7 @@ let S=null;
 function newPlayer(i,name,pattern){return{id:i,name:name||("P"+(i+1)),color:"#33ff44",pattern:pattern||"solid",ring:"outer",pos:0,
   cash:100,crew:0,packs:0,alive:true,respawns:0,hosp:0,cleanLaps:0,
   inJail:false,sentence:0,owns:new Map(),skip:0,freeArrest:0,freeRaid:0,
-  crimes:[],network:[],stayCount:0,age:15,crimeOps:3,yearsServed:0,heat:0,dirty:0,nwHist:[],soldierKills:0,bossKills:0};}
+  crimes:[],network:[],stayCount:0,age:15,crimeOps:3,yearsServed:0,heat:0,dirty:0,nwHist:[],soldierKills:0,bossKills:0,kills:0};}
 
 /* ===== GLOBAL PLAYER COUNTER: every person who starts a game, counted worldwide.
    Uses the free abacus hit-counter API; fails silently offline — the game never depends on it. ===== */
@@ -1278,12 +1278,17 @@ const CITY_GHOSTS={
   CDMX:["DURAZO","AMADO","EL BARBAS","EL INGENIERO","RAMÓN","NIÑO DE ORO","EL COCHILOCO","EL CHAYO","NACHO CORONEL","EL LAZCA","Z-1"],
   SP:  ["PAREJA","HIROITO","LUZ VERMELHA","MATADOR","CONSELHEIRO","GELEIÃO","CESINHA","BIRÔ","TONHÃO","CABEÇA BRANCA"]
 };
+/* Brazilian maps use only these ghost names (Cidade de Deus / Tropa de Elite) */
+const BR_GHOSTS=["ZÉ PEQUENO","DADINHO","BENÉ","CABELEIRA","ALICATE","MARRECO","BARBANTINHO","FILÉ-COM-FRITAS","MANÉ GALINHA","CABEÇÃO","LAMPIÃO","PARAÍBA","NEGUINHO","TIO SAM","TOURO","GRANDE","JABÁ","PAULISTA","EXU","GELSON","OTTO","CENOURA","BOCA","BISCOITINHO","PELÉ","NASCIMENTO","NETO","MATIAS","BAIANO","XUXA","TUCO","FÁBIO","CAPITÃO OLIVEIRA","CAPITÃO AZEVEDO","SARGENTO OLIVEIRA","ROCHA","CLAUDINHO","BEIRADA","MARCINHO","GUIMARÃES","FORTUNATO","CADU","PLAYBOY","PERNAMBUCO","CHINA","BETO","JAPONÊS","RUSSO","CEBOLA","VADO","SANDRO","ALEMÃO","CEARÁ","MINEIRO","GORDO","BAIXINHO","NEGO","CHICO","NEGO PRETO","MAJESTADE","LADY DI","SEM CHANCE","EZEQUIEL","DEUSDETE","ZICO","PEIXEIRA","GILSON","DADÁ","BARBA","FUINHA","LULA","PIMENTA","CHARUTO","MÁRIO CACHORRO","COELHO","PAULO BOCA","ANTÔNIO CARLOS","CLAUDIOMIRO","ZÉ DA CASA VERDE","VALDIR","DITO","LILICA","FUMAÇA","SAPO","CHICO BARRIGUDO","ALFINETE","CIGANO","PIXOTE","DITO SAPO","GAROTO","SUJINHO","CRISTAL","BABALU","TIÃO","JORGINHO","CAMALEÃO","PARÁ","BOLACHA","MOSCA","CARECA","NELSÃO","DENTINHO","GAGO","FERRUGEM","BUIÚ","CARLINHOS","BODE","CANÁRIO","PORTUGUÊS","JACARÉ","BOCA RICA","ESCADINHA","ALEMÃOZINHO"];
 function aiName(){
   const taken=(setupData.players||[]).map(p=>(p.name||"").toUpperCase());
   const k=(typeof _cityKey==="function")?_cityKey():"NY";
   const free=arr=>arr.filter(n=>!taken.includes(n.toUpperCase()));
-  const city=free(CITY_GHOSTS[k]||[]);                 // prefer this city's real criminals
-  const src=city.length?city:(free(AI_NAMES).length?free(AI_NAMES):AI_NAMES);   // then the generic pool
+  const isBR=!!(typeof CITIES!=="undefined"&&CITIES[k]&&CITIES[k].cur==="R$");   // Brazilian maps: their own name pool only
+  const basePool=isBR?BR_GHOSTS:(CITY_GHOSTS[k]||[]);
+  const city=free(basePool);
+  const fallback=isBR?BR_GHOSTS:AI_NAMES;
+  const src=city.length?city:(free(fallback).length?free(fallback):fallback);
   return src[Math.floor(Math.random()*src.length)];
 }
 /* ===== GHOST AGGRESSION: 4 tiers, most → least aggressive. AGGRESSIVE & CAREFUL
@@ -1717,7 +1722,7 @@ function hexA(hex,a){const n=parseInt(hex.slice(1),16);return`rgba(${(n>>16)&255
 function newRound(){
   const box=document.getElementById("log");
   const rd=document.createElement("div");rd.className="rd";rd.id="round-"+S.turn;
-  rd.innerHTML=`<b>${L("ROUND","RODADA")} ${S.turn}</b>`;
+  rd.innerHTML=`<b>${L("ROUND","RODADA")} ${S.turn} · ${gameYear()}</b>`;
   box.insertBefore(rd,box.firstChild);
   S.roundEl=rd;
   recordNW();
@@ -3040,7 +3045,9 @@ function commitCrime(){
   // crime is a FREE action before your roll — you still move afterwards
   updateControls();
   const jobs=["heist","hitman","drug"];               // the streets decide what the job is
-  drawStory(jobs[Math.floor(Math.random()*jobs.length)]);
+  const job=jobs[Math.floor(Math.random()*jobs.length)];
+  if(job==="hitman")p.kills=(p.kills||0)+1;            // a contract killing goes on the record
+  drawStory(job);
 }
 function offerHire(){
   const p=S.players[S.cur];
@@ -3693,12 +3700,12 @@ function pdayRob(){
 function pdayHit(){
   const p=S.players[S.cur]; p._prisonActed=true; closeModal();
   const rr=prisonRoll(); const pk=4+Math.floor(Math.random()*5); const cash=30+Math.floor(Math.random()*41);
-  p.packs+=pk; p.cash+=cash; const tag=L('YOU ROLLED ','VOCÊ TIROU ')+rr.r+'/'+rr.sides;
+  p.packs+=pk; p.cash+=cash; p.kills=(p.kills||0)+1; const tag=L('YOU ROLLED ','VOCÊ TIROU ')+rr.r+'/'+rr.sides;
   if(rr.win){ render();
     log(p.name+L(' takes a hit contract (',' aceita um serviço (')+rr.r+'/'+rr.sides+L(') — clean kill. +',') — morte limpa. +')+pk+L(' pk, +',' mç, +')+fmtK(cash)+'.','good');
     showNotice(L('HIT JOB','SERVIÇO'),')|(',tag+' — '+L('CLEAN KILL','MORTE LIMPA'),L('The contract is done and nobody saw the shank change hands. The block pays you ','O serviço tá feito e ninguém viu a chucha passar de mão. O pavilhão te paga ')+pk+L(' pack(s) and ',' maço(s) e ')+fmtK(cash)+L('. No extra time.','. Sem tempo extra.'),()=>afterPrisonAction());
   } else { p.sentence+=1; render();
-    log(p.name+L(' takes a hit contract (',' aceita um serviço (')+rr.r+'/'+rr.sides+L(') — killed but caught: +1 year. Prize paid.',') — matou mas rodou: +1 ano. Prêmio pago.'),'warn');
+    log(p.name+L(' takes a hit contract (',' aceita um serviço (')+rr.r+'/'+rr.sides+L(') — killed but caught: +1 year. +',') — matou mas rodou: +1 ano. +')+pk+L(' pk, +',' mç, +')+fmtK(cash)+'.','warn');
     showNotice(L('HIT JOB','SERVIÇO'),')|(',tag+' — '+L('KILLED — BUT CAUGHT','MATOU — MAS RODOU'),L('The target is gone and you got paid — +','O alvo já era e você recebeu — +')+pk+L(' pack(s), ',' maço(s), ')+fmtK(cash)+L(' — but the story points at you. +1 YEAR on the clock.',' — mas a história aponta pra você. +1 ANO na conta.'),()=>afterPrisonAction());
   }
 }
@@ -3716,7 +3723,7 @@ function pdayDrugs(){
 /* AI prison moves — silent (log only, no modal) */
 function aiPrisonRob(p){ const rr=prisonRoll(); if(rr.win){const got=rr.r+Math.floor(Math.random()*3);p.packs+=got;log(p.name+L(' robs an inmate (',' assalta um preso (')+rr.r+'/'+rr.sides+L(') — +',') — +')+got+L(' pk.',' mç.'),'warn');}else{const lost=Math.min(p.packs,1+Math.floor(Math.random()*3));p.packs-=lost;log(p.name+L(' botches a robbery (',' erra um assalto (')+rr.r+'/'+rr.sides+L(') — -',') — -')+lost+L(' pk.',' mç.'),'warn');} render(); finish(); }
 function aiPrisonDrugs(p){ const rr=prisonRoll(); if(rr.win){const cash=20+Math.floor(Math.random()*31),pk=2+Math.floor(Math.random()*3);p.cash+=cash;p.packs+=pk;log(p.name+L(' deals on the block (',' vende no pavilhão (')+rr.r+'/'+rr.sides+L(') — +',') — +')+fmtK(cash)+L(', +',', +')+pk+L(' pk.',' mç.'),'warn');}else{const lost=Math.min(p.packs,2+Math.floor(Math.random()*2));p.packs-=lost;p.heat=(p.heat||0)+1;log(p.name+L(' is shaken down in a search.',' é revistado numa batida.'),'warn');} render(); finish(); }
-function aiPrisonHit(p){ const rr=prisonRoll(); const pk=4+Math.floor(Math.random()*5),cash=30+Math.floor(Math.random()*41); p.packs+=pk; p.cash+=cash; if(!rr.win)p.sentence+=1; log(p.name+L(' pulls a prison hit (',' faz um serviço na cadeia (')+rr.r+'/'+rr.sides+L(') — +',') — +')+pk+L(' pk, +',' mç, +')+fmtK(cash)+(rr.win?'':L(', +1y',', +1a'))+'.','warn'); render(); finish(); }
+function aiPrisonHit(p){ const rr=prisonRoll(); const pk=4+Math.floor(Math.random()*5),cash=30+Math.floor(Math.random()*41); p.packs+=pk; p.cash+=cash; p.kills=(p.kills||0)+1; if(!rr.win)p.sentence+=1; log(p.name+L(' pulls a prison hit (',' faz um serviço na cadeia (')+rr.r+'/'+rr.sides+L(') — +',') — +')+pk+L(' pk, +',' mç, +')+fmtK(cash)+(rr.win?'':L(', +1y',', +1a'))+'.','warn'); render(); finish(); }
 
 function pdayLayLow(){const p=S.players[S.cur];closeModal();pdayResolve(p);}
 function pdayPacks(){const p=S.players[S.cur];if(p.cash<10)return;p.cash-=10;p.packs+=5;log(p.name+L(" stocks up at the commissary: +5 packs (-$10K). Quiet day."," se abastece na cantina: +5 maços (-$10K). Dia tranquilo."),"good");closeModal();render();finish();}
@@ -4267,6 +4274,7 @@ function showProfile(id,fromPause){
       <div class="cvbox" style="grid-column:1/-1"><div class="cvh">${L("BODY COUNT","MORTES")}</div>
         <div class="cvrow"><span>${L("Enemy soldiers killed","Soldados inimigos mortos")}</span><span>${p.soldierKills||0}</span></div>
         <div class="cvrow"><span>${L("Rival bosses killed","Chefes rivais mortos")}</span><span>${p.bossKills||0}</span></div>
+        <div class="cvrow"><span>${L("Bodies (hits & murders)","Corpos (serviços e mortes)")}</span><span>${p.kills||0}</span></div>
       </div>
       <div class="cvbox" style="grid-column:1/-1"><div class="cvh">${L("NETWORK","REDE")} · ${(p.network||[]).length} ${L("contact","contato")}${(p.network||[]).length===1?"":"s"}</div><div class="cvlist">${network}</div></div>
     </div>
@@ -4399,7 +4407,9 @@ function aiMaybeCrime(p){
   p.crimeOps--;
   log(p.name+L(" goes looking for a score."," sai atrás de um golpe."),"warn");
   const jobs=["heist","hitman","drug"];
-  drawStory(jobs[Math.floor(Math.random()*jobs.length)]);
+  const job=jobs[Math.floor(Math.random()*jobs.length)];
+  if(job==="hitman")p.kills=(p.kills||0)+1;
+  drawStory(job);
   aiResumeTurn();                                  // crime is a free action — the roll comes after the card
   return true;
 }
