@@ -765,7 +765,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v22.3";
+const APP_VERSION="v22.4";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -1825,6 +1825,32 @@ function setAICards(m){ AI_AUTOCARDS=(m!=="manual"); try{localStorage.setItem("c
 function setAISpeed(s){ if(!AI_SPEEDS[s])s="SLOW"; AI_SPEED=s; try{localStorage.setItem("ct_aispeed",s);}catch(e){} openSettings(); }
 
 /* ===== BOARD GRID (HEIST at bottom-left) ===== */
+function showCellInfo(idx){
+  if(typeof S==="undefined"||!S)return;
+  const c=OUTER[idx]; if(!c)return;
+  const per=c.incomeBase||c.price||c.income||0;
+  const owner=S.players.find(x=>x.owns&&x.owns.has(idx));
+  const cnt=owner?owner.owns.get(idx):0;
+  const isStreet=c.k==="street", isBiz=c.k==="biz";
+  const nm=(LANG==='PT'?(CELL_PT[c.t]||c.t):c.t);
+  let lines=[];
+  lines.push(`${L("Type","Tipo")}: ${(LANG==='PT'?(CELL_PT[c.k]||c.k):c.k)}`);
+  if(per>0) lines.push(`${L("Base value","Valor base")}: ${fmtK(per)}`);
+  if(owner){
+    lines.push(`${L("Owner","Dono")}: ${owner.name}`);
+    lines.push(`${L(isBiz?"Workers":"Soldiers",isBiz?"Funcionários":"Soldados")}: ${cnt}`);
+    if(isStreet){ const toll=Math.round(per*cnt/2); lines.push(`${L("Toll if you land","Pedágio se cair")}: ${fmtK(toll)}`); }
+    else if(isBiz){ lines.push(`${L("Product if a rival lands","Produto se um rival cai")}: ${fmtK(per*cnt)}`); }
+  } else if(per>0){
+    lines.push(L("Unclaimed — open to buy.","Sem dono — livre para comprar."));
+  }
+  const el=document.getElementById("cardEl"); if(!el)return; el.dataset.deck=""; el.dataset.read="";
+  el.innerHTML=`<div class="lbl">${L("CELL","CASA")}</div>
+    <div class="ttl">${nm}</div>
+    <div class="out" style="text-align:left;white-space:pre-line">${lines.join("\n")}</div>
+    <div class="go"><button onclick="closeModal()">${L("[ CLOSE ]","[ FECHAR ]")}</button></div>`;
+  openModal(true);
+}
 function buildBoardGrid(){
   const N=11;const board=document.getElementById("board");board.style.gridTemplateColumns=`repeat(${N},1fr)`;
   // Build perimeter starting bottom-left, going UP the left side, across top, down right, back across bottom.
@@ -1853,6 +1879,7 @@ function buildBoardGrid(){
   }
   // barbed-wire fence: an absolutely-positioned grid child pinned to the prison's own grid tracks
   // (rows/cols 4-8 of the 11-grid) — aligns on every browser with zero pixel math
+  board.onclick=function(e){ const cell=e.target&&e.target.closest?e.target.closest(".cell"):null; if(!cell)return; const ring=cell.dataset.ring; const idx=parseInt(cell.dataset.idx,10); if(ring==="outer"&&!isNaN(idx)&&!document.getElementById("modal").classList.contains("on")) showCellInfo(idx); };
   board.insertAdjacentHTML("beforeend",
     `<div id="prisonFence"><span class="pfw t">x x x x x x x x x x x x</span><span class="pfw b">x x x x x x x x x x x x</span><span class="pfw l">x x x x x x x x</span><span class="pfw r">x x x x x x x x</span><div id="innerLabel">${cityPrison().split("").join(" ")}</div></div>`);
 }
@@ -2243,6 +2270,9 @@ function openActions(){
     canHire?`<button onclick="actDo('hire')">${L("[ HIRE ]","[ CONTRATAR ]")}</button>`:off);
   rows+=row(L("Attack a rival","Atacar um rival"), L("send soldiers at a rival's turf or business \u2014 this is your move (no roll)","envie soldados contra a \u00e1rea ou neg\u00f3cio de um rival \u2014 \u00e9 sua jogada (sem rolar)"),
     canAttack?`<button class="red" onclick="actDo('attack')">${L("[ ATTACK \u00b7 ","[ ATACAR \u00b7 ")}${p.crew}${L(" sol ]"," sol ]")}</button>`:off);
+    const canExec=!S.rolled&&p.ring==="outer"&&!p.inJail&&S.players.some(o=>o.id!==p.id&&o.alive&&p.cash>=execCost(o));
+  rows+=row(L("Call an execution","Mandar executar"), L("2× the target's net worth — instant kill, and you seize their turf","2× o patrimônio do alvo — morte na hora, e você toma a área dele"),
+    canExec?`<button class="red" onclick="execMenu()">${L("[ EXECUTE ]","[ EXECUTAR ]")}</button>`:off);
   rows+=row(L("Sell assets","Vender bens"), L("cash out property or businesses","liquidar propriedades ou neg\u00f3cios"),
     canSell?`<button class="red" onclick="actDo('sell')">${L("[ SELL ]","[ VENDER ]")}</button>`:off);
   rows+=row(L("Auto-play","Jogo autom\u00e1tico"), L("let the game play your turns","deixe o jogo jogar por voc\u00ea"),
@@ -3367,6 +3397,31 @@ function orderHit(oid,free){
   }
 }
 
+function execCost(o){ return Math.max(1, Math.round(netWorth(o)*2)); }
+function execMenu(){
+  const p=S.players[S.cur]; const rivals=S.players.filter(o=>o.alive&&o.id!==p.id);
+  const el=document.getElementById("cardEl"); el.dataset.deck="";
+  el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('EXECUTION','EXECUÇÃO')}</div>
+    <div class="art">)|(</div><div class="ttl">${L('Who dies today?','Quem morre hoje?')}</div>
+    <div class="bd">${L('The price is double what they are worth — paid up front. It buys the bullet and everything they own.','O preço é o dobro do que ele vale — pago à vista. Compra a bala e tudo que ele tem.')}</div>
+    <div class="go" style="flex-direction:column">
+      ${rivals.map(o=>{const cst=execCost(o);const aff=p.cash>=cst;return `<button class="red" ${aff?"":'disabled style="opacity:.45"'} onclick="executePlayer(${o.id})">[ ${o.name} — ${fmtK(cst)} · ${o.owns.size} ${L("turf","áreas")} ]</button>`;}).join("")}
+      <button onclick="openActions()">${L('[ ‹ BACK ]','[ ‹ VOLTAR ]')}</button>
+    </div>${statusBar()}`;
+  openModal();
+}
+function executePlayer(oid){
+  const p=S.players[S.cur], o=S.players[oid]; if(!o||!o.alive)return;
+  const cost=execCost(o); if(p.cash<cost)return;
+  p.cash-=cost; S.rolled=true;
+  o.owns.forEach((cnt,idx)=>{ p.owns.set(idx,(p.owns.get(idx)||0)+cnt); }); o.owns=new Map();
+  o._deathCause=L("Executed on a contract — stripped of everything","Executado num contrato — perdeu tudo");
+  o._gunDeath=true;
+  closeModal(); try{SFX.overkill();}catch(e){}
+  log(p.name+L(" pays "," paga ")+fmtK(cost)+L(" to have "," pra mandar ")+o.name+L(" executed — and seizes their turf."," ser executado — e toma a área dele."),"bad");
+  render();
+  killPlayer(o,p);
+}
 /* ===== ATTACK (reworked) ===== */
 /* atkExit: when the attack came from the ACTION menu it must NOT end the turn — just return to play. */
 function atkExit(){ const p=S.players[S.cur]; if(p&&p._atkMenu){ p._atkMenu=false; closeModal(); render(); } else { finish(); } }
@@ -3407,29 +3462,30 @@ function doAttack(fromMenu){
 }
 function attackTarget(oid,idx){
   const p=S.players[S.cur];const o=S.players[oid];const def=o.owns.get(idx)||0;
-  p._atkTarget={oid,idx};
-  if(p._atkPick===undefined||p._atkPick<1) p._atkPick=Math.min(p.crew, Math.max(1,def+1));
-  p._atkPick=Math.max(1,Math.min(p._atkPick,p.crew));
-  const pick=p._atkPick;
-  const el=document.getElementById("cardEl");
+  p._atkTarget={oid,idx}; p._atkPick=0;
+  const el=document.getElementById("cardEl"); el.dataset.deck="";
   el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('ATTACK','ATAQUE')}</div>
     <div class="art">)|(</div><div class="ttl">${L('Send how many?','Enviar quantos?')}</div>
-    <div class="sub">${L('Target: ','Alvo: ')}<b>${OUTER[idx].t} ${L('of','de')} ${o.name}</b> — ${L('defended by','defendido por')} ${def} soldado${def===1?"":"s"}. ${L('You have ','Voc\u00ea tem ')}${p.crew}. ${L('Win if you send more than ','Vence se enviar mais que ')}${def}.</div>
-    <div style="text-align:center;font-size:26px;font-weight:bold;margin:6px 0">${L('Sending','Enviando')}: ${pick} ${L('of','de')} ${p.crew}</div>
-    <div class="go" style="flex-wrap:wrap">
-      <button onclick="atkPick(-1)" ${pick<=1?'disabled':''}>[ − ]</button>
-      <button onclick="atkPick(1)" ${pick>=p.crew?'disabled':''}>[ + ]</button>
-      <button onclick="atkPick('max')">${L('[ ALL ','[ TODOS ')}${p.crew} ]</button>
+    <div class="sub">${L('Target: ','Alvo: ')}<b>${OUTER[idx].t} ${L('of','de')} ${o.name}</b> — ${L('defended by','defendido por')} ${def} soldado${def===1?"":"s"}. ${L('You have ','Você tem ')}${p.crew}. ${L('Send more than ','Envie mais que ')}${def} ${L('to take it.','para tomar.')}</div>
+    <div class="out qdisp"><span id="atkval">0</span> / ${p.crew}</div>
+    <div class="qkrow">
+      <button onclick="atkKey('1')">1</button><button onclick="atkKey('2')">2</button><button onclick="atkKey('3')">3</button>
+      <button onclick="atkKey('4')">4</button><button onclick="atkKey('5')">5</button><button onclick="atkKey('6')">6</button>
+      <button onclick="atkKey('7')">7</button><button onclick="atkKey('8')">8</button><button onclick="atkKey('9')">9</button>
+      <button class="amber" onclick="atkMax()">${L('ALL','TODOS')}</button><button onclick="atkKey('0')">0</button><button onclick="atkDel()">&#9003;</button>
     </div>
-    <div class="go">
-      <button class="red" onclick="confirmAttack()">${L('[ SEND ','[ ENVIAR ')}${pick} ]</button>
-      <button onclick="doAttack()">${L('[ &lsaquo; BACK ]','[ &lsaquo; VOLTAR ]')}</button>
+    <div class="go" style="margin-top:8px">
+      <button class="red" id="atksend" onclick="confirmAttack()">${L('[ SEND · none ]','[ ENVIAR · nada ]')}</button>
+      <button onclick="doAttack()">${L('[ ‹ BACK ]','[ ‹ VOLTAR ]')}</button>
     </div>
     ${statusBar()}`;
   openModal();
 }
-function atkPick(d){const p=S.players[S.cur];if(d==='max')p._atkPick=p.crew;else p._atkPick=Math.max(1,Math.min(p.crew,(p._atkPick||1)+d));attackTarget(p._atkTarget.oid,p._atkTarget.idx);}
-function confirmAttack(){const p=S.players[S.cur];const t=p._atkTarget;const n=p._atkPick||1;p._atkPick=undefined;p._atkTarget=undefined;resolveAttack(p,S.players[t.oid],t.idx,n);}
+function _atkShow(){ const p=S.players[S.cur]; const d=document.getElementById("atkval"); if(d)d.textContent=p._atkPick||0; const b=document.getElementById("atksend"); if(b)b.textContent=((p._atkPick||0)>0?(L('[ SEND ','[ ENVIAR ')+(p._atkPick)+' ]'):L('[ SEND · none ]','[ ENVIAR · nada ]')); }
+function atkKey(dg){ const p=S.players[S.cur]; const cur=String(p._atkPick||0); let nv=parseInt((cur==="0"?"":cur)+dg,10)||0; p._atkPick=Math.max(0,Math.min(p.crew,nv)); _atkShow(); }
+function atkDel(){ const p=S.players[S.cur]; const cur=String(p._atkPick||0); p._atkPick=parseInt(cur.slice(0,-1),10)||0; _atkShow(); }
+function atkMax(){ const p=S.players[S.cur]; p._atkPick=p.crew; _atkShow(); }
+function confirmAttack(){const p=S.players[S.cur];const t=p._atkTarget;const n=p._atkPick||0;if(n<1)return;p._atkPick=undefined;p._atkTarget=undefined;resolveAttack(p,S.players[t.oid],t.idx,n);}
 function resolveAttack(p,o,idx,atk){
   closeModal();
   const def=o.owns.get(idx)||0;
