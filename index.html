@@ -765,7 +765,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v22.6";
+const APP_VERSION="v22.7";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -3332,13 +3332,25 @@ function qpOpenStreet(idx,c){ const p=S.players[S.cur]; const per=c.price; OUTER
 function commitCrime(){
   const p=S.players[S.cur];
   if(p.ai||!p.alive||S.over||S.rolled||p.ring!=="outer"||p.inJail||p.crimeOps<=0)return;
+  const el=document.getElementById("cardEl"); if(!el)return; el.dataset.deck="";
+  el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('COMMIT A CRIME','COMETER UM CRIME')}</div>
+    <div class="ttl">${L('What kind of job?','Que tipo de serviço?')}</div>
+    <div class="bd">${L('Pick your line of work — you have ','Escolha seu ramo — você tem ')}${p.crimeOps}${L(' crime chance(s) left this year.',' chance(s) de crime este ano.')}</div>
+    <div class="go" style="flex-direction:column">
+      <button onclick="doCrime('heist')">${L('[ HEIST — rob for cash ]','[ ASSALTO — roubar por grana ]')}</button>
+      <button class="red" onclick="doCrime('hitman')">${L('[ HIT — a contract kill ]','[ MATADOR — morte encomendada ]')}</button>
+      <button class="amber" onclick="doCrime('drug')">${L('[ DRUG RUN — move product ]','[ TRÁFICO — girar produto ]')}</button>
+      <button onclick="closeModal()">${L('[ CANCEL ]','[ CANCELAR ]')}</button>
+    </div>${statusBar()}`;
+  openModal();
+}
+function doCrime(job){
+  const p=S.players[S.cur];
+  if(p.ai||!p.alive||S.over||S.rolled||p.ring!=="outer"||p.inJail||p.crimeOps<=0){closeModal();return;}
   p.crimeOps--;
   log(p.name+L(" goes looking for a score ("," sai atrás de um golpe (")+p.crimeOps+L(" crime chances left)."," chances de crime restantes)."),"warn");
-  // crime is a FREE action before your roll — you still move afterwards
   updateControls();
-  const jobs=["heist","hitman","drug"];               // the streets decide what the job is
-  const job=jobs[Math.floor(Math.random()*jobs.length)];
-  if(job==="hitman")p.kills=(p.kills||0)+1;            // a contract killing goes on the record
+  if(job==="hitman")p.kills=(p.kills||0)+1;
   drawStory(job);
 }
 function offerHire(){
@@ -4042,7 +4054,7 @@ function pdayRob(){
   }
 }
 function pdayHit(){
-  const p=S.players[S.cur]; p._prisonActed=true; closeModal();
+  const p=S.players[S.cur]; p._prisonActed=true; closeModal(); try{silentKill();}catch(e){}
   const rr=prisonRoll(); const cash=prisonCash(10,30); const pk=1+Math.floor(Math.random()*3);   // modest prison payout (5-25 base); scales with local currency for display
   p.packs+=pk; p.cash+=cash; p.kills=(p.kills||0)+1;
   const tag=L('YOU ROLLED ','VOCÊ TIROU ')+rr.r+'/'+rr.sides;
@@ -4146,7 +4158,7 @@ function prisonDeath(p,why){
   const di=Math.floor(Math.random()*PRISON_DEATHS.length);
   const d=LANG==='PT'?{t:PRISON_DEATHS_PT[di].t,bd:PRISON_DEATHS_PT[di].b}:PRISON_DEATHS[di];
   p._deathCause=d.t; p._diedInPrison=true;
-  silentKill();setTimeout(()=>SFX.funeral(),350);
+  silentKill();setTimeout(()=>SFX.funeral(),1300);
   p.alive=false;p.diedAt=p.age;p.diedTurn=S.turn;releaseHoldings(p);
   log(p.name+L(" is KILLED IN PRISON — "," é MORTO NA PRISÃO — ")+d.t+L(". OUT.",". FORA."),"bad");
   render();
@@ -4186,7 +4198,7 @@ function empireLine(p){const s=(!p.alive&&p._empire)?p._empire:empireStats(p);
 function killPlayer(p,killer){
   if(careerActive()&&!p.ai&&p.alive&&(p.age>30)){ careerSonRevive(p); return; }
   if(killer&&killer!==p&&killer.id!==p.id){ killer.bossKills=(killer.bossKills||0)+1; }   // credit the boss who ordered it
-  if(p._gunDeath){SFX.flatline();}else{silentKill();}setTimeout(()=>SFX.funeral(),350);
+  if(p._gunDeath){SFX.flatline();setTimeout(()=>SFX.funeral(),350);}else{silentKill();setTimeout(()=>SFX.funeral(),1300);}
   if(!p._deathCause&&p._hospCause)p._deathCause=L("Flatlined in the hospital after ","Apagou no hospital depois de ")+p._hospCause;
   if(p.ring==="inner"){ p._diedInPrison=true; if(!p._deathCause){ const _di=Math.floor(Math.random()*PRISON_DEATHS.length); p._deathCause=(LANG==='PT'?PRISON_DEATHS_PT[_di].t:PRISON_DEATHS[_di].t); } }
   p.alive=false;p.diedAt=p.age;p.diedTurn=S.turn;releaseHoldings(p);log(p.name+L(" DIES for good at "," MORRE de vez aos ")+p.age+L(". OUT.",". FORA."),"bad");
