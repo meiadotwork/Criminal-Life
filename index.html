@@ -765,7 +765,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v22.4";
+const APP_VERSION="v22.5";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -2555,17 +2555,20 @@ function stepMove(p,left){
   if(ring==="outer"&&p.pos===0){p.age++;p.crimeOps=3;log(p.name+L(" makes it another year (now "," sobrevive mais um ano (agora ")+p.age+L(" yo). Crime chances refilled."," anos). Chances de crime renovadas."),"");
     if(p.heat>0){p.heat=Math.max(0,p.heat-5);log(p.name+L("'s heat cools a little (now ",": o risco esfria um pouco (agora ")+p.heat+"%).","");}
     {const _bz=Array.from(p.owns.keys()).filter(i=>OUTER[i]&&OUTER[i].k==="biz").length; if(_bz>0){const _bh=_bz*4; p.heat=Math.min(80,(p.heat||0)+_bh); log(p.name+L(" — the operation draws federal heat +"," — a operação atrai risco federal +")+_bh+"% ("+_bz+L(" biz)."," neg)."),"warn");}}
-    if(p.crew>0){const wages=p.crew*SOLDIER_WAGE;p.cash-=wages;log(p.name+L(" pays soldier wages: "," paga salário dos soldados: ")+fmtK(wages)+" ("+p.crew+" × "+fmtK(SOLDIER_WAGE)+L("/yr).","/ano)."),"warn");}
+    let _wages=0,_laund=0,_ownML=false,_crew=p.crew;
+    if(p.crew>0){_wages=p.crew*SOLDIER_WAGE;p.cash-=_wages;log(p.name+L(" pays soldier wages: "," paga salário dos soldados: ")+fmtK(_wages)+" ("+p.crew+" × "+fmtK(SOLDIER_WAGE)+L("/yr).","/ano)."),"warn");}
     if((p.dirty||0)>0&&p.cash>0){
       const base=Math.min(p.dirty,p.cash);
-      const ownML=p.owns.has(ML_POS);const rate=ownML?0.10:0.30;
-      const laund=Math.round(base*rate);
-      if(laund>0){p.cash-=laund;
-        if(ownML)log(p.name+L(" launders "," lava ")+fmtK(base)+L(" of dirty money through their own operation — only "," de dinheiro sujo pela própria operação — só ")+fmtK(laund)+" (10%).","good");
-        else log(p.name+L(" launders "," lava ")+fmtK(base)+L(" of dirty money — the launderers take "," de dinheiro sujo — os lavadores levam ")+fmtK(laund)+" (30%).","warn");}
+      _ownML=p.owns.has(ML_POS);const rate=_ownML?0.10:0.30;
+      _laund=Math.round(base*rate);
+      if(_laund>0){p.cash-=_laund;
+        if(_ownML)log(p.name+L(" launders "," lava ")+fmtK(base)+L(" of dirty money through their own operation — only "," de dinheiro sujo pela própria operação — só ")+fmtK(_laund)+" (10%).","good");
+        else log(p.name+L(" launders "," lava ")+fmtK(base)+L(" of dirty money — the launderers take "," de dinheiro sujo — os lavadores levam ")+fmtK(_laund)+" (30%).","warn");}
     }
     p.dirty=0;   // whatever you hold now is clean; the new year starts fresh
     p.cleanLaps++;   // life does NOT heal on its own — you must pay to patch up at the HOSPITAL
+    if(!p.ai) p._books={inc:(p._yrIn||0),wages:_wages,laund:_laund,ownML:_ownML,crew:_crew,year:(typeof gameYear==="function"?gameYear():1987)};
+    p._yrIn=0;
     if(p.age>=65&&netWorth(p)>=10000){showRetire(p);return;}}   // RETIRE UNTOUCHABLE: $10M net worth + age 65
   render();
   scrollToToken();
@@ -2827,16 +2830,38 @@ function autoTick(){
   if(!S.rolled) rollDice();
 }
 function arriveCell(p){
+  if(p._books && !p.ai){ const bk=p._books; p._books=null; showBooksCard(bk,()=>arriveCell(p)); return; }
   document.getElementById("diceLbl").textContent="landed";
   if(p.ring==="inner"){log(p.name+L(" (prison) → "," (prisão) → ")+(LANG==='PT'?(CELL_PT[INNER[p.pos].t]||INNER[p.pos].t):INNER[p.pos].t));resolveInner();}
   else{log(p.name+" → "+(LANG==='PT'?(CELL_PT[OUTER[p.pos].t]||OUTER[p.pos].t):OUTER[p.pos].t));resolveOuter();}
+}
+/* ===== THE BOOKS — a clear year-end statement of money in and money out (human only) ===== */
+let _booksThen=null;
+function booksOK(){ closeModal(); const t=_booksThen; _booksThen=null; if(typeof t==="function")t(); }
+function showBooksCard(bk,then){
+  _booksThen=then;
+  const p=S.players[S.cur];
+  const el=document.getElementById("cardEl"); if(!el){ if(then)then(); return; } el.dataset.deck=""; el.dataset.read="";
+  const line=(label,val,good)=>`<div style="display:flex;justify-content:space-between;gap:12px;padding:6px 2px;border-bottom:1px solid var(--phos-dim)"><span>${label}</span><span style="color:${good?'var(--phos)':'var(--red)'};font-weight:bold;white-space:nowrap">${good?'+':'−'}${fmtK(Math.abs(val))}</span></div>`;
+  let rows="";
+  if(bk.inc>0) rows+=line(L("Income collected","Renda coletada"),bk.inc,true);
+  if(bk.wages>0) rows+=line(L("Soldier wages","Salário dos soldados")+" ("+bk.crew+")",bk.wages,false);
+  if(bk.laund>0) rows+=line(L("Money laundering","Lavagem de dinheiro")+" ("+(bk.ownML?"10%":"30%")+")",bk.laund,false);
+  const net=bk.inc-bk.wages-bk.laund;
+  const netRow=`<div style="display:flex;justify-content:space-between;gap:12px;padding:9px 2px 4px;font-weight:bold;font-size:15px"><span>${L("NET THIS YEAR","SALDO DO ANO")}</span><span style="color:${net>=0?'var(--phos)':'var(--red)'};white-space:nowrap">${net>=0?'+':'−'}${fmtK(Math.abs(net))}</span></div>`;
+  const cashRow=`<div style="display:flex;justify-content:space-between;gap:12px;padding:2px"><span style="opacity:.7">${L("Cash on hand","Em caixa")}</span><span style="white-space:nowrap">${fmtK(p.cash)}</span></div>`;
+  el.innerHTML=`<div class="lbl">${L("THE BOOKS","O CAIXA")} — ${bk.year}</div>
+    <div class="ttl">${L("Year-end accounts","Balanço do ano")}</div>
+    <div class="out" style="text-align:left">${rows?(rows+netRow+cashRow):L("A quiet year — no money moved.","Ano parado — nada de dinheiro mudou.")}</div>
+    <div class="go"><button class="amber" onclick="booksOK()">${L("[ CONTINUE ]","[ CONTINUAR ]")}</button></div>`;
+  openModal(true);
 }
 /* one business/property pays a full year's profit when you lap back around to it */
 function collectOne(p,idx){
   if(!p.owns.has(idx))return 0;
   const cell=OUTER[idx];const unit=cell.incomeBase||cell.price||cell.income||0;
   const inc=unit*p.owns.get(idx);
-  if(inc>0){p.cash+=inc;mkDirty(p,inc);SFX.cash();log(p.name+L(" collects "," coleta ")+fmtK(inc)+L(" — a year's profit from "," — o lucro do ano de ")+cell.t+".","good");}
+  if(inc>0){p.cash+=inc;p._yrIn=(p._yrIn||0)+inc;mkDirty(p,inc);SFX.cash();log(p.name+L(" collects "," coleta ")+fmtK(inc)+L(" — a year's profit from "," — o lucro do ano de ")+cell.t+".","good");}
   return inc;
 }
 function cellUnit(idx){const c=OUTER[idx];return c.incomeBase||c.price||c.income||0;}
