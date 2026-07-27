@@ -765,7 +765,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v22.5";
+const APP_VERSION="v22.6";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -1244,6 +1244,7 @@ function cpOK(){ const n=cpNum(); _cp=null; setupData.capital=n; setupData.start
 function cpBack(){ _cp=null; closeModal(); renderSetupStart(); }
 /* STARTING YEAR: type a 4-digit year on the keypad (same UI as capital) */
 let _yp=null;
+let _ypRet=null;
 function openYearPad(){
   _yp={ val:String(setupData.year||1987) };
   const el=document.getElementById("cardEl"); if(!el)return; el.dataset.deck=""; el.dataset.read="";
@@ -1268,8 +1269,8 @@ function ypUpd(){ if(!_yp)return; const v=document.getElementById("ypval"); if(v
 function ypKey(d){ if(!_yp)return; if((_yp.val||"").length>=4)_yp.val=""; _yp.val=(_yp.val==="0"?"":_yp.val)+d; ypUpd(); }
 function ypDel(){ if(!_yp)return; _yp.val=_yp.val.slice(0,-1); ypUpd(); }
 function ypSuggest(a){ if(!_yp)return; _yp.val=String(a); ypUpd(); }
-function ypOK(){ let n=ypNum(); if(n<1)n=1987; if(n<1000)n=1987; if(n>3000)n=3000; _yp=null; setupData.year=n; closeModal(); renderSetupStart(); }
-function ypBack(){ _yp=null; closeModal(); renderSetupStart(); }
+function ypOK(){ let n=ypNum(); if(n<1)n=1987; if(n<1000)n=1987; if(n>3000)n=3000; _yp=null; setupData.year=n; closeModal(); if(_ypRet){const _f=_ypRet;_ypRet=null;_f();return;} renderSetupStart(); }
+function ypBack(){ _yp=null; closeModal(); if(_ypRet){const _f=_ypRet;_ypRet=null;_f();return;} renderSetupStart(); }
 /* CONTINUE from the config screen → straight into per-seat setup with the chosen count */
 function afterSpeed(){ if(!setupData.n)return; chooseCount(setupData.n); }
 /* mob names used to pre-fill AI seats (editable) */
@@ -1412,25 +1413,31 @@ function openCareer(){
     ${has?`<div class="cfgline" style="margin-top:8px">${L("Bankroll","Grana")}: <b>${fmtKcity(careerState.bankroll||0,CAREER_LEVELS[lvl].city)}</b></div>
       <button class="cfggo" onclick="careerBriefing(${lvl})">${L("[ CONTINUE \u2014 CITY ","[ CONTINUAR \u2014 CIDADE ")}${lvl+1} \u00BB ]</button>
       <button class="cfggo" style="opacity:.65" onclick="careerReset()">${L("[ RESTART CAREER ]","[ RECOME\u00c7AR CARREIRA ]")}</button>`
-    :`<button class="cfggo" onclick="careerNew()">${L("[ START NEW CAREER \u00BB ]","[ NOVA CARREIRA \u00BB ]")}</button>`}
+    :`<button class="cfggo" onclick="careerNewStart()">${L("[ START NEW CAREER \u00BB ]","[ NOVA CARREIRA \u00BB ]")}</button>`}
     <button class="cfggo" style="opacity:.65" onclick="renderSetupStart()">${L("[ \u2039 BACK ]","[ \u2039 VOLTAR ]")}</button>
   </div>`;
 }
+let _careerNameBuf="";
+function careerNewStart(){ _careerNameBuf=""; setupData.year=2000; careerNew(); }
+function careerNameKey(k){ if(k==='DEL')_careerNameBuf=_careerNameBuf.slice(0,-1); else if(k==='SP'){ if(_careerNameBuf.length<14)_careerNameBuf+=' '; } else if(_careerNameBuf.length<14)_careerNameBuf+=k; const inp=document.getElementById("careerName"); if(inp)inp.value=_careerNameBuf; }
 function careerNew(){
   const stage=document.getElementById("setupStage"); if(!stage)return;
+  if(setupData.year==null||setupData.year<1000) setupData.year=2000;
   stage.innerHTML=`<div class="dosconfig">
     <div class="cfgline">C:\\> NEW CAREER</div>
     <div class="cfghead">${L("WHAT DO THEY CALL YOU?","COMO TE CHAMAM?")}</div>
-    <input id="careerName" maxlength="14" placeholder="${L('YOUR NAME','SEU NOME')}" style="width:100%;box-sizing:border-box;margin:6px 0;padding:8px;background:#010602;color:var(--phos);border:1px solid var(--phos-dim);font-family:inherit;font-size:16px;text-transform:uppercase">
+    <input id="careerName" maxlength="14" readonly placeholder="${L('YOUR NAME','SEU NOME')}" value="${_careerNameBuf}" style="width:100%;box-sizing:border-box;margin:6px 0;padding:8px;background:#010602;color:var(--phos);border:1px solid var(--phos-dim);font-family:inherit;font-size:18px;text-transform:uppercase;text-align:center">
+    <div class="namekeys">${['QWERTYUIOP','ASDFGHJKL','ZXCVBNM'].map(row=>`<div class="krow">`+row.split('').map(k=>`<button type="button" class="kkey" onclick="careerNameKey('${k}')">${k}</button>`).join('')+`</div>`).join('')}<div class="krow"><button type="button" class="kkey kwide" onclick="careerNameKey('SP')">SPACE</button><button type="button" class="kkey kwide" onclick="careerNameKey('DEL')">DEL</button></div></div>
+    <div class="cfghead" style="margin-top:10px">${L("START YEAR","ANO INICIAL")}</div>
+    <div class="choice"><button class="cfg sel" onclick="_ypRet=careerNew;openYearPad()">[ ${setupData.year||2000} ]</button></div>
+    <div class="cfgline" style="opacity:.6;line-height:1.5">${L("You start at 13. Reach 65 and hand the empire to the next generation. Die past 30 and your son carries on.","Você começa aos 13. Chegue aos 65 e passe o império à próxima geração. Morra depois dos 30 e seu filho continua.")}</div>
     <button class="cfggo" onclick="careerBegin()">${L("[ BEGIN \u00BB ]","[ COME\u00c7AR \u00BB ]")}</button>
     <button class="cfggo" style="opacity:.65" onclick="openCareer()">${L("[ \u2039 BACK ]","[ \u2039 VOLTAR ]")}</button>
   </div>`;
-  const el=document.getElementById("careerName"); if(el)setTimeout(()=>{try{el.focus();}catch(e){}},50);
 }
 function careerBegin(){
-  const inp=document.getElementById("careerName");
-  const nm=((inp&&inp.value)||"").trim().toUpperCase().slice(0,14)||L("YOU","VOC\u00ca");
-  careerState={name:nm,level:0,cleared:-1,bankroll:0,year:1987,active:true};
+  const nm=(_careerNameBuf||"").trim().toUpperCase().slice(0,14)||L("YOU","VOC\u00ca");
+  careerState={name:nm,level:0,cleared:-1,bankroll:0,year:(setupData.year||2000),age:13,gens:1,active:true};
   careerSave();
   careerBriefing(0);
 }
@@ -1448,6 +1455,7 @@ function careerBriefing(i){
     <div class="cfgline" style="opacity:.9;line-height:1.55">${L(lv.en,lv.pt)}</div>
     <div class="cfgline" style="margin-top:10px">\u25B8 ${L("OBJECTIVE","OBJETIVO")}: <b>${L("OWN THE CITY \u2014 last boss standing.","DOMINE A CIDADE \u2014 \u00faltimo chef\u00e3o de p\u00e9.")}</b></div>
     <div class="cfgline">\u25B8 ${L("Rivals","Rivais")}: ${lv.ai} \u00B7 ${L("Police","Pol\u00edcia")}: ${policeLabelFor(lv.police)}${prison?` \u00B7 <b style="color:var(--red)">${L("START IN PRISON","COME\u00c7A PRESO")}</b>`:""}</div>
+    <div class="cfgline">\u25B8 ${L("You","Voc\u00ea")}: ${L("age","idade")} ${(careerState&&careerState.age)||13} \u00B7 ${L("generation","gera\u00e7\u00e3o")} ${(careerState&&careerState.gens)||1}</div>
     <div class="cfgline">\u25B8 ${L("Your bankroll","Sua grana")}: <b>${fmtKcity(bank,lv.city)}</b> <span style="opacity:.6">${i>0?L("(carried over)","(trazida)"):L("(you start with nothing)","(voc\u00ea come\u00e7a do nada)")}</span></div>
     <button class="cfggo" onclick="careerLaunch(${i})">${prison?L("[ INTO THE YARD \u00BB ]","[ PRO P\u00c1TIO \u00BB ]"):L("[ HIT THE STREETS \u00BB ]","[ PRAS RUAS \u00BB ]")}</button>
     <button class="cfggo" style="opacity:.65" onclick="openCareer()">${L("[ \u2039 BACK ]","[ \u2039 VOLTAR ]")}</button>
@@ -1455,14 +1463,14 @@ function careerBriefing(i){
 }
 function careerLaunch(i){
   careerState=careerState||careerLoad();
-  if(!careerState){ careerState={name:L("YOU","VOC\u00ca"),level:i,cleared:-1,bankroll:0,year:1987,active:true}; }
+  if(!careerState){ careerState={name:L("YOU","VOC\u00ca"),level:i,cleared:-1,bankroll:0,year:2000,age:13,gens:1,active:true}; }
   const lv=CAREER_LEVELS[i];
   const bank=Math.max(0,Math.round(careerState.bankroll||0));
   setupData.city=lv.city; setupData.dice=lv.dice; setupData.dice0=lv.dice; setupData.police=lv.police;
-  setupData.status=lv.status; setupData.year=careerState.year||1987;
+  setupData.status=lv.status; setupData.year=careerState.year||2000;
   setupData.capital=bank; setupData.startCash=bank; setupData.n=1+lv.ai;
   const tempers=["AGGRESSIVE","CAREFUL","AGGRESSIVE","CAUTIOUS","AGGRESSIVE","CAREFUL"];
-  const players=[{name:(careerState.name||L("YOU","VOC\u00ca")),pattern:PATTERNS[0].k,ai:false,age:25}];
+  const players=[{name:(careerState.name||L("YOU","VOC\u00ca")),pattern:PATTERNS[0].k,ai:false,age:(careerState.age||13)}];
   setupData.players=players;
   for(let a=0;a<lv.ai;a++){ players.push({name:aiName(),pattern:PATTERNS[(a+1)%PATTERNS.length].k,ai:true,age:25,temper:tempers[a%tempers.length]}); }
   setupData.players=players; setupData.idx=setupData.n;
@@ -1476,7 +1484,7 @@ function careerCityTaken(winner){
   const i=S.career.level;
   const carried=Math.max(0,Math.round(netWorth(winner)));
   careerState.cleared=Math.max(careerState.cleared,i);
-  careerState.bankroll=carried;
+  careerState.bankroll=carried; careerState.age=winner.age;
   try{ careerState.year=gameYear(); }catch(e){}
   try{clearSave();}catch(e){} try{SFX.win();}catch(e){}
   const nm=careerCityName(CAREER_LEVELS[i].city).toUpperCase();
@@ -1500,7 +1508,7 @@ function careerComplete(winner){
     <div style="text-align:center;font-size:40px;margin:8px 0">\u265B</div>
     <div class="ttl" style="text-align:center;color:${winner.color}">${winner.name} \u2014 ${L("KINGPIN","CHEF\u00c3O")}</div>
     <div class="sub" style="text-align:center">${L("Curitiba to New York \u2014 six cities, every rival buried. You own it all.","De Curitiba a Nova York \u2014 seis cidades, todos os rivais enterrados. Voc\u00ea domina tudo.")}</div>
-    <div class="out" style="text-align:center">${L("Final fortune: ","Fortuna final: ")}<b>${fmtK(netWorth(winner))}</b></div>
+    <div class="out" style="text-align:center">${L("Final fortune: ","Fortuna final: ")}<b>${fmtK(netWorth(winner))}</b> · ${L("across ","em ")}${(careerState&&careerState.gens)||1} ${L("generation(s)","geração(ões)")}</div>
     <div class="go"><button class="amber" onclick="toMainMenu()">${L("[ MAIN MENU ]","[ MENU ]")}</button></div>`;
   openModal();
 }
@@ -1518,6 +1526,37 @@ function careerFail(){
 }
 function careerRetry(){ const i=(typeof S!=="undefined"&&S&&S.career)?S.career.level:((careerState&&careerState.level)||0); careerShowStage(); careerLaunch(i); }
 
+function careerSonRevive(p){
+  careerState=careerState||careerLoad(); const prevAge=p.age;
+  if(careerState){ careerState.gens=(careerState.gens||1)+1; careerState.age=Math.max(13,Math.floor(prevAge/2)); careerSave(); }
+  p.age=Math.max(13,Math.floor(prevAge/2));
+  p.hosp=0; p.alive=true; p.skip=0; p.inJail=false; p.sentence=0;
+  if(p.ring==="inner"){ p.ring="outer"; p.pos=0; p.packs=0; }
+  p._deathCause=undefined; p._diedInPrison=false; p._gunDeath=false; p.diedAt=undefined; p.diedTurn=undefined;
+  try{SFX.card();}catch(e){}
+  const el=document.getElementById("cardEl");
+  if(!el){ render(); finish(); return; }
+  el.dataset.deck=""; el.dataset.read="";
+  el.innerHTML=`<div class="lbl" style="background:${p.color}">${L("NEXT OF KIN","HERANÇA")}</div>
+    <div style="text-align:center;font-size:38px;margin:8px 0">†</div>
+    <div class="ttl" style="text-align:center">${L("The blood carries on","O sangue continua")}</div>
+    <div class="sub" style="text-align:center">${p.name} ${L("falls at","cai aos")} ${prevAge}. ${L("The heir takes the empire at","O herdeiro assume o império aos")} <b>${p.age}</b> — ${L("same money, same enemies.","o mesmo dinheiro, os mesmos inimigos.")}</div>
+    <div class="out" style="text-align:center">${L("Generation","Geração")} ${(careerState&&careerState.gens)||2}</div>
+    <div class="go"><button class="amber" onclick="booksOK()">${L("[ CARRY ON » ]","[ SEGUIR » ]")}</button></div>`;
+  _booksThen=()=>{ render(); updateControls(); finish(); };
+  openModal();
+}
+function showNewGenCard(ng,then){
+  _booksThen=then;
+  const p=S.players[S.cur]; const el=document.getElementById("cardEl"); if(!el){ if(then)then(); return; } el.dataset.deck=""; el.dataset.read="";
+  el.innerHTML=`<div class="lbl" style="background:${p.color}">${L("NEW GENERATION","NOVA GERAÇÃO")}</div>
+    <div style="text-align:center;font-size:38px;margin:8px 0">⚑</div>
+    <div class="ttl" style="text-align:center">${L("You hand it down","Você passa o bastão")}</div>
+    <div class="sub" style="text-align:center">${L("65 years on the throne. You step back and the next in line takes over at 20 — same empire, same fortune.","65 anos no trono. Você recua e o próximo assume aos 20 — o mesmo império, a mesma fortuna.")}</div>
+    <div class="out" style="text-align:center">${L("Generation","Geração")} ${ng.gen}</div>
+    <div class="go"><button class="amber" onclick="booksOK()">${L("[ CARRY ON » ]","[ SEGUIR » ]")}</button></div>`;
+  openModal(true);
+}
 function launch(){
   const pol=(setupData.police!=null?setupData.police:1);
   const cityKey=setupData.city||"NY";
@@ -2569,6 +2608,7 @@ function stepMove(p,left){
     p.cleanLaps++;   // life does NOT heal on its own — you must pay to patch up at the HOSPITAL
     if(!p.ai) p._books={inc:(p._yrIn||0),wages:_wages,laund:_laund,ownML:_ownML,crew:_crew,year:(typeof gameYear==="function"?gameYear():1987)};
     p._yrIn=0;
+    if(careerActive()&&!p.ai&&p.age>=65){ careerState=careerState||careerLoad(); if(careerState){careerState.gens=(careerState.gens||1)+1;careerState.age=20;careerSave();} p.age=20; p._newGen={gen:(careerState&&careerState.gens)||2}; }
     if(p.age>=65&&netWorth(p)>=10000){showRetire(p);return;}}   // RETIRE UNTOUCHABLE: $10M net worth + age 65
   render();
   scrollToToken();
@@ -2831,6 +2871,7 @@ function autoTick(){
 }
 function arriveCell(p){
   if(p._books && !p.ai){ const bk=p._books; p._books=null; showBooksCard(bk,()=>arriveCell(p)); return; }
+  if(p._newGen && !p.ai){ const ng=p._newGen; p._newGen=null; showNewGenCard(ng,()=>arriveCell(p)); return; }
   document.getElementById("diceLbl").textContent="landed";
   if(p.ring==="inner"){log(p.name+L(" (prison) → "," (prisão) → ")+(LANG==='PT'?(CELL_PT[INNER[p.pos].t]||INNER[p.pos].t):INNER[p.pos].t));resolveInner();}
   else{log(p.name+" → "+(LANG==='PT'?(CELL_PT[OUTER[p.pos].t]||OUTER[p.pos].t):OUTER[p.pos].t));resolveOuter();}
@@ -4101,6 +4142,7 @@ const PRISON_DEATHS=[
 ];
 function deathAutoAdv(){ if(typeof SPECTATING!=="undefined"&&SPECTATING) return !_specDeaths; return (AI_AUTOCARDS&&S&&S.players&&S.players[S.cur]&&S.players[S.cur].ai); }
 function prisonDeath(p,why){
+  if(careerActive()&&!p.ai&&p.alive&&(p.age>30)){ careerSonRevive(p); return; }
   const di=Math.floor(Math.random()*PRISON_DEATHS.length);
   const d=LANG==='PT'?{t:PRISON_DEATHS_PT[di].t,bd:PRISON_DEATHS_PT[di].b}:PRISON_DEATHS[di];
   p._deathCause=d.t; p._diedInPrison=true;
@@ -4142,6 +4184,7 @@ function empireLine(p){const s=(!p.alive&&p._empire)?p._empire:empireStats(p);
     s.biz+L(" businesses ("," negócios (")+s.workers+L(" workers)"," funcionários)");
 }
 function killPlayer(p,killer){
+  if(careerActive()&&!p.ai&&p.alive&&(p.age>30)){ careerSonRevive(p); return; }
   if(killer&&killer!==p&&killer.id!==p.id){ killer.bossKills=(killer.bossKills||0)+1; }   // credit the boss who ordered it
   if(p._gunDeath){SFX.flatline();}else{silentKill();}setTimeout(()=>SFX.funeral(),350);
   if(!p._deathCause&&p._hospCause)p._deathCause=L("Flatlined in the hospital after ","Apagou no hospital depois de ")+p._hospCause;
