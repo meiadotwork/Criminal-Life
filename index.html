@@ -823,35 +823,35 @@ const ML_POS=OUTER.findIndex(c=>c.t==="money laundering");
    only names, icons, prison and local law change per city. ===== */
 const CITY_BASE = OUTER.map(c=>({t:c.t,ic:c.ic}));   // snapshot the New York names as the base template
 const CITIES = {
-  NY:  { name:"NEW YORK", prison:"RIKERS", law:{life:true, maxYears:99}, cur:"$", scale:1, soldier:100,
+  NY:  { name:"NEW YORK", prison:"RIKERS", law:{life:true, maxYears:99}, cur:"$", scale:1, soldier:100, bg:100,
     streets:{20:"Mott Haven",30:"South Bronx",45:"Brownsville",60:"East New York",75:"Sunset Park",90:"Jackson Hts",100:"Bay Ridge",210:"Astoria",225:"Long Is City",230:"Bklyn Heights",250:"Greenwich Vil",280:"Hudson Yards",300:"SoHo",350:"Tribeca",400:"Upper E Side"},
     biz:{400:["cocaine","co"],200:["fentanyl","fn"],180:["extortion","ex"],170:["loan shark","ls"],150:["card fraud","id"],110:["heroin","he"],90:["cargo theft","cg"],80:["weed","wd"],70:["laundering","$$"]},
     casino:["Poker Club","PC"] },
-  CWB: { name:"CURITIBA", prison:"PIRAQUARA", law:{life:false, maxYears:40}, cur:"R$", scale:5, soldier:50,
+  CWB: { name:"CURITIBA", prison:"PIRAQUARA", law:{life:false, maxYears:40}, cur:"R$", scale:5, soldier:50, bg:40,
     // streets keyed by their fixed price → local neighborhood (richest price = most prestigious area)
     streets:{20:"Caximba",30:"Tatuquara",45:"Cajuru",60:"CIC",75:"Sítio Cercado",90:"Boqueirão",100:"Portão",210:"Centro",225:"Centro Cívico",230:"Juvevê",250:"Cabral",280:"Água Verde",300:"Bigorrilho",350:"Ecoville",400:"Batel"},
     // businesses keyed by their fixed income → [name, icon]; drugs are separated. 400 = the laundering front
     biz:{400:["cocaína","co"],200:["crack","ck"],180:["golpe PIX","px"],170:["contrabando","cn"],150:["roubo carga","cr"],110:["desmanche","dm"],90:["maconha","mc"],80:["roubo celular","cl"],70:["lavagem","$$"]},
     casino:["Jogo do Bicho","JB"]
   },
-  LA: { name:"LOS ANGELES", prison:"TWIN TOWERS", law:{life:true, maxYears:99}, cur:"$", scale:1, soldier:100,
+  LA: { name:"LOS ANGELES", prison:"TWIN TOWERS", law:{life:true, maxYears:99}, cur:"$", scale:1, soldier:100, bg:100,
     streets:{20:"Skid Row",30:"Watts",45:"South LA",60:"Boyle Hts",75:"Echo Park",90:"Hollywood",100:"Koreatown",210:"Downtown LA",225:"W. Hollywood",230:"Santa Monica",250:"Brentwood",280:"Pacific Pal.",300:"Beverly Hills",350:"Holmby Hills",400:"Bel Air"},
     // drugs separated (cocaine, fentanyl, meth, heroin) + firearms, cargo/retail theft, fraud, laundering
     biz:{400:["cocaine","co"],200:["fentanyl","fn"],180:["firearms","gn"],170:["meth","me"],150:["fraud/ID","id"],110:["heroin","he"],90:["cargo theft","cg"],80:["retail theft","rt"],70:["laundering","$$"]},
     casino:["Card Room","CR"]
   },
-  RIO: { name:"RIO DE JANEIRO", prison:"BANGU", law:{life:false, maxYears:40}, cur:"R$", scale:5, soldier:50,
+  RIO: { name:"RIO DE JANEIRO", prison:"BANGU", law:{life:false, maxYears:40}, cur:"R$", scale:5, soldier:50, bg:50,
     streets:{20:"C.Alemão",30:"Cidade Deus",45:"Bangu",60:"Madureira",75:"Méier",90:"Tijuca",100:"Flamengo",210:"Botafogo",225:"Copacabana",230:"Barra",250:"Gávea",280:"Jd Botânico",300:"Lagoa",350:"Ipanema",400:"Leblon"},
     // drugs separated (cocaína, crack, maconha) + milícia extortion, cargo theft, chop shop, PIX scam, smuggling, laundering
     biz:{400:["cocaína","co"],200:["crack","ck"],180:["milícia","ml"],170:["golpe PIX","px"],150:["roubo carga","cr"],110:["contrabando","cn"],90:["desmanche","dm"],80:["maconha","mc"],70:["lavagem","$$"]},
     casino:["Jogo do Bicho","JB"]
   },
-  CDMX:{ name:"MEXICO CITY", prison:"ALTIPLANO", law:{life:false, maxYears:60}, cur:"MX$", scale:20, soldier:60,
+  CDMX:{ name:"MEXICO CITY", prison:"ALTIPLANO", law:{life:false, maxYears:60}, cur:"MX$", scale:20, soldier:60, bg:200,
     streets:{20:"Neza",30:"Tepito",45:"Iztapalapa",60:"Doctores",75:"Centro Hist.",90:"Escandón",100:"Narvarte",210:"Del Valle",225:"Coyoacán",230:"Roma Norte",250:"Condesa",280:"Santa Fe",300:"Bosques Lomas",350:"Lomas Chap.",400:"Polanco"},
     // drugs separated (cocaína, cristal, mota) + cobro de piso extortion, huachicol, robo de carga, autopartes, piratería, lavado
     biz:{400:["cocaína","co"],200:["cristal","cr"],180:["huachicol","hu"],170:["cobro de piso","cp"],150:["secuestro","sq"],110:["robo carga","rc"],90:["mota","mt"],80:["piratería","pi"],70:["lavado","$$"]},
     casino:["Casino","CS"] },
-  SP:  { name:"SÃO PAULO", prison:"CARANDIRU", law:{life:false, maxYears:40}, cur:"R$", scale:5, soldier:50,
+  SP:  { name:"SÃO PAULO", prison:"CARANDIRU", law:{life:false, maxYears:40}, cur:"R$", scale:5, soldier:50, bg:60,
     streets:{20:"Heliópolis",30:"Cid Tiradentes",45:"Capão Redondo",60:"Brás",75:"Santana",90:"Tatuapé",100:"Vila Mariana",210:"Perdizes",225:"Higienópolis",230:"Pinheiros",250:"Moema",280:"Itaim Bibi",300:"V.N. Conceição",350:"Jardim América",400:"Jardim Europa"},
     // drugs separated (cocaína, crack, maconha — SP's Cracolândia) + cargo theft, PIX scam, chop shop, phone theft, piracy, laundering
     biz:{400:["cocaína","co"],200:["crack","ck"],180:["golpe PIX","px"],170:["roubo carga","cr"],150:["desmanche","dm"],110:["maconha","mc"],90:["roubo celular","cl"],80:["pirataria","pi"],70:["lavagem","$$"]},
@@ -866,9 +866,9 @@ function applyCity(key){
     else if(c.k==="poker"){ c.t=city.casino?city.casino[0]:base.t; c.ic=city.casino?city.casino[1]:base.ic; }
     else { c.t=base.t; c.ic=base.ic; }
   });
-  // one shared economy in every city — only the currency it's shown in changes
-  SOLDIER_COST = 100;
-  SOLDIER_WAGE = 100;
+  // NATIVE per-city bodyguard price (stored as the displayed local amount; /scale so fmtK renders it natively). Wage = hire cost.
+  SOLDIER_COST = Math.max(1, Math.round((city.bg||100)/(city.scale||1)));
+  SOLDIER_WAGE = SOLDIER_COST;
   // per-region card decks: R$ cities (SP/RIO/CWB) pull the Brazilian set on top of the base
   buildActiveDecks(city.cur==="R$"?"BR":city.cur==="MX$"?"MX":"US");
 }
