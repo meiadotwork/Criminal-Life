@@ -765,7 +765,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v22.0";
+const APP_VERSION="v22.1";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -1731,6 +1731,46 @@ function gunVolley3(flavor,t0){
   if(flavor==="sniper"){ for(let i=0;i<3;i++){ gunNoise(.14,.34,t0+i*.26,950); gunNoise(.26,.07,t0+i*.26+.15,280); } return 3*.26+.12; }
   /* fast */ for(let i=0;i<3;i++) gunNoise(.035,.20,t0+i*.05,2000); return 3*.05+.05;
 }
+/* ===== SILENT KILL — stab + scream for any death without gunfire (shankings, beatings, hits). Uses all 5 flavors at random. ===== */
+function _skStab(when,vol){ vol=vol||.30; when=when||0; noiseBurst(.035,vol*.65,when,3800); noiseBurst(.09,vol,when+.012,430); beep(78,.06,vol*.8,when+.012); }
+function _skScream(dur,when,vol,f0,opts){ if(!SND)return; if(specMuted())return; opts=opts||{}; try{
+  _ac=_ac||new (window.AudioContext||window.webkitAudioContext)(); if(_ac.state==="suspended")_ac.resume();
+  const c=_ac,t=c.currentTime+(when||0),D=dur||.9,V=(vol||.14)*masterGain(); f0=f0||250;
+  const src=c.createOscillator(); src.type="sawtooth"; src.frequency.setValueAtTime(f0,t);
+  src.frequency.linearRampToValueAtTime(f0*1.55,t+D*.16); src.frequency.linearRampToValueAtTime(f0*1.28,t+D*.6); src.frequency.exponentialRampToValueAtTime(f0*.72,t+D);
+  const vib=c.createOscillator(),vg=c.createGain(); vib.frequency.value=6.5; vg.gain.value=f0*.06; vib.connect(vg); vg.connect(src.frequency);
+  const jit=c.createOscillator(),jg=c.createGain(); jit.type="sawtooth"; jit.frequency.value=44; jg.gain.value=f0*.028; jit.connect(jg); jg.connect(src.frequency);
+  const amp=c.createGain(); amp.gain.setValueAtTime(.0001,t); amp.gain.exponentialRampToValueAtTime(V,t+.04);
+  const holdEnd=opts.choke?t+D*.32:t+D*.55; amp.gain.setValueAtTime(V,holdEnd); amp.gain.exponentialRampToValueAtTime(.0001,t+(opts.choke?D*.5:D));
+  [[720,1.0,9],[1240,.7,10],[2600,.4,12]].forEach(function(a){ const bp=c.createBiquadFilter(); bp.type="bandpass"; bp.frequency.value=a[0]; bp.Q.value=a[2]; const fg=c.createGain(); fg.gain.value=a[1]; src.connect(bp); bp.connect(fg); fg.connect(amp); });
+  if(opts.rev){ const dl=c.createDelay(); dl.delayTime.value=.13; const fb=c.createGain(); fb.gain.value=.33; const wet=c.createGain(); wet.gain.value=.5; amp.connect(dl); dl.connect(fb); fb.connect(dl); dl.connect(wet); wet.connect(c.destination); }
+  amp.connect(c.destination);
+  const n=Math.floor(c.sampleRate*D),buf=c.createBuffer(1,n,c.sampleRate),d=buf.getChannelData(0);
+  for(let i=0;i<n;i++){ d[i]=(Math.random()*2-1)*Math.sin(Math.PI*Math.min(1,i/n))*.4; }
+  const nb=c.createBufferSource();nb.buffer=buf; const nf=c.createBiquadFilter();nf.type="bandpass";nf.frequency.value=1500;nf.Q.value=.8;
+  const ng=c.createGain(); ng.gain.setValueAtTime(.0001,t); ng.gain.exponentialRampToValueAtTime(V*.45,t+.06); ng.gain.exponentialRampToValueAtTime(.0001,t+D);
+  nb.connect(nf);nf.connect(ng);ng.connect(c.destination);
+  const st=t+D+.2; src.start(t);src.stop(st); vib.start(t);vib.stop(st); jit.start(t);jit.stop(st); nb.start(t);nb.stop(st);
+  if(opts.choke) _skGurgle(when+D*.3,V*.9);
+}catch(e){} }
+function _skGurgle(when,vol){ if(!SND)return; if(specMuted())return; vol=vol||.12; try{
+  _ac=_ac||new (window.AudioContext||window.webkitAudioContext)(); if(_ac.state==="suspended")_ac.resume();
+  const c=_ac,t=c.currentTime+(when||0);
+  const o=c.createOscillator();o.type="sawtooth";o.frequency.setValueAtTime(150,t);o.frequency.linearRampToValueAtTime(95,t+.32);
+  const lfo=c.createOscillator(),lg=c.createGain();lfo.frequency.value=17;lg.gain.value=26;lfo.connect(lg);lg.connect(o.frequency);
+  const g=c.createGain();g.gain.setValueAtTime(vol*masterGain(),t);g.gain.exponentialRampToValueAtTime(.0001,t+.38);
+  const fl=c.createBiquadFilter();fl.type="lowpass";fl.frequency.value=520; o.connect(fl);fl.connect(g);g.connect(c.destination);o.start(t);o.stop(t+.42);lfo.start(t);lfo.stop(t+.42);
+  noiseBurst(.32,vol*.5,when,650);
+}catch(e){} }
+const _SILENT_KILLS=[
+  function(){ _skStab(0,.34); _skScream(.9,.20,.15,240); },
+  function(){ _skStab(0,.30); _skStab(.11,.30); _skScream(.6,.20,.15,340); },
+  function(){ [0,.16,.34,.55].forEach(function(d){_skStab(d,.32);}); _skScream(1.25,.12,.15,200); },
+  function(){ _skStab(0,.30); _skStab(.13,.30); _skScream(.5,.16,.15,270,{choke:true}); },
+  function(){ _skStab(0,.34); _skScream(1.0,.20,.11,230,{rev:true}); }
+];
+function silentKill(){ if(!SND)return; if(specMuted())return; try{ _SILENT_KILLS[Math.floor(Math.random()*_SILENT_KILLS.length)](); }catch(e){} }
+
 const SFX={
   tick:()=>beep(880,.03,.025),
   step:()=>beep(440,.04,.02),
@@ -3571,7 +3611,7 @@ function applyCard(){
       p._brRaids=(p._brRaids||0)+1;
       if(p._brRaids>=3){      // THIRD raid — twenty rounds, no arrest, no trial
         p.crew=0; SFX.overkill();
-        p._deathCause=L("Executed in a police raid — twenty rounds","Executado numa batida policial — vinte tiros");
+        p._deathCause=L("Executed in a police raid — twenty rounds","Executado numa batida policial — vinte tiros"); p._gunDeath=true;
         log(p.name+L(" — third raid. The police empty their magazines. OUT."," — terceira batida. A polícia esvazia os pentes. FORA."),"bad");
         render(); killPlayer(p); return;
       }
@@ -3979,7 +4019,7 @@ function prisonDeath(p,why){
   const di=Math.floor(Math.random()*PRISON_DEATHS.length);
   const d=LANG==='PT'?{t:PRISON_DEATHS_PT[di].t,bd:PRISON_DEATHS_PT[di].b}:PRISON_DEATHS[di];
   p._deathCause=d.t; p._diedInPrison=true;
-  SFX.flatline();setTimeout(()=>SFX.funeral(),350);
+  silentKill();setTimeout(()=>SFX.funeral(),350);
   p.alive=false;p.diedAt=p.age;p.diedTurn=S.turn;releaseHoldings(p);
   log(p.name+L(" is KILLED IN PRISON — "," é MORTO NA PRISÃO — ")+d.t+L(". OUT.",". FORA."),"bad");
   render();
@@ -4018,7 +4058,7 @@ function empireLine(p){const s=(!p.alive&&p._empire)?p._empire:empireStats(p);
 }
 function killPlayer(p,killer){
   if(killer&&killer!==p&&killer.id!==p.id){ killer.bossKills=(killer.bossKills||0)+1; }   // credit the boss who ordered it
-  SFX.flatline();setTimeout(()=>SFX.funeral(),350);
+  if(p._gunDeath){SFX.flatline();}else{silentKill();}setTimeout(()=>SFX.funeral(),350);
   if(!p._deathCause&&p._hospCause)p._deathCause=L("Flatlined in the hospital after ","Apagou no hospital depois de ")+p._hospCause;
   if(p.ring==="inner"){ p._diedInPrison=true; if(!p._deathCause){ const _di=Math.floor(Math.random()*PRISON_DEATHS.length); p._deathCause=(LANG==='PT'?PRISON_DEATHS_PT[_di].t:PRISON_DEATHS[_di].t); } }
   p.alive=false;p.diedAt=p.age;p.diedTurn=S.turn;releaseHoldings(p);log(p.name+L(" DIES for good at "," MORRE de vez aos ")+p.age+L(". OUT.",". FORA."),"bad");
