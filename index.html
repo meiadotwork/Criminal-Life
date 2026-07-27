@@ -765,7 +765,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v22.1";
+const APP_VERSION="v22.2";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -1226,9 +1226,9 @@ function openCapitalPad(){
     <div class="out qdisp"><span id="cpval">0</span></div>
     <div class="qcalc" style="justify-content:center"><span id="cpprev"></span></div>
     <div class="qkrow">
-      <button onclick="cpKey('7')">7</button><button onclick="cpKey('8')">8</button><button onclick="cpKey('9')">9</button>
-      <button onclick="cpKey('4')">4</button><button onclick="cpKey('5')">5</button><button onclick="cpKey('6')">6</button>
       <button onclick="cpKey('1')">1</button><button onclick="cpKey('2')">2</button><button onclick="cpKey('3')">3</button>
+      <button onclick="cpKey('4')">4</button><button onclick="cpKey('5')">5</button><button onclick="cpKey('6')">6</button>
+      <button onclick="cpKey('7')">7</button><button onclick="cpKey('8')">8</button><button onclick="cpKey('9')">9</button>
       <button onclick="cpKey('00')">00</button><button onclick="cpKey('0')">0</button><button onclick="cpDel()">&#9003;</button>
     </div>
     <div class="go" style="margin-top:10px"><button onclick="cpBack()">${L("[ CANCEL ]","[ CANCELAR ]")}</button><button class="amber" onclick="cpOK()">${L("[ SET ]","[ DEFINIR ]")}</button></div>`;
@@ -1254,9 +1254,9 @@ function openYearPad(){
     </div>
     <div class="out qdisp"><span id="ypval">0</span></div>
     <div class="qkrow">
-      <button onclick="ypKey('7')">7</button><button onclick="ypKey('8')">8</button><button onclick="ypKey('9')">9</button>
-      <button onclick="ypKey('4')">4</button><button onclick="ypKey('5')">5</button><button onclick="ypKey('6')">6</button>
       <button onclick="ypKey('1')">1</button><button onclick="ypKey('2')">2</button><button onclick="ypKey('3')">3</button>
+      <button onclick="ypKey('4')">4</button><button onclick="ypKey('5')">5</button><button onclick="ypKey('6')">6</button>
+      <button onclick="ypKey('7')">7</button><button onclick="ypKey('8')">8</button><button onclick="ypKey('9')">9</button>
       <button onclick="ypKey('0')">0</button><button onclick="ypKey('0')" style="visibility:hidden">.</button><button onclick="ypDel()">&#9003;</button>
     </div>
     <div class="go" style="margin-top:10px"><button onclick="ypBack()">${L("[ CANCEL ]","[ CANCELAR ]")}</button><button class="amber" onclick="ypOK()">${L("[ SET ]","[ DEFINIR ]")}</button></div>`;
@@ -1545,6 +1545,7 @@ function launch(){
   log(L("SYSTEM ONLINE. Police: ","SISTEMA ONLINE. Polícia: ")+(LANG==='PT'?(POLICE_LABELS_PT[pol]||"REALISTA"):(POLICE_LABELS[pol]||"REALISTIC"))+L(" — everyone starts with "," — todos começam com ")+fmtK(startCash)+".","sys");
   S.players.filter(x=>x.ai).forEach(x=>log(x.name+L(" sits down — plays "," senta na mesa — joga ")+temperLabel(x.temper)+".","sys"));
   saveGame();
+  if(typeof allAliveAI==="function"&&allAliveAI()){ try{ startSpectate(); if(typeof PAUSED!=="undefined")PAUSED=true; if(typeof renderSpectate==="function")renderSpectate(true); }catch(e){} }
   if(S.players[S.cur].ai&&!S.over) setTimeout(()=>rollDiceAI(),aiDelay());   // all-AI / AI-first games drive themselves
 }
 
@@ -1645,10 +1646,10 @@ let _polVol=(function(){try{const v=localStorage.getItem("ct_polvol");return POL
 function policeGain(){return POLICE_VOLS[_polVol]||1;}
 /* master game volume — Low / Medium / High multiplier applied to EVERY sound */
 const GAME_VOLS={L:0.4,M:1,H:1.9};
-let _gameVol=(function(){try{const v=localStorage.getItem("ct_gamevol");return GAME_VOLS[v]?v:"M";}catch(e){return "M";}})();
+let _gameVol=(function(){try{const v=localStorage.getItem("ct_gamevol");return GAME_VOLS[v]?v:"H";}catch(e){return "H";}})();
 function masterGain(){return GAME_VOLS[_gameVol]||1;}
 /* AI cards: auto-resolve after a pause (default), or wait for a human tap */
-let AI_AUTOCARDS=(function(){try{return localStorage.getItem("ct_aicards")!=="manual";}catch(e){return true;}})();
+let AI_AUTOCARDS=(function(){try{return localStorage.getItem("ct_aicards")==="auto";}catch(e){return false;}})();
 /* AI play speed — NORMAL is the fastest; three progressively slower tiers below it.
    roll = pause before/between turns · card = how long each scene lingers · dice/step = animation pace */
 const AI_SPEEDS={
@@ -3167,9 +3168,9 @@ function qtyPad(cfg){
     <div class="out qdisp"><span id="qval">0</span></div>
     <div class="qcalc"><span class="qtot" id="qtot"></span><span id="qleft" style="opacity:.7"></span></div>
     <div class="qkrow">
-      <button onclick="qpKey('7')">7</button><button onclick="qpKey('8')">8</button><button onclick="qpKey('9')">9</button>
-      <button onclick="qpKey('4')">4</button><button onclick="qpKey('5')">5</button><button onclick="qpKey('6')">6</button>
       <button onclick="qpKey('1')">1</button><button onclick="qpKey('2')">2</button><button onclick="qpKey('3')">3</button>
+      <button onclick="qpKey('4')">4</button><button onclick="qpKey('5')">5</button><button onclick="qpKey('6')">6</button>
+      <button onclick="qpKey('7')">7</button><button onclick="qpKey('8')">8</button><button onclick="qpKey('9')">9</button>
       <button class="amber" onclick="qpMax()">MAX</button><button onclick="qpKey('0')">0</button><button onclick="qpDel()">&#9003;</button>
     </div>
     <div class="go" style="margin-top:10px"><button onclick="qpBack()">${L("[ CANCEL ]","[ CANCELAR ]")}</button><button class="amber" id="qbuy" onclick="qpBuy()">[ ${L("BUY","COMPRAR")} ]</button></div>
@@ -3218,7 +3219,7 @@ function qpOpenBiz(idx,c){ const p=S.players[S.cur]; const per=c.income; OUTER[i
   const afford=Math.floor(p.cash/per);
   qtyPad({ title:c.t, unit:L("workers","funcionários"),
     note:L("Open this business — rivals landing here buy your product and you both profit. Each worker earns "+fmtK(per)+"/yr.","Abra este negócio — rivais que caírem aqui compram seu produto e os dois lucram. Cada funcionário rende "+fmtK(per)+"/ano."),
-    have:0, per, start:(afford>=1?1:0), max:afford,
+    have:0, per, start:0, max:afford,
     apply:(n)=>{ n=Math.min(n,Math.floor(p.cash/per)); if(n<1)return; p.cash-=per*n; p.owns.set(idx,n);
       log(p.name+L(" opens "," abre ")+c.t+L(" with "," com ")+n+" "+((n>1&&LANG!=='PT')?L("workers","funcionário"):L("worker","funcionário"))+" ("+fmtK(per*n)+").","good"); render(); },
     done:()=>{ closeModal(); finish(); } });
@@ -3227,7 +3228,7 @@ function qpOpenStreet(idx,c){ const p=S.players[S.cur]; const per=c.price; OUTER
   const afford=Math.floor(p.cash/per);
   qtyPad({ title:c.t, unit:L("soldiers","soldados"),
     note:L("Claim this turf — rivals landing here pay you a toll. Each soldier earns "+fmtK(per)+"/yr and defends it.","Tome esta área — rivais que caírem aqui pagam pedágio. Cada soldado rende "+fmtK(per)+"/ano e defende."),
-    have:0, per, start:(afford>=1?1:0), max:afford,
+    have:0, per, start:0, max:afford,
     apply:(n)=>{ n=Math.min(n,Math.floor(p.cash/per)); if(n<1)return; p.cash-=per*n; p.owns.set(idx,n);
       log(p.name+L(" claims "," toma ")+c.t+L(" with "," com ")+n+" "+((n>1&&LANG!=='PT')?L("soldiers","soldado"):L("soldier","soldado"))+" ("+fmtK(per*n)+").","good"); render(); },
     done:()=>{ closeModal(); finish(); } });
