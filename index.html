@@ -822,6 +822,11 @@ const ML_POS=OUTER.findIndex(c=>c.t==="money laundering");
 /* ===== CITIES: swappable boards. Prices/incomes/kinds stay fixed (balance);
    only names, icons, prison and local law change per city. ===== */
 const CITY_BASE = OUTER.map(c=>({t:c.t,ic:c.ic}));   // snapshot the New York names as the base template
+const BASE_ECON = OUTER.map(c=>({price:c.price, income:c.income}));  // snapshot ORIGINAL price/income as the tier template
+/* property/business prices are NATIVE per city: cheapest tile = 1/2 the bodyguard, priciest = 2x the bodyguard, interpolated across the base tiers */
+const _ECON_VALS = OUTER.filter(c=>c.k==="street"||c.k==="biz").map(c=>c.k==="street"?c.price:c.income);
+const ECON_MIN = Math.min(..._ECON_VALS), ECON_MAX = Math.max(..._ECON_VALS);
+function nativePrice(base, bg, scale){ const t=(base-ECON_MIN)/(ECON_MAX-ECON_MIN); const tgt=(bg||100)*(0.5+1.5*t); return Math.max(1, Math.round(tgt/(scale||1))); }
 const CITIES = {
   NY:  { name:"NEW YORK", prison:"RIKERS", law:{life:true, maxYears:99}, cur:"$", scale:1, soldier:100, bg:100,
     streets:{20:"Mott Haven",30:"South Bronx",45:"Brownsville",60:"East New York",75:"Sunset Park",90:"Jackson Hts",100:"Bay Ridge",210:"Astoria",225:"Long Is City",230:"Bklyn Heights",250:"Greenwich Vil",280:"Hudson Yards",300:"SoHo",350:"Tribeca",400:"Upper E Side"},
@@ -861,8 +866,8 @@ function applyCity(key){
   const city=CITIES[key]||CITIES.NY;
   OUTER.forEach((c,i)=>{
     const base=CITY_BASE[i];
-    if(c.k==="street"){ c.t=(city.streets&&city.streets[c.price])||base.t; }
-    else if(c.k==="biz"){ const b=city.biz&&city.biz[c.income]; c.t=b?b[0]:base.t; c.ic=b?b[1]:base.ic; }
+    if(c.k==="street"){ const bp=BASE_ECON[i].price; c.t=(city.streets&&city.streets[bp])||base.t; c.price=nativePrice(bp, city.bg, city.scale); }
+    else if(c.k==="biz"){ const bi=BASE_ECON[i].income; const b=city.biz&&city.biz[bi]; c.t=b?b[0]:base.t; c.ic=b?b[1]:base.ic; c.income=nativePrice(bi, city.bg, city.scale); }
     else if(c.k==="poker"){ c.t=city.casino?city.casino[0]:base.t; c.ic=city.casino?city.casino[1]:base.ic; }
     else { c.t=base.t; c.ic=base.ic; }
   });
