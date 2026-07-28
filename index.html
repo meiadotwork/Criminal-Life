@@ -874,6 +874,8 @@ function applyCity(key){
   // NATIVE per-city bodyguard price (stored as the displayed local amount; /scale so fmtK renders it natively). Wage = hire cost.
   SOLDIER_COST = Math.max(1, Math.round((city.bg||100)/(city.scale||1)));
   SOLDIER_WAGE = SOLDIER_COST;
+  const _pk=OUTER.find(c=>c.k==="poker"); if(_pk)_pk.price=10*SOLDIER_COST;   // POKER house = 10 bodyguards
+  TREAT_COST = Math.round(0.5*SOLDIER_COST);                                  // hospital treatment fee = 0.5 bodyguard
   // per-region card decks: R$ cities (SP/RIO/CWB) pull the Brazilian set on top of the base
   buildActiveDecks(city.cur==="R$"?"BR":city.cur==="MX$"?"MX":"US");
 }
@@ -1089,15 +1091,25 @@ function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random
 /* ===== PER-REGION DECKS: base cards are global; some cities merge in a local set
    (e.g. Brazilian cities pull DECKS_BR on top of the base deck). ===== */
 let ADECKS=null;
+function bgU(x){ return Math.max(1, Math.round((SOLDIER_COST||100)*x)); }   // x bodyguards -> native internal amount
+/* remap a deck's positive money fields into [lo,hi] bodyguards, preserving each card's relative rank */
+function remapBg(deck, lo, hi, fields){ fields=fields||["cut"]; const arr=ADECKS[deck]; if(!arr||!arr.length)return;
+  fields.forEach(f=>{ const vs=arr.map(c=>c[f]).filter(v=>typeof v==="number"&&v>0); if(!vs.length)return;
+    const mn=Math.min(...vs),mx=Math.max(...vs),d=(mx-mn)||1;
+    arr.forEach(c=>{ if(typeof c[f]==="number"&&c[f]>0) c[f]=bgU(lo+(hi-lo)*(c[f]-mn)/d); }); }); }
 function buildActiveDecks(region){
   ADECKS={};
   for(const k in DECKS){
     let a=DECKS[k];
     if(region==="BR" && typeof DECKS_BR!=="undefined" && DECKS_BR[k]) a=a.concat(DECKS_BR[k]);
     else if(region==="MX" && typeof DECKS_MX!=="undefined" && DECKS_MX[k]) a=a.concat(DECKS_MX[k]);
-    ADECKS[k]=a;
+    ADECKS[k]=a.map(c=>Object.assign({},c));   // clone so per-city native remap never mutates the source DECKS
   }
+  // NATIVE per-city payouts anchored to the bodyguard: crimes 0.5..10 bg, hospital 0.5..5 bg
+  remapBg("heist",0.5,10); remapBg("hitman",0.5,10); remapBg("drug",0.5,10);
+  remapBg("hospital",0.5,5,["cut","cost"]);
 }
+function retireTarget(){ const c=(typeof CITIES!=="undefined"&&CITIES[_cityKey()])||{bg:100,scale:1}; return 50*Math.max(1,Math.round((c.bg||100)/(c.scale||1))); }
 function activeDeck(deck){ return (ADECKS&&ADECKS[deck])||DECKS[deck]; }
 function draw(deck){
   const arr=activeDeck(deck);
@@ -1203,13 +1215,13 @@ function renderSetupStart(){
      ${pol===4?`<div class="cfgflavor">&gt; ${L('raids escalate — 1st: tortured to the hospital · 2nd: shot to the hospital · 3rd: twenty rounds, dead. no arrests, no trial.','as batidas escalam — 1ª: torturado, pro hospital · 2ª: baleado, pro hospital · 3ª: vinte tiros, morto. sem prisão, sem julgamento.')}</div>`:''}
      <div class="cfghead">8. ${ready?L('READY.','PRONTO.'):L('&lt; finish the setup above &gt;','&lt; complete a configuração acima &gt;')}</div>
      <button class="cfggo" ${ready?'':'disabled'} onclick="afterSpeed()">${L('[ CONTINUE » ]','[ CONTINUAR » ]')}</button>
-     <div class="hint">${L('Outer ring = the street (1 lap = 1 year). Arrested → JAIL → COURT → PRISON. Broke+hurt → HOSPITAL (3 = dead). 10+ soldiers = bonus die. Win: last boss standing, or retire with '+fmtK(10000)+' at 65.','Anel externo = a rua (1 volta = 1 ano). Preso → CADEIA → TRIBUNAL → PRIS\u00c3O. Quebrado+ferido → HOSPITAL (3 = morto). 10+ soldados = dado b\u00f4nus. Vit\u00f3ria: \u00faltimo chef\u00e3o de p\u00e9, ou se aposente com '+fmtK(10000)+' aos 65.')}</div>
+     <div class="hint">${L('Outer ring = the street (1 lap = 1 year). Arrested → JAIL → COURT → PRISON. Broke+hurt → HOSPITAL (3 = dead). 10+ soldiers = bonus die. Win: last boss standing, or retire with '+fmtK(retireTarget())+' at 65.','Anel externo = a rua (1 volta = 1 ano). Preso → CADEIA → TRIBUNAL → PRIS\u00c3O. Quebrado+ferido → HOSPITAL (3 = morto). 10+ soldados = dado b\u00f4nus. Vit\u00f3ria: \u00faltimo chef\u00e3o de p\u00e9, ou se aposente com '+fmtK(retireTarget())+' aos 65.')}</div>
    </div>
    ${(()=>{let h=[];try{h=JSON.parse(localStorage.getItem("ct_hof_v1")||"[]").slice(0,5);}catch(e){}
      return `<div class="dosconfig" style="margin-top:16px">
        <div class="cfgline">C:\\> TYPE ${L("HALLOFFAME.TXT","HALLDAFAMA.TXT")}</div>
        ${h.length?h.map((x,i)=>`<div class="cfgline">${i+1}. ${x.n} — ${fmtK(x.nw)} · age ${x.age} · ${x.how}${hofVs(x)?" · "+hofVs(x):""}${x.diff?" · "+x.diff:""} · ${x.d}</div>`).join("")
-         :`<div class="cfgline" style="opacity:.6">${L('NO BOSSES ON RECORD. Win any game — last boss standing, or retire with '+fmtK(10000)+' at 65 — and your name gets carved here, with how many rivals you buried.','NENHUM CHEF\u00c3O REGISTRADO. Ven\u00e7a qualquer partida — \u00faltimo de p\u00e9, ou aposente com '+fmtK(10000)+' aos 65 — e seu nome fica gravado aqui, com quantos rivais voc\u00ea enterrou.')}</div>`}
+         :`<div class="cfgline" style="opacity:.6">${L('NO BOSSES ON RECORD. Win any game — last boss standing, or retire with '+fmtK(retireTarget())+' at 65 — and your name gets carved here, with how many rivals you buried.','NENHUM CHEF\u00c3O REGISTRADO. Ven\u00e7a qualquer partida — \u00faltimo de p\u00e9, ou aposente com '+fmtK(retireTarget())+' aos 65 — e seu nome fica gravado aqui, com quantos rivais voc\u00ea enterrou.')}</div>`}
      </div>`})()}`;
 }
 function selectCity(k){ setupData.city=k; renderSetupStart(); }
@@ -1221,12 +1233,12 @@ function selectCount(n){ setupData.n=n; renderSetupStart(); }
 /* INITIAL CAPITAL: type any amount on a keypad, with quick suggested amounts */
 let _cp=null;
 function openCapitalPad(){
-  _cp={ val:(setupData.capital!=null?String(setupData.capital):"") };
+  _cp={ val:(setupData.capital!=null?String(Math.round(setupData.capital*cityScale())):"") };
   const el=document.getElementById("cardEl"); if(!el)return; el.dataset.deck=""; el.dataset.read="";
   el.innerHTML=`<div class="lbl">${L("STARTING CAPITAL","CAPITAL INICIAL")}</div>
-    <div style="font-size:13px;opacity:.8;margin:9px 0 3px;line-height:1.45">${L("Type any amount in thousands. 500 = ","Digite qualquer valor em milhares. 500 = ")}${fmtK(500)} · 1000 = ${fmtK(1000)}.</div>
+    <div style="font-size:13px;opacity:.8;margin:9px 0 3px;line-height:1.45">${L("Type the amount in local thousands (K) — shown in ","Digite o valor em milhares locais (K) — mostrado em ")}${cityCur()}.</div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin:4px 0 8px">
-      ${[0,100,250,500,1000,5000].map(a=>`<button style="padding:5px 9px;font-size:12px" onclick="cpSuggest(${a})">${fmtK(a)}</button>`).join("")}
+      ${[0,0.5,1,3,5,10].map(m=>Math.round(m*((CITIES[setupData.city]||CITIES.NY).bg||100))).map(a=>`<button style="padding:5px 9px;font-size:12px" onclick="cpSuggest(${a})">${fmtK(Math.round(a/cityScale()))}</button>`).join("")}
     </div>
     <div class="out qdisp"><span id="cpval">0</span></div>
     <div class="qcalc" style="justify-content:center"><span id="cpprev"></span></div>
@@ -1241,11 +1253,11 @@ function openCapitalPad(){
   cpUpd();
 }
 function cpNum(){ return _cp?(parseInt(_cp.val||"0",10)||0):0; }
-function cpUpd(){ if(!_cp)return; const v=document.getElementById("cpval"); if(v)v.textContent=cpNum(); const pv=document.getElementById("cpprev"); if(pv)pv.textContent="= "+fmtK(cpNum()); }
+function cpUpd(){ if(!_cp)return; const v=document.getElementById("cpval"); if(v)v.textContent=cpNum(); const pv=document.getElementById("cpprev"); if(pv)pv.textContent="= "+fmtK(Math.round(cpNum()/cityScale())); }
 function cpKey(d){ if(!_cp)return; if((_cp.val+d).length<=7)_cp.val=(_cp.val==="0"?"":_cp.val)+d; cpUpd(); }
 function cpDel(){ if(!_cp)return; _cp.val=_cp.val.slice(0,-1); cpUpd(); }
 function cpSuggest(a){ if(!_cp)return; _cp.val=String(a); cpUpd(); }
-function cpOK(){ const n=cpNum(); _cp=null; setupData.capital=n; setupData.startCash=n; closeModal(); renderSetupStart(); }
+function cpOK(){ const nn=Math.round(cpNum()/cityScale()); _cp=null; setupData.capital=nn; setupData.startCash=nn; closeModal(); renderSetupStart(); }
 function cpBack(){ _cp=null; closeModal(); renderSetupStart(); }
 /* STARTING YEAR: type a 4-digit year on the keypad (same UI as capital) */
 let _yp=null;
@@ -2425,7 +2437,7 @@ function openManual(){ window.speechSynthesis&&window.speechSynthesis.cancel(); 
   <div class="bd" style="text-align:left;font-size:16px !important">
 
   ${H("O OBJETIVO")}
-  Duas formas de vencer. Seja o \u00daLTIMO CHEF\u00c3O DE P\u00c9 \u2014 todos os outros jogadores morrem na pris\u00e3o, no hospital, ou quebrados e sangrando. Ou APOSENTE-SE INTOC\u00c1VEL: alcance ${fmtK(10000)} de patrim\u00f4nio e chegue aos 65 anos, e voc\u00ea sai vencedor enquanto a cidade briga pelo que sobrou.
+  Duas formas de vencer. Seja o \u00daLTIMO CHEF\u00c3O DE P\u00c9 \u2014 todos os outros jogadores morrem na pris\u00e3o, no hospital, ou quebrados e sangrando. Ou APOSENTE-SE INTOC\u00c1VEL: alcance ${fmtK(retireTarget())} de patrim\u00f4nio e chegue aos 65 anos, e voc\u00ea sai vencedor enquanto a cidade briga pelo que sobrou.
 
   ${H("PREPARA\u00c7\u00c3O")}
   ▸ JOGADORES: 2–10 na mesa — cada lugar pode ser HUMANO ou FANTASMA (IA). Para cada Fantasma você escolhe a agressividade: AGRESSIVO, CAUTELOSO, RESERVADO ou PACÍFICO.<br>
@@ -2469,7 +2481,7 @@ function openManual(){ window.speechSynthesis&&window.speechSynthesis.cancel(); 
   Tr\u00eas visitas ao hospital = MORTO. Cada interna\u00e7\u00e3o tira uma carta: quase sempre s\u00f3 a conta, \u00e0s vezes uma recupera\u00e7\u00e3o (uma limpa) e raramente uma complica\u00e7\u00e3o (visita extra). Uma complica\u00e7\u00e3o pode te deixar cr\u00edtico em 2/3 mas nunca te mata na mesma interna\u00e7\u00e3o \u2014 a terceira tem que vir de um novo ferimento, ent\u00e3o uma ida ruim n\u00e3o te acaba. N\u00e3o pode pagar uma d\u00edvida? Venda for\u00e7ada \u2014 propriedades mais baratas primeiro, depois soldados. Quebrado sem nada pra vender = surra e cama de hospital.
 
   ${H("MORTE E VIT\u00d3RIA")}
-  Morto na pris\u00e3o ou apagado no hospital: voc\u00ea recebe uma carta de morte, um memorial, e est\u00e1 FORA. O jogo segue at\u00e9 restar um chef\u00e3o \u2014 ou at\u00e9 algu\u00e9m se APOSENTAR INTOC\u00c1VEL (${fmtK(10000)} + 65 anos, checado ao passar pelo IN\u00cdCIO). Ven\u00e7a a IA no REALISTA e seu nome \u00e9 gravado no HALL DA FAMA da tela inicial \u2014 \u00e9 o \u00fanico jeito de entrar.
+  Morto na pris\u00e3o ou apagado no hospital: voc\u00ea recebe uma carta de morte, um memorial, e est\u00e1 FORA. O jogo segue at\u00e9 restar um chef\u00e3o \u2014 ou at\u00e9 algu\u00e9m se APOSENTAR INTOC\u00c1VEL (${fmtK(retireTarget())} + 65 anos, checado ao passar pelo IN\u00cdCIO). Ven\u00e7a a IA no REALISTA e seu nome \u00e9 gravado no HALL DA FAMA da tela inicial \u2014 \u00e9 o \u00fanico jeito de entrar.
 
   ${H("ASSISTIR (SPECTATE)")}
   ▸ Numa partida só de Fantasmas, pause e toque em [ ▶ ASSISTIR ]: gráfico ao vivo, classificação e console, com velocidade RÁPIDO / TURBO / MÁX e botão de pausa. As cartas da IA ficam ocultas e só os tiros e o som de morte tocam.<br>
@@ -2490,7 +2502,7 @@ function openManual(){ window.speechSynthesis&&window.speechSynthesis.cancel(); 
   <div class="bd" style="text-align:left;font-size:16px !important">
 
   ${H("THE GOAL")}
-  Two ways to win. Be the LAST BOSS STANDING \u2014 every other player dies in prison, in the hospital, or broke and bleeding. Or RETIRE UNTOUCHABLE: reach ${fmtK(10000)} net worth and make it to age 65, and you walk away the winner while the city keeps fighting over what's left.
+  Two ways to win. Be the LAST BOSS STANDING \u2014 every other player dies in prison, in the hospital, or broke and bleeding. Or RETIRE UNTOUCHABLE: reach ${fmtK(retireTarget())} net worth and make it to age 65, and you walk away the winner while the city keeps fighting over what's left.
 
   ${H("SETUP")}
   ▸ PLAYERS: 2–10 seats — each one HUMAN or GHOST (AI). Every Ghost gets an aggression level: AGGRESSIVE, CAREFUL, CAUTIOUS or PASSIVE.<br>
@@ -2534,7 +2546,7 @@ function openManual(){ window.speechSynthesis&&window.speechSynthesis.cancel(); 
   Three hospital visits = DEAD. Each stay draws a card: usually just a bill, sometimes a recovery (one cleared), and rarely a complication (extra visit). A complication can leave you critical at 2/3 but never kills you on the same stay \u2014 the third strike has to come from a fresh injury, so one bad trip won't finish you. Can't pay a debt? Forced sale \u2014 cheapest property first, then soldiers. Broke with nothing left to sell = a beating and a hospital bed.
 
   ${H("DEATH & WINNING")}
-  Killed in prison or flatlined in the hospital: you get a death card, a memorial, and you're OUT. The game runs until one boss remains \u2014 or until someone RETIRES UNTOUCHABLE (${fmtK(10000)} net worth + age 65, checked each time you pass START). Beat the AI on REALISTIC difficulty and your name gets carved into the HALL OF FAME on the title screen \u2014 that's the only way in.
+  Killed in prison or flatlined in the hospital: you get a death card, a memorial, and you're OUT. The game runs until one boss remains \u2014 or until someone RETIRES UNTOUCHABLE (${fmtK(retireTarget())} net worth + age 65, checked each time you pass START). Beat the AI on REALISTIC difficulty and your name gets carved into the HALL OF FAME on the title screen \u2014 that's the only way in.
 
   ${H("SPECTATE")}
   ▸ In an all-Ghost match, pause and hit [ ▶ SPECTATE ]: live chart, leaderboard and console, with FAST / TURBO / MAX speed and a pause button. AI cards stay hidden and only gunfire and the death cue play.<br>
@@ -2562,7 +2574,8 @@ function bailAmount(p){
   const nw=Math.max(0,netWorth(p));
   // like real life: bail is set from the severity of the charge (years) plus the defendant's means
   // (a judge sets higher bail for someone with more to lose / more of a flight risk)
-  return Math.max(15, Math.round(years*8 + nw*0.12));
+  const sev=Math.min(1,(years||5)/40), base=SOLDIER_COST*(0.5+4.5*sev), means=nw*0.05;
+  return Math.min(Math.round(5*SOLDIER_COST), Math.max(Math.round(0.5*SOLDIER_COST), Math.round(base+means)));
 }
 function offerBail(){
   const p=S.players[S.cur];
@@ -2614,7 +2627,7 @@ function stepMove(p,left){
     if(!p.ai) p._books={inc:(p._yrIn||0),wages:_wages,laund:_laund,ownML:_ownML,crew:_crew,year:(typeof gameYear==="function"?gameYear():1987)};
     p._yrIn=0;
     if(careerActive()&&!p.ai&&p.age>=65){ careerState=careerState||careerLoad(); if(careerState){careerState.gens=(careerState.gens||1)+1;careerState.age=20;careerSave();} p.age=20; p._newGen={gen:(careerState&&careerState.gens)||2}; }
-    if(p.age>=65&&netWorth(p)>=10000){showRetire(p);return;}}   // RETIRE UNTOUCHABLE: $10M net worth + age 65
+    if(p.age>=65&&netWorth(p)>=retireTarget()){showRetire(p);return;}}   // RETIRE UNTOUCHABLE: $10M net worth + age 65
   render();
   scrollToToken();
   document.getElementById("diceLbl").textContent=L("…moving (","…andando (")+left+")";
@@ -2960,7 +2973,7 @@ function resolveInner(){
 }
 
 /* ===== HOSPITAL SPACE: pay to patch yourself up ===== */
-const TREAT_COST=50;
+let TREAT_COST=50;
 function hospitalStop(){
   const p=S.players[S.cur];
   if(p.hosp<=0){ log(L("Hospital. You're healthy — just passing.","Hospital. Você está saudável — só de passagem.")); finish(); return; }
@@ -3655,8 +3668,8 @@ function outcomeAndButton(c,deck){
     if(c.note&&!lines.length){lines.push(c.note);btn="[ OK ]";}
     return {text:lines.join("\n")||"...",btn};
   }
-  if(c.cut>0){lines.push(L("Collect $","Receba $")+c.cut+"K");btn=L("[ COLLECT ]","[ RECEBER ]");}
-  if(c.cut<0){lines.push(L("Pay $","Pague $")+(-c.cut)+"K");btn=L("[ PAY ]","[ PAGAR ]");}
+  if(c.cut>0){lines.push(L("Collect ","Receba ")+fmtK(c.cut));btn=L("[ COLLECT ]","[ RECEBER ]");}
+  if(c.cut<0){lines.push(L("Pay ","Pague ")+fmtK(-c.cut));btn=L("[ PAY ]","[ PAGAR ]");}
   if(c.packs>0){lines.push(L("Win ","Ganhe ")+c.packs+L(" packs"," ma\u00e7os"));btn=L("[ COLLECT ]","[ RECEBER ]");}
   if(c.packs<0){lines.push(L("Lose ","Perca ")+(-c.packs)+L(" packs"," ma\u00e7os"));btn=L("[ PAY ]","[ PAGAR ]");}
   if(c.respect)lines.push(L("Respect earned","Respeito conquistado"));
@@ -3696,15 +3709,16 @@ function applyCard(){
   // STORY BEATS: echo the card's own narrative into the console so the log reads like a story
   if(STORY_DECKS[deck]){ try{ const _t=trCard(deck,c); if(_t&&_t.bd) log(p.name+" · "+(_t.ttl?_t.ttl+": ":"")+_t.bd,"story"); }catch(e){} }
   // PARTY poker bets
-  if(deck==="party"&&c.tag==="poker"){ p.cash+=(c.win?c.bet:-c.bet);if(c.win)mkDirty(p,c.bet); log(p.name+(c.win?L(" wins $"," ganha $"):L(" loses $"," perde $"))+c.bet+L("K at ","K em ")+(LANG==='PT'?(TTL_PT[c.ttl]||c.ttl):c.ttl),c.win?"good":"warn"); afterMoney(p); if(!c.raidArr){finish();return;} }
+  if(deck==="party"&&c.tag==="poker"){ p.cash+=(c.win?c.bet:-c.bet);if(c.win)mkDirty(p,c.bet); log(p.name+(c.win?L(" wins "," ganha "):L(" loses "," perde "))+fmtK(c.bet)+L(" at "," em ")+(LANG==='PT'?(TTL_PT[c.ttl]||c.ttl):c.ttl),c.win?"good":"warn"); afterMoney(p); if(!c.raidArr){finish();return;} }
   if(c.cut){
     let amt=c.cut;
-    if(deck==="court" && c.cut<0){                          // realistic fines = a slice of your net worth
+    if(deck==="court" && c.cut<0){                          // realistic fines = a slice of net worth, capped 0.5..5 bodyguards
       const pct=Math.min(0.4, Math.abs(c.cut)/100);
-      const fine=Math.max(Math.abs(c.cut), Math.round(netWorth(p)*pct));
+      let fine=Math.round(netWorth(p)*pct);
+      fine=Math.min(Math.round(5*SOLDIER_COST), Math.max(Math.round(0.5*SOLDIER_COST), fine));
       amt=-Math.min(fine, Math.max(0,netWorth(p)));
     }
-    p.cash+=amt;if(amt>0){mkDirty(p,amt);SFX.cash();}log(p.name+(amt>0?L(" gains $"," ganha $"):L(" loses $"," perde $"))+Math.abs(amt)+"K"+(deck==="court"&&amt<0?L(" (fine)"," (multa)"):"")+".",amt>0?"good":"warn");
+    p.cash+=amt;if(amt>0){mkDirty(p,amt);SFX.cash();}log(p.name+(amt>0?L(" gains "," ganha "):L(" loses "," perde "))+fmtK(Math.abs(amt))+(deck==="court"&&amt<0?L(" (fine)"," (multa)"):"")+".",amt>0?"good":"warn");
     if(deck==="court"&&p.cash<0){ settleDebts(p); if(p.cash<0){p.cash=0;log(L("The court cleans ","O tribunal limpa ")+p.name+L(" out completely."," por completo."),"bad");} }
   }
   if(c.packs){p.packs=Math.max(0,p.packs+c.packs);
