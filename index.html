@@ -765,7 +765,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v23.7";
+const APP_VERSION="v23.8";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -3552,7 +3552,7 @@ function orderHit(oid,free){
   if(!free && p.cash<cost)return;
   if(!free) p.cash-=cost;
   p.heat=Math.min(70,(p.heat||0)+10);
-  closeModal(); SFX.shots();
+  closeModal();
   const r=Math.random();
   if(o.ring==="inner"){
     // TARGET IS BEHIND BARS — no cars to change, no bodyguards in the cell. A paid shanking lands most of the time.
@@ -3567,6 +3567,7 @@ function orderHit(oid,free){
     }
     return;
   }
+  try{SFX.gunHandgun();setTimeout(()=>SFX.gunBurst(),150);}catch(e){}   // STREET hit = a clear gunshots volley (double-tap + burst)
   if(r<1/3){
     log(L("","O contrato de ")+p.name+L("'s contract on "," em ")+o.name+L(" goes cold — the target went to ground."," esfria — o alvo sumiu do mapa."),"warn");
     hitNotice(L("THE HIT","O SERVI\u00c7O"),"x",L("The target went to ground","O alvo sumiu do mapa"),o.name+L(" changed cars, changed routes, slept somewhere new. The shooter waited three nights and walked. Money spent, nothing to show — and the streets are whispering your name (+10 HEAT)."," trocou de carro, trocou de rota, dormiu em outro canto. O atirador esperou tr\u00eas noites e foi embora. Dinheiro gasto, nada em troca — e a rua sussurra seu nome (+10 RISCO)."),()=>{render();finish();});
