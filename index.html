@@ -765,7 +765,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v23.6";
+const APP_VERSION="v23.7";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -2651,7 +2651,17 @@ function stepMove(p,left){
     {const _bz=Array.from(p.owns.keys()).filter(i=>OUTER[i]&&OUTER[i].k==="biz").length; if(_bz>0){const _bh=_bz*4; p.heat=Math.min(80,(p.heat||0)+_bh); log(p.name+L(" — the operation draws federal heat +"," — a operação atrai risco federal +")+_bh+"% ("+_bz+L(" biz)."," neg)."),"warn");}}
     let _wages=0,_laund=0,_ownML=false,_crew=p.crew;
     {let _stsol=0;p.owns.forEach((cnt,i)=>{if(OUTER[i]&&OUTER[i].k==="street")_stsol+=cnt;});const _payroll=p.crew+_stsol;
-     if(_payroll>0){_wages=_payroll*SOLDIER_WAGE;p.cash-=_wages;log(p.name+L(" pays soldier wages: "," paga salário dos soldados: ")+fmtK(_wages)+" ("+_payroll+" × "+fmtK(SOLDIER_WAGE)+L("/yr).","/ano)."),"warn");}}
+     if(_payroll>0){
+       const _afford=Math.max(0,Math.floor(Math.max(0,p.cash)/SOLDIER_WAGE));
+       if(_afford>=_payroll){ _wages=_payroll*SOLDIER_WAGE; p.cash-=_wages;
+         log(p.name+L(" pays soldier wages: "," paga salário dos soldados: ")+fmtK(_wages)+" ("+_payroll+" × "+fmtK(SOLDIER_WAGE)+L("/yr).","/ano)."),"warn"); }
+       else { _wages=_afford*SOLDIER_WAGE; p.cash-=_wages; if(p.cash<0)p.cash=0;
+         let _desert=_payroll-_afford; const _lost=_desert;
+         const _cg=Math.min(p.crew,_desert); p.crew-=_cg; _desert-=_cg;
+         if(_desert>0){ for(const _idx of Array.from(p.owns.keys())){ if(_desert<=0)break; if(!OUTER[_idx]||OUTER[_idx].k!=="street")continue;
+           let _c=p.owns.get(_idx); const _d=Math.min(_c,_desert); _c-=_d; _desert-=_d; if(_c<=0)p.owns.delete(_idx); else p.owns.set(_idx,_c); } }
+         log(p.name+L(" can't make payroll — "," não paga o salário — ")+_lost+L(" soldier"," soldado")+(_lost>1?"s":"")+L(" walk off."," vão embora."),"bad"); }
+     }}
     if((p.dirty||0)>0&&p.cash>0){
       const base=Math.min(p.dirty,p.cash);
       _ownML=p.owns.has(ML_POS);const rate=_ownML?0.10:0.30;
@@ -3801,7 +3811,7 @@ function applyCard(){
       amt=-Math.min(fine, Math.max(0,netWorth(p)));
     }
     p.cash+=amt;if(amt>0){mkDirty(p,amt);SFX.cash();}log(p.name+(amt>0?L(" gains "," ganha "):L(" loses "," perde "))+fmtK(Math.abs(amt))+(deck==="court"&&amt<0?L(" (fine)"," (multa)"):"")+".",amt>0?"good":"warn");
-    if(deck==="court"&&p.cash<0){ settleDebts(p); if(p.cash<0){p.cash=0;log(L("The court cleans ","O tribunal limpa ")+p.name+L(" out completely."," por completo."),"bad");} }
+    if(p.cash<0){ settleDebts(p); if(p.cash<0){p.cash=0; log((deck==="court"?L("The court cleans ","O tribunal limpa "):L("Covering the loss cleans ","Cobrir o prejuízo limpa "))+p.name+L(" out completely."," por completo."),"bad");} }
   }
   if(c.packs){p.packs=Math.max(0,p.packs+c.packs);
     if(c.packs>0)log(p.name+L(" wins "," ganha ")+c.packs+L(" cigarette pack"+""," maço")+(c.packs>1?"s":"")+L(" (now "," (agora ")+p.packs+").","good");
@@ -4986,7 +4996,9 @@ function rentCard(p,owner,amt,reason){
   else { p.cash-=amt; log(p.name+L(" can't cover "," não consegue pagar ")+reason+L(" to "," a ")+owner.name+".","warn");
     settleDebts(p);
     paid=amt+Math.min(0,p.cash);
-    if(paid>0){ owner.cash+=paid; mkDirty(owner,paid); log(owner.name+L(" collects "," recolhe ")+fmtK(paid)+(p.cash<0?L(" — all "," — tudo que ")+p.name+L(" could raise."," conseguiu levantar."):L(" after the sell-off."," depois da liquidação.")),"warn"); } }
+    if(paid>0){ owner.cash+=paid; mkDirty(owner,paid); log(owner.name+L(" collects "," recolhe ")+fmtK(paid)+(p.cash<0?L(" — all "," — tudo que ")+p.name+L(" could raise."," conseguiu levantar."):L(" after the sell-off."," depois da liquidação.")),"warn"); }
+    if(p.cash<0)p.cash=0;   // cleaned out — the unpayable remainder is not created for the owner }
+  }
   const liq=p._liq||[]; p._liq=[];
   render();
   const cont=()=>{ afterMoney(p); if(!p._sentToHospital) finish(); p._sentToHospital=false; };
