@@ -765,7 +765,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v23.1";
+const APP_VERSION="v23.2";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -2485,11 +2485,11 @@ function openManual(){ window.speechSynthesis&&window.speechSynthesis.cancel(); 
 
   ${H("AS CASAS")}
   \u25B8 ASSALTO / MATADOR / TR\u00c1FICO \u2014 uma carta de servi\u00e7o: pegue o dinheiro e sobreviva ao teste de pris\u00e3o (10% base + seu RISCO).<br>
-  \u25B8 O MATADOR tamb\u00e9m aceita CONTRATOS \u2014 pague ${fmtK(HIT_COST)} para encomendar a morte de um rival: 1/3 ele escapa, 1/3 os soldados dele morrem, 1/3 ele vai pro HOSPITAL. Encomendar soma +10 de RISCO.<br>
+  \u25B8 O MATADOR tamb\u00e9m aceita CONTRATOS \u2014 pague um terço do patrimônio do alvo para encomendar a morte de um rival: 1/3 ele escapa, 1/3 os soldados dele morrem, 1/3 ele vai pro HOSPITAL. Encomendar soma +10 de RISCO.<br>
   \u25B8 RUAS \u2014 compre \u00e1reas. Rival que cair na sua paga PARA VOC\u00ca. Guarne\u00e7a com soldados para defender.<br>
   \u25B8 NEG\u00d3CIOS \u2014 abra com 1 funcion\u00e1rio; cada funcion\u00e1rio rende o mesmo valor por ano. Quando um RIVAL cai no seu neg\u00f3cio ele compra PRODUTO: a prateleira tem renda \u00d7 funcion\u00e1rios, o comprador dobra o dinheiro \u2014 e o DONO recebe o DOBRO da compra. Todo mundo come, mas a casa come em dobro.<br>
   \u25B8 ATAQUE \u2014 em vez de rolar, aperte o bot\u00e3o A\u00c7\u00c3O e mande soldados contra a \u00e1rea ou neg\u00f3cio de um rival. Mande MAIS do que ele tem defendendo e ela \u00e9 sua. Atacar \u00c9 sua jogada da rodada \u2014 voc\u00ea n\u00e3o rola naquele turno.<br>
-  \u25B8 NOITE DE P\u00d4QUER \u2014 o cassino. Compre a casa: rende ${fmtK(1000)} POR ANO e cada aposta perdida por rivais vai pra voc\u00ea. Se n\u00e3o for sua, aposte: 4\u20136 DOBRA a aposta, 1\u20133 PERDE. Com outro humano na mesa, jogue M\u00c3O A M\u00c3O: uma rolagem cada, o maior leva.<br>
+  \u25B8 NOITE DE P\u00d4QUER \u2014 o cassino. Compre a casa: rende ${fmtK(10*SOLDIER_COST)} POR ANO e cada aposta perdida por rivais vai pra voc\u00ea. Se n\u00e3o for sua, aposte: 4\u20136 DOBRA a aposta, 1\u20133 PERDE. Com outro humano na mesa, jogue M\u00c3O A M\u00c3O: uma rolagem cada, o maior leva.<br>
   \u25B8 FESTA / DESTINO \u2014 cartas de evento: golpes de sorte, encrenca, extors\u00e3o.<br>
   \u25B8 POLICIAL CORRUPTO \u2014 ele faz sua ficha sumir: pague ${fmtK(3)} por ponto de RISCO para zerar, ou ou\u00e7a o que ele tem (carta de evento).<br>
   \u25B8 BATIDA POLICIAL \u2014 soldados s\u00e3o levados e voc\u00ea encara a lei (a menos que tenha sido avisado).<br>
@@ -2506,7 +2506,7 @@ function openManual(){ window.speechSynthesis&&window.speechSynthesis.cancel(); 
   Crimes e negócios geram risco, mas não te prendem — a ÚNICA forma de cair é parar numa BATIDA POLICIAL. Seu risco decide: risco baixo você pode escapar, risco alto você quase certamente cai. Uma condenação em batida é à prova de tudo — nenhum soldado assume a culpa, sem fiança, sem acordo. Você vai DIRETO pra prisão cumprir os anos. Sobreviva lá dentro, ou o pátio te acaba.
 
   ${H("PRIS\u00c3O (anel interno)")}
-  Uma volta interna = um ano cumprido. MA\u00c7OS DE CIGARRO s\u00e3o prote\u00e7\u00e3o: sem ma\u00e7os num dia de pris\u00e3o o p\u00e1tio te espanca at\u00e9 o hospital \u2014 ou pior, h\u00e1 1 chance em 4 de te matarem na hora. Brigas e rebeli\u00f5es podem te hospitalizar, e as piores viram fatais. A MAIORIA DAS MORTES ACONTECE NA PRIS\u00c3O \u2014 h\u00e1 50 formas diferentes de morrer l\u00e1 dentro. Em cada DIA DE PRIS\u00c3O voc\u00ea escolhe: FICAR QUIETO (tira a carta do dia \u2014 perigoso sem ma\u00e7os), CANTINA (5 ma\u00e7os por $10K), SUBORNAR UM AGENTE (\u22121 ano por $40K), ou CORRER O P\u00c1TIO \u2014 um corre que costuma render 1\u20134 ma\u00e7os mas pode acabar em briga e cama de hospital. FUGIR te liberta agora, mas os anos pulados (+5) voltam se voc\u00ea for preso de novo.
+  Uma volta interna = um ano cumprido. MA\u00c7OS DE CIGARRO s\u00e3o prote\u00e7\u00e3o: sem ma\u00e7os num dia de pris\u00e3o o p\u00e1tio te espanca at\u00e9 o hospital \u2014 ou pior, h\u00e1 1 chance em 4 de te matarem na hora. Brigas e rebeli\u00f5es podem te hospitalizar, e as piores viram fatais. A MAIORIA DAS MORTES ACONTECE NA PRIS\u00c3O \u2014 h\u00e1 50 formas diferentes de morrer l\u00e1 dentro. Em cada DIA DE PRIS\u00c3O voc\u00ea escolhe: FICAR QUIETO (tira a carta do dia \u2014 perigoso sem ma\u00e7os), CANTINA (5 ma\u00e7os por ${fmtK(packPrice()*5)}), SUBORNAR UM AGENTE (\u22121 ano por ${fmtK(bgU(1))}), ou CORRER O P\u00c1TIO \u2014 um corre que costuma render 5\u201320 ma\u00e7os mas pode acabar em briga e cama de hospital. FUGIR te liberta agora, mas os anos pulados (+5) voltam se voc\u00ea for preso de novo.
 
   ${H("HOSPITAL E D\u00cdVIDAS")}
   Tr\u00eas visitas ao hospital = MORTO. Cada interna\u00e7\u00e3o tira uma carta: quase sempre s\u00f3 a conta, \u00e0s vezes uma recupera\u00e7\u00e3o (uma limpa) e raramente uma complica\u00e7\u00e3o (visita extra). Uma complica\u00e7\u00e3o pode te deixar cr\u00edtico em 2/3 mas nunca te mata na mesma interna\u00e7\u00e3o \u2014 a terceira tem que vir de um novo ferimento, ent\u00e3o uma ida ruim n\u00e3o te acaba. N\u00e3o pode pagar uma d\u00edvida? Venda for\u00e7ada \u2014 propriedades mais baratas primeiro, depois soldados. Quebrado sem nada pra vender = surra e cama de hospital.
@@ -2550,11 +2550,11 @@ function openManual(){ window.speechSynthesis&&window.speechSynthesis.cancel(); 
 
   ${H("THE SPACES")}
   \u25B8 HEIST / HITMAN / DRUG \u2014 a job card: take the money, then survive the arrest roll (10% base + your HEAT).<br>
-  \u25B8 The HITMAN also takes CONTRACTS \u2014 pay ${fmtK(HIT_COST)} to put a hit on a rival: 1/3 they dodge it, 1/3 their soldiers eat the bullets, 1/3 they land in the HOSPITAL. Ordering a hit adds +10 HEAT.<br>
+  \u25B8 The HITMAN also takes CONTRACTS \u2014 pay a third of the target's net worth to put a hit on a rival: 1/3 they dodge it, 1/3 their soldiers eat the bullets, 1/3 they land in the HOSPITAL. Ordering a hit adds +10 HEAT.<br>
   \u25B8 STREETS \u2014 buy turf. Land on a rival's and you pay THEM. Staff turf with soldiers to defend it.<br>
   \u25B8 BUSINESSES \u2014 open one for the price of 1 worker; every worker on staff earns that same amount per year. When a RIVAL lands on your business they buy PRODUCT: the shelf holds income \u00D7 workers, the buyer pays in and doubles their money \u2014 and the OWNER collects TWICE the buy. Everybody eats, but the house eats double. More workers = bigger deals for both sides.<br>
   \u25B8 ATTACK \u2014 instead of rolling, hit the ACTION button and send soldiers at a rival's turf or business. Send MORE than they have defending and it's yours. Attacking IS your move for the round \u2014 you don't roll that turn.<br>
-  \u25B8 POKER NIGHT \u2014 the casino. Land on an unowned house and you can BUY it: the house pays you ${fmtK(1000)} A YEAR as you come around, plus every bet a rival loses at the tables goes straight to you (and you never have to gamble). Land on a house you don't own and you can play: set any stake up to your whole roll, then roll the die \u2014 4\u20136 DOUBLES your bet, 1\u20133 LOSES it, and if a rival owns the house your lost bet lands in their pocket. With another human at the table you can also go HEADS-UP: one roll each, high roll takes the stake.<br>
+  \u25B8 POKER NIGHT \u2014 the casino. Land on an unowned house and you can BUY it: the house pays you ${fmtK(10*SOLDIER_COST)} A YEAR as you come around, plus every bet a rival loses at the tables goes straight to you (and you never have to gamble). Land on a house you don't own and you can play: set any stake up to your whole roll, then roll the die \u2014 4\u20136 DOUBLES your bet, 1\u20133 LOSES it, and if a rival owns the house your lost bet lands in their pocket. With another human at the table you can also go HEADS-UP: one roll each, high roll takes the stake.<br>
   \u25B8 PARTY / FATE \u2014 event cards: windfalls, trouble, shakedowns.<br>
   \u25B8 CROOKED COP \u2014 he can make your file disappear: pay ${fmtK(3)} per point of HEAT to wipe it to zero, or hear him out for an event card.<br>
   \u25B8 POLICE RAID \u2014 soldiers get swept up and you face the law (unless you were tipped off).<br>
@@ -2571,7 +2571,7 @@ function openManual(){ window.speechSynthesis&&window.speechSynthesis.cancel(); 
   Crimes and businesses build heat, but they don't arrest you — the ONLY way to get busted is landing on a POLICE RAID. Your heat decides it: low heat you might slip, high heat you're almost certainly taken. A raid conviction is airtight — no soldier can take the fall, no bail, no court deal. You go STRAIGHT to prison to serve the years. Survive inside, or the block finishes you.
 
   ${H("PRISON (inner ring)")}
-  One inner lap = one year served. CIGARETTE PACKS are protection: with no packs on a prison day the block beats you into the hospital \u2014 or worse, there's a 1-in-4 chance they just kill you. Prison fights and riots can hospitalize you, and the worst ones turn fatal. MOST DEATHS HAPPEN IN PRISON \u2014 there are 50 different ways to die inside. On every PRISON DAY you choose how to spend it: LAY LOW and draw the day's card (dangerous with no packs), hit the COMMISSARY (5 packs for $10K), BRIBE A CO to shave a year off your sentence ($40K), or RUN THE YARD \u2014 a hustle that usually earns 1\u20134 packs but can end in a brawl and a hospital bed. ESCAPE frees you now, but the skipped years (+5) come back if you're busted again.
+  One inner lap = one year served. CIGARETTE PACKS are protection: with no packs on a prison day the block beats you into the hospital \u2014 or worse, there's a 1-in-4 chance they just kill you. Prison fights and riots can hospitalize you, and the worst ones turn fatal. MOST DEATHS HAPPEN IN PRISON \u2014 there are 50 different ways to die inside. On every PRISON DAY you choose how to spend it: LAY LOW and draw the day's card (dangerous with no packs), hit the COMMISSARY (5 packs for ${fmtK(packPrice()*5)}), BRIBE A CO to shave a year off your sentence (${fmtK(bgU(1))}), or RUN THE YARD \u2014 a hustle that usually earns 5\u201320 packs but can end in a brawl and a hospital bed. ESCAPE frees you now, but the skipped years (+5) come back if you're busted again.
 
   ${H("HOSPITAL & DEBT")}
   Three hospital visits = DEAD. Each stay draws a card: usually just a bill, sometimes a recovery (one cleared), and rarely a complication (extra visit). A complication can leave you critical at 2/3 but never kills you on the same stay \u2014 the third strike has to come from a fresh injury, so one bad trip won't finish you. Can't pay a debt? Forced sale \u2014 cheapest property first, then soldiers. Broke with nothing left to sell = a beating and a hospital bed.
@@ -3067,7 +3067,7 @@ function pokerNight(){
     const el=document.getElementById("cardEl");
     el.dataset.read="1"; el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('POKER NIGHT - YOUR HOUSE','NOITE DE P\u00d4QUER - SUA CASA')}</div>
       <div class="ttl">${L('You run the tables','Voc\u00ea comanda as mesas')}</div>
-      <div class="bd">${L("This is your casino. It earns you <b>"+fmtK(1000)+" a year</b>, and every bet a rival loses at these tables comes straight to you. The house doesn't gamble against itself — you just count the take.","Este \u00e9 o seu cassino. Rende <b>"+fmtK(1000)+" por ano</b>, e cada aposta que um rival perde nestas mesas vai direto pra voc\u00ea. A casa n\u00e3o aposta contra si mesma — voc\u00ea s\u00f3 conta o dinheiro.")}</div>
+      <div class="bd">${L("This is your casino. It earns you <b>"+fmtK(10*SOLDIER_COST)+" a year</b>, and every bet a rival loses at these tables comes straight to you. The house doesn't gamble against itself — you just count the take.","Este \u00e9 o seu cassino. Rende <b>"+fmtK(10*SOLDIER_COST)+" por ano</b>, e cada aposta que um rival perde nestas mesas vai direto pra voc\u00ea. A casa n\u00e3o aposta contra si mesma — voc\u00ea s\u00f3 conta o dinheiro.")}</div>
       <div class="go"><button class="red" onclick="sellPoker(${idx})">${L('[ SELL HOUSE - ','[ VENDER CASA - ')}${fmtK(c.price)} ]</button><button onclick="closeModal();finish()">${L('[ DONE ]','[ CONCLUIR ]')}</button></div>
       ${statusBar()}`;
     openModal();return;
@@ -3966,7 +3966,7 @@ function arrestFlow(p){
   el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('BUSTED','PRESO EM FLAGRANTE')}</div>
     <div class="art">PD</div><div class="ttl">${L("You're going down","Voc\u00ea vai cair")}</div>
     <div class="bd">${L("The cuffs are out — ","As algemas j\u00e1 sa\u00edram — ")}${years==30?L("they're calling it LIFE","est\u00e3o chamando de PERP\u00c9TUA"):years+L(" years"," anos")}${L(" hanging over you."," pesando sobre voc\u00ea.")}${hasSoldier?L(" One of your soldiers can take the fall and do the time in your place."," Um dos seus soldados pode assumir a culpa e cumprir a pena no seu lugar."):L(" No soldiers to cover you."," Sem soldados para te cobrir.")}</div>
-    <div class="out">${hasSoldier?L("Send a soldier, or face it yourself.","Mande um soldado, ou encare voc\u00ea mesmo."):L("A crooked CO offers cigarette packs at $1K each — packs keep you safe inside.","Um agente corrupto oferece ma\u00e7os de cigarro a $1K cada — ma\u00e7os te mant\u00eam vivo l\u00e1 dentro.")}</div>
+    <div class="out">${hasSoldier?L("Send a soldier, or face it yourself.","Mande um soldado, ou encare voc\u00ea mesmo."):L("A crooked CO offers cigarette packs cheap by the pack — packs keep you safe inside.","Um agente corrupto oferece ma\u00e7os de cigarro baratos no maço — ma\u00e7os te mant\u00eam vivo l\u00e1 dentro.")}</div>
     <div class="go">
       ${hasSoldier?`<button class="amber" onclick="soldierTakesFall()">${L('[ SOLDIER TAKES FALL ]','[ SOLDADO ASSUME A CULPA ]')}</button>`:''}
       <button onclick="goToJailWithCigs(${years})">[ ${hasSoldier?L("FACE IT","ENCARAR"):L("GO IN","ENTRAR")} ]</button>
@@ -3978,24 +3978,24 @@ function soldierTakesFall(){const p=S.players[S.cur];p.crew--;log(L("","O soldad
 function goToJailWithCigs(years){
   const p=S.players[S.cur];closeModal();
   // one chance to buy cigarette packs from crooked CO at $1K/pack
-  const maxPacks=Math.min(30,Math.floor(p.cash/1));
+  const pp=packPrice(); const maxPacks=Math.min(30,Math.floor(p.cash/pp));
   if(maxPacks<1){ doArrest(p,years); return; }
   const el=document.getElementById("cardEl");
   el.dataset.deck="law";
   el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('CROOKED CO','AGENTE CORRUPTO')}</div>
     <div class="art">~/~</div><div class="ttl">${L('One last deal','Um \u00faltimo neg\u00f3cio')}</div>
-    <div class="bd">${L('A crooked corrections officer slides up before you\'re processed. "Packs keep you breathing in there. $1K each. How many?"','Um agente penitenci\u00e1rio corrupto chega antes de voc\u00ea ser fichado. "Ma\u00e7os te mant\u00eam respirando l\u00e1 dentro. $1K cada. Quantos?"')}</div>
+    <div class="bd">${L('A crooked corrections officer slides up before you\'re processed. "Packs keep you breathing in there. cheap by the pack. How many?"','Um agente penitenci\u00e1rio corrupto chega antes de voc\u00ea ser fichado. "Ma\u00e7os te mant\u00eam respirando l\u00e1 dentro. baratos no maço. Quantos?"')}</div>
     <div class="out">${L('Cigarettes protect you inside — no packs = you get beaten (hospital). You can afford up to ','Cigarros te protegem l\u00e1 dentro — sem ma\u00e7os = voc\u00ea apanha (hospital). Voc\u00ea pode pagar at\u00e9 ')}${maxPacks}.</div>
     <div class="go">
-      <button onclick="buyCigs(5,${years})">[ 5 · $5K ]</button>
-      <button onclick="buyCigs(10,${years})">[ 10 · $10K ]</button>
+      <button onclick="buyCigs(5,${years})">[ 5 · ${fmtK(pp*5)} ]</button>
+      <button onclick="buyCigs(10,${years})">[ 10 · ${fmtK(pp*10)} ]</button>
       <button class="amber" onclick="buyCigs(${maxPacks},${years})">[ MAX ${maxPacks} ]</button>
       <button onclick="buyCigs(0,${years})">${L('[ NONE ]','[ NENHUM ]')}</button>
     </div>
     ${statusBar()}`;
   openModal();
 }
-function buyCigs(n,years){const p=S.players[S.cur];n=Math.min(n,Math.floor(p.cash/1));p.cash-=n;p.packs+=n;if(n>0)log(p.name+L(" buys "," compra ")+n+L(" cigarette packs from the CO (-$"," maços do agente (-$")+n+"K).","warn");closeModal();doArrest(p,years);}
+function buyCigs(n,years){const p=S.players[S.cur];const pp=packPrice();n=Math.min(n,Math.floor(p.cash/pp));const cost=n*pp;p.cash-=cost;p.packs+=n;if(n>0)log(p.name+L(" buys "," compra ")+n+L(" cigarette packs from the CO (-"," maços do agente (-")+fmtK(cost)+").","warn");closeModal();doArrest(p,years);}
 function doArrest(p,years){
   S.rolled=true;   // an arrest ends your turn, even before rolling
   years=capYears(years);   // local law cap (Brazil: 40y max, no life)
