@@ -765,7 +765,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v23.4";
+const APP_VERSION="v23.5";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -2955,6 +2955,7 @@ function showBooksCard(bk,then){
 }
 /* one business/property pays a full year's profit when you lap back around to it */
 function fullOp(p){ let st=false,bz=false; if(p&&p.owns)p.owns.forEach((cnt,idx)=>{const k=OUTER[idx]&&OUTER[idx].k; if(k==="street")st=true; else if(k==="biz")bz=true;}); return st&&bz; }
+function ownsKind(p,k){ let f=false; if(p&&p.owns)p.owns.forEach((cnt,idx)=>{if(OUTER[idx]&&OUTER[idx].k===k)f=true;}); return f; }
 function idleNotice(owner,c,kind){
   showNotice(L("IDLE OPERATION","OPERAÇÃO PARADA"), kind==="street"?ART.street:ART.biz, c.t,
     owner.name+(kind==="street"
@@ -4933,13 +4934,21 @@ function aiSceneGo(){ if(_aiSceneDone)return;
   _aiSceneDone=true; closeModal(); const f=_aiSceneThen; _aiSceneThen=null; if(f)f(); }
 function aiSceneCard(p,ttl,body,cls){ return `<div class="lbl" style="background:${p.color}">${p.name}</div><div class="ttl"${cls?` style="color:${cls}"`:''}>${ttl}</div><div class="bd">${body}</div>`; }
 function aiBuyStreet(idx,c){const p=S.players[S.cur];const mult=aiProf(p).buyMult;
+  const hasSt=ownsKind(p,"street"),hasBz=ownsKind(p,"biz");
+  let thr=c.price*mult;
+  if(hasBz&&!hasSt)thr=c.price;                 // this street COMPLETES the operation — grab it
+  else if(hasSt&&!hasBz)thr=c.price*mult*2.5;   // already sitting on idle turf — hold out for a business
   let ttl,body;
-  if(p.cash>=c.price*mult){p.cash-=c.price;p.owns.set(idx,1);log(p.name+L(" claims "," toma ")+c.t+".","good");
+  if(p.cash>=thr){p.cash-=c.price;p.owns.set(idx,1);log(p.name+L(" claims "," toma ")+c.t+".","good");
     ttl=L("CLAIMS TURF","TOMA A ÁREA");body=p.name+L(" buys "," compra ")+c.t+L(" for "," por ")+fmtK(c.price)+".";}
   else {log(p.name+L(" passes on "," dispensa ")+c.t+".");ttl=L("WALKS PAST","PASSA DIRETO");body=p.name+L(" eyes "," olha ")+c.t+L(" but keeps the cash."," mas guarda o dinheiro.");}
   render();aiScene(aiSceneCard(p,ttl,body),finish);}
 function aiBuyBiz(idx,c){const p=S.players[S.cur];let ttl,body;
-  if(p.cash>=c.income*1.5){p.cash-=c.income;p.owns.set(idx,1);log(p.name+L(" opens "," abre ")+c.t+".","good");
+  const hasSt=ownsKind(p,"street"),hasBz=ownsKind(p,"biz");
+  let thr=c.income*1.5;
+  if(hasSt&&!hasBz)thr=c.income;                // this business COMPLETES the operation — open it
+  else if(hasBz&&!hasSt)thr=c.income*3;         // hoarding shops with no turf — hold out for a street
+  if(p.cash>=thr){p.cash-=c.income;p.owns.set(idx,1);log(p.name+L(" opens "," abre ")+c.t+".","good");
     ttl=L("OPENS SHOP","ABRE NEGÓCIO");body=p.name+L(" opens "," abre ")+c.t+L(" for "," por ")+fmtK(c.income)+".";}
   else {log(p.name+L(" passes on "," dispensa ")+c.t+".");ttl=L("WALKS PAST","PASSA DIRETO");body=p.name+L(" passes on "," dispensa ")+c.t+".";}
   render();aiScene(aiSceneCard(p,ttl,body),finish);}
