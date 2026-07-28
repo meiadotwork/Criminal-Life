@@ -765,7 +765,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v23.8";
+const APP_VERSION="v23.9";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -3459,7 +3459,7 @@ function doCrime(job){
   p.crimeOps--;
   log(p.name+L(" goes looking for a score ("," sai atrás de um golpe (")+p.crimeOps+L(" crime chances left)."," chances de crime restantes)."),"warn");
   updateControls();
-  if(job==="hitman")p.kills=(p.kills||0)+1;
+  if(job==="hitman"){ p.kills=(p.kills||0)+1; try{SFX.gunHandgun();setTimeout(()=>SFX.gunBurst(),150);}catch(e){} }   // a hitman job = gunshots
   drawStory(job);
 }
 function offerHire(){
