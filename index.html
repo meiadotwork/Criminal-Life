@@ -765,7 +765,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v22.9";
+const APP_VERSION="v23.0";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -2415,6 +2415,32 @@ function boardZoom(dir){
 function drawDieEl(el,v){el.innerHTML="";
   if(v>=1&&v<=6&&PIPS[v])PIPS[v].forEach(cls=>{const p=document.createElement("div");p.className="pip "+cls;el.appendChild(p);});
   else if(v>6){const d=document.createElement("div");d.className="dienum";d.textContent=v;el.appendChild(d);}}
+/* ===== TAP-TO-ROLL: a dramatic manual die for prison jobs, fights and poker ===== */
+function tapRoll(opts){
+  opts=opts||{}; const sides=opts.sides||6; const roll=1+Math.floor(Math.random()*sides);
+  const el=document.getElementById("cardEl"); if(!el){ if(opts.onResult)opts.onResult(roll); return; }
+  el.dataset.deck=opts.deck||""; el.dataset.read="";
+  el.innerHTML=`<div class="lbl" style="background:${opts.color||'var(--phos)'}">${opts.title||L('ROLL','ROLAR')}</div>
+    ${opts.art?`<div class="art">${opts.art}</div>`:""}
+    ${opts.sub?`<div class="bd">${opts.sub}</div>`:""}
+    <div style="display:flex;justify-content:center;margin:16px 0"><div class="die roller" id="tapRollDie" style="cursor:pointer" title="${L('tap to roll','toque para rolar')}"><span class="dielbl">D${sides}</span></div></div>
+    <div id="tapRollHint" style="text-align:center;font-size:14px;opacity:.78;letter-spacing:1px">${opts.prompt||L('TAP THE DIE TO ROLL','TOQUE O DADO PARA ROLAR')}</div>
+    ${statusBar()}`;
+  openModal();
+  const die=document.getElementById("tapRollDie"); let done=false;
+  die.onclick=function(){
+    if(done)return; done=true; die.onclick=null; die.classList.add("rolling");
+    const hint=document.getElementById("tapRollHint"); if(hint)hint.textContent=L("rolling\u2026","rolando\u2026");
+    let t=0; const iv=setInterval(()=>{
+      try{SFX.tick();}catch(e){}
+      drawDieEl(die,1+Math.floor(Math.random()*sides));
+      if(++t>6){ clearInterval(iv); drawDieEl(die,roll); die.classList.remove("rolling");
+        if(hint)hint.textContent=L("you rolled ","voc\u00ea tirou ")+roll+" / "+sides;
+        setTimeout(()=>{ try{opts.onResult&&opts.onResult(roll);}catch(e){} }, 640);
+      }
+    },70);
+  };
+}
 function rollDice(){
   const p=S.players[S.cur];if(S.rolled||!p.alive)return;
   const sides={1:6,2:8,3:10}[S.baseDice]||S.baseDice||6;   // die size set at game speed: D6 / D8 / D10
@@ -3121,9 +3147,16 @@ function pokerBetAdj(idx,d){
 function pokerBuy(idx){const p=S.players[S.cur];const c=OUTER[idx];p.cash-=c.price;p.owns.set(idx,1);OUTER[idx].incomeBase=c.price;log(p.name+L(" buys the POKER NIGHT house ("," compra a casa da NOITE DE PÔQUER (")+fmtK(c.price)+").","good");render();closeModal();finish();}
 function sellPoker(idx){const p=S.players[S.cur];const c=OUTER[idx];const val=c.price;p.cash+=val;p.owns.delete(idx);log(p.name+L(" sells the POKER NIGHT house ("," vende a casa da NOITE DE PÔQUER (")+fmtK(val)+").","warn");closeModal();render();finish();}
 function pokerRoll(idx){
-  const p=S.players[S.cur];const owner=S.players.find(x=>x.owns.has(idx));
+  const p=S.players[S.cur];
   const stake=Math.min(Math.max(0,p._pokerBet||0),Math.max(0,p.cash));
-  const r=1+Math.floor(Math.random()*6);
+  if(p.ai){ pokerApply(idx,1+Math.floor(Math.random()*6),stake); return; }
+  tapRoll({sides:6, title:L('POKER NIGHT','NOITE DE P\u00d4QUER'), art:'AK', deck:'party', color:p.color,
+    sub:L('Stake ','Aposta ')+fmtK(stake)+L(' \u2014 roll 4-6 to DOUBLE it, 1-3 you lose it.',' \u2014 tire 4-6 pra DOBRAR, 1-3 voc\u00ea perde.'),
+    prompt:L('TAP THE DIE \u2014 4+ WINS','TOQUE O DADO \u2014 4+ GANHA'),
+    onResult:function(r){ pokerApply(idx,r,stake); }});
+}
+function pokerApply(idx,r,stake){
+  const p=S.players[S.cur];const owner=S.players.find(x=>x.owns.has(idx));
   const win=r>=4;
   if(win){
     SFX.good();
@@ -3752,8 +3785,16 @@ function applyCard(){
   if(c.hosp){toHospital(p,c.hosp,L("a beating","uma surra"));return;}
   // PRISON FIGHT / RIOT beating — cards carry `rounds` = how bad the beating was; the worst ones turn fatal
   if((deck==="pfight"||deck==="riot") && c.rounds){
-    if(c.rounds>=4 && Math.random()<0.20){ prisonDeath(p, deck==="pfight"?"The fight went past the point of no return.":"The riot took its toll."); return; }
-    toHospital(p, c.rounds>=4?2:1, deck==="pfight"?L("a prison fight","uma briga na prisão"):L("the prison riot","a rebelião na prisão")); return; }
+    const _lethal=c.rounds>=4;
+    const _lbl=deck==="pfight"?L("a prison fight","uma briga na prisão"):L("the prison riot","a rebelião na prisão");
+    const _dcause=deck==="pfight"?"The fight went past the point of no return.":"The riot took its toll.";
+    if(p.ai){ if(_lethal && Math.random()<0.20){ prisonDeath(p,_dcause); return; } toHospital(p,_lethal?2:1,_lbl); return; }
+    const sides=(typeof S!=="undefined"&&S&&S.baseDice)||6;
+    tapRoll({sides:sides, title:deck==="pfight"?L('PRISON FIGHT','BRIGA NA PRIS\u00c3O'):L('PRISON RIOT','REBELI\u00c3O'), art:')|(', deck:deck, color:p.color,
+      sub:_lethal?L('This one is for your life \u2014 roll a 1 and the shank finds you. Anything higher, you survive it bloodied.','Essa \u00e9 pela vida \u2014 tire 1 e o espeto te acha. Acima disso, voc\u00ea sobrevive sangrando.'):L('Fists in the dark \u2014 roll and take your beating.','Porrada no escuro \u2014 role e aguente o castigo.'),
+      prompt:L('TAP THE DIE','TOQUE O DADO'),
+      onResult:function(r){ if(_lethal && r===1){ prisonDeath(p,_dcause); return; } toHospital(p,_lethal?2:1,_lbl); }});
+    return; }
   // HEIST/drug/hitman arrest chance: 10% base + your HEAT (every job makes you hotter)
   if(c.arr!==undefined){
     p._raidBust=false;
@@ -4080,8 +4121,15 @@ function pdayRob(){
   }
 }
 function pdayHit(){
-  const p=S.players[S.cur]; p._prisonActed=true; closeModal(); try{silentKill();}catch(e){}
-  const rr=prisonRoll(); const cash=prisonBg(0.3,1.2); const pk=5+Math.floor(Math.random()*6);   // prison hit: 0.3-1.2 bodyguards cash + 5-10 packs
+  const p=S.players[S.cur]; p._prisonActed=true; closeModal();
+  const sides=(typeof S!=="undefined"&&S&&S.baseDice)||6;
+  tapRoll({sides:sides, title:L('HIT JOB','SERVI\u00c7O'), art:')|(', deck:'pfight', color:p.color,
+    sub:L('Take the contract on the block \u2014 roll over half the die to walk away clean.','Aceite o contrato no pavilh\u00e3o \u2014 tire mais da metade do dado pra sair limpo.'),
+    prompt:L('TAP THE DIE','TOQUE O DADO'),
+    onResult:function(_r){ try{silentKill();}catch(e){} pdayHitResolve({r:_r,sides:sides,win:_r>sides/2}); }});
+}
+function pdayHitResolve(rr){
+  const p=S.players[S.cur]; const cash=prisonBg(0.3,1.2); const pk=5+Math.floor(Math.random()*6);
   p.packs+=pk; p.cash+=cash; p.kills=(p.kills||0)+1;
   const tag=L('YOU ROLLED ','VOCÊ TIROU ')+rr.r+'/'+rr.sides;
   const m=prisonHitMethod(); const M=m.charAt(0).toUpperCase()+m.slice(1);
@@ -4095,7 +4143,14 @@ function pdayHit(){
 }
 function pdayDrugs(){
   const p=S.players[S.cur]; p._prisonActed=true; closeModal();
-  const rr=prisonRoll(); const tag=L('YOU ROLLED ','VOCÊ TIROU ')+rr.r+'/'+rr.sides;
+  const sides=(typeof S!=="undefined"&&S&&S.baseDice)||6;
+  tapRoll({sides:sides, title:L('SELL DRUGS','VENDER DROGA'), art:'Rx', deck:'drug', color:p.color,
+    sub:L('Move product on the block \u2014 roll over half the die for a good run.','Gira o produto no pavilh\u00e3o \u2014 tire mais da metade do dado pra um bom corre.'),
+    prompt:L('TAP THE DIE','TOQUE O DADO'),
+    onResult:function(_r){ pdayDrugsResolve({r:_r,sides:sides,win:_r>sides/2}); }});
+}
+function pdayDrugsResolve(rr){
+  const p=S.players[S.cur]; const tag=L('YOU ROLLED ','VOCÊ TIROU ')+rr.r+'/'+rr.sides;
   if(rr.win){ const cash=prisonBg(0.2,0.8); const pk=4+Math.floor(Math.random()*5); p.cash+=cash; p.packs+=pk; render();
     log(p.name+L(' moves product on the block (',' gira o produto no pavilhão (')+rr.r+'/'+rr.sides+L(') — +',') — +')+fmtK(cash)+L(', +',', +')+pk+L(' pk.',' mç.'),'good');
     showNotice(L('SELL DRUGS','VENDER DROGA'),'Rx',tag+' — '+L('GOOD RUN','BOM CORRE'),L('Your people outside kept the supply coming and the block kept buying — +','Sua gente na rua manteve o abastecimento e o pavilhão comprando — +')+fmtK(cash)+L(' and ',' e ')+pk+L(' pack(s) banked.',' maço(s) no bolso.'),()=>afterPrisonAction());
