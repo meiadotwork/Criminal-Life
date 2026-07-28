@@ -765,7 +765,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v22.8";
+const APP_VERSION="v22.9";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -1112,6 +1112,7 @@ function buildActiveDecks(region){
   remapBg("hospital",0.5,5,["cut","cost"]);
   // EVENT cards (fate / nightlife / crooked cop) — wins and losses both 0.5..10 bg
   remapBg("fate",0.5,10); remapBg("cop",0.5,10); remapBg("party",0.5,10,["cut","bet"]);
+  remapBg("riot",0.1,2); remapBg("visit",0.1,2,["cut","cost"]);   // prison events 0.1..2 bg
 }
 function retireTarget(){ const c=(typeof CITIES!=="undefined"&&CITIES[_cityKey()])||{bg:100,scale:1}; return 50*Math.max(1,Math.round((c.bg||100)/(c.scale||1))); }
 function activeDeck(deck){ return (ADECKS&&ADECKS[deck])||DECKS[deck]; }
@@ -2965,7 +2966,7 @@ function resolveInner(){
     case "pday":
       if(p.ai){
         // AI restocks protection when low, else does its time
-        if(p.packs<=1&&p.cash>=10){p.cash-=10;p.packs+=5;log(p.name+L(" buys 5 packs at the commissary (-$10K)."," compra 5 maços na cantina (-$10K)."),"warn");render();finish();break;}
+        if(p.packs<=1&&p.cash>=packPrice()*5){const _pc=packPrice()*5;p.cash-=_pc;p.packs+=5;log(p.name+L(" buys 5 packs at the commissary (-"," compra 5 maços na cantina (-")+fmtK(_pc)+").","warn");render();finish();break;}
         pdayResolve(p);break;
       }
       prisonDayMenu();
@@ -4028,17 +4029,17 @@ function prisonDayMenu(){
   const p=S.players[S.cur];
   const el=document.getElementById("cardEl");
   el.dataset.deck="pday";
-  const packCost=2; // $2K/pack — commissary markup over the CO's $1K
+  const packCost=packPrice(); // 0.02 bodyguard per pack
   const canPacks=p.cash>=packCost*5;
-  const canBribe=p.cash>=40&&p.sentence>1;
+  const canBribe=p.cash>=bgU(1)&&p.sentence>1;
   el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('PRISON DAY','DIA DE PRISÃO')}</div>
     <div class="art">.</div><div class="ttl">${L('Another day inside','Mais um dia lá dentro')}</div>
     <div class="bd">${L('Count clears at dawn. You have ','A contagem fecha de madrugada. Você tem ')}${p.packs}${LANG==='PT'?' maço(s)':(p.packs===1?' pack':' packs')} ${L('and ','e ')}${p.sentence}${L('y left on the clock. How do you spend the day?','a restando no relógio. Como vai passar o dia?')}</div>
     <div class="out">${p.packs<=0?L("⚠ NO PACKS — laying low unprotected can get you beaten or killed.","⚠ SEM MAÇOS — ficar quieto sem proteção pode acabar em surra ou morte."):L("Packs keep the block off your back.","Maços mantêm o pátio longe de você.")}</div>
     <div class="go" style="flex-direction:column">
       <button onclick="pdayLayLow()">${L('[ LAY LOW — do your time ]','[ FICAR QUIETO — cumprir a pena ]')}</button>
-      ${canPacks?`<button onclick="pdayPacks()">${L('[ COMMISSARY — 5 packs · $10K ]','[ CANTINA — 5 maços · $10K ]')}</button>`:""}
-      ${canBribe?`<button class="amber" onclick="pdayBribe()">${L('[ BRIBE A CO — −1 YEAR · $40K ]','[ SUBORNAR AGENTE — −1 ANO · $40K ]')}</button>`:""}
+      ${canPacks?`<button onclick="pdayPacks()">${L('[ COMMISSARY — 5 packs · ','[ CANTINA — 5 maços · ')+fmtK(packCost*5)+' ]'}</button>`:""}
+      ${canBribe?`<button class="amber" onclick="pdayBribe()">${L('[ BRIBE A CO — −1 YEAR · ','[ SUBORNAR AGENTE — −1 ANO · ')+fmtK(bgU(1))+' ]'}</button>`:""}
       <button class="red" onclick="pdayYard()">${L('[ RUN THE YARD — hustle for packs, risk a brawl ]','[ CORRER O PÁTIO — ganhar maços, arriscar briga ]')}</button>
     </div>
     ${statusBar()}`;
@@ -4048,6 +4049,8 @@ function afterPrisonAction(){ render(); updateControls(); }
 /* prison payouts are a flat amount in the LOCAL currency (not a USD figure scaled up). We divide by
    cityScale so fmtK renders roughly minK..maxK in every city — e.g. capped at R$30k in Brazil. */
 function prisonCash(minK,maxK){ const disp=minK+Math.floor(Math.random()*(maxK-minK+1)); const sc=(typeof cityScale==="function"?cityScale():1)||1; return Math.max(1,Math.round(disp/sc)); }
+function prisonBg(loBg,hiBg){ return bgU(loBg + Math.random()*(hiBg-loBg)); }   // random cash in [lo,hi] bodyguards, native
+function packPrice(){ return bgU(0.02); }   // one cigarette pack = 0.02 bodyguard
 /* how a prison hit went down — one concise line of flavor per contract */
 const PRISON_HIT_METHODS=[
  {en:"a sharpened toothbrush between the ribs in the chow line",pt:"uma escova afiada entre as costelas na fila do rango"},
@@ -4078,7 +4081,7 @@ function pdayRob(){
 }
 function pdayHit(){
   const p=S.players[S.cur]; p._prisonActed=true; closeModal(); try{silentKill();}catch(e){}
-  const rr=prisonRoll(); const cash=prisonCash(10,30); const pk=1+Math.floor(Math.random()*3);   // modest prison payout (5-25 base); scales with local currency for display
+  const rr=prisonRoll(); const cash=prisonBg(0.3,1.2); const pk=5+Math.floor(Math.random()*6);   // prison hit: 0.3-1.2 bodyguards cash + 5-10 packs
   p.packs+=pk; p.cash+=cash; p.kills=(p.kills||0)+1;
   const tag=L('YOU ROLLED ','VOCÊ TIROU ')+rr.r+'/'+rr.sides;
   const m=prisonHitMethod(); const M=m.charAt(0).toUpperCase()+m.slice(1);
@@ -4093,7 +4096,7 @@ function pdayHit(){
 function pdayDrugs(){
   const p=S.players[S.cur]; p._prisonActed=true; closeModal();
   const rr=prisonRoll(); const tag=L('YOU ROLLED ','VOCÊ TIROU ')+rr.r+'/'+rr.sides;
-  if(rr.win){ const cash=prisonCash(5,25); const pk=2+Math.floor(Math.random()*3); p.cash+=cash; p.packs+=pk; render();
+  if(rr.win){ const cash=prisonBg(0.2,0.8); const pk=4+Math.floor(Math.random()*5); p.cash+=cash; p.packs+=pk; render();
     log(p.name+L(' moves product on the block (',' gira o produto no pavilhão (')+rr.r+'/'+rr.sides+L(') — +',') — +')+fmtK(cash)+L(', +',', +')+pk+L(' pk.',' mç.'),'good');
     showNotice(L('SELL DRUGS','VENDER DROGA'),'Rx',tag+' — '+L('GOOD RUN','BOM CORRE'),L('Your people outside kept the supply coming and the block kept buying — +','Sua gente na rua manteve o abastecimento e o pavilhão comprando — +')+fmtK(cash)+L(' and ',' e ')+pk+L(' pack(s) banked.',' maço(s) no bolso.'),()=>afterPrisonAction());
   } else { const lost=Math.min(p.packs,2+Math.floor(Math.random()*2)); p.packs-=lost; p.heat=(p.heat||0)+1; render();
@@ -4103,16 +4106,16 @@ function pdayDrugs(){
 }
 /* AI prison moves — silent (log only, no modal) */
 function aiPrisonRob(p){ const rr=prisonRoll(); if(rr.win){const got=rr.r+Math.floor(Math.random()*3);p.packs+=got;log(p.name+L(' robs an inmate (',' assalta um preso (')+rr.r+'/'+rr.sides+L(') — +',') — +')+got+L(' pk.',' mç.'),'warn');}else{const lost=Math.min(p.packs,1+Math.floor(Math.random()*3));p.packs-=lost;log(p.name+L(' botches a robbery (',' erra um assalto (')+rr.r+'/'+rr.sides+L(') — -',') — -')+lost+L(' pk.',' mç.'),'warn');} render(); finish(); }
-function aiPrisonDrugs(p){ const rr=prisonRoll(); if(rr.win){const cash=prisonCash(5,25),pk=2+Math.floor(Math.random()*3);p.cash+=cash;p.packs+=pk;log(p.name+L(' deals on the block (',' vende no pavilhão (')+rr.r+'/'+rr.sides+L(') — +',') — +')+fmtK(cash)+L(', +',', +')+pk+L(' pk.',' mç.'),'warn');}else{const lost=Math.min(p.packs,2+Math.floor(Math.random()*2));p.packs-=lost;p.heat=(p.heat||0)+1;log(p.name+L(' is shaken down in a search.',' é revistado numa batida.'),'warn');} render(); finish(); }
-function aiPrisonHit(p){ const rr=prisonRoll(); const cash=prisonCash(10,30),pk=1+Math.floor(Math.random()*3); p.packs+=pk; p.cash+=cash; p.kills=(p.kills||0)+1; if(!rr.win)p.sentence+=1; const m=prisonHitMethod(); log(p.name+L(' — prison hit: ',' — serviço na cadeia: ')+m+' ('+rr.r+'/'+rr.sides+', +'+pk+L(' pk, +',' mç, +')+fmtK(cash)+(rr.win?'':L(', +1y',', +1a'))+').','warn'); render(); finish(); }
+function aiPrisonDrugs(p){ const rr=prisonRoll(); if(rr.win){const cash=prisonBg(0.2,0.8),pk=4+Math.floor(Math.random()*5);p.cash+=cash;p.packs+=pk;log(p.name+L(' deals on the block (',' vende no pavilhão (')+rr.r+'/'+rr.sides+L(') — +',') — +')+fmtK(cash)+L(', +',', +')+pk+L(' pk.',' mç.'),'warn');}else{const lost=Math.min(p.packs,2+Math.floor(Math.random()*2));p.packs-=lost;p.heat=(p.heat||0)+1;log(p.name+L(' is shaken down in a search.',' é revistado numa batida.'),'warn');} render(); finish(); }
+function aiPrisonHit(p){ const rr=prisonRoll(); const cash=prisonBg(0.3,1.2),pk=5+Math.floor(Math.random()*6); p.packs+=pk; p.cash+=cash; p.kills=(p.kills||0)+1; if(!rr.win)p.sentence+=1; const m=prisonHitMethod(); log(p.name+L(' — prison hit: ',' — serviço na cadeia: ')+m+' ('+rr.r+'/'+rr.sides+', +'+pk+L(' pk, +',' mç, +')+fmtK(cash)+(rr.win?'':L(', +1y',', +1a'))+').','warn'); render(); finish(); }
 
 function pdayLayLow(){const p=S.players[S.cur];closeModal();pdayResolve(p);}
-function pdayPacks(){const p=S.players[S.cur];if(p.cash<10)return;p.cash-=10;p.packs+=5;log(p.name+L(" stocks up at the commissary: +5 packs (-$10K). Quiet day."," se abastece na cantina: +5 maços (-$10K). Dia tranquilo."),"good");closeModal();render();finish();}
-function pdayBribe(){const p=S.players[S.cur];if(p.cash<40||p.sentence<=1)return;p.cash-=40;p.sentence--;log(p.name+L(" slips a CO $40K — paperwork shifts, sentence now "," passa $40K a um agente — a papelada muda, pena agora ")+p.sentence+L("y.","a."),"good");closeModal();render();finish();}
+function pdayPacks(){const p=S.players[S.cur];const cost=packPrice()*5;if(p.cash<cost)return;p.cash-=cost;p.packs+=5;log(p.name+L(" stocks up at the commissary: +5 packs (-"," se abastece na cantina: +5 maços (-")+fmtK(cost)+L("). Quiet day.","). Dia tranquilo."),"good");closeModal();render();finish();}
+function pdayBribe(){const p=S.players[S.cur];const bribe=bgU(1);if(p.cash<bribe||p.sentence<=1)return;p.cash-=bribe;p.sentence--;log(p.name+L(" slips a CO "," passa ")+fmtK(bribe)+L(" — paperwork shifts, sentence now "," a um agente — a papelada muda, pena agora ")+p.sentence+L("y.","a."),"good");closeModal();render();finish();}
 function pdayYard(){
   const p=S.players[S.cur];closeModal();
   if(Math.random()<0.55){
-    const won=1+Math.floor(Math.random()*4);
+    const won=5+Math.floor(Math.random()*16);
     p.packs+=won;render();
     log(p.name+L(" runs the yard and hustles "," corre o pátio e fatura ")+won+L(" pack"+""," maço")+(won>1?"s":"")+".","good");
     showNotice(L("YARD HUSTLE","CORRE DO P\u00c1TIO"),"::",L("The yard pays out","O p\u00e1tio paga"),L("You moved between the cliques all day — favors, bets, errands. It adds up to ","Voc\u00ea circulou entre as fac\u00e7\u00f5es o dia todo — favores, apostas, corres. No fim deu ")+won+L(" pack"+"","")+(LANG==='PT'?" ma\u00e7o(s) no seu bolso.":(won>1?"s":"")+" in your pocket."),()=>finish());
