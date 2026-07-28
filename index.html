@@ -765,7 +765,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v23.0";
+const APP_VERSION="v23.1";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -3124,11 +3124,38 @@ function pokerDuel(oid){
   const p=S.players[S.cur];const o=S.players[oid];
   const stake=Math.min(p._pokerBet||0,p.cash,o.cash); if(stake<=0){pokerNight();return;}
   const a=1+Math.floor(Math.random()*6), b=1+Math.floor(Math.random()*6);
+  if(p.ai){ pokerDuelResolve(oid,a,b,stake); return; }
+  const el=document.getElementById("cardEl"); el.dataset.deck="party"; el.dataset.read="";
+  el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('HEADS-UP POKER','P\u00d4QUER M\u00c3O A M\u00c3O')}</div>
+    <div class="bd">${L('Pot ','Pote ')}${fmtK(stake)} ${L('against ','contra ')}${o.name}. ${L('Tap your die \u2014 high roll takes the pot, tie pushes.','Toque seu dado \u2014 o maior leva o pote, empate devolve.')}</div>
+    <div style="display:flex;justify-content:center;gap:26px;margin:16px 0">
+      <div style="text-align:center"><div class="die roller" id="duelDieP" style="cursor:pointer"><span class="dielbl">${(p.name||'YOU').slice(0,4)}</span></div><div style="font-size:12px;opacity:.7;margin-top:4px">${p.name}</div></div>
+      <div style="text-align:center"><div class="die" id="duelDieO"><span class="dielbl">${(o.name||'RIVAL').slice(0,4)}</span></div><div style="font-size:12px;opacity:.7;margin-top:4px">${o.name}</div></div>
+    </div>
+    <div id="duelHint" style="text-align:center;font-size:14px;opacity:.78;letter-spacing:1px">${L('TAP YOUR DIE','TOQUE SEU DADO')}</div>
+    ${statusBar()}`;
+  openModal();
+  const pd=document.getElementById("duelDieP"), od=document.getElementById("duelDieO"); let done=false;
+  pd.onclick=function(){ if(done)return; done=true; pd.onclick=null; pd.classList.add("rolling");
+    const hint=document.getElementById("duelHint"); if(hint)hint.textContent=L("rolling\u2026","rolando\u2026");
+    let t=0; const iv=setInterval(()=>{ try{SFX.tick();}catch(e){} drawDieEl(pd,1+Math.floor(Math.random()*6));
+      if(++t>6){ clearInterval(iv); drawDieEl(pd,a); pd.classList.remove("rolling");
+        if(hint)hint.textContent=o.name+L(" rolls\u2026"," tira\u2026");
+        od.classList.add("rolling"); let t2=0; const iv2=setInterval(()=>{ try{SFX.tick();}catch(e){} drawDieEl(od,1+Math.floor(Math.random()*6));
+          if(++t2>6){ clearInterval(iv2); drawDieEl(od,b); od.classList.remove("rolling"); setTimeout(()=>pokerDuelResolve(oid,a,b,stake),540); }
+        },70);
+      }
+    },70);
+  };
+}
+function pokerDuelResolve(oid,a,b,stake){
+  const p=S.players[S.cur];const o=S.players[oid];
   let res,cls;
   if(a>b){p.cash+=stake;mkDirty(p,stake);o.cash-=stake;SFX.cash();res=p.name+L(" WINS the pot: +"," GANHA o pote: +")+fmtK(stake)+L(" from "," de ")+o.name+".";cls="good";}
   else if(b>a){p.cash-=stake;o.cash+=stake;mkDirty(o,stake);SFX.bad();res=o.name+L(" takes "," leva ")+fmtK(stake)+L(" off "," de ")+p.name+".";cls="warn";}
   else {res=L("Push — dead even. Stakes go back.","Empate — tudo igual. Apostas devolvidas.");cls="";}
   log(L("Heads-up poker: ","Pôquer mão a mão: ")+p.name+L(" rolls "," tira ")+a+", "+o.name+L(" rolls "," tira ")+b+". "+res,cls);
+  if(p.ai){render();finish();return;}
   const el=document.getElementById("cardEl");
   el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('HEADS-UP POKER','P\u00d4QUER M\u00c3O A M\u00c3O')}</div>
     <div style="text-align:center;font-size:28px;font-weight:bold;margin:10px 0">${p.name}: ${a} &nbsp;·&nbsp; ${o.name}: ${b}</div>
