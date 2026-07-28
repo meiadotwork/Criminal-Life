@@ -765,7 +765,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v23.2";
+const APP_VERSION="v23.3";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -1140,7 +1140,7 @@ let S=null;
 function newPlayer(i,name,pattern){return{id:i,name:name||("P"+(i+1)),color:"#33ff44",pattern:pattern||"solid",ring:"outer",pos:0,
   cash:100,crew:0,packs:0,alive:true,respawns:0,hosp:0,cleanLaps:0,
   inJail:false,sentence:0,owns:new Map(),skip:0,freeArrest:0,freeRaid:0,
-  crimes:[],network:[],stayCount:0,age:15,crimeOps:3,yearsServed:0,heat:0,dirty:0,nwHist:[],soldierKills:0,bossKills:0,kills:0};}
+  crimes:[],network:[],stayCount:0,age:15,crimeOps:1,yearsServed:0,heat:0,dirty:0,nwHist:[],soldierKills:0,bossKills:0,kills:0};}
 
 /* ===== GLOBAL PLAYER COUNTER: every person who starts a game, counted worldwide.
    Uses the free abacus hit-counter API; fails silently offline — the game never depends on it. ===== */
@@ -1179,11 +1179,15 @@ function renderSetupStart(){
   const ready=(cap!=null)&&sp&&(pol!=null)&&setupData.n;
   const sv=loadSave();
   document.getElementById("setupStage").innerHTML=`
-   ${sv?`<div class="dosconfig" style="margin-bottom:16px">
-     <div class="cfgline">C:\\> CRIMINAL_TERMINAL.EXE /RESUME</div>
-     <div class="cfgline">${L('SAVED SESSION FOUND — turn','SESS\u00c3O SALVA ENCONTRADA — turno')} ${sv.turn} · ${sv.players.filter(p=>p.alive).length} ${L('of','de')} ${sv.players.length} ${L('still breathing','ainda respirando')}</div>
-     <button class="cfggo" onclick="resumeGame()">${L('[ CONTINUE SESSION » ]','[ CONTINUAR SESS\u00c3O » ]')}</button>
-   </div>`:''}
+   ${(()=>{ const _cc=careerLoad(); const _hasC=!!(_cc&&_cc.active); const _hasF=!!sv; if(!_hasC&&!_hasF)return '';
+     const _lvl=_hasC?Math.min(_cc.level,CAREER_LEVELS.length-1):0;
+     return `<div class="dosconfig" style="margin-bottom:16px">
+       <div class="cfgline">C:\\> CRIMINAL_TERMINAL.EXE /CONTINUE</div>
+       ${_hasC?`<div class="cfgline" style="opacity:.75">${L('Career — city','Carreira — cidade')} ${_lvl+1}/${CAREER_LEVELS.length} · ${L('bankroll','grana')} ${fmtKcity(_cc.bankroll||0,CAREER_LEVELS[_lvl].city)}</div>
+         <button class="cfggo" onclick="careerBriefing(${_lvl})">${L('[ CONTINUE CAREER » ]','[ CONTINUAR CARREIRA » ]')}</button>`:''}
+       ${_hasF?`<div class="cfgline" style="opacity:.75">${L('Free match — turn','Partida livre — turno')} ${sv.turn} · ${sv.players.filter(p=>p.alive).length}/${sv.players.length} ${L('alive','vivos')}</div>
+         <button class="cfggo" onclick="resumeGame()">${L('[ CONTINUE FREE MATCH » ]','[ CONTINUAR PARTIDA LIVRE » ]')}</button>`:''}
+     </div>`; })()}
    <div class="dosconfig" style="margin-bottom:16px">
      <div class="cfgline">C:\\> CRIMINAL_TERMINAL.EXE /LOADCODE</div>
      <div class="cfgline" style="opacity:.7">${L('Have a SAVE CODE from another device? Load it here.','Tem um CÓDIGO DE JOGO de outro aparelho? Carregue aqui.')}</div>
@@ -2326,7 +2330,7 @@ function openActions(){
   const off=`<span style="opacity:.4">\u2014</span>`;
   let rows="";
   rows+=row(L("Commit a crime","Cometer um crime"), L("heist, hit or drug run","assalto, morte ou tr\u00e1fico"),
-    canCrime?`<button onclick="actDo('crime')">${L("[ DO IT \u00b7 ","[ FAZER \u00b7 ")}${p.crimeOps}${L(" left ]"," rest. ]")}</button>`:off);
+    canCrime?`<button onclick="actDo('crime')">${L("[ DO IT ]","[ FAZER ]")}</button>`:off);
   rows+=row(L("Hire crew","Contratar equipe"), L("bodyguards, street soldiers, workers","guarda-costas, soldados, funcion\u00e1rios"),
     canHire?`<button onclick="actDo('hire')">${L("[ HIRE ]","[ CONTRATAR ]")}</button>`:off);
   rows+=row(L("Attack a rival","Atacar um rival"), L("send soldiers at a rival's turf or business \u2014 this is your move (no roll)","envie soldados contra a \u00e1rea ou neg\u00f3cio de um rival \u2014 \u00e9 sua jogada (sem rolar)"),
@@ -2640,7 +2644,7 @@ function stepMove(p,left){
   if(ring==="inner"&&p.pos===0){p.sentence-=1;p.age++;p.yearsServed=(p.yearsServed||0)+1;log(p.name+L(" finishes a prison lap. 1 year done (now "," completa uma volta na prisão. 1 ano cumprido (agora ")+p.age+L(" yo). "," anos). ")+(p.sentence>0?p.sentence+L("y left","a restantes"):L("TIME SERVED","PENA CUMPRIDA")),p.sentence>0?"":"good");
     if(isBrazil() && p.age===18 && p.sentence>0){ log(p.name+L(" turns 18 \u2014 released from juvenile detention (Brazil law)."," faz 18 anos \u2014 sai da interna\u00e7\u00e3o (lei brasileira)."),"good"); render(); setTimeout(()=>releaseFromPrison(p),300); return; }
     if(p.sentence<=0){render();setTimeout(()=>releaseFromPrison(p),300);return;}}
-  if(ring==="outer"&&p.pos===0){p.age++;p.crimeOps=3;log(p.name+L(" makes it another year (now "," sobrevive mais um ano (agora ")+p.age+L(" yo). Crime chances refilled."," anos). Chances de crime renovadas."),"");
+  if(ring==="outer"&&p.pos===0){p.age++;log(p.name+L(" makes it another year (now "," sobrevive mais um ano (agora ")+p.age+L(" yo)."," anos)."),"");
     if(p.heat>0){p.heat=Math.max(0,p.heat-5);log(p.name+L("'s heat cools a little (now ",": o risco esfria um pouco (agora ")+p.heat+"%).","");}
     {const _bz=Array.from(p.owns.keys()).filter(i=>OUTER[i]&&OUTER[i].k==="biz").length; if(_bz>0){const _bh=_bz*4; p.heat=Math.min(80,(p.heat||0)+_bh); log(p.name+L(" — the operation draws federal heat +"," — a operação atrai risco federal +")+_bh+"% ("+_bz+L(" biz)."," neg)."),"warn");}}
     let _wages=0,_laund=0,_ownML=false,_crew=p.crew;
@@ -3418,7 +3422,7 @@ function commitCrime(){
   const el=document.getElementById("cardEl"); if(!el)return; el.dataset.deck="";
   el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('COMMIT A CRIME','COMETER UM CRIME')}</div>
     <div class="ttl">${L('What kind of job?','Que tipo de serviço?')}</div>
-    <div class="bd">${L('Pick your line of work — you have ','Escolha seu ramo — você tem ')}${p.crimeOps}${L(' crime chance(s) left this year.',' chance(s) de crime este ano.')}</div>
+    <div class="bd">${L('Pick your line of work — one job, then you roll.','Escolha seu ramo — um golpe, depois você rola.')}</div>
     <div class="go" style="flex-direction:column">
       <button onclick="doCrime('heist')">${L('[ HEIST — rob for cash ]','[ ASSALTO — roubar por grana ]')}</button>
       <button class="red" onclick="doCrime('hitman')">${L('[ HIT — a contract kill ]','[ MATADOR — morte encomendada ]')}</button>
@@ -3553,7 +3557,7 @@ function orderHit(oid,free){
     o.hosp++; o.cleanLaps=0; SFX.gunBurst(); setTimeout(()=>SFX.ambulance(),520);
     if(o.ring==="outer"&&!o.inJail){const hi=OUTER.findIndex(c=>c.k==="hospital");if(hi>=0)o.pos=hi;}
     log(L("","O serviço de ")+p.name+L("'s hit puts "," coloca ")+o.name+L(" in the HOSPITAL ("," no HOSPITAL (")+o.hosp+"/3).","bad");
-    if(o.hosp>=3){ o._deathCause="Taken out by a contract hit"; render(); killPlayer(o,p); return; }
+    if(o.hosp>=3){ o._deathCause="Taken out by a contract hit"; o._gunDeath=true; render(); killPlayer(o,p); return; }
     hitNotice(L("THE HIT","O SERVI\u00c7O"),"x",L("Direct hit","Acerto direto"),o.name+L(" took two in the ribs getting into the car. Rushed to the HOSPITAL (visit "," levou dois tiros nas costelas entrando no carro. Correu pro HOSPITAL (visita ")+o.hosp+L("/3) — one more bad day and it's over for them. (+10 HEAT)","/3) — mais um dia ruim e acabou para ele. (+10 RISCO)"),()=>{render();finish();});
   }
 }
@@ -3712,8 +3716,9 @@ function renderStoryCard(card,deck,isAI){
   const num=(typeof activeDeck==="function"&&activeDeck(deck))?activeDeck(deck).indexOf(card)+1:0;
   const idTag=num?`<span style="float:right;font-weight:normal;opacity:.8">${deck}#${num}</span>`:"";
   const trc=trCard(deck,card);
-  const lbl=(trLbl(card.lbl)||trLbl(deck.toUpperCase())||deck.toUpperCase())+(card.lvl?" · "+card.lvl:"")+(isAI?" · "+p.name:"");
+  const lbl=(trLbl(card.lbl)||trLbl(deck.toUpperCase())||deck.toUpperCase())+(card.lvl?" · "+card.lvl:"");
   el.innerHTML=`<div class="lbl" style="background:${p.color}">${idTag}${lbl}</div>
+    <div style="font-weight:bold;letter-spacing:1px;opacity:.9;font-size:13px;text-align:center;margin:3px 0 0">▸ ${p.name}</div>
     <div class="art">${art}</div>
     ${trc.ttl?`<div class="ttl">${trc.ttl}</div>`:""}
     <div class="bd">${trc.bd}</div>
@@ -3938,6 +3943,7 @@ function showNotice(lbl,art,ttl,bd,next,danger){
   const el=document.getElementById("cardEl");
   el.dataset.deck=danger?"law":"notice"; el.dataset.read="1";   // narrative notice → show READ
   el.innerHTML=`<div class="lbl" style="background:${danger?'#7a0d0d':p.color}">${lbl}</div>
+    <div style="font-weight:bold;letter-spacing:1px;opacity:.9;font-size:13px;text-align:center;margin:3px 0 0">▸ ${p.name}</div>
     <div class="art">${art}</div>
     <div class="ttl">${ttl}</div>
     <div class="bd">${bd}</div>
@@ -4776,7 +4782,7 @@ function endTurn(){ if(S.over)return; if(!S.rolled)return;
     if(np.alive)break;
   }while(g<30);
   S.rolled=false;document.getElementById("diceLbl").textContent="roll to move";
-  if(S.players[S.cur]) S.players[S.cur]._prisonActed=false;
+  if(S.players[S.cur]){ S.players[S.cur]._prisonActed=false; S.players[S.cur].crimeOps=1; }
   render();updateControls();
   saveGame();
   const np=S.players[S.cur];
