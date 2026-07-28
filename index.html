@@ -765,7 +765,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v22.7";
+const APP_VERSION="v22.8";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -1094,9 +1094,11 @@ let ADECKS=null;
 function bgU(x){ return Math.max(1, Math.round((SOLDIER_COST||100)*x)); }   // x bodyguards -> native internal amount
 /* remap a deck's positive money fields into [lo,hi] bodyguards, preserving each card's relative rank */
 function remapBg(deck, lo, hi, fields){ fields=fields||["cut"]; const arr=ADECKS[deck]; if(!arr||!arr.length)return;
-  fields.forEach(f=>{ const vs=arr.map(c=>c[f]).filter(v=>typeof v==="number"&&v>0); if(!vs.length)return;
+  fields.forEach(f=>{ [1,-1].forEach(sign=>{
+    const vs=arr.map(c=>c[f]).filter(v=>typeof v==="number"&&Math.sign(v)===sign).map(Math.abs); if(!vs.length)return;
     const mn=Math.min(...vs),mx=Math.max(...vs),d=(mx-mn)||1;
-    arr.forEach(c=>{ if(typeof c[f]==="number"&&c[f]>0) c[f]=bgU(lo+(hi-lo)*(c[f]-mn)/d); }); }); }
+    arr.forEach(c=>{ if(typeof c[f]==="number"&&Math.sign(c[f])===sign) c[f]=sign*bgU(lo+(hi-lo)*(Math.abs(c[f])-mn)/d); });
+  }); }); }
 function buildActiveDecks(region){
   ADECKS={};
   for(const k in DECKS){
@@ -1108,6 +1110,8 @@ function buildActiveDecks(region){
   // NATIVE per-city payouts anchored to the bodyguard: crimes 0.5..10 bg, hospital 0.5..5 bg
   remapBg("heist",0.5,10); remapBg("hitman",0.5,10); remapBg("drug",0.5,10);
   remapBg("hospital",0.5,5,["cut","cost"]);
+  // EVENT cards (fate / nightlife / crooked cop) — wins and losses both 0.5..10 bg
+  remapBg("fate",0.5,10); remapBg("cop",0.5,10); remapBg("party",0.5,10,["cut","bet"]);
 }
 function retireTarget(){ const c=(typeof CITIES!=="undefined"&&CITIES[_cityKey()])||{bg:100,scale:1}; return 50*Math.max(1,Math.round((c.bg||100)/(c.scale||1))); }
 function activeDeck(deck){ return (ADECKS&&ADECKS[deck])||DECKS[deck]; }
