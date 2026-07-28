@@ -765,7 +765,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v23.5";
+const APP_VERSION="v23.6";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -3007,11 +3007,7 @@ function resolveInner(){
   switch(c.k){
     case "pentry":log(L("Prison entry. Do your time.","Entrada da prisão. Cumpra sua pena."));finish();break;
     case "pday":
-      if(p.ai){
-        // AI restocks protection when low, else does its time
-        if(p.packs<=1&&p.cash>=packPrice()*5){const _pc=packPrice()*5;p.cash-=_pc;p.packs+=5;log(p.name+L(" buys 5 packs at the commissary (-"," compra 5 maços na cantina (-")+fmtK(_pc)+").","warn");render();finish();break;}
-        pdayResolve(p);break;
-      }
+      if(p.ai){ aiPrisonTurn(p); break; }
       prisonDayMenu();
       break;
     case "pfight":drawStory("pfight");break;
@@ -4209,6 +4205,17 @@ function pdayDrugsResolve(rr){
   }
 }
 /* AI prison moves — silent (log only, no modal) */
+function aiPrisonTurn(p){
+  const payroll=(p.crew+streetSoldiers(p))*SOLDIER_WAGE;
+  const broke=p.cash < Math.max(SOLDIER_COST, payroll);
+  if(p.packs<=1){                                   // protection first
+    if(p.cash>=packPrice()*5){ const _pc=packPrice()*5; p.cash-=_pc; p.packs+=5; log(p.name+L(" buys 5 packs at the commissary (-"," compra 5 maços na cantina (-")+fmtK(_pc)+").","warn"); render(); finish(); return; }
+    aiPrisonRob(p); return;                          // can't afford packs — rob for them
+  }
+  if(broke){ if(Math.random()<0.5) aiPrisonDrugs(p); else aiPrisonHit(p); return; }   // low on cash — hustle for money
+  if(Math.random()<0.35){ aiPrisonDrugs(p); return; }                                 // otherwise deal now and then
+  pdayResolve(p);
+}
 function aiPrisonRob(p){ const rr=prisonRoll(); if(rr.win){const got=rr.r+Math.floor(Math.random()*3);p.packs+=got;log(p.name+L(' robs an inmate (',' assalta um preso (')+rr.r+'/'+rr.sides+L(') — +',') — +')+got+L(' pk.',' mç.'),'warn');}else{const lost=Math.min(p.packs,1+Math.floor(Math.random()*3));p.packs-=lost;log(p.name+L(' botches a robbery (',' erra um assalto (')+rr.r+'/'+rr.sides+L(') — -',') — -')+lost+L(' pk.',' mç.'),'warn');} render(); finish(); }
 function aiPrisonDrugs(p){ const rr=prisonRoll(); if(rr.win){const cash=prisonBg(0.2,0.8),pk=4+Math.floor(Math.random()*5);p.cash+=cash;p.packs+=pk;log(p.name+L(' deals on the block (',' vende no pavilhão (')+rr.r+'/'+rr.sides+L(') — +',') — +')+fmtK(cash)+L(', +',', +')+pk+L(' pk.',' mç.'),'warn');}else{const lost=Math.min(p.packs,2+Math.floor(Math.random()*2));p.packs-=lost;p.heat=(p.heat||0)+1;log(p.name+L(' is shaken down in a search.',' é revistado numa batida.'),'warn');} render(); finish(); }
 function aiPrisonHit(p){ const rr=prisonRoll(); const cash=prisonBg(0.3,1.2),pk=5+Math.floor(Math.random()*6); p.packs+=pk; p.cash+=cash; p.kills=(p.kills||0)+1; if(!rr.win)p.sentence+=1; const m=prisonHitMethod(); log(p.name+L(' — prison hit: ',' — serviço na cadeia: ')+m+' ('+rr.r+'/'+rr.sides+', +'+pk+L(' pk, +',' mç, +')+fmtK(cash)+(rr.win?'':L(', +1y',', +1a'))+').','warn'); render(); finish(); }
@@ -4831,14 +4838,19 @@ function rollDiceAI(){
 }
 /* AI stocks up on bodyguards with spare cash — more soldiers = more attacks and the 10+ bonus die.
    Returns how many it hired (so the turn can show a recruitment card, like a human would see). */
+function streetSoldiers(p){ let n=0; if(p&&p.owns)p.owns.forEach((c,i)=>{if(OUTER[i]&&OUTER[i].k==="street")n+=c;}); return n; }
+function aiYearIncome(p){ if(!fullOp(p))return 0; let inc=0; p.owns.forEach((c,i)=>{const k=OUTER[i]&&OUTER[i].k; if(k==="street"||k==="biz")inc+=cellUnit(i)*c;}); return inc; }
 function aiRecruit(p){
   if(p.ring!=="outer"||p.inJail) return 0;
   const pr=aiProf(p);
   const nw=Math.max(0,netWorth(p));
-  const reserve=nw*(pr.reserveFrac||0);                              // keep a share of wealth liquid
-  const grow=pr.crewStep?Math.floor(nw/(SOLDIER_COST*pr.crewStep)):0; // army grows with wealth
-  const hard=(typeof MAX_SOLDIERS!=="undefined"?MAX_SOLDIERS:99);
-  const cap=Math.min(hard, pr.crewCap||pr.recruitCap, pr.recruitCap+grow);
+  const inc=aiYearIncome(p), streetSol=streetSoldiers(p);
+  // an army you can't pay wages for bankrupts you: keep total wages under ~60% of yearly income (+ a small defensive floor)
+  const affordCrew=Math.max(fullOp(p)?2:1, Math.floor(inc*0.6/SOLDIER_WAGE)-streetSol);
+  const grow=pr.crewStep?Math.floor(nw/(SOLDIER_COST*pr.crewStep)):0;
+  const cap=Math.max(0, Math.min(pr.crewCap||pr.recruitCap, pr.recruitCap+grow, affordCrew));
+  // reserve: a full year of the intended payroll, or a quarter of cash — never spend into insolvency
+  const reserve=Math.max((cap+streetSol)*SOLDIER_WAGE, Math.round(p.cash*0.30));
   let added=0;
   while(p.crew<cap && p.cash-SOLDIER_COST>=reserve){ p.cash-=SOLDIER_COST; p.crew++; added++; }
   if(added>0){ render(); log(p.name+L(" recruits "," recruta ")+added+L(" soldier"," soldado")+(added>1?"s":"")+L(" (now "," (agora ")+p.crew+").","good"); }
@@ -4850,16 +4862,22 @@ function aiReinforce(p){
   if(p.ring!=="outer"||p.inJail||!p.owns.size) return 0;
   const pr=aiProf(p);
   const nw=Math.max(0,netWorth(p));
-  const reserve=nw*(pr.reserveFrac||0);
-  const grow=pr.garStep?Math.floor(nw/(SOLDIER_COST*pr.garStep)):0;
-  const target=Math.min(pr.garCap||1, 1+grow);
-  if(target<=1) return 0;
+  const inc=aiYearIncome(p), streetSol=streetSoldiers(p), complete=fullOp(p);
+  const wageReserve=Math.max((p.crew+streetSol)*SOLDIER_WAGE, Math.round(p.cash*0.30));
   let added=0;
   for(const idx of Array.from(p.owns.keys())){
-    const per=cellUnit(idx); if(per<=0) continue;
-    while((p.owns.get(idx)||0)<target && p.cash-per>=reserve){ p.cash-=per; p.owns.set(idx,(p.owns.get(idx)||0)+1); added++; }
+    const k=OUTER[idx]&&OUTER[idx].k; const per=cellUnit(idx); if(per<=0) continue;
+    if(k==="biz"){
+      if(!complete) continue;                                              // a shop earns nothing with no street — don't over-staff a dead op
+      const target=Math.min(pr.garCap||1, 3+Math.floor(inc/(SOLDIER_COST*15)));   // workers = FREE income, no wage — staff generously
+      while((p.owns.get(idx)||0)<target && p.cash-per>=Math.round(p.cash*0.15)){ p.cash-=per; p.owns.set(idx,(p.owns.get(idx)||0)+1); added++; }
+    } else if(k==="street"){
+      const grow=pr.garStep?Math.floor(nw/(SOLDIER_COST*pr.garStep)):0;
+      const target=complete?Math.min(pr.garCap||1, 1+grow):1;              // soldiers cost yearly wages — keep turf lean
+      while((p.owns.get(idx)||0)<target && p.cash-per>=wageReserve){ p.cash-=per; p.owns.set(idx,(p.owns.get(idx)||0)+1); added++; }
+    }
   }
-  if(added>0){ render(); log(p.name+L(" digs in — +"," se entrincheira — +")+added+L(" soldier"," soldado")+(added>1?"s":"")+L(" across its turf."," pela área."),"good"); }
+  if(added>0){ render(); log(p.name+L(" digs in — +"," reforça — +")+added+L(" staff"," reforço")+(added>1?"s":"")+L(" across its turf."," pela área."),"good"); }
   return added;
 }
 /* pick the richest rival turf this AI can actually take; returns null if it shouldn't attack this turn */
@@ -4896,7 +4914,9 @@ function aiMaybeHit(p){
    using the same crime chances (crimeOps) players get. */
 function aiMaybeCrime(p){
   if(p.ring!=="outer"||p.inJail||p.crimeOps<=0) return false;
-  const prob=({AGGRESSIVE:0.40,CAREFUL:0.22,CAUTIOUS:0.10,PASSIVE:0.04})[p.temper]||0.2;
+  let prob=({AGGRESSIVE:0.40,CAREFUL:0.22,CAUTIOUS:0.10,PASSIVE:0.04})[p.temper]||0.2;
+  const payroll=(p.crew+streetSoldiers(p))*SOLDIER_WAGE;
+  if(p.cash < Math.max(SOLDIER_COST, payroll)) prob=0.9;   // broke — hustle nearly every turn to raise cash
   if(Math.random()>=prob) return false;
   p.crimeOps--;
   log(p.name+L(" goes looking for a score."," sai atrás de um golpe."),"warn");
