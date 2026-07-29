@@ -765,7 +765,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v24.3";
+const APP_VERSION="v24.4";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -828,45 +828,51 @@ const _ECON_VALS = OUTER.filter(c=>c.k==="street"||c.k==="biz").map(c=>c.k==="st
 const ECON_MIN = Math.min(..._ECON_VALS), ECON_MAX = Math.max(..._ECON_VALS);
 function nativePrice(base, bg, scale){ const t=(base-ECON_MIN)/(ECON_MAX-ECON_MIN); const tgt=(bg||100)*(0.5+1.5*t); return Math.max(1, Math.round(tgt/(scale||1))); }
 const CITIES = {
-  NY:  { name:"NEW YORK", prison:"RIKERS", law:{life:true, maxYears:99}, cur:"$", scale:1, soldier:100, bg:100,
+  NY:  { name:"NEW YORK", prison:"RIKERS", law:{life:true, maxYears:99}, cur:"$", scale:1, region:"US", soldier:80, bg:80,
     streets:{20:"Mott Haven",30:"South Bronx",45:"Brownsville",60:"East New York",75:"Sunset Park",90:"Jackson Hts",100:"Bay Ridge",210:"Astoria",225:"Long Is City",230:"Bklyn Heights",250:"Greenwich Vil",280:"Hudson Yards",300:"SoHo",350:"Tribeca",400:"Upper E Side"},
     biz:{400:["cocaine","co"],200:["fentanyl","fn"],180:["extortion","ex"],170:["loan shark","ls"],150:["card fraud","id"],110:["heroin","he"],90:["cargo theft","cg"],80:["weed","wd"],70:["laundering","$$"]},
     casino:["Poker Club","PC"] },
-  CWB: { name:"CURITIBA", prison:"PIRAQUARA", law:{life:false, maxYears:40}, cur:"R$", scale:5, soldier:50, bg:40,
+  CWB: { name:"CURITIBA", prison:"PIRAQUARA", law:{life:false, maxYears:40}, cur:"$", scale:1, region:"BR", soldier:7, bg:7,
     // streets keyed by their fixed price → local neighborhood (richest price = most prestigious area)
     streets:{20:"Caximba",30:"Tatuquara",45:"Cajuru",60:"CIC",75:"Sítio Cercado",90:"Boqueirão",100:"Portão",210:"Centro",225:"Centro Cívico",230:"Juvevê",250:"Cabral",280:"Água Verde",300:"Bigorrilho",350:"Ecoville",400:"Batel"},
     // businesses keyed by their fixed income → [name, icon]; drugs are separated. 400 = the laundering front
     biz:{400:["cocaína","co"],200:["crack","ck"],180:["golpe PIX","px"],170:["contrabando","cn"],150:["roubo carga","cr"],110:["desmanche","dm"],90:["maconha","mc"],80:["roubo celular","cl"],70:["lavagem","$$"]},
     casino:["Jogo do Bicho","JB"]
   },
-  LA: { name:"LOS ANGELES", prison:"TWIN TOWERS", law:{life:true, maxYears:99}, cur:"$", scale:1, soldier:100, bg:100,
+  LA: { name:"LOS ANGELES", prison:"TWIN TOWERS", law:{life:true, maxYears:99}, cur:"$", scale:1, region:"US", soldier:70, bg:70,
     streets:{20:"Skid Row",30:"Watts",45:"South LA",60:"Boyle Hts",75:"Echo Park",90:"Hollywood",100:"Koreatown",210:"Downtown LA",225:"W. Hollywood",230:"Santa Monica",250:"Brentwood",280:"Pacific Pal.",300:"Beverly Hills",350:"Holmby Hills",400:"Bel Air"},
     // drugs separated (cocaine, fentanyl, meth, heroin) + firearms, cargo/retail theft, fraud, laundering
     biz:{400:["cocaine","co"],200:["fentanyl","fn"],180:["firearms","gn"],170:["meth","me"],150:["fraud/ID","id"],110:["heroin","he"],90:["cargo theft","cg"],80:["retail theft","rt"],70:["laundering","$$"]},
     casino:["Card Room","CR"]
   },
-  RIO: { name:"RIO DE JANEIRO", prison:"BANGU", law:{life:false, maxYears:40}, cur:"R$", scale:5, soldier:50, bg:50,
+  RIO: { name:"RIO DE JANEIRO", prison:"BANGU", law:{life:false, maxYears:40}, cur:"$", scale:1, region:"BR", soldier:8, bg:8,
     streets:{20:"C.Alemão",30:"Cidade Deus",45:"Bangu",60:"Madureira",75:"Méier",90:"Tijuca",100:"Flamengo",210:"Botafogo",225:"Copacabana",230:"Barra",250:"Gávea",280:"Jd Botânico",300:"Lagoa",350:"Ipanema",400:"Leblon"},
     // drugs separated (cocaína, crack, maconha) + milícia extortion, cargo theft, chop shop, PIX scam, smuggling, laundering
     biz:{400:["cocaína","co"],200:["crack","ck"],180:["milícia","ml"],170:["golpe PIX","px"],150:["roubo carga","cr"],110:["contrabando","cn"],90:["desmanche","dm"],80:["maconha","mc"],70:["lavagem","$$"]},
     casino:["Jogo do Bicho","JB"]
   },
-  CDMX:{ name:"MEXICO CITY", prison:"ALTIPLANO", law:{life:false, maxYears:60}, cur:"MX$", scale:20, soldier:60, bg:200,
+  CDMX:{ name:"MEXICO CITY", prison:"ALTIPLANO", law:{life:false, maxYears:60}, cur:"$", scale:1, region:"MX", soldier:10, bg:10,
     streets:{20:"Neza",30:"Tepito",45:"Iztapalapa",60:"Doctores",75:"Centro Hist.",90:"Escandón",100:"Narvarte",210:"Del Valle",225:"Coyoacán",230:"Roma Norte",250:"Condesa",280:"Santa Fe",300:"Bosques Lomas",350:"Lomas Chap.",400:"Polanco"},
     // drugs separated (cocaína, cristal, mota) + cobro de piso extortion, huachicol, robo de carga, autopartes, piratería, lavado
     biz:{400:["cocaína","co"],200:["cristal","cr"],180:["huachicol","hu"],170:["cobro de piso","cp"],150:["secuestro","sq"],110:["robo carga","rc"],90:["mota","mt"],80:["piratería","pi"],70:["lavado","$$"]},
     casino:["Casino","CS"] },
-  SP:  { name:"SÃO PAULO", prison:"CARANDIRU", law:{life:false, maxYears:40}, cur:"R$", scale:5, soldier:50, bg:60,
+  SP:  { name:"SÃO PAULO", prison:"CARANDIRU", law:{life:false, maxYears:40}, cur:"$", scale:1, region:"BR", soldier:9, bg:9,
     streets:{20:"Heliópolis",30:"Cid Tiradentes",45:"Capão Redondo",60:"Brás",75:"Santana",90:"Tatuapé",100:"Vila Mariana",210:"Perdizes",225:"Higienópolis",230:"Pinheiros",250:"Moema",280:"Itaim Bibi",300:"V.N. Conceição",350:"Jardim América",400:"Jardim Europa"},
     // drugs separated (cocaína, crack, maconha — SP's Cracolândia) + cargo theft, PIX scam, chop shop, phone theft, piracy, laundering
     biz:{400:["cocaína","co"],200:["crack","ck"],180:["golpe PIX","px"],170:["roubo carga","cr"],150:["desmanche","dm"],110:["maconha","mc"],90:["roubo celular","cl"],80:["pirataria","pi"],70:["lavagem","$$"]},
     casino:["Jogo do Bicho","JB"] },
-  LON: { name:"LONDON", prison:"HMP BLACKWALL", law:{life:true, maxYears:99}, cur:"£", scale:1, soldier:120, bg:120,
+  LON: { name:"LONDON", prison:"HMP BLACKWALL", law:{life:true, maxYears:99}, cur:"$", scale:1, region:"UK", soldier:60, bg:60,
     // streets keyed by fixed price tier -> London turf, poorest -> richest (Mayfair on top)
     streets:{20:"Broadwater Fm",30:"Tottenham Hale",45:"Peckham Rye",60:"Brixton Road",75:"Harlesden",90:"Deptford High",100:"Elephant&Cast",210:"Camden Town",225:"Hackney Cent.",230:"Shoreditch",250:"Canary Wharf",280:"South Ken.",300:"Chelsea Kings",350:"Kensington Hi",400:"Mayfair"},
     // criminal enterprises (manufacturing side) — cocaine import on top, laundering at the bottom
     biz:{400:["cocaine","co"],200:["pills","pl"],180:["fraud","fr"],170:["extortion","ex"],150:["cybercrime","cy"],110:["cannabis","cb"],90:["cargo theft","cg"],80:["counterfeit","ct"],70:["laundering","$$"]},
-    casino:["The Crown Club","CW"] }
+    casino:["The Crown Club","CW"] },
+  MDE: { name:"MEDELLÍN", prison:"LA ESTRELLA", law:{life:false, maxYears:60}, cur:"$", scale:1, region:"CO", soldier:8, bg:8,
+    // comunas & barrios, poorest → richest (El Poblado hills on top)
+    streets:{20:"Comuna 13",30:"Popular",45:"Santo Domingo",60:"Manrique",75:"Aranjuez",90:"Castilla",100:"Buenos Aires",210:"Belén",225:"Laureles",230:"Estadio",250:"Envigado",280:"Provenza",300:"El Poblado",350:"Las Palmas",400:"Los Balsos"},
+    // criminal enterprises only — cocaine on top, laundering at the bottom
+    biz:{400:["cocaína","co"],200:["base de coca","bs"],180:["vacuna","vc"],170:["secuestro","sq"],150:["esmeraldas","em"],110:["oro ilegal","or"],90:["contrabando","cn"],80:["microtráfico","mt"],70:["lavado","$$"]},
+    casino:["Casino Nápoles","CN"] }
 };
 function applyCity(key){
   const city=CITIES[key]||CITIES.NY;
@@ -883,7 +889,7 @@ function applyCity(key){
   const _pk=OUTER.find(c=>c.k==="poker"); if(_pk)_pk.price=5*SOLDIER_COST;   // THE WHEEL: 5 bodyguards per dealer
   TREAT_COST = Math.round(0.5*SOLDIER_COST);                                  // hospital treatment fee = 0.5 bodyguard
   // per-region card decks: R$ cities (SP/RIO/CWB) pull the Brazilian set on top of the base
-  buildActiveDecks(city.cur==="R$"?"BR":city.cur==="MX$"?"MX":city.cur==="£"?"UK":"US");
+  buildActiveDecks(city.region||"US");
 }
 function _cityKey(){ if(typeof S!=="undefined"&&S&&S.city)return S.city; if(typeof setupData!=="undefined"&&setupData&&setupData.city)return setupData.city; return "NY"; }
 function cityCur(){ return (CITIES[_cityKey()]||CITIES.NY).cur || "$"; }
@@ -1167,6 +1173,78 @@ pday:[
  {ttl:"Prison Day",ttl_pt:"Celular alugado",lbl:"PRISON DAY",packs:2,bd:"You rented out a smuggled phone by the minute. Half the landing owes you burn by lock-up.",bd_pt:"Alugou um celular contrabandeado por minuto. Metade do corredor te deve fumo na hora de trancar."}
 ]
 };
+const DECKS_CO = {
+heist:[
+ {ttl:"Armoured truck",ttl_pt:"Assalto a carro-forte",lbl:"HEIST",arr:9,cut:22,bd:"You boxed the value truck on the road to José María Córdova. The guards read the odds against them and handed the sacks over without a shot.",bd_pt:"Fechou o carro-forte na estrada pro José María Córdova. Os guardas leram os números contra eles e entregaram os sacos sem um tiro."},
+ {ttl:"Poblado jeweller",ttl_pt:"Joalheria em El Poblado",lbl:"HEIST",arr:4,cut:14,bd:"Two on a moto, helmets down, in and out of the El Poblado jeweller in ninety seconds — the cases swept clean before the guard drew.",bd_pt:"Dois numa moto, capacete fechado, entrou e saiu da joalheria de El Poblado em noventa segundos — as vitrines varridas antes do segurança sacar."},
+ {ttl:"Bank on the Avenida",ttl_pt:"Assalto a banco",lbl:"HEIST",arr:22,cut:44,bd:"A vault job that went loud. A guard reached for his radio and didn't make it home — now it's a body on the job.",bd_pt:"Um assalto a cofre que saiu no barulho. Um guarda foi pro rádio e não voltou pra casa — agora é um corpo no serviço."},
+ {ttl:"Emerald run",ttl_pt:"Roubo de esmeraldas",lbl:"HEIST",arr:6,cut:26,bd:"A courier came down from Boyacá with a pouch of green worth a house. He never made his connection in Medellín.",bd_pt:"Um mensageiro desceu de Boyacá com um saco de verde que valia uma casa. Nunca fez a conexão em Medellín."},
+ {ttl:"Gold off the dredge",ttl_pt:"Roubo de ouro",lbl:"HEIST",arr:8,cut:20,bd:"You hit an illegal gold operation on the río — took the week's dust off men who could never report it stolen.",bd_pt:"Bateu numa dragagem de ouro ilegal no rio — levou o pó da semana de gente que nunca poderia dar queixa."},
+ {ttl:"Secuestro express",ttl_pt:"Sequestro relâmpago",lbl:"HEIST",arr:7,cut:9,bd:"You took him off the street outside a Provenza bar and drove him cajero to cajero until his cards maxed, then let him out at dawn.",bd_pt:"Pegou ele na saída de um bar em Provenza e rodou de caixa em caixa até estourar os cartões, depois soltou no amanhecer."},
+ {ttl:"Moto snatch",ttl_pt:"Roubo de celular",lbl:"HEIST",arr:2,cut:3,bd:"A night's worth of phones snatched from open hands on the Parque Lleras terraces, gone up an alley before anyone stood up.",bd_pt:"Uma noite inteira de celulares arrancados de mãos abertas nas mesas do Parque Lleras, sumidos por um beco antes de alguém levantar."},
+ {ttl:"The finca",ttl_pt:"Roubo na fazenda",lbl:"HEIST",arr:5,cut:16,bd:"A narco kept his cash out at a finca in the hills, sure nobody would dare. You dared, and left before the caretaker woke.",bd_pt:"Um narco guardava a grana numa finca nas montanhas, certo de que ninguém ousaria. Você ousou, e saiu antes do caseiro acordar."},
+ {ttl:"Casino count room",ttl_pt:"Assalto a cassino",lbl:"HEIST",arr:10,cut:22,bd:"You hit the casino at the change of shift — straight to the count room with a member's face, out through the kitchens.",bd_pt:"Bateu no cassino na troca de turno — direto pra sala de contagem com cara de sócio, saiu pela cozinha."}
+],
+drug:[
+ {ttl:"The cocina",ttl_pt:"Cozinha de coca",lbl:"DRUG DEAL",arr:10,cut:35,bd:"A cocina deep in the hills turned base into product by the drum. The cook smelled of solvent for a week; the profit smelled better.",bd_pt:"Uma cozinha no fundo das montanhas transformou base em produto por tambor. O cozinheiro fedeu a solvente uma semana; o lucro cheirava melhor."},
+ {ttl:"Paste from the campo",ttl_pt:"Base do interior",lbl:"DRUG DEAL",arr:6,cut:12,bd:"The paste came in from the campo tied under a milk truck. Rough product, but the first link in a very long chain — and it was yours.",bd_pt:"A base veio do campo amarrada embaixo de um caminhão de leite. Produto bruto, mas o primeiro elo de uma corrente longa — e era seu."},
+ {ttl:"Narco-sub",ttl_pt:"Narco-submarino",lbl:"DRUG DEAL",arr:12,cut:42,bd:"A fibreglass semi-submersible ran the load up the Pacific coast, riding low and dark. Half a country's weekend started in that hull.",bd_pt:"Um semissubmersível de fibra levou a carga pela costa do Pacífico, baixo e escuro. Metade do fim de semana de um país começou naquele casco."},
+ {ttl:"A kilo to Miami",ttl_pt:"Um quilo pra Miami",lbl:"DRUG DEAL",arr:11,cut:40,bd:"Sealed, wrapped and swallowed into a shipment of flowers bound north. The mule never knew the value taped to the pallet beside her.",bd_pt:"Selado, embrulhado e enfiado num carregamento de flores rumo ao norte. A mula nunca soube o valor colado no palete do lado."},
+ {ttl:"Plaza control",ttl_pt:"Domínio da praça",lbl:"DRUG DEAL",arr:14,cut:40,bd:"You held the plaza this month — every gram that moved through the comuna paid you a cut, and everyone who wanted to sell asked you first.",bd_pt:"Você segurou a praça esse mês — cada grama que passou pela comuna te pagou uma parte, e quem quis vender pediu pra você primeiro."},
+ {ttl:"The corner",ttl_pt:"A esquina",lbl:"DRUG DEAL",arr:6,cut:11,bd:"Microtráfico off a staircase in the comuna, a lookout on the wire, product moving hand to hand until the sun came up.",bd_pt:"Microtráfico numa escada da comuna, olheiro no arame, produto de mão em mão até o sol raiar."},
+ {ttl:"Prison supply",ttl_pt:"Fornecimento pro presídio",lbl:"DRUG DEAL",arr:8,cut:9,bd:"You moved product in through the visit line, taped where no guard checks. Inside La Estrella, the same gram sells for triple.",bd_pt:"Passou o produto pela fila da visita, colado onde agente nenhum revista. Dentro da Estrella, a mesma grama vale o triplo."},
+ {ttl:"Go-fast boat",ttl_pt:"Lancha rápida",lbl:"DRUG DEAL",arr:12,cut:40,bd:"A go-fast ran the coke up to a quiet cove past the coast guard, engines screaming, running lights dead. Gone before the radar knew.",bd_pt:"Uma lancha levou a cocaína até uma enseada quieta passando a guarda costeira, motor gritando, luz apagada. Sumiu antes do radar saber."}
+],
+hitman:[
+ {ttl:"Sicario on a moto",ttl_pt:"Sicário de moto",lbl:"HITMAN",arr:12,cut:5,bd:"A parrillero on the back of a moto — a name, a photo, one red light. It was done and the bike was three comunas away by nightfall.",bd_pt:"Um parrillero na garupa de uma moto — um nome, uma foto, um sinal vermelho. Foi feito e a moto já estava a três comunas ao anoitecer."},
+ {ttl:"Silence the sapo",ttl_pt:"Queima de arquivo",lbl:"HITMAN",arr:12,cut:5,bd:"The one who talked to the fiscalía never made it to the stand. Clean work — the case closed itself.",bd_pt:"O que falou com a fiscalía nunca chegou a depor. Serviço limpo — o processo se fechou sozinho."},
+ {ttl:"Plata o plomo",ttl_pt:"Plata o plomo",lbl:"HITMAN",arr:13,cut:6,bd:"He was offered silver and chose lead. You saw to it he got exactly what he chose.",bd_pt:"Ofereceram prata a ele e ele escolheu chumbo. Você cuidou pra que recebesse exatamente o que escolheu."},
+ {ttl:"Levantamiento",ttl_pt:"Levantamento",lbl:"HITMAN",arr:12,cut:5,bd:"The trucks pulled up, he got in, and the street went back to normal like nothing happened. He was never seen again.",bd_pt:"As camionetes pararam, ele entrou, e a rua voltou ao normal como se nada tivesse acontecido. Nunca mais foi visto."},
+ {ttl:"Contract from a capo",ttl_pt:"Contrato de um capo",lbl:"HITMAN",arr:11,cut:7,bd:"The order came down through three people so you'd never know who paid. You carried it out the same way — through three others.",bd_pt:"A ordem desceu por três pessoas pra você nunca saber quem pagou. Cumpriu do mesmo jeito — por outras três."},
+ {ttl:"The debt",ttl_pt:"A dívida",lbl:"HITMAN",arr:9,cut:5,bd:"A man owed the wrong people and stopped answering. You were the last call he didn't take.",bd_pt:"Um homem devia pra gente errada e parou de atender. Você foi a última ligação que ele não pegou."},
+ {ttl:"Comuna dispute",ttl_pt:"Disputa de comuna",lbl:"HITMAN",arr:10,cut:8,bd:"Two combos wanted the same staircase. You settled which one kept it, and the comuna was quiet again by the weekend.",bd_pt:"Dois combos queriam a mesma escada. Você resolveu qual ficava com ela, e a comuna ficou quieta de novo no fim de semana."},
+ {ttl:"The message",ttl_pt:"O recado",lbl:"HITMAN",arr:13,cut:7,bd:"The job came with an audience. It was done in daylight so everyone who needed to understand it, did.",bd_pt:"O serviço veio com plateia. Foi feito à luz do dia pra que todo mundo que precisava entender, entendesse."}
+],
+raid:[
+ {ttl:"El Bloque de Búsqueda",ttl_pt:"O Bloco de Busca",lbl:"POLICE RAID",bd:"The search bloc came through the door before dawn — every safe house on the intelligence list hit within the same ten minutes.",bd_pt:"O bloco de busca entrou pela porta antes do amanhecer — cada esconderijo da lista batido nos mesmos dez minutos."},
+ {ttl:"DEA in town",ttl_pt:"DEA na cidade",lbl:"POLICE RAID",bd:"The gringos had been listening for months. When the Policía moved, they already knew which room the money was in.",bd_pt:"Os gringos vinham escutando há meses. Quando a Polícia agiu, já sabiam em que quarto estava a grana."},
+ {ttl:"The comuna sweep",ttl_pt:"Batida na comuna",lbl:"POLICE RAID",bd:"They sealed the staircases top and bottom and worked their way in. You knew the alleys better — but this time there was a soldier at the end of each.",bd_pt:"Fecharam as escadas em cima e embaixo e foram entrando. Você conhecia os becos melhor — mas dessa vez tinha um soldado no fim de cada um."},
+ {ttl:"The finca raid",ttl_pt:"Batida na finca",lbl:"POLICE RAID",bd:"They found the finca — the lab, the drums, the packaged product all stacked for the cameras. The seizure made the front page.",bd_pt:"Acharam a finca — o laboratório, os tambores, o produto embalado tudo empilhado pras câmeras. A apreensão foi capa de jornal."},
+ {ttl:"Someone talked",ttl_pt:"Alguém dedurou",lbl:"POLICE RAID",bd:"A sapo went to the fiscalía for a deal of their own. They walked the warrant straight to the door only your people knew.",bd_pt:"Um sapo foi à fiscalía por um acordo próprio. Levaram o mandado direto na porta que só a sua gente conhecia."},
+ {ttl:"Army in the hills",ttl_pt:"Exército nas montanhas",lbl:"POLICE RAID",bd:"They came by helicopter and sealed the ridge from the sky first. There was no back way down this time.",bd_pt:"Vieram de helicóptero e fecharam a serra do céu primeiro. Dessa vez não tinha saída pela descida."}
+],
+cop:[
+ {ttl:"Crooked Cop",ttl_pt:"Policía na folha",lbl:"CROOKED COP",cut:12,bd:"A comandante takes a monthly envelope — it buys you a heads-up before every operation in your comuna.",bd_pt:"Um comandante pega um envelope mensal — te compra um aviso antes de cada operação na sua comuna."},
+ {ttl:"Crooked Cop",ttl_pt:"Sumiu o expediente",lbl:"CROOKED COP",cut:15,bd:"An officer mislays your file for a flat fee. To you that file was worth ten times what he asked.",bd_pt:"Um policial extravia seu processo por um valor fixo. Pra você aquele arquivo valia dez vezes o que ele pediu."},
+ {ttl:"Crooked Cop",ttl_pt:"Grana reclassificada",lbl:"CROOKED COP",cut:20,bd:"Half the seized cash never reached the evidence room. You and the comandante split what the paperwork forgot to count.",bd_pt:"Metade do dinheiro apreendido nunca chegou à delegacia. Você e o comandante dividiram o que o papel esqueceu de contar."},
+ {ttl:"Crooked Cop",ttl_pt:"Lista de sapos",lbl:"CROOKED COP",cut:10,bd:"Your man on the force sells you the informant list. Now you know exactly who around you has been talking.",bd_pt:"Seu homem na corporação te vende a lista de informantes. Agora você sabe exatamente quem do seu lado falou."},
+ {ttl:"Crooked Cop",ttl_pt:"Escolta",lbl:"CROOKED COP",cut:18,bd:"A patrol ran ahead of your load with its lights off, clearing every checkpoint, for a slice of the shipment.",bd_pt:"Uma patrulha foi na frente da sua carga de luz apagada, liberando cada bloqueio, por uma fatia do carregamento."},
+ {ttl:"Crooked Cop",ttl_pt:"Mandado morto",lbl:"CROOKED COP",cut:14,bd:"Your inside man kills a wiretap order before a judge ever signs it. The op against you never officially existed.",bd_pt:"Seu homem de dentro mata uma escuta antes de um juiz assinar. A operação contra você nunca existiu oficialmente."},
+ {ttl:"Crooked Cop",ttl_pt:"Ficou com o soborno",lbl:"CROOKED COP",cut:-12,bd:"The officer you paid took the money and raided you the same week. He kept both the bribe and the collar.",bd_pt:"O policial que você pagou pegou a grana e te bateu na mesma semana. Ficou com a propina e com a prisão."},
+ {ttl:"Crooked Cop",ttl_pt:"Novo comandante",lbl:"CROOKED COP",cut:-15,bd:"The comandante on your payroll got rotated out. The new one wants a fresh down payment to keep looking away.",bd_pt:"O comandante que estava na sua folha foi transferido. O novo quer uma entrada nova pra continuar olhando pro outro lado."}
+],
+pfight:[
+ {ttl:"Prison Fight",ttl_pt:"Acerto na cela",lbl:"PRISON FIGHT",rounds:2,bd:"A debt from the patio followed you into the cell. It got settled with fists in the dark before the guard walked past.",bd_pt:"Uma dívida do pátio te seguiu pra cela. Foi acertada na porrada no escuro antes do agente passar."},
+ {ttl:"Prison Fight",ttl_pt:"Combo rival",lbl:"PRISON FIGHT",rounds:4,bd:"The wing flipped to a rival combo overnight. By morning you were the only one wearing the wrong name.",bd_pt:"O pavilhão virou pra um combo rival de um dia pro outro. De manhã você era o único com o nome errado."},
+ {ttl:"Prison Fight",ttl_pt:"Briga no pátio",lbl:"PRISON FIGHT",rounds:3,bd:"A shove in the patio became the whole yard. You came out of it standing, which was more than some.",bd_pt:"Um empurrão no pátio virou o pátio inteiro. Você saiu de pé, o que já foi mais que alguns."},
+ {ttl:"Prison Fight",ttl_pt:"Cobrança da ala",lbl:"PRISON FIGHT",rounds:3,bd:"The men who run the wing decided you owed them this week. Collection came in the shower block where the cameras don't reach.",bd_pt:"Os que mandam na ala decidiram que você devia essa semana. A cobrança veio no bloco dos chuveiros onde a câmera não alcança."},
+ {ttl:"Prison Fight",ttl_pt:"Punhal na costela",lbl:"PRISON FIGHT",rounds:4,bd:"Somebody ground a shank out of a bed frame with your name on it. You caught it in the ribs and lived.",bd_pt:"Alguém afiou um punhal de um estrado com seu nome nele. Você levou na costela e sobreviveu."}
+],
+riot:[
+ {ttl:"Prison Riot",ttl_pt:"Motim",lbl:"PRISON RIOT",rounds:4,bd:"The whole wing rose at once — two combos settling scores block by block. When the count came it was short, and you weren't on the list.",bd_pt:"A ala inteira levantou de uma vez — dois combos acertando contas bloco por bloco. Quando fizeram a contagem estava faltando, e você não estava na lista."},
+ {ttl:"Prison Riot",ttl_pt:"Fuga",lbl:"PRISON RIOT",escape:true,bd:"A tunnel opened under the shower block — lit, ventilated, a moto waiting at the end. You rode out under the wall before the count.",bd_pt:"Um túnel abriu embaixo do bloco do chuveiro — iluminado, ventilado, uma moto esperando no fim. Você saiu por baixo do muro antes da contagem."},
+ {ttl:"Prison Riot",ttl_pt:"Motim negociado",lbl:"PRISON RIOT",cut:20,bd:"The riot ended in a deal — the wing got its demands, and in the confusion a little cash changed hands your way.",bd_pt:"O motim terminou num acordo — a ala conseguiu as exigências, e na confusão uma grana trocou de mão pro seu lado."},
+ {ttl:"Prison Riot",ttl_pt:"Refém",lbl:"PRISON RIOT",ryears:5,bd:"You held a guard through the standoff. It ended peacefully — but the extra charges got stapled onto your sentence.",bd_pt:"Segurou um agente durante o cerco. Terminou em paz — mas as acusações extras grudaram na sua pena."},
+ {ttl:"Prison Riot",ttl_pt:"A ala levantou",lbl:"PRISON RIOT",rounds:3,bd:"Word came down the pipes from another prison and the whole wing kicked off at once. Yours moved with it whether you wanted it or not.",bd_pt:"O recado veio pelos canos de outra cadeia e o pavilhão inteiro estourou de uma vez. O seu foi junto querendo ou não."}
+],
+pday:[
+ {ttl:"Prison Day",ttl_pt:"Visita",lbl:"PRISON DAY",packs:3,bd:"Visit day brought a package through the line — cigarettes, soap, protection folded into a bag of clean clothes.",bd_pt:"Dia de visita trouxe um pacote pela fila — cigarro, sabonete, proteção dobrada num saco de roupa limpa."},
+ {ttl:"Prison Day",ttl_pt:"Faxina",lbl:"PRISON DAY",packs:2,bd:"You took the cleaning detail nobody wanted. It paid in cigarettes and, more useful, a key that walks where it shouldn't.",bd_pt:"Pegou a faxina que ninguém queria. Rendeu cigarro e, mais útil, uma chave que anda onde não devia."},
+ {ttl:"Prison Day",ttl_pt:"Requisa",lbl:"PRISON DAY",packs:-3,bd:"A surprise requisa tossed every cell. Whatever they found under your bunk, they took — smokes and all.",bd_pt:"Uma requisa surpresa virou toda cela. O que acharam embaixo do seu beliche, levaram — cigarro e tudo."},
+ {ttl:"Prison Day",ttl_pt:"Taxa da ala",lbl:"PRISON DAY",packs:-2,bd:"The wing collected its tax. Everyone pays to keep breathing; today it was your turn to pay in smokes.",bd_pt:"A ala cobrou sua taxa. Todo mundo paga pra continuar respirando; hoje foi sua vez de pagar em cigarro."},
+ {ttl:"Prison Day",ttl_pt:"Celular alugado",lbl:"PRISON DAY",packs:2,bd:"You rented out a smuggled phone by the minute. Half the wing owes you smokes by lock-up.",bd_pt:"Alugou um celular contrabandeado por minuto. Metade da ala te deve cigarro na hora de trancar."}
+]
+};
 /* ===== PER-REGION DECKS: base cards are global; some cities merge in a local set
    (e.g. Brazilian cities pull DECKS_BR on top of the base deck). ===== */
 let ADECKS=null;
@@ -1185,6 +1263,7 @@ function buildActiveDecks(region){
     if(region==="BR" && typeof DECKS_BR!=="undefined" && DECKS_BR[k]) a=a.concat(DECKS_BR[k]);
     else if(region==="MX" && typeof DECKS_MX!=="undefined" && DECKS_MX[k]) a=a.concat(DECKS_MX[k]);
     else if(region==="UK" && typeof DECKS_UK!=="undefined" && DECKS_UK[k]) a=a.concat(DECKS_UK[k]);
+    else if(region==="CO" && typeof DECKS_CO!=="undefined" && DECKS_CO[k]) a=a.concat(DECKS_CO[k]);
     ADECKS[k]=a.map(c=>Object.assign({},c));   // clone so per-city native remap never mutates the source DECKS
   }
   // NATIVE per-city payouts anchored to the bodyguard: crimes 0.5..10 bg, hospital 0.5..5 bg
@@ -1285,7 +1364,7 @@ function renderSetupStart(){
      <div class="cfghead">1. ${L('PLAYERS','JOGADORES')} <span style="opacity:.55">${L('(you + rivals — set each seat next)','(você + rivais — defina cada lugar a seguir)')}</span></div>
      <div class="choice">${[2,3,4,5,6,7,8,9,10].map(pC).join('')}</div>
      <div class="cfghead">2. ${L('CITY','CIDADE')} <span style="opacity:.55">${L('(map · prison · local law)','(mapa · prisão · lei local)')}</span></div>
-     <div class="choice">${cityB('NY','NEW YORK')}${cityB('LA','LOS ANGELES')}${cityB('CWB','CURITIBA')}${cityB('RIO','RIO')}${cityB('CDMX','CDMX')}${cityB('SP','SÃO PAULO')}${cityB('LON','LONDON')}</div>
+     <div class="choice">${cityB('NY','NEW YORK')}${cityB('LA','LOS ANGELES')}${cityB('CWB','CURITIBA')}${cityB('RIO','RIO')}${cityB('CDMX','CDMX')}${cityB('SP','SÃO PAULO')}${cityB('LON','LONDON')}${cityB('MDE','MEDELLÍN')}</div>
      <div class="cfghead">3. ${L('YEAR','ANO')} <span style="opacity:.55">${L('(the year play begins)','(o ano em que o jogo come\u00e7a)')}</span></div>
      <div class="choice"><button class="cfg sel" onclick="openYearPad()">[ ${setupData.year||1987} ]</button></div>
      <div class="cfgflavor">&gt; ${L('the clock starts in ','o rel\u00f3gio come\u00e7a em ')}${setupData.year||1987}${L(' \u2014 each year on the street rolls it forward',' \u2014 cada ano na rua avan\u00e7a o calend\u00e1rio')}</div>
@@ -1391,7 +1470,8 @@ const CITY_GHOSTS={
   RIO: ["CASTOR","BEM-TE-VI","MATEMÁTICO","ELIAS MALUCO","GUARABU","ORLANDO","UÊ","ESCADINHA","MINEIRO","PLAYBOY","CASTORZINHO","CAPITÃO"],
   CDMX:["DURAZO","AMADO","EL BARBAS","EL INGENIERO","RAMÓN","NIÑO DE ORO","EL COCHILOCO","EL CHAYO","NACHO CORONEL","EL LAZCA","Z-1"],
   SP:  ["PAREJA","HIROITO","LUZ VERMELHA","MATADOR","CONSELHEIRO","GELEIÃO","CESINHA","BIRÔ","TONHÃO","CABEÇA BRANCA"],
-  LON: ["HAROLD","JEFF","CHARLIE","COLIN","SHAND","GAL","BACON","TOM","SOAP","EDDY","TURKISH","TOMMY","BRICKTOP","BORIS","VINNIE","MICKEY","DOUG","SOL","TYRONE","FRANKY","AVI","BULLET","LITTLE CHRIS","BIG CHRIS","HARRY","NICK","MORTY","GENE","JIMMY","FREDDY","STAN","JACK","RONNIE","REGGIE","ALBIE","LENNY","ARCHIE","GEORGE","VICTOR","MALCOLM","CLIFF","RAY","COLLINS","WALTER","ARTHUR","NIGEL","DENNIS","PETER","MICHAEL","TERRY"]
+  LON: ["HAROLD","JEFF","CHARLIE","COLIN","SHAND","GAL","BACON","TOM","SOAP","EDDY","TURKISH","TOMMY","BRICKTOP","BORIS","VINNIE","MICKEY","DOUG","SOL","TYRONE","FRANKY","AVI","BULLET","LITTLE CHRIS","BIG CHRIS","HARRY","NICK","MORTY","GENE","JIMMY","FREDDY","STAN","JACK","RONNIE","REGGIE","ALBIE","LENNY","ARCHIE","GEORGE","VICTOR","MALCOLM","CLIFF","RAY","COLLINS","WALTER","ARTHUR","NIGEL","DENNIS","PETER","MICHAEL","TERRY"],
+  MDE: ["EL PATRÓN","GONZALO","EL MEXICANO","PACHO","KIKO","POPEYE","LA QUICA","TYSON","PININA","OTTO","ARETE","CHOPO","BLACKIE","YUCA","YESID","ALEXIS","WÍLMAR","FERNEY","EMILIO","MARIACHI","ROSARIO","EL CHILE","MOSCO","TILINGO","PALOMO","EL ENANO","CEJAS","CACHACO","EL MONO","EL FLACO","EL ZARCO","PECOSO","CUERVO","PATEBOMBA","CACO","YEISON","BRAYAN","MECHAS","EL TUERTO","RÁMBER","MARINO","TABARES","NELSON","RICARDO","EL OSO","CHIRUZA","PIRRACA","COMBA","VAQUERO","EL CHINO"]
 };
 /* Brazilian maps use only these ghost names (Cidade de Deus / Tropa de Elite) */
 const BR_GHOSTS=["ZÉ PEQUENO","DADINHO","BENÉ","CABELEIRA","ALICATE","MARRECO","BARBANTINHO","FILÉ-COM-FRITAS","MANÉ GALINHA","CABEÇÃO","LAMPIÃO","PARAÍBA","NEGUINHO","TIO SAM","TOURO","GRANDE","JABÁ","PAULISTA","EXU","GELSON","OTTO","CENOURA","BOCA","BISCOITINHO","PELÉ","NASCIMENTO","NETO","MATIAS","BAIANO","XUXA","TUCO","FÁBIO","CAPITÃO OLIVEIRA","CAPITÃO AZEVEDO","SARGENTO OLIVEIRA","ROCHA","CLAUDINHO","BEIRADA","MARCINHO","GUIMARÃES","FORTUNATO","CADU","PLAYBOY","PERNAMBUCO","CHINA","BETO","JAPONÊS","RUSSO","CEBOLA","VADO","SANDRO","ALEMÃO","CEARÁ","MINEIRO","GORDO","BAIXINHO","NEGO","CHICO","NEGO PRETO","MAJESTADE","LADY DI","SEM CHANCE","EZEQUIEL","DEUSDETE","ZICO","PEIXEIRA","GILSON","DADÁ","BARBA","FUINHA","LULA","PIMENTA","CHARUTO","MÁRIO CACHORRO","COELHO","PAULO BOCA","ANTÔNIO CARLOS","CLAUDIOMIRO","ZÉ DA CASA VERDE","VALDIR","DITO","LILICA","FUMAÇA","SAPO","CHICO BARRIGUDO","ALFINETE","CIGANO","PIXOTE","DITO SAPO","GAROTO","SUJINHO","CRISTAL","BABALU","TIÃO","JORGINHO","CAMALEÃO","PARÁ","BOLACHA","MOSCA","CARECA","NELSÃO","DENTINHO","GAGO","FERRUGEM","BUIÚ","CARLINHOS","BODE","CANÁRIO","PORTUGUÊS","JACARÉ","BOCA RICA","ESCADINHA","ALEMÃOZINHO"];
@@ -1399,7 +1479,7 @@ function aiName(){
   const taken=(setupData.players||[]).map(p=>(p.name||"").toUpperCase());
   const k=(typeof _cityKey==="function")?_cityKey():"NY";
   const free=arr=>arr.filter(n=>!taken.includes(n.toUpperCase()));
-  const isBR=!!(typeof CITIES!=="undefined"&&CITIES[k]&&CITIES[k].cur==="R$");   // Brazilian maps: their own name pool only
+  const isBR=!!(typeof CITIES!=="undefined"&&CITIES[k]&&CITIES[k].region==="BR");   // Brazilian maps: their own name pool only
   const basePool=isBR?BR_GHOSTS:(CITY_GHOSTS[k]||[]);
   const city=free(basePool);
   const fallback=isBR?BR_GHOSTS:AI_NAMES;
@@ -1494,6 +1574,9 @@ const CAREER_LEVELS=[
   {city:"SP",status:"prison",ai:10,police:4,dice:8,stake:1000,win:{lms:true},
    en:"São Paulo — straight into Carandiru with ten crews around you. There's only one way out on top: be the last boss standing.",
    pt:"São Paulo — direto pro Carandiru com dez quadrilhas em volta. Só tem um jeito de sair por cima: ser o último chefão de pé."},
+  {city:"MDE",status:"free",ai:9,police:3,dice:6,stake:1000,win:{cash:5000,biz:3,streets:3},
+   en:"Medellín — the cocaine capital. Nine crews and the whole world buying. Build the empire: five million, three plazas, three fronts.",
+   pt:"Medellín — a capital da cocaína. Nove quadrilhas e o mundo inteiro comprando. Construa o império: cinco milhões, três praças, três negócios."},
   {city:"CDMX",status:"free",ai:9,police:3,dice:6,stake:2000,win:{lms:true},
    en:"You go international. Mexico City runs on cartel rules — nine plazas, nine bosses. Bury every one of them.",
    pt:"Você fica internacional. A Cidade do México roda na lei do cartel — nove praças, nove chefões. Enterre cada um deles."},
@@ -2146,7 +2229,7 @@ function chartColor(id){return CHART_COLORS[((id||0)%CHART_COLORS.length+CHART_C
    so it reads the same in every display mode) — like a stock ticker, lines going up and down. */
 function _avgDie(sides){ return (((sides|0)||6)+1)/2; }
 function roundsPerYear(dice){ const sdn=dice||(typeof S!=="undefined"&&S&&S.baseDice)||6; const cells=(typeof OUTER!=="undefined"&&OUTER.length)||40; return Math.max(1, Math.round(cells/_avgDie(sdn))); }
-function isBrazil(){ try{ return cityCur()==="R$"; }catch(e){ return false; } }
+function isBrazil(){ try{ return (CITIES[_cityKey()]||{}).region==="BR"; }catch(e){ return false; } }
 /* current in-game calendar year = start year + whole years elapsed (rounds / rounds-per-year) */
 function gameYear(){ const base=(typeof S!=="undefined"&&S&&S.startYear)||1987; const t=(typeof S!=="undefined"&&S&&S.turn)||1; return base+Math.floor((t-1)/roundsPerYear()); }
 let _specDeaths=false;
