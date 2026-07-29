@@ -765,7 +765,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v24.1";
+const APP_VERSION="v24.2";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -864,8 +864,8 @@ const CITIES = {
   LON: { name:"LONDON", prison:"HMP BLACKWALL", law:{life:true, maxYears:99}, cur:"£", scale:1, soldier:120, bg:120,
     // streets keyed by fixed price tier -> London turf, poorest -> richest (Mayfair on top)
     streets:{20:"Broadwater Fm",30:"Tottenham Hale",45:"Peckham Rye",60:"Brixton Road",75:"Harlesden",90:"Deptford High",100:"Elephant&Cast",210:"Camden Town",225:"Hackney Cent.",230:"Shoreditch",250:"Canary Wharf",280:"South Ken.",300:"Chelsea Kings",350:"Kensington Hi",400:"Mayfair"},
-    // firm fronts -- financial crime on top (Private Bank), old-school offie at the bottom
-    biz:{400:["Private Bank","$"],200:["Luxury Hotel","H"],180:["Jeweller","J"],170:["Nightclub","N"],150:["Pub","P"],110:["Tattoo Studio","T"],90:["Bookmaker","B"],80:["Chicken Shop","C"],70:["Corner Offie","O"]},
+    // criminal enterprises (manufacturing side) — cocaine import on top, laundering at the bottom
+    biz:{400:["cocaine","co"],200:["pills","pl"],180:["fraud","fr"],170:["extortion","ex"],150:["cybercrime","cy"],110:["cannabis","cb"],90:["cargo theft","cg"],80:["counterfeit","ct"],70:["laundering","$$"]},
     casino:["The Crown Club","CW"] }
 };
 function applyCity(key){
