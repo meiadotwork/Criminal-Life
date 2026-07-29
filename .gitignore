@@ -2,3 +2,5 @@
 criminal-terminal.zip
 CriminalTerminal-offline.zip
 CriminalTerminal-StarterKit*.zip
+# versioned standalone copy — same bytes as index.html, rebuilt per release
+CriminalTerminal-v*.html
