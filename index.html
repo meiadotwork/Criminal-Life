@@ -1650,16 +1650,19 @@ function openCareer(){
 let _careerNameBuf="";
 function careerNewStart(){ _careerNameBuf=""; setupData.year=2000; careerNew(); }
 function careerNameKey(k){ if(k==='DEL')_careerNameBuf=_careerNameBuf.slice(0,-1); else if(k==='SP'){ if(_careerNameBuf.length<14)_careerNameBuf+=' '; } else if(_careerNameBuf.length<14)_careerNameBuf+=k; const inp=document.getElementById("careerName"); if(inp)inp.value=_careerNameBuf; }
+function careerSelectYear(n){ setupData.year=n; careerNew(); }
 function careerNew(){
   const stage=document.getElementById("setupStage"); if(!stage)return;
   if(setupData.year==null||setupData.year<1000) setupData.year=2000;
+  const cyr=setupData.year, cyCustom=YEAR_PRESETS.indexOf(cyr)<0;
+  const cyB=(n)=>`<button class="cfg${cyr===n?' sel':''}" onclick="careerSelectYear(${n})">[ ${n} ]</button>`;
   stage.innerHTML=`<div class="dosconfig">
     <div class="cfgline">C:\\> NEW CAREER</div>
     <div class="cfghead">${L("WHAT DO THEY CALL YOU?","COMO TE CHAMAM?")}</div>
     <input id="careerName" maxlength="14" readonly placeholder="${L('YOUR NAME','SEU NOME')}" value="${_careerNameBuf}" style="width:100%;box-sizing:border-box;margin:6px 0;padding:8px;background:#010602;color:var(--phos);border:1px solid var(--phos-dim);font-family:inherit;font-size:18px;text-transform:uppercase;text-align:center">
     <div class="namekeys">${['QWERTYUIOP','ASDFGHJKL','ZXCVBNM'].map(row=>`<div class="krow">`+row.split('').map(k=>`<button type="button" class="kkey" onclick="careerNameKey('${k}')">${k}</button>`).join('')+`</div>`).join('')}<div class="krow"><button type="button" class="kkey kwide" onclick="careerNameKey('SP')">SPACE</button><button type="button" class="kkey kwide" onclick="careerNameKey('DEL')">DEL</button></div></div>
     <div class="cfghead" style="margin-top:10px">${L("START YEAR","ANO INICIAL")}</div>
-    <div class="choice"><button class="cfg sel" onclick="_ypRet=careerNew;openYearPad()">[ ${setupData.year||2000} ]</button></div>
+    <div class="choice">${YEAR_PRESETS.map(cyB).join('')}<button class="cfg${cyCustom?' sel':''}" onclick="_ypRet=careerNew;openYearPad()">[ ${cyCustom?cyr:L('OTHER »','OUTRO »')} ]</button></div>
     <div class="cfgline" style="opacity:.6;line-height:1.5">${L("You start at 13. Reach 65 and hand the empire to the next generation. Die past 30 and your son carries on.","Você começa aos 13. Chegue aos 65 e passe o império à próxima geração. Morra depois dos 30 e seu filho continua.")}</div>
     <button class="cfggo" onclick="careerBegin()">${L("[ BEGIN \u00BB ]","[ COME\u00c7AR \u00BB ]")}</button>
     <button class="cfggo" style="opacity:.65" onclick="openCareer()">${L("[ \u2039 BACK ]","[ \u2039 VOLTAR ]")}</button>
@@ -1667,7 +1670,9 @@ function careerNew(){
 }
 function careerBegin(){
   const nm=(_careerNameBuf||"").trim().toUpperCase().slice(0,14)||L("YOU","VOC\u00ca");
-  careerState={name:nm,level:0,cleared:-1,bankroll:0,year:1970,bornYear:1970,age:13,gens:1,active:true};
+  /* the START YEAR picked above is where the bloodline begins */
+  const y0=(setupData.year&&setupData.year>=1000)?setupData.year:1970;
+  careerState={name:nm,level:0,cleared:-1,bankroll:0,year:y0,bornYear:y0,age:13,gens:1,active:true};
   careerSave();
   careerBriefing(0);
 }
