@@ -765,7 +765,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v24.6";
+const APP_VERSION="v24.7";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -2775,7 +2775,7 @@ function openManual(){ window.speechSynthesis&&window.speechSynthesis.cancel(); 
   \u25B8 The HITMAN also takes CONTRACTS \u2014 pay a third of the target's net worth to put a hit on a rival: 1/3 they dodge it, 1/3 their soldiers eat the bullets, 1/3 they land in the HOSPITAL. Ordering a hit adds +10 HEAT.<br>
   \u25B8 STREETS \u2014 buy turf. Land on a rival's and you pay THEM. Staff turf with soldiers to defend it.<br>
   \u25B8 BUSINESSES \u2014 open one for the price of 1 worker; every worker on staff earns that same amount per year. When a RIVAL lands on your business they buy PRODUCT: the shelf holds income \u00D7 workers, the buyer pays in and doubles their money \u2014 and the OWNER collects TWICE the buy. Everybody eats, but the house eats double. More workers = bigger deals for both sides.<br>
-  ▸ THE OPERATION — a street alone or a business alone earns NOTHING. To make money you must own BOTH at least one street (distribution) and one business (manufacturing) — the numbers don't have to match, just own one of each. Street soldiers draw a yearly wage, so idle turf with no business bleeds cash: open a business or sell the soldiers.<br>
+  ▸ THE OPERATION — every holding earns on its own. A street pays whether or not you run a business, and a business moves product whether or not you hold turf. Street soldiers still draw a yearly wage, so turf you can't defend or profit from bleeds cash: staff it properly or sell the soldiers.<br>
   \u25B8 ATTACK \u2014 instead of rolling, hit the ACTION button and send soldiers at a rival's turf or business. Send MORE than they have defending and it's yours. Attacking IS your move for the round \u2014 you don't roll that turn.<br>
   \u25B8 POKER NIGHT \u2014 the casino. Land on an unowned house and you can BUY it: the house pays you ${fmtK(10*SOLDIER_COST)} A YEAR as you come around, plus every bet a rival loses at the tables goes straight to you (and you never have to gamble). Land on a house you don't own and you can play: set any stake up to your whole roll, then roll the die \u2014 4\u20136 DOUBLES your bet, 1\u20133 LOSES it, and if a rival owns the house your lost bet lands in their pocket. With another human at the table you can also go HEADS-UP: one roll each, high roll takes the stake.<br>
   \u25B8 PARTY / FATE \u2014 event cards: windfalls, trouble, shakedowns.<br>
@@ -3183,20 +3183,12 @@ function showBooksCard(bk,then){
     <div class="go"><button class="amber" onclick="booksOK()">${L("[ CONTINUE ]","[ CONTINUAR ]")}</button></div>`;
   openModal(true);
 }
-/* one business/property pays a full year's profit when you lap back around to it */
-function fullOp(p){ let st=false,bz=false; if(p&&p.owns)p.owns.forEach((cnt,idx)=>{const k=OUTER[idx]&&OUTER[idx].k; if(k==="street")st=true; else if(k==="biz")bz=true;}); return st&&bz; }
-function ownsKind(p,k){ let f=false; if(p&&p.owns)p.owns.forEach((cnt,idx)=>{if(OUTER[idx]&&OUTER[idx].k===k)f=true;}); return f; }
-function idleNotice(owner,c,kind){
-  showNotice(L("IDLE OPERATION","OPERAÇÃO PARADA"), kind==="street"?ART.street:ART.biz, c.t,
-    owner.name+(kind==="street"
-      ?L(" owns this turf but has no BUSINESS to manufacture the product — nothing moves, so there is no toll to pay."," é dono da área mas não tem NEGÓCIO pra fabricar o produto — nada gira, então não há pedágio a pagar.")
-      :L(" runs this business but has no STREET to move the product — the shelves sit dead, so there is nothing to buy."," toca o negócio mas não tem RUA pra escoar o produto — as prateleiras estão mortas, nada a comprar.")),
-    ()=>{render();finish();});
-}
+/* one business/property pays a full year's profit when you lap back around to it.
+   Every holding earns on its own — a street pays its toll and a business moves product
+   whether or not the owner holds the other kind. */
 function collectOne(p,idx){
   if(!p.owns.has(idx))return 0;
   const cell=OUTER[idx];const unit=cell.incomeBase||cell.price||cell.income||0;
-  if((cell.k==="street"||cell.k==="biz")&&!fullOp(p))return 0;   // manufacturing + distribution: need BOTH a street and a business to earn
   const inc=unit*p.owns.get(idx);
   if(inc>0){p.cash+=inc;p._yrIn=(p._yrIn||0)+inc;mkDirty(p,inc);SFX.cash();log(p.name+L(" collects "," coleta ")+fmtK(inc)+L(" — a year's profit from "," — o lucro do ano de ")+cell.t+".","good");}
   return inc;
@@ -3271,7 +3263,6 @@ function tryStreet(c){
   const owner=S.players.find(x=>x.owns.has(idx));
   if(owner&&owner.id===p.id){ collectOne(p,idx); if(p.ai){render();finish();return;} ownStreetOptions(idx); return; }
   if(owner&&owner.id!==p.id){
-    if(!fullOp(owner)){ if(p.ai){finish();return;} idleNotice(owner,c,"street"); return; }
     const toll=Math.round((OUTER[idx].incomeBase)*owner.owns.get(idx)/2);
     rentCard(p,owner,toll,L("toll on ","pedágio em ")+c.t);return;
   }
@@ -3285,7 +3276,6 @@ function ownStreetOptions(idx){
   el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('YOUR TURF','SUA \u00c1REA')}</div>
     <div class="art">${ART.street}</div><div class="ttl">${c.t}</div>
     <div class="sub">${L('You hold this with ','Voc\u00ea segura isto com ')}${cur} soldado${cur>1?"s":""} (${fmtK(per*cur)}/${L('yr','ano')}). ${L('Add more, or sell.','Adicione mais, ou venda.')}</div>
-    ${!fullOp(p)?`<div class="out" style="border-color:#ffb642;color:#ffb642">${L("⚠ A street earns NOTHING alone — own a BUSINESS too (manufacturing + distribution) to make money.","⚠ Uma rua não rende NADA sozinha — tenha também um NEGÓCIO (fabricação + distribuição) pra faturar.")}</div>`:""}
     <div class="out">${L('Each extra soldier','Cada soldado extra')}: ${fmtK(per)} · ${L('earns','rende')} ${fmtK(per)}/${L('yr','ano')}</div>
     <div class="go" style="flex-wrap:wrap">
       ${maxN>=1?`<button class="amber" onclick="qpCell(${idx},'st')">${L('[ + ADD SOLDIERS ]','[ + SOLDADOS ]')}</button>`:`<span style="opacity:.6">${L('need ','precisa de ')}${fmtK(per)}</span>`}
@@ -3464,7 +3454,7 @@ function tryBiz(c){
   const p=S.players[S.cur];const idx=p.pos;OUTER[idx].incomeBase=c.income;
   const owner=S.players.find(x=>x.owns.has(idx));
   if(owner&&owner.id===p.id){ collectOne(p,idx); if(p.ai){render();finish();return;} ownBizOptions(idx); return; }
-  if(owner&&owner.id!==p.id){ if(!fullOp(owner)){ if(p.ai){finish();return;} idleNotice(owner,c,"biz"); return; } buyProduct(p,owner,idx,c); return; }
+  if(owner&&owner.id!==p.id){ buyProduct(p,owner,idx,c); return; }
   if(p.ai){ aiBuyBiz(idx,c); return; }
   qpOpenBiz(idx,c);   // one screen: choose workers, open, done
 }
@@ -3476,7 +3466,6 @@ function ownBizOptions(idx){
   el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('YOUR BUSINESS','SEU NEG\u00d3CIO')}</div>
     <div class="art">${ART.biz}</div><div class="ttl">${c.t}</div>
     <div class="sub">${cur} ${L('worker'+(cur>1?'s':''),'funcion\u00e1rio'+(cur>1?'s':''))} ${L('earning','rendendo')} ${fmtK(per*cur)}/${L('yr','ano')}. ${L('Add workers, or sell the business (with workers).','Adicione funcion\u00e1rios, ou venda o neg\u00f3cio (com eles).')}</div>
-    ${!fullOp(p)?`<div class="out" style="border-color:#ffb642;color:#ffb642">${L("⚠ A business earns NOTHING alone — own a STREET too (manufacturing + distribution) to make money.","⚠ Um negócio não rende NADA sozinho — tenha também uma RUA (fabricação + distribuição) pra faturar.")}</div>`:""}
     <div class="out">${L('Each extra worker','Cada funcion\u00e1rio extra')}: ${fmtK(per)}</div>
     <div class="go" style="flex-wrap:wrap">
       ${maxN>=1?`<button class="amber" onclick="qpCell(${idx},'bz')">${L('[ + ADD WORKERS ]','[ + FUNCIONÁRIOS ]')}</button>`:`<span style="opacity:.6">${L('need ','precisa de ')}${fmtK(per)}</span>`}
@@ -5048,14 +5037,14 @@ function rollDiceAI(){
 /* AI stocks up on bodyguards with spare cash — more soldiers = more attacks and the 10+ bonus die.
    Returns how many it hired (so the turn can show a recruitment card, like a human would see). */
 function streetSoldiers(p){ let n=0; if(p&&p.owns)p.owns.forEach((c,i)=>{if(OUTER[i]&&OUTER[i].k==="street")n+=c;}); return n; }
-function aiYearIncome(p){ if(!fullOp(p))return 0; let inc=0; p.owns.forEach((c,i)=>{const k=OUTER[i]&&OUTER[i].k; if(k==="street"||k==="biz")inc+=cellUnit(i)*c;}); return inc; }
+function aiYearIncome(p){ let inc=0; p.owns.forEach((c,i)=>{const k=OUTER[i]&&OUTER[i].k; if(k==="street"||k==="biz")inc+=cellUnit(i)*c;}); return inc; }
 function aiRecruit(p){
   if(p.ring!=="outer"||p.inJail) return 0;
   const pr=aiProf(p);
   const nw=Math.max(0,netWorth(p));
   const inc=aiYearIncome(p), streetSol=streetSoldiers(p);
   // an army you can't pay wages for bankrupts you: keep total wages under ~60% of yearly income (+ a small defensive floor)
-  const affordCrew=Math.max(fullOp(p)?2:1, Math.floor(inc*0.6/SOLDIER_WAGE)-streetSol);
+  const affordCrew=Math.max(2, Math.floor(inc*0.6/SOLDIER_WAGE)-streetSol);
   const grow=pr.crewStep?Math.floor(nw/(SOLDIER_COST*pr.crewStep)):0;
   const cap=Math.max(0, Math.min(pr.crewCap||pr.recruitCap, pr.recruitCap+grow, affordCrew));
   // reserve: a full year of the intended payroll, or a quarter of cash — never spend into insolvency
@@ -5071,13 +5060,12 @@ function aiReinforce(p){
   if(p.ring!=="outer"||p.inJail||!p.owns.size) return 0;
   const pr=aiProf(p);
   const nw=Math.max(0,netWorth(p));
-  const inc=aiYearIncome(p), streetSol=streetSoldiers(p), complete=fullOp(p);
+  const inc=aiYearIncome(p), streetSol=streetSoldiers(p);
   const wageReserve=Math.max((p.crew+streetSol)*SOLDIER_WAGE, Math.round(p.cash*0.30));
   let added=0;
   for(const idx of Array.from(p.owns.keys())){
     const k=OUTER[idx]&&OUTER[idx].k; const per=cellUnit(idx); if(per<=0) continue;
     if(k==="biz"){
-      if(!complete) continue;                                              // a shop earns nothing with no street — don't over-staff a dead op
       const target=Math.min(pr.garCap||1, 3+Math.floor(inc/(SOLDIER_COST*15)));   // workers = FREE income, no wage — staff generously
       while((p.owns.get(idx)||0)<target && p.cash-per>=Math.round(p.cash*0.15)){ p.cash-=per; p.owns.set(idx,(p.owns.get(idx)||0)+1); added++; }
     } else if(k==="street"){
@@ -5163,20 +5151,14 @@ function aiSceneGo(){ if(_aiSceneDone)return;
   _aiSceneDone=true; closeModal(); const f=_aiSceneThen; _aiSceneThen=null; if(f)f(); }
 function aiSceneCard(p,ttl,body,cls){ return `<div class="lbl" style="background:${p.color}">${p.name}</div><div class="ttl"${cls?` style="color:${cls}"`:''}>${ttl}</div><div class="bd">${body}</div>`; }
 function aiBuyStreet(idx,c){const p=S.players[S.cur];const mult=aiProf(p).buyMult;
-  const hasSt=ownsKind(p,"street"),hasBz=ownsKind(p,"biz");
-  let thr=c.price*mult;
-  if(hasBz&&!hasSt)thr=c.price;                 // this street COMPLETES the operation — grab it
-  else if(hasSt&&!hasBz)thr=c.price*mult*2.5;   // already sitting on idle turf — hold out for a business
+  const thr=c.price*mult;   // every street earns on its own now — no reason to hold out for a matching business
   let ttl,body;
   if(p.cash>=thr){p.cash-=c.price;p.owns.set(idx,1);log(p.name+L(" claims "," toma ")+c.t+".","good");
     ttl=L("CLAIMS TURF","TOMA A ÁREA");body=p.name+L(" buys "," compra ")+c.t+L(" for "," por ")+fmtK(c.price)+".";}
   else {log(p.name+L(" passes on "," dispensa ")+c.t+".");ttl=L("WALKS PAST","PASSA DIRETO");body=p.name+L(" eyes "," olha ")+c.t+L(" but keeps the cash."," mas guarda o dinheiro.");}
   render();aiScene(aiSceneCard(p,ttl,body),finish);}
 function aiBuyBiz(idx,c){const p=S.players[S.cur];let ttl,body;
-  const hasSt=ownsKind(p,"street"),hasBz=ownsKind(p,"biz");
-  let thr=c.income*1.5;
-  if(hasSt&&!hasBz)thr=c.income;                // this business COMPLETES the operation — open it
-  else if(hasBz&&!hasSt)thr=c.income*3;         // hoarding shops with no turf — hold out for a street
+  const thr=c.income*1.5;
   if(p.cash>=thr){p.cash-=c.income;p.owns.set(idx,1);log(p.name+L(" opens "," abre ")+c.t+".","good");
     ttl=L("OPENS SHOP","ABRE NEGÓCIO");body=p.name+L(" opens "," abre ")+c.t+L(" for "," por ")+fmtK(c.income)+".";}
   else {log(p.name+L(" passes on "," dispensa ")+c.t+".");ttl=L("WALKS PAST","PASSA DIRETO");body=p.name+L(" passes on "," dispensa ")+c.t+".";}
