@@ -5070,7 +5070,7 @@ function aiReinforce(p){
       while((p.owns.get(idx)||0)<target && p.cash-per>=Math.round(p.cash*0.15)){ p.cash-=per; p.owns.set(idx,(p.owns.get(idx)||0)+1); added++; }
     } else if(k==="street"){
       const grow=pr.garStep?Math.floor(nw/(SOLDIER_COST*pr.garStep)):0;
-      const target=complete?Math.min(pr.garCap||1, 1+grow):1;              // soldiers cost yearly wages — keep turf lean
+      const target=Math.min(pr.garCap||1, 1+grow);              // soldiers cost yearly wages — keep turf lean
       while((p.owns.get(idx)||0)<target && p.cash-per>=wageReserve){ p.cash-=per; p.owns.set(idx,(p.owns.get(idx)||0)+1); added++; }
     }
   }
