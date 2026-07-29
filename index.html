@@ -765,7 +765,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v23.9";
+const APP_VERSION="v24.0";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -814,7 +814,7 @@ const OUTER = [
   {t:"POLICE RAID",ic:"*",k:"raid"},
   {t:"FATE",ic:"?",k:"fate"},
   {t:"pills",ic:"Rx",k:"biz",income:110},
-  {t:"POKER NIGHT",ic:"AK",k:"poker",price:1000},
+  {t:"THE WHEEL",ic:"()",k:"poker",price:1000},
   {t:"VISIT/JAIL",ic:"[]",k:"visitjail"},           // 39 right before START
 ];
 const JAIL_POS=OUTER.findIndex(c=>c.k==="visitjail");
@@ -868,13 +868,13 @@ function applyCity(key){
     const base=CITY_BASE[i];
     if(c.k==="street"){ const bp=BASE_ECON[i].price; c.t=(city.streets&&city.streets[bp])||base.t; c.price=nativePrice(bp, city.bg, city.scale); }
     else if(c.k==="biz"){ const bi=BASE_ECON[i].income; const b=city.biz&&city.biz[bi]; c.t=b?b[0]:base.t; c.ic=b?b[1]:base.ic; c.income=nativePrice(bi, city.bg, city.scale); }
-    else if(c.k==="poker"){ c.t=city.casino?city.casino[0]:base.t; c.ic=city.casino?city.casino[1]:base.ic; }
+    else if(c.k==="poker"){ c.t=L("THE WHEEL","A ROLETA"); c.ic="()"; }
     else { c.t=base.t; c.ic=base.ic; }
   });
   // NATIVE per-city bodyguard price (stored as the displayed local amount; /scale so fmtK renders it natively). Wage = hire cost.
   SOLDIER_COST = Math.max(1, Math.round((city.bg||100)/(city.scale||1)));
   SOLDIER_WAGE = SOLDIER_COST;
-  const _pk=OUTER.find(c=>c.k==="poker"); if(_pk)_pk.price=10*SOLDIER_COST;   // POKER house = 10 bodyguards
+  const _pk=OUTER.find(c=>c.k==="poker"); if(_pk)_pk.price=5*SOLDIER_COST;   // THE WHEEL: 5 bodyguards per dealer
   TREAT_COST = Math.round(0.5*SOLDIER_COST);                                  // hospital treatment fee = 0.5 bodyguard
   // per-region card decks: R$ cities (SP/RIO/CWB) pull the Brazilian set on top of the base
   buildActiveDecks(city.cur==="R$"?"BR":city.cur==="MX$"?"MX":"US");
@@ -3081,186 +3081,164 @@ function sellProp(idx){const p=S.players[S.cur];const c=OUTER[idx];const per=OUT
   const val=Math.round(per*sold);p.cash+=val;p.owns.delete(idx);
   log(p.name+L(" sells "," vende ")+c.t+L(" (with "," (com ")+sold+L(" workers) for "," funcionários) por ")+fmtK(val)+".","warn");closeModal();render();finish();}
 
-/* ===== POKER NIGHT (casino) ===== */
-function pokerNight(){
-  const p=S.players[S.cur];const idx=p.pos;const c=OUTER[idx];
+/* ===== THE WHEEL (casino) — a business you staff, and a game rivals play ===== */
+function wheelUnit(idx){ const c=OUTER[idx]; return c.incomeBase||c.price||(5*SOLDIER_COST); }        // per-dealer: yearly take, and it drives the table limit
+function wheelLimit(idx,owner){ if(!owner)return Math.round(20*SOLDIER_COST); return wheelUnit(idx)*(owner.owns.get(idx)||1)*3; }   // house never owes more than it can cover
+function wheelPick(){ const slot=Math.floor(Math.random()*25); return slot<12?"fill":(slot<24?"empty":"house"); }   // 12 filled, 12 empty, 1 house (~48% each side)
+
+function pokerNight(){   // entry (resolveCell routes here)
+  const p=S.players[S.cur];const idx=p.pos;const u=wheelUnit(idx);
+  if(!OUTER[idx].incomeBase)OUTER[idx].incomeBase=u;
   const owner=S.players.find(x=>x.owns.has(idx));
-  // if YOU own the house, you just run it tonight
-  if(owner&&owner.id===p.id){
-    collectOne(p,idx); // your casino pays out its year's take ($1M) when you come around
-    if(p.ai){render();finish();return;}
-    const el=document.getElementById("cardEl");
-    el.dataset.read="1"; el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('POKER NIGHT - YOUR HOUSE','NOITE DE P\u00d4QUER - SUA CASA')}</div>
-      <div class="ttl">${L('You run the tables','Voc\u00ea comanda as mesas')}</div>
-      <div class="bd">${L("This is your casino. It earns you <b>"+fmtK(10*SOLDIER_COST)+" a year</b>, and every bet a rival loses at these tables comes straight to you. The house doesn't gamble against itself — you just count the take.","Este \u00e9 o seu cassino. Rende <b>"+fmtK(10*SOLDIER_COST)+" por ano</b>, e cada aposta que um rival perde nestas mesas vai direto pra voc\u00ea. A casa n\u00e3o aposta contra si mesma — voc\u00ea s\u00f3 conta o dinheiro.")}</div>
-      <div class="go"><button class="red" onclick="sellPoker(${idx})">${L('[ SELL HOUSE - ','[ VENDER CASA - ')}${fmtK(c.price)} ]</button><button onclick="closeModal();finish()">${L('[ DONE ]','[ CONCLUIR ]')}</button></div>
-      ${statusBar()}`;
-    openModal();return;
-  }
-  // AI never gambles at the tables (too swingy) - it may buy the house if flush, else walks away. (No modal = no freeze.)
-  if(p.ai){
-    if(!owner && p.cash>=c.price*aiProf(p).pokerMult){ pokerBuy(idx); } else { finish(); }
-    return;
-  }
-  const ownerName=owner?owner.name:null;
-  const maxBet=Math.max(0,p.cash);
+  if(owner&&owner.id===p.id){ collectOne(p,idx); if(p.ai){render();finish();return;} wheelHouse(idx); return; }
+  if(p.ai){ wheelAI(p,idx,owner); return; }
+  wheelPlay(idx);
+}
+/* YOUR house — staff it up (more dealers = more take, bigger table, harder to seize) or sell it */
+function wheelHouse(idx){
+  const p=S.players[S.cur];const c=OUTER[idx];const u=wheelUnit(idx);const n=p.owns.get(idx)||1;
+  const el=document.getElementById("cardEl");
+  el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('THE WHEEL — YOUR HOUSE','A ROLETA — SUA CASA')}</div>
+    <div class="art">()</div><div class="ttl">${c.t}</div>
+    <div class="sub">${n} ${L('dealer'+(n>1?'s':''),'crupiê'+(n>1?'s':''))} · ${L('take','rende')} ${fmtK(u*n)}/${L('yr','ano')} · ${L('table limit','limite')} ${fmtK(wheelLimit(idx,p))}</div>
+    <div class="out">${L('Each dealer: ','Cada crupiê: ')}${fmtK(u)} — ${L('more dealers raise the take, the table limit, and the defense against a raid.','mais crupiês aumentam a renda, o limite da mesa e a defesa contra ataque.')}</div>
+    <div class="go" style="flex-wrap:wrap">
+      ${p.cash>=u?`<button class="amber" onclick="wheelAddDealer(${idx},1)">${L('[ +1 DEALER ]','[ +1 CRUPIÊ ]')}</button>`:''}
+      ${p.cash>=u*5?`<button onclick="wheelAddDealer(${idx},5)">[ +5 ]</button>`:''}
+      <button class="red" onclick="sellProp(${idx})">${L('[ SELL ]','[ VENDER ]')}</button>
+      <button onclick="closeModal();finish()">${L('[ DONE ]','[ CONCLUIR ]')}</button></div>
+    ${statusBar()}`;
+  openModal();
+}
+function wheelAddDealer(idx,nn){ const p=S.players[S.cur];const u=wheelUnit(idx); nn=Math.min(nn,Math.floor(p.cash/u)); if(nn<1)return;
+  p.cash-=u*nn; p.owns.set(idx,(p.owns.get(idx)||0)+nn); OUTER[idx].incomeBase=u;
+  log(p.name+L(" hires "," contrata ")+nn+L(" dealer"," crupiê")+(nn>1?"s":"")+L(" for THE WHEEL (now "," pra A ROLETA (agora ")+p.owns.get(idx)+").","good"); render(); wheelHouse(idx); }
+function wheelOpen(idx){ const p=S.players[S.cur];const u=wheelUnit(idx); if(p.cash<u)return;
+  p.cash-=u; p.owns.set(idx,1); OUTER[idx].incomeBase=u; log(p.name+L(" opens THE WHEEL ("," abre A ROLETA (")+fmtK(u)+").","good"); render(); wheelHouse(idx); }
+
+/* play the wheel — pick a side, place a bet, spin */
+function wheelPlay(idx){
+  const p=S.players[S.cur];const u=wheelUnit(idx);const owner=S.players.find(x=>x.owns.has(idx));
+  const maxBet=Math.max(0,Math.min(p.cash, wheelLimit(idx,owner)));
   if(p._pokerBet===undefined) p._pokerBet=Math.round(maxBet/2);
   p._pokerBet=Math.max(0,Math.min(p._pokerBet,maxBet));
   const bet=p._pokerBet;
+  const ownLine = owner?`<div class="sub">${owner.name} ${L('runs this wheel — you lose, they collect; you win, the house pays (table limit ','comanda esta roleta — perdeu, ele leva; ganhou, a casa paga (limite ')}${fmtK(wheelLimit(idx,owner))}).</div>`
+                       :`<div class="sub">${L('Nobody runs this wheel yet. Open it, or try your luck.','Ninguém comanda esta roleta ainda. Abra, ou tente a sorte.')}</div>`;
+  const openBtn = (!owner && p.cash>=u)?`<button onclick="wheelOpen(${idx})">${L('[ OPEN THE WHEEL — ','[ ABRIR A ROLETA — ')}${fmtK(u)} ]</button>`:"";
   const el=document.getElementById("cardEl");
-  const ownLine = ownerName?`<div class="sub">${ownerName} ${L('owns this house - if you LOSE, your bet goes to','\u00e9 dono desta casa - se voc\u00ea PERDER, sua aposta vai para')} ${ownerName}. ${L('Wins are paid by the house.','Vit\u00f3rias s\u00e3o pagas pela casa.')}</div>`
-                           :`<div class="sub">${L('Nobody owns this house yet. Buy it, or try your luck.','Ningu\u00e9m \u00e9 dono desta casa ainda. Compre-a, ou tente a sorte.')}</div>`;
-  const buyBtn = (!owner && p.cash>=c.price)?`<button onclick="pokerBuy(${idx})">${L('[ BUY HOUSE - ','[ COMPRAR CASA - ')}${fmtK(c.price)} ]</button>`:"";
-  el.dataset.read="1"; el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('POKER NIGHT','NOITE DE P\u00d4QUER')}</div>
-    <div class="ttl">${L('Place your bet','Fa\u00e7a sua aposta')}</div>
-    <div class="bd">${L('Choose your stake, then roll: <b>4-6 you WIN your bet</b> (double it), <b>1-3 you LOSE your bet</b>.','Escolha o valor e role: <b>4-6 voc\u00ea GANHA a aposta</b> (dobra), <b>1-3 voc\u00ea PERDE a aposta</b>.')}</div>
+  el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('THE WHEEL','A ROLETA')}</div>
+    <div class="art">()</div><div class="ttl">${L('Pick a side, place your bet','Escolha um lado e aposte')}</div>
+    <div class="bd">${L('The wheel lands FILLED ■, EMPTY □, or on the HOUSE ◆. Match your side and you DOUBLE your bet; the house slice takes all.','A roleta cai CHEIO ■, VAZIO □, ou na CASA ◆. Acerte o lado e DOBRA a aposta; a fatia da casa leva tudo.')}</div>
     ${ownLine}
-    <div style="text-align:center;font-size:24px;font-weight:bold;margin:6px 0">${L('Bet','Aposta')}: ${fmtK(bet)}</div>
-    <div class="out">${L('Win','Ganha')} = +${fmtK(bet)} &nbsp;·&nbsp; ${L('Lose','Perde')} = -${fmtK(bet)}</div>
+    <div style="text-align:center;font-size:22px;font-weight:bold;margin:6px 0">${L('Bet','Aposta')}: ${fmtK(bet)}</div>
     <div class="go" style="flex-wrap:wrap">
-      <button onclick="pokerBetAdj(${idx},-1)" ${bet<=0?'disabled':''}>[ - ]</button>
-      <button onclick="pokerBetAdj(${idx},1)" ${bet>=maxBet?'disabled':''}>[ + ]</button>
-      <button onclick="pokerBetAdj(${idx},'half')">${L('[ HALF ]','[ METADE ]')}</button>
-      <button onclick="pokerBetAdj(${idx},'max')">[ MAX ]</button>
+      <button onclick="wheelBetAdj(${idx},-1)" ${bet<=0?'disabled':''}>[ - ]</button>
+      <button onclick="wheelBetAdj(${idx},1)" ${bet>=maxBet?'disabled':''}>[ + ]</button>
+      <button onclick="wheelBetAdj(${idx},'half')">${L('[ HALF ]','[ METADE ]')}</button>
+      <button onclick="wheelBetAdj(${idx},'max')">[ MAX ]</button>
     </div>
     <div class="go">
-      ${bet>0?`<button class="amber" onclick="pokerRoll(${idx})">${L('[ ROLL THE DICE ]','[ ROLAR O DADO ]')}</button>`:'<span style="opacity:.6">'+L('set a bet to play','defina uma aposta')+'</span>'}
-      ${(bet>0&&S.players.some(o=>o.alive&&o.id!==p.id&&!o.ai&&o.cash>0))?`<button onclick="pokerDuelMenu()">${L('[ HEADS-UP vs A RIVAL ]','[ M\u00c3O A M\u00c3O vs RIVAL ]')}</button>`:""}
-      ${buyBtn}
-      <button onclick="closeModal();finish()">${L('[ WALK AWAY ]','[ IR EMBORA ]')}</button></div>
-    ${statusBar()}`;
-  openModal();
-}
-/* heads-up poker: bet against another human at the table — one roll each, high roll takes the pot */
-function pokerDuelMenu(){
-  const p=S.players[S.cur];const bet=p._pokerBet||0;
-  const rivals=S.players.filter(o=>o.alive&&o.id!==p.id&&!o.ai&&o.cash>0);
-  if(!rivals.length||bet<=0){pokerNight();return;}
-  const el=document.getElementById("cardEl");
-  el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('HEADS-UP POKER','P\u00d4QUER M\u00c3O A M\u00c3O')}</div>
-    <div class="ttl">${L('Pick your opponent','Escolha o advers\u00e1rio')}</div>
-    <div class="bd">${L('Table stakes: ','Valor da mesa: ')}${fmtK(bet)}${L(' (or as much as they can cover). One roll each — high roll takes the pot, tie pushes.',' (ou o quanto ele puder cobrir). Uma rolagem cada — o maior leva o pote, empate devolve.')}</div>
-    <div class="go" style="flex-direction:column">
-      ${rivals.map(o=>`<button onclick="pokerDuel(${o.id})">[ ${o.name} — ${L('can cover','cobre')} ${fmtK(Math.min(bet,o.cash))} ]</button>`).join("")}
-      <button onclick="pokerNight()">${L('[ ‹ BACK ]','[ ‹ VOLTAR ]')}</button>
-    </div>${statusBar()}`;
-}
-function pokerDuel(oid){
-  const p=S.players[S.cur];const o=S.players[oid];
-  const stake=Math.min(p._pokerBet||0,p.cash,o.cash); if(stake<=0){pokerNight();return;}
-  const a=1+Math.floor(Math.random()*6), b=1+Math.floor(Math.random()*6);
-  if(p.ai){ pokerDuelResolve(oid,a,b,stake); return; }
-  const el=document.getElementById("cardEl"); el.dataset.deck="party"; el.dataset.read="";
-  el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('HEADS-UP POKER','P\u00d4QUER M\u00c3O A M\u00c3O')}</div>
-    <div class="bd">${L('Pot ','Pote ')}${fmtK(stake)} ${L('against ','contra ')}${o.name}. ${L('Tap your die \u2014 high roll takes the pot, tie pushes.','Toque seu dado \u2014 o maior leva o pote, empate devolve.')}</div>
-    <div style="display:flex;justify-content:center;gap:26px;margin:16px 0">
-      <div style="text-align:center"><div class="die roller" id="duelDieP" style="cursor:pointer"><span class="dielbl">${(p.name||'YOU').slice(0,4)}</span></div><div style="font-size:12px;opacity:.7;margin-top:4px">${p.name}</div></div>
-      <div style="text-align:center"><div class="die" id="duelDieO"><span class="dielbl">${(o.name||'RIVAL').slice(0,4)}</span></div><div style="font-size:12px;opacity:.7;margin-top:4px">${o.name}</div></div>
+      ${bet>0?`<button class="amber" onclick="wheelSpin(${idx},'fill')">${L('[ FILLED ■ ]','[ CHEIO ■ ]')}</button>
+              <button class="amber" onclick="wheelSpin(${idx},'empty')">${L('[ EMPTY □ ]','[ VAZIO □ ]')}</button>`
+             :'<span style="opacity:.6">'+L('set a bet to play','defina uma aposta')+'</span>'}
     </div>
-    <div id="duelHint" style="text-align:center;font-size:14px;opacity:.78;letter-spacing:1px">${L('TAP YOUR DIE','TOQUE SEU DADO')}</div>
+    <div class="go">${openBtn}<button onclick="closeModal();finish()">${L('[ WALK AWAY ]','[ IR EMBORA ]')}</button></div>
     ${statusBar()}`;
   openModal();
-  const pd=document.getElementById("duelDieP"), od=document.getElementById("duelDieO"); let done=false;
-  pd.onclick=function(){ if(done)return; done=true; pd.onclick=null; pd.classList.add("rolling");
-    const hint=document.getElementById("duelHint"); if(hint)hint.textContent=L("rolling\u2026","rolando\u2026");
-    let t=0; const iv=setInterval(()=>{ try{SFX.tick();}catch(e){} drawDieEl(pd,1+Math.floor(Math.random()*6));
-      if(++t>6){ clearInterval(iv); drawDieEl(pd,a); pd.classList.remove("rolling");
-        if(hint)hint.textContent=o.name+L(" rolls\u2026"," tira\u2026");
-        od.classList.add("rolling"); let t2=0; const iv2=setInterval(()=>{ try{SFX.tick();}catch(e){} drawDieEl(od,1+Math.floor(Math.random()*6));
-          if(++t2>6){ clearInterval(iv2); drawDieEl(od,b); od.classList.remove("rolling"); setTimeout(()=>pokerDuelResolve(oid,a,b,stake),540); }
-        },70);
+}
+function wheelBetAdj(idx,d){ const p=S.players[S.cur];const owner=S.players.find(x=>x.owns.has(idx));
+  const max=Math.max(0,Math.min(p.cash,wheelLimit(idx,owner))); const step=Math.max(1,Math.round(max/10));
+  if(d==='half')p._pokerBet=Math.round(max/2); else if(d==='max')p._pokerBet=max;
+  else p._pokerBet=Math.min(max,Math.max(0,(p._pokerBet||0)+d*step));
+  wheelPlay(idx); }
+
+/* the spinning wheel — tap to spin, cycles ■/□/◆, lands */
+function tapSpin(opts){
+  opts=opts||{}; const SYM={fill:'■',empty:'□',house:'◆'}; const landSym=SYM[opts.landed]||'■';
+  const p=S.players[S.cur]; const el=document.getElementById("cardEl"); if(!el){ if(opts.onResult)opts.onResult(); return; }
+  el.dataset.deck=""; el.dataset.read="";
+  el.innerHTML=`<div class="lbl" style="background:${p.color}">${opts.title||L('THE WHEEL','A ROLETA')}</div>
+    <div style="font-weight:bold;letter-spacing:1px;opacity:.9;font-size:13px;text-align:center;margin:3px 0 0">▸ ${p.name}</div>
+    <div class="bd" style="text-align:center">${L('You bet','Você apostou')} ${opts.pick==='fill'?L('FILLED ■','CHEIO ■'):L('EMPTY □','VAZIO □')} · ${fmtK(opts.stake||0)}</div>
+    <div style="display:flex;justify-content:center;margin:14px 0"><div class="die roller" id="wheelFace" style="cursor:pointer;font-size:38px;display:flex;align-items:center;justify-content:center">?</div></div>
+    <div id="wheelHint" style="text-align:center;font-size:14px;opacity:.78;letter-spacing:1px">${L('TAP TO SPIN','TOQUE PRA GIRAR')}</div>
+    ${statusBar()}`;
+  openModal();
+  const face=document.getElementById("wheelFace"); let done=false; const cyc=['■','□','■','□','◆'];
+  face.onclick=function(){ if(done)return; done=true; face.onclick=null; face.classList.add("rolling");
+    const hint=document.getElementById("wheelHint"); if(hint)hint.textContent=L("spinning…","girando…");
+    let t=0; const iv=setInterval(()=>{ try{SFX.tick();}catch(e){} face.textContent=cyc[Math.floor(Math.random()*cyc.length)];
+      if(++t>8){ clearInterval(iv); face.textContent=landSym; face.classList.remove("rolling");
+        if(hint)hint.textContent=(opts.landed==='house')?L("HOUSE ◆","CASA ◆"):(opts.landed===opts.pick?L("YOU HIT IT","VOCÊ ACERTOU"):L("missed","errou"));
+        setTimeout(()=>{ try{opts.onResult&&opts.onResult();}catch(e){} }, 640);
       }
-    },70);
+    },80);
   };
 }
-function pokerDuelResolve(oid,a,b,stake){
-  const p=S.players[S.cur];const o=S.players[oid];
-  let res,cls;
-  if(a>b){p.cash+=stake;mkDirty(p,stake);o.cash-=stake;SFX.cash();res=p.name+L(" WINS the pot: +"," GANHA o pote: +")+fmtK(stake)+L(" from "," de ")+o.name+".";cls="good";}
-  else if(b>a){p.cash-=stake;o.cash+=stake;mkDirty(o,stake);SFX.bad();res=o.name+L(" takes "," leva ")+fmtK(stake)+L(" off "," de ")+p.name+".";cls="warn";}
-  else {res=L("Push — dead even. Stakes go back.","Empate — tudo igual. Apostas devolvidas.");cls="";}
-  log(L("Heads-up poker: ","Pôquer mão a mão: ")+p.name+L(" rolls "," tira ")+a+", "+o.name+L(" rolls "," tira ")+b+". "+res,cls);
-  if(p.ai){render();finish();return;}
-  const el=document.getElementById("cardEl");
-  el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('HEADS-UP POKER','P\u00d4QUER M\u00c3O A M\u00c3O')}</div>
-    <div style="text-align:center;font-size:28px;font-weight:bold;margin:10px 0">${p.name}: ${a} &nbsp;·&nbsp; ${o.name}: ${b}</div>
-    <div class="out">${res}</div>
-    <div class="go"><button onclick="closeModal();render();finish()">${L('[ CONTINUE ]','[ CONTINUAR ]')}</button></div>${statusBar()}`;
-  render();
-}
-function pokerBetAdj(idx,d){
-  const p=S.players[S.cur];const max=Math.max(0,p.cash);
-  const step=Math.max(25,Math.round(max/10));
-  if(d==='half')p._pokerBet=Math.round(max/2);
-  else if(d==='max')p._pokerBet=max;
-  else p._pokerBet=Math.min(max,Math.max(0,(p._pokerBet||0)+d*step));
-  pokerNight();
-}
-function pokerBuy(idx){const p=S.players[S.cur];const c=OUTER[idx];p.cash-=c.price;p.owns.set(idx,1);OUTER[idx].incomeBase=c.price;log(p.name+L(" buys the POKER NIGHT house ("," compra a casa da NOITE DE PÔQUER (")+fmtK(c.price)+").","good");render();closeModal();finish();}
-function sellPoker(idx){const p=S.players[S.cur];const c=OUTER[idx];const val=c.price;p.cash+=val;p.owns.delete(idx);log(p.name+L(" sells the POKER NIGHT house ("," vende a casa da NOITE DE PÔQUER (")+fmtK(val)+").","warn");closeModal();render();finish();}
-function pokerRoll(idx){
-  const p=S.players[S.cur];
-  const stake=Math.min(Math.max(0,p._pokerBet||0),Math.max(0,p.cash));
-  if(p.ai){ pokerApply(idx,1+Math.floor(Math.random()*6),stake); return; }
-  tapRoll({sides:6, title:L('POKER NIGHT','NOITE DE P\u00d4QUER'), art:'AK', deck:'party', color:p.color,
-    sub:L('Stake ','Aposta ')+fmtK(stake)+L(' \u2014 roll 4-6 to DOUBLE it, 1-3 you lose it.',' \u2014 tire 4-6 pra DOBRAR, 1-3 voc\u00ea perde.'),
-    prompt:L('TAP THE DIE \u2014 4+ WINS','TOQUE O DADO \u2014 4+ GANHA'),
-    onResult:function(r){ pokerApply(idx,r,stake); }});
-}
-function pokerApply(idx,r,stake){
+function wheelSpin(idx,pick){
   const p=S.players[S.cur];const owner=S.players.find(x=>x.owns.has(idx));
-  const win=r>=4;
-  if(win){
-    SFX.good();
-    p.cash+=stake;mkDirty(p,stake);
-    log(p.name+L(" rolled a "," tirou ")+r+L(" - WINS the bet! +"," - GANHA a aposta! +")+fmtK(stake)+L(" (now "," (agora ")+fmtK(p.cash)+").","good");
-  }else{
-    SFX.bad();
-    p.cash-=stake;
-    log(p.name+L(" rolled a "," tirou ")+r+L(" - LOSES the bet ("," - PERDE a aposta (")+fmtK(stake)+").","bad");
-    if(owner&&owner.id!==p.id){ owner.cash+=stake;mkDirty(owner,stake); log(L("The house takes it - ","A casa recolhe - ")+fmtK(stake)+L(" goes to "," vai para ")+owner.name+".","warn"); }
-  }
+  const stake=Math.min(Math.max(0,p._pokerBet||0),Math.max(0,p.cash),wheelLimit(idx,owner));
+  if(stake<=0){ wheelPlay(idx); return; }
+  const landed=wheelPick();
+  tapSpin({landed,pick,stake,title:L('THE WHEEL','A ROLETA'),onResult:()=>wheelResolve(idx,pick,landed,stake)});
+}
+function wheelResolve(idx,pick,landed,stake){
+  const p=S.players[S.cur];const owner=S.players.find(x=>x.owns.has(idx));
+  const win=(landed===pick);
+  if(win){ SFX.good(); p.cash+=stake; mkDirty(p,stake); log(p.name+L(" hits the wheel — WINS +"," acerta a roleta — GANHA +")+fmtK(stake)+".","good"); }
+  else { SFX.bad(); p.cash-=stake;
+    log(p.name+(landed==='house'?L(" — the HOUSE ◆ takes the bet ("," — a CASA ◆ leva a aposta ("):L(" misses — loses ("," erra — perde ("))+fmtK(stake)+").","bad");
+    if(owner&&owner.id!==p.id){ owner.cash+=stake; mkDirty(owner,stake); log(L("The house collects — ","A casa recolhe — ")+fmtK(stake)+L(" to "," pra ")+owner.name+".","warn"); } }
   p._pokerBet=0;
-  if(p.ai){render();finish();return;}
+  if(p.ai){ render(); finish(); return; }
   const el=document.getElementById("cardEl");
-  el.dataset.read="1"; el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('POKER NIGHT','NOITE DE P\u00d4QUER')}</div>
-    <div class="ttl">${win?L("WINNER","VENCEDOR"):L("YOU LOSE","VOC\u00ca PERDEU")}</div>
-    <div class="bd">${L('You rolled a <b>','Voc\u00ea tirou <b>')}${r}</b>. ${win?(L("You won your bet - +","Voc\u00ea ganhou a aposta - +")+fmtK(stake)+"."):(L("You lost your bet","Voc\u00ea perdeu a aposta")+(owner&&owner.id!==p.id?" - "+owner.name+L(" collects."," recolhe."):"."))}</div>
-    <div class="out">${fmtK(p.cash)} ${L('on hand','em m\u00e3os')}</div>
-    <div class="go">${(win&&stake>0)?`<button class="amber" onclick="letItRide(${stake})">${L('[ LET IT RIDE \u00b7 risk ','[ DEIXAR ROLAR \u00b7 arrisca ')}${fmtK(stake)} ]</button>`:''}<button onclick="closeModal();finish()">[ ${win?L("CASH OUT","SACAR"):L("WALK AWAY","IR EMBORA")} ]</button></div>
+  el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('THE WHEEL','A ROLETA')}</div>
+    <div class="art">${landed==='house'?'◆':(win?'■':'□')}</div>
+    <div class="ttl">${win?L("WINNER","VENCEDOR"):(landed==='house'?L("HOUSE WINS","A CASA VENCE"):L("YOU LOSE","VOCÊ PERDEU"))}</div>
+    <div class="out">${fmtK(p.cash)} ${L('on hand','em mãos')}</div>
+    <div class="go">${win?`<button class="amber" onclick="wheelRide(${idx},${stake},${stake})">${L('[ LET IT RIDE · up to 10× ]','[ DEIXAR ROLAR · até 10× ]')}</button>`:''}<button onclick="closeModal();finish()">[ ${win?L("CASH OUT","SACAR"):L("WALK AWAY","IR EMBORA")} ]</button></div>
     ${statusBar()}`;
   render();openModal();
 }
-/* LET IT RIDE \u2014 double-or-nothing on the night's winnings. Each win doubles the pot;
-   one loss gives every won dollar back to the table. Pure nerve. */
-function letItRide(pot){
-  const p=S.players[S.cur]; if(!p||pot<=0)return;
-  const r=1+Math.floor(Math.random()*6); const win=r>=4;
-  const el=document.getElementById("cardEl");
-  if(win){
-    p.cash+=pot; mkDirty(p,pot); SFX.cash();
-    const next=pot*2;
-    log(p.name+L(" lets it ride \u2014 rolls a "," deixa rolar \u2014 tira ")+r+L(". The pot DOUBLES to +",". O pote DOBRA para +")+fmtK(next)+".","good");
-    el.dataset.read="1"; el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('LET IT RIDE','DEIXAR ROLAR')}</div>
-      <div class="art">$ $ $</div>
-      <div class="ttl">${L("STILL HOT","AINDA QUENTE")}</div>
-      <div class="bd">${L('You rolled a <b>','Voc\u00ea tirou <b>')}${r}</b>. ${L('The table goes quiet \u2014 your winnings double to <b>+','A mesa fica em sil\u00eancio \u2014 seus ganhos dobram para <b>+')}${fmtK(next)}</b>. ${L('Walk away\u2026 or push it all in again.','Sai agora\u2026 ou empurra tudo de novo.')}</div>
-      <div class="out">${fmtK(p.cash)} ${L('on hand','em m\u00e3os')}</div>
-      <div class="go"><button class="amber" onclick="letItRide(${next})">${L('[ RIDE AGAIN \u00b7 risk ','[ ROLAR DE NOVO \u00b7 arrisca ')}${fmtK(next)} ]</button><button onclick="closeModal();finish()">${L('[ CASH OUT ]','[ SACAR ]')}</button></div>
-      ${statusBar()}`;
-  } else {
-    p.cash-=pot; SFX.bad();
-    log(p.name+L(" pushes the pot once too far \u2014 rolls a "," for\u00e7a o pote uma vez demais \u2014 tira ")+r+L(" and hands back "," e devolve ")+fmtK(pot)+".","bad");
-    el.dataset.read="1"; el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('LET IT RIDE','DEIXAR ROLAR')}</div>
-      <div class="art">x x x</div>
-      <div class="ttl">${L("THE TABLE TAKES IT ALL","A MESA LEVA TUDO")}</div>
-      <div class="bd">${L('You rolled a <b>','Voc\u00ea tirou <b>')}${r}</b>. ${L('One roll too greedy \u2014 every dollar you won tonight goes back across the felt.','Uma rodada gananciosa demais \u2014 cada d\u00f3lar que voc\u00ea ganhou hoje volta pra mesa.')}</div>
-      <div class="out">${fmtK(p.cash)} ${L('on hand','em m\u00e3os')}</div>
-      <div class="go"><button onclick="closeModal();finish()">${L('[ WALK AWAY ]','[ IR EMBORA ]')}</button></div>
-      ${statusBar()}`;
-  }
-  render();openModal();
+/* LET IT RIDE — even-money press, the pot doubles each win, capped at 10× the original stake */
+function wheelRide(idx,stake0,pot){
+  const p=S.players[S.cur];const owner=S.players.find(x=>x.owns.has(idx));
+  const landed=wheelPick(); const pick=Math.random()<0.5?'fill':'empty';
+  tapSpin({landed,pick,stake:pot,title:L('LET IT RIDE','DEIXAR ROLAR'),onResult:()=>{
+    const win=(landed===pick); const el=document.getElementById("cardEl");
+    if(win){ p.cash+=pot; mkDirty(p,pot); SFX.cash();
+      let next=pot*2; const maxed=next>=stake0*10; if(maxed)next=stake0*10;
+      log(p.name+L(" lets it ride — the pot doubles to +"," deixa rolar — o pote dobra para +")+fmtK(next)+".","good");
+      el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('LET IT RIDE','DEIXAR ROLAR')}</div>
+        <div class="art">■ ■ ■</div><div class="ttl">${L("STILL HOT","AINDA QUENTE")}</div>
+        <div class="out">${fmtK(p.cash)} ${L('on hand','em mãos')}</div>
+        <div class="go">${maxed?`<span style="opacity:.8">${L('Maxed at 10× — cash out.','No máximo 10× — saque.')}</span>`:`<button class="amber" onclick="wheelRide(${idx},${stake0},${next})">${L('[ RIDE AGAIN · risk ','[ ROLAR DE NOVO · arrisca ')}${fmtK(next)} ]</button>`}<button onclick="closeModal();finish()">${L('[ CASH OUT ]','[ SACAR ]')}</button></div>
+        ${statusBar()}`;
+    } else { p.cash-=pot; SFX.bad(); if(owner&&owner.id!==p.id){ owner.cash+=pot; mkDirty(owner,pot); }
+      log(p.name+L(" pushes too far — hands back "," força demais — devolve ")+fmtK(pot)+".","bad");
+      el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('LET IT RIDE','DEIXAR ROLAR')}</div>
+        <div class="art">◆ ◆ ◆</div><div class="ttl">${L("THE TABLE TAKES IT ALL","A MESA LEVA TUDO")}</div>
+        <div class="out">${fmtK(p.cash)} ${L('on hand','em mãos')}</div>
+        <div class="go"><button onclick="closeModal();finish()">${L('[ WALK AWAY ]','[ IR EMBORA ]')}</button></div>
+        ${statusBar()}`;
+    }
+    render();openModal();
+  }});
 }
+/* Ghosts play the wheel (so an owned house actually earns) and may open an unowned one */
+function wheelAI(p,idx,owner){
+  const u=wheelUnit(idx);
+  if(!owner){ if(p.cash>=u*(aiProf(p).pokerMult||2)){ p.cash-=u; p.owns.set(idx,1); OUTER[idx].incomeBase=u; log(p.name+L(" opens THE WHEEL."," abre A ROLETA."),"good"); render(); } finish(); return; }
+  const prob=({AGGRESSIVE:0.55,CAREFUL:0.30,CAUTIOUS:0.15,PASSIVE:0.06})[p.temper]||0.2;
+  if(Math.random()>=prob){ finish(); return; }
+  const stake=Math.min(Math.floor(p.cash*0.15), wheelLimit(idx,owner)); if(stake<1){ finish(); return; }
+  const pick=Math.random()<0.5?'fill':'empty'; const landed=wheelPick(); const win=(landed===pick);
+  if(win){ p.cash+=stake; mkDirty(p,stake); log(p.name+L(" plays the wheel and WINS +"," joga na roleta e GANHA +")+fmtK(stake)+".","warn"); }
+  else { p.cash-=stake; owner.cash+=stake; mkDirty(owner,stake); log(p.name+L(" plays the wheel and loses "," joga na roleta e perde ")+fmtK(stake)+L(" to "," pra ")+owner.name+".","warn"); }
+  render(); finish();
+}
+
 /* ===== BUSINESS ===== */
 function tryBiz(c){
   const p=S.players[S.cur];const idx=p.pos;OUTER[idx].incomeBase=c.income;
@@ -3459,7 +3437,7 @@ function doCrime(job){
   p.crimeOps--;
   log(p.name+L(" goes looking for a score ("," sai atrás de um golpe (")+p.crimeOps+L(" crime chances left)."," chances de crime restantes)."),"warn");
   updateControls();
-  if(job==="hitman"){ p.kills=(p.kills||0)+1; try{SFX.gunHandgun();setTimeout(()=>SFX.gunBurst(),150);}catch(e){} }   // a hitman job = gunshots
+  if(job==="hitman"){ p.kills=(p.kills||0)+1; try{SFX.gunHandgun();setTimeout(()=>SFX.gunBurst(),150);}catch(e){} }
   drawStory(job);
 }
 function offerHire(){
@@ -3567,7 +3545,7 @@ function orderHit(oid,free){
     }
     return;
   }
-  try{SFX.gunHandgun();setTimeout(()=>SFX.gunBurst(),150);}catch(e){}   // STREET hit = a clear gunshots volley (double-tap + burst)
+  try{SFX.gunHandgun();setTimeout(()=>SFX.gunBurst(),150);}catch(e){}   // STREET hit = a clear gunshots volley
   if(r<1/3){
     log(L("","O contrato de ")+p.name+L("'s contract on "," em ")+o.name+L(" goes cold — the target went to ground."," esfria — o alvo sumiu do mapa."),"warn");
     hitNotice(L("THE HIT","O SERVI\u00c7O"),"x",L("The target went to ground","O alvo sumiu do mapa"),o.name+L(" changed cars, changed routes, slept somewhere new. The shooter waited three nights and walked. Money spent, nothing to show — and the streets are whispering your name (+10 HEAT)."," trocou de carro, trocou de rota, dormiu em outro canto. O atirador esperou tr\u00eas noites e foi embora. Dinheiro gasto, nada em troca — e a rua sussurra seu nome (+10 RISCO)."),()=>{render();finish();});
