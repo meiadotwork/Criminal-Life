@@ -765,7 +765,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v24.0";
+const APP_VERSION="v24.1";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -860,7 +860,13 @@ const CITIES = {
     streets:{20:"Heliópolis",30:"Cid Tiradentes",45:"Capão Redondo",60:"Brás",75:"Santana",90:"Tatuapé",100:"Vila Mariana",210:"Perdizes",225:"Higienópolis",230:"Pinheiros",250:"Moema",280:"Itaim Bibi",300:"V.N. Conceição",350:"Jardim América",400:"Jardim Europa"},
     // drugs separated (cocaína, crack, maconha — SP's Cracolândia) + cargo theft, PIX scam, chop shop, phone theft, piracy, laundering
     biz:{400:["cocaína","co"],200:["crack","ck"],180:["golpe PIX","px"],170:["roubo carga","cr"],150:["desmanche","dm"],110:["maconha","mc"],90:["roubo celular","cl"],80:["pirataria","pi"],70:["lavagem","$$"]},
-    casino:["Jogo do Bicho","JB"] }
+    casino:["Jogo do Bicho","JB"] },
+  LON: { name:"LONDON", prison:"HMP BLACKWALL", law:{life:true, maxYears:99}, cur:"£", scale:1, soldier:120, bg:120,
+    // streets keyed by fixed price tier -> London turf, poorest -> richest (Mayfair on top)
+    streets:{20:"Broadwater Fm",30:"Tottenham Hale",45:"Peckham Rye",60:"Brixton Road",75:"Harlesden",90:"Deptford High",100:"Elephant&Cast",210:"Camden Town",225:"Hackney Cent.",230:"Shoreditch",250:"Canary Wharf",280:"South Ken.",300:"Chelsea Kings",350:"Kensington Hi",400:"Mayfair"},
+    // firm fronts -- financial crime on top (Private Bank), old-school offie at the bottom
+    biz:{400:["Private Bank","$"],200:["Luxury Hotel","H"],180:["Jeweller","J"],170:["Nightclub","N"],150:["Pub","P"],110:["Tattoo Studio","T"],90:["Bookmaker","B"],80:["Chicken Shop","C"],70:["Corner Offie","O"]},
+    casino:["The Crown Club","CW"] }
 };
 function applyCity(key){
   const city=CITIES[key]||CITIES.NY;
@@ -877,7 +883,7 @@ function applyCity(key){
   const _pk=OUTER.find(c=>c.k==="poker"); if(_pk)_pk.price=5*SOLDIER_COST;   // THE WHEEL: 5 bodyguards per dealer
   TREAT_COST = Math.round(0.5*SOLDIER_COST);                                  // hospital treatment fee = 0.5 bodyguard
   // per-region card decks: R$ cities (SP/RIO/CWB) pull the Brazilian set on top of the base
-  buildActiveDecks(city.cur==="R$"?"BR":city.cur==="MX$"?"MX":"US");
+  buildActiveDecks(city.cur==="R$"?"BR":city.cur==="MX$"?"MX":city.cur==="£"?"UK":"US");
 }
 function _cityKey(){ if(typeof S!=="undefined"&&S&&S.city)return S.city; if(typeof setupData!=="undefined"&&setupData&&setupData.city)return setupData.city; return "NY"; }
 function cityCur(){ return (CITIES[_cityKey()]||CITIES.NY).cur || "$"; }
@@ -1088,6 +1094,79 @@ function trLbl(s){ if(!s)return s; return LANG==='PT'?(LBL_PT[s]||s):s; }
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
 /* SHUFFLE BAG: draw every card in a deck once (in random order) before any repeat, then reshuffle.
    Each deck has its own bag, kept per-game in S. Falls back to plain random before a game exists. */
+const DECKS_UK = {
+heist:[
+ {ttl:"Armoured van",ttl_pt:"Assalto a carro-forte",lbl:"HEIST",arr:9,cut:24,bd:"You boxed the cash-in-transit van in on a slip road off the A406 — angle grinder through the side door, the boxes away in a stolen Transit before the crew radioed in.",bd_pt:"Fechou o carro-forte numa alça da A406 — esmerilhadeira na porta lateral, as caixas embarcadas numa van roubada antes da tripulação chamar no rádio."},
+ {ttl:"The Rolex job",ttl_pt:"Roubo de relógio de luxo",lbl:"HEIST",arr:4,cut:14,bd:"Two lads on a stolen moped clocked the Daytona outside a Mayfair members' club. Off his wrist at a red light, gone up a bus lane before he stood up.",bd_pt:"Dois moleques numa moto roubada bateram o olho no Daytona na porta de um clube em Mayfair. Fora do pulso num sinal vermelho, sumiram por um corredor de ônibus antes dele levantar."},
+ {ttl:"Hatton Garden",ttl_pt:"Cofres de Hatton Garden",lbl:"HEIST",arr:12,cut:45,bd:"Over the long bank-holiday weekend the firm drilled through half a metre of the vault wall and emptied seventy safe-deposit boxes. Nobody rang it in till Tuesday.",bd_pt:"No feriadão prolongado a firma furou meio metro da parede do cofre e esvaziou setenta caixas de depósito. Ninguém percebeu até terça-feira."},
+ {ttl:"Bond St smash",ttl_pt:"Assalto a joalheria",lbl:"HEIST",arr:3,cut:9,bd:"Sledgehammers through the shutters of a Bond Street jeweller at 3 AM, trays swept into a holdall, back on the bikes before the alarm finished its first ring.",bd_pt:"Marreta nas grades de uma joalheria da Bond Street às 3 da manhã, bandejas varridas pra uma bolsa, de volta nas motos antes do alarme terminar o primeiro toque."},
+ {ttl:"Off the wall",ttl_pt:"Roubo de obra de arte",lbl:"HEIST",arr:6,cut:30,bd:"An Old Master walked out of a Cork Street gallery under a decorator's dust sheet. The buyer was a name you'd never meet, three countries away.",bd_pt:"Um mestre antigo saiu de uma galeria da Cork Street embaixo de uma lona de pintor. O comprador era um nome que você nunca ia conhecer, a três países de distância."},
+ {ttl:"Bullion switch",ttl_pt:"Roubo de barras de ouro",lbl:"HEIST",arr:10,cut:35,bd:"A pallet of gold left a Heathrow cargo shed on the wrong forklift. By the time the paperwork caught up, it was already ingots with no history.",bd_pt:"Um palete de ouro saiu de um armazém de carga de Heathrow na empilhadeira errada. Quando a papelada acordou, já eram barras sem história."},
+ {ttl:"Cargo off the docks",ttl_pt:"Roubo de carga no porto",lbl:"HEIST",arr:8,cut:20,bd:"A container of electronics never made it off Tilbury on the manifest. Your driver had the right seal and the wrong destination.",bd_pt:"Um contêiner de eletrônicos nunca saiu de Tilbury no manifesto. Seu motorista tinha o lacre certo e o destino errado."},
+ {ttl:"Moped snatch",ttl_pt:"Roubo de celular",lbl:"HEIST",arr:2,cut:3,bd:"A West End evening's worth of phones, snatched from open hands outside the theatres and gone before anyone looked up from the pavement.",bd_pt:"Uma noite inteira de celulares no West End, arrancados de mãos abertas na porta dos teatros e sumidos antes de alguém olhar da calçada."},
+ {ttl:"Ram-raid",ttl_pt:"Arrastão com veículo",lbl:"HEIST",arr:5,cut:8,bd:"A stolen 4x4 reversed through the shopfront and out again with the till and the safe still chained to the counter. Ninety seconds, doors to darkness.",bd_pt:"Um 4x4 roubado deu ré na vitrine e voltou com o caixa e o cofre ainda acorrentados no balcão. Noventa segundos, da porta pro escuro."},
+ {ttl:"Casino float",ttl_pt:"Assalto a cassino",lbl:"HEIST",arr:10,cut:22,bd:"You hit the Mayfair casino at the change of shift — straight to the count room with a member's face and a staff pass, out through the kitchens.",bd_pt:"Bateu no cassino de Mayfair na troca de turno — direto pra sala de contagem com cara de sócio e cracha de funcionário, saiu pela cozinha."}
+],
+drug:[
+ {ttl:"County lines",ttl_pt:"Rota interior (county lines)",lbl:"DRUG DEAL",arr:6,cut:14,bd:"One phone line, a dozen kids on trains to the market towns — the same deal wrap sold three counties out where the police weren't looking.",bd_pt:"Uma linha de celular, uma dúzia de moleques em trens pras cidades do interior — o mesmo papelote vendido a três condados de onde a polícia olhava."},
+ {ttl:"The import",ttl_pt:"Importação de cocaína",lbl:"DRUG DEAL",arr:12,cut:40,bd:"A container of bananas came through Felixstowe with a false floor. Your man on the crane set it down somewhere quiet before the dogs did their round.",bd_pt:"Um contêiner de banana passou por Felixstowe com fundo falso. Seu homem no guindaste largou num canto quieto antes dos cães fazerem a ronda."},
+ {ttl:"Cannabis farm",ttl_pt:"Estufa de maconha",lbl:"DRUG DEAL",arr:6,cut:12,bd:"A whole terraced house wired straight off the mains, every room under lamps. The neighbours put the heat and the smell down to a bad boiler.",bd_pt:"Um sobrado inteiro puxado direto da rede, cada quarto sob lâmpada. Os vizinhos acharam que o calor e o cheiro eram caldeira estragada."},
+ {ttl:"Trap on the estate",ttl_pt:"Boca na quebrada (estate)",lbl:"DRUG DEAL",arr:8,cut:18,bd:"A flat halfway up the tower ran crack round the clock — a lookout on the stairwell, the door reinforced, the block paying its way.",bd_pt:"Um apê no meio do prédio girou crack sem parar — olheiro na escada, porta reforçada, o bloco se pagando."},
+ {ttl:"Dark web post",ttl_pt:"Venda na dark web",lbl:"DRUG DEAL",arr:5,cut:16,bd:"Vacuum-sealed, foil-lined, dropped into a Royal Mail postbox in a stranger's name. The reviews came back five stars.",bd_pt:"Selado a vácuo, forrado de papel-alumínio, jogado numa caixa dos Correios em nome de estranho. As avaliações voltaram cinco estrelas."},
+ {ttl:"Wholesale kilo",ttl_pt:"Atacado por quilo",lbl:"DRUG DEAL",arr:11,cut:38,bd:"You moved weight to the firms, not grams to the street — one lock-up meeting, sealed kilos in and clean cash out, no faces remembered.",bd_pt:"Você moveu peso pras firmas, não grama pra rua — uma reunião num galpão, quilos lacrados entrando e grana limpa saindo, nenhum rosto lembrado."},
+ {ttl:"Drone over the wall",ttl_pt:"Drone sobre o muro",lbl:"DRUG DEAL",arr:8,cut:9,bd:"A drone dropped a package of spice and phones onto the exercise yard at dusk. Inside, the same parcel is worth ten times the street.",bd_pt:"Um drone largou um pacote de spice e celular no pátio ao anoitecer. Lá dentro, o mesmo embrulho vale dez vezes a rua."},
+ {ttl:"Pill press",ttl_pt:"Prensa de comprimidos",lbl:"DRUG DEAL",arr:7,cut:20,bd:"A press in a rented unit stamped pills by the thousand for the weekend clubs — dosed to a logo everyone in the queue would recognise.",bd_pt:"Uma prensa num galpão alugado carimbou comprimido aos milhares pras baladas do fim de semana — dosado com uma logo que todo mundo na fila reconhecia."}
+],
+hitman:[
+ {ttl:"Firm business",ttl_pt:"Acerto entre firmas",lbl:"HITMAN",arr:11,cut:6,bd:"Two firms had wanted the same manor for years. You settled which one kept it, in a car park, and the manor went quiet again by the weekend.",bd_pt:"Duas firmas queriam o mesmo território há anos. Você resolveu qual ficava com ele, num estacionamento, e o território ficou quieto de novo no fim de semana."},
+ {ttl:"Silence the grass",ttl_pt:"Queima de arquivo",lbl:"HITMAN",arr:12,cut:5,bd:"The witness due to give evidence at the Bailey never made it to the stand. Clean work — the case collapsed on its own.",bd_pt:"A testemunha que ia depor no tribunal nunca chegou ao banco. Serviço limpo — o processo desabou sozinho."},
+ {ttl:"Costa contract",ttl_pt:"Contrato da Costa del Sol",lbl:"HITMAN",arr:10,cut:7,bd:"The order came by encrypted phone from a villa in Marbella. You'd never meet the man who paid — only the name he wanted gone.",bd_pt:"A ordem veio por celular criptografado de uma villa em Marbella. Você nunca ia conhecer quem pagou — só o nome que ele queria fora."},
+ {ttl:"Moped shooter",ttl_pt:"Atirador de moto",lbl:"HITMAN",arr:12,cut:5,bd:"Two on a bike, visors down, one job at a chicken shop door. Away up the ring road before anyone inside understood what the bang was.",bd_pt:"Dois numa moto, viseira baixa, um serviço na porta de uma lanchonete. Sumiram pelo anel viário antes de alguém lá dentro entender o estampido."},
+ {ttl:"Debt settled",ttl_pt:"Dívida acertada",lbl:"HITMAN",arr:9,cut:5,bd:"A man owed the wrong people and stopped answering the phone. You were the last call he didn't take.",bd_pt:"Um homem devia pra gente errada e parou de atender o telefone. Você foi a última ligação que ele não pegou."},
+ {ttl:"The lock-up",ttl_pt:"O galpão",lbl:"HITMAN",arr:12,cut:6,bd:"He was told there was work waiting at a lock-up under the arches. There was, but not the kind he came for.",bd_pt:"Disseram que tinha trabalho esperando num galpão embaixo dos arcos. Tinha, mas não do tipo que ele foi buscar."},
+ {ttl:"The witness",ttl_pt:"A testemunha",lbl:"HITMAN",arr:12,cut:5,bd:"He was in a safe house under another name. Someone on the inside sold the address for less than the job paid.",bd_pt:"Ele estava numa casa segura sob outro nome. Alguém de dentro vendeu o endereço por menos do que o serviço pagou."},
+ {ttl:"Gangland message",ttl_pt:"Recado do submundo",lbl:"HITMAN",arr:13,cut:7,bd:"The job came with an audience. It was done in daylight, on a busy road, so that everyone who needed to understand it, did.",bd_pt:"O serviço veio com plateia. Foi feito à luz do dia, numa via movimentada, pra que todo mundo que precisava entender, entendesse."}
+],
+raid:[
+ {ttl:"The Met op",ttl_pt:"Operação da Met",lbl:"POLICE RAID",bd:"The Flying Squad went through the door at dawn with the battering ram — every address on the intelligence package hit within the same ten minutes.",bd_pt:"A Flying Squad entrou pela porta ao amanhecer com o aríete — cada endereço do pacote de inteligência batido nos mesmos dez minutos."},
+ {ttl:"NCA swoop",ttl_pt:"Operação da NCA",lbl:"POLICE RAID",bd:"The National Crime Agency had been reading the firm's encrypted phones for months. When they moved, they already knew which room the money was in.",bd_pt:"A Agência Nacional do Crime vinha lendo os celulares criptografados da firma há meses. Quando agiram, já sabiam em que quarto estava a grana."},
+ {ttl:"Customs blitz",ttl_pt:"Blitz da alfândega",lbl:"POLICE RAID",bd:"Border Force pulled the container out of the line at Felixstowe and ran the dogs down both sides. The false floor didn't fool them twice.",bd_pt:"A Border Force tirou o contêiner da fila em Felixstowe e passou os cães dos dois lados. O fundo falso não enganou duas vezes."},
+ {ttl:"FCA audit",ttl_pt:"Auditoria da FCA",lbl:"POLICE RAID",bd:"The Financial Conduct Authority pulled the front company's accounts apart line by line. The laundering was tidy — but not tidy enough.",bd_pt:"A autoridade financeira desmontou as contas da empresa de fachada linha por linha. A lavagem estava arrumada — mas não o suficiente."},
+ {ttl:"Someone grassed",ttl_pt:"Alguém dedurou",lbl:"POLICE RAID",bd:"A name from your own side went to the police for a deal of their own. They walked the warrant straight to the door only your people knew.",bd_pt:"Um nome do seu próprio lado foi à polícia por um acordo próprio. Levaram o mandado direto na porta que só a sua gente conhecia."},
+ {ttl:"Armed unit",ttl_pt:"Unidade armada",lbl:"POLICE RAID",bd:"Firearms officers surrounded the lock-up before first light and called you out on the loudhailer. There was no back way this time.",bd_pt:"Policiais armados cercaram o galpão antes do sol e te chamaram no megafone. Dessa vez não tinha saída dos fundos."}
+],
+cop:[
+ {ttl:"Crooked Cop",ttl_pt:"Policial na folha",lbl:"CROOKED COP",cut:12,bd:"A detective on a monthly envelope rings you the night before every raid. You clear the lock-up and the warrant finds bare walls.",bd_pt:"Um detetive num envelope mensal te liga na véspera de cada batida. Você esvazia o galpão e o mandado acha parede pelada."},
+ {ttl:"Crooked Cop",ttl_pt:"Sumiu o processo",lbl:"CROOKED COP",cut:15,bd:"An officer mislays your file for a flat fee. To you that file was worth ten times what he asked for it.",bd_pt:"Um policial extravia seu processo por um valor fixo. Pra você aquele arquivo valia dez vezes o que ele pediu."},
+ {ttl:"Crooked Cop",ttl_pt:"Grana reclassificada",lbl:"CROOKED COP",cut:20,bd:"A bent officer in the evidence room reclassifies your seized cash as unmarked. It comes back to you clean.",bd_pt:"Um agente corrupto na sala de provas reclassifica seu dinheiro apreendido como sem marca. Volta pra você limpo."},
+ {ttl:"Crooked Cop",ttl_pt:"Lista de informantes",lbl:"CROOKED COP",cut:10,bd:"Your man on the force sells you the informant list. Now you know exactly who around you has been talking.",bd_pt:"Seu homem na corporação te vende a lista de informantes. Agora você sabe exatamente quem do seu lado falou."},
+ {ttl:"Crooked Cop",ttl_pt:"Escolta da carga",lbl:"CROOKED COP",cut:18,bd:"A patrol car ran ahead of your shipment with its lights off, clearing every checkpoint, for a slice of the load.",bd_pt:"Uma viatura foi na frente do seu carregamento de luz apagada, liberando cada bloqueio, por uma fatia da carga."},
+ {ttl:"Crooked Cop",ttl_pt:"Mandado morto",lbl:"CROOKED COP",cut:14,bd:"Your inside man kills a surveillance warrant before a judge ever signs it. The op against you never officially existed.",bd_pt:"Seu homem de dentro mata um mandado de vigilância antes de um juiz assinar. A operação contra você nunca existiu oficialmente."},
+ {ttl:"Crooked Cop",ttl_pt:"Ficou com a propina",lbl:"CROOKED COP",cut:-12,bd:"The officer you paid took the money and raided you the same week. He kept both the bung and the collar.",bd_pt:"O policial que você pagou pegou a grana e te bateu na mesma semana. Ficou com a propina e com a prisão."},
+ {ttl:"Crooked Cop",ttl_pt:"Novo inspetor",lbl:"CROOKED COP",cut:-15,bd:"Your detective got transferred out. The new DI wants a fresh down payment before he'll look the other way.",bd_pt:"Seu detetive foi transferido. O novo inspetor quer uma entrada nova antes de olhar pro outro lado."}
+],
+pfight:[
+ {ttl:"Prison Fight",ttl_pt:"Acerto na cela",lbl:"PRISON FIGHT",rounds:2,bd:"A debt from the wing followed you back to the cell. It got settled with fists in the dark before the screw walked past.",bd_pt:"Uma dívida da ala te seguiu de volta pra cela. Foi acertada no soco no escuro antes do agente passar."},
+ {ttl:"Prison Fight",ttl_pt:"Firma rival",lbl:"PRISON FIGHT",rounds:4,bd:"The landing flipped to a rival firm overnight. By breakfast you were the only man on it wearing the wrong name.",bd_pt:"O corredor virou pra uma firma rival de um dia pro outro. No café da manhã você era o único nele com o nome errado."},
+ {ttl:"Prison Fight",ttl_pt:"Briga no pátio",lbl:"PRISON FIGHT",rounds:3,bd:"A shove in the exercise yard became the whole yard. You came out of it standing, which was more than some.",bd_pt:"Um empurrão no pátio virou o pátio inteiro. Você saiu de pé, o que já foi mais que alguns."},
+ {ttl:"Prison Fight",ttl_pt:"Cobrança da ala",lbl:"PRISON FIGHT",rounds:3,bd:"The top men on the wing decided you owed them this week. The collection came in the shower block where the cameras don't reach.",bd_pt:"Os chefões da ala decidiram que você devia essa semana. A cobrança veio no bloco dos chuveiros onde a câmera não alcança."},
+ {ttl:"Prison Fight",ttl_pt:"Estoque na costela",lbl:"PRISON FIGHT",rounds:4,bd:"Somebody ground a shiv out of a bed frame with your name on it. You caught it in the ribs on the landing and lived.",bd_pt:"Alguém afiou um estoque de um estrado de cama com seu nome nele. Você levou na costela no corredor e sobreviveu."}
+],
+riot:[
+ {ttl:"Prison Riot",ttl_pt:"Rebelião no telhado",lbl:"PRISON RIOT",rounds:4,bd:"The whole wing went up and half of it went onto the roof, slates raining down on the yard. When order came back, the count was short and you weren't on it.",bd_pt:"A ala inteira subiu e metade foi pro telhado, telha chovendo no pátio. Quando a ordem voltou, a contagem estava faltando e você não estava nela."},
+ {ttl:"Prison Riot",ttl_pt:"Fuga",lbl:"PRISON RIOT",escape:true,bd:"In the chaos a fire door was left swinging and a works van sat running by the gate. You were over the wall and gone before the count could even start.",bd_pt:"No caos uma porta corta-fogo ficou batendo e uma van de obra estava ligada no portão. Você passou o muro e sumiu antes da contagem começar."},
+ {ttl:"Prison Riot",ttl_pt:"Motim negociado",lbl:"PRISON RIOT",cut:20,bd:"The protest ended in a deal — the wing got its demands, and in the confusion a little cash changed hands your way.",bd_pt:"O protesto terminou num acordo — a ala conseguiu as exigências, e na confusão uma grana trocou de mão pro seu lado."},
+ {ttl:"Prison Riot",ttl_pt:"Refém",lbl:"PRISON RIOT",ryears:5,bd:"You held a screw through the standoff. It ended peacefully — but the extra charges got stapled straight onto your sentence.",bd_pt:"Você segurou um agente durante o cerco. Terminou em paz — mas as acusações extras grudaram direto na sua pena."},
+ {ttl:"Prison Riot",ttl_pt:"A ala levantou",lbl:"PRISON RIOT",rounds:3,bd:"Word came down the pipes from another nick and the whole landing kicked off at once. Your wing moved with it whether you wanted to or not.",bd_pt:"O recado veio pelos canos de outra cadeia e o corredor inteiro estourou de uma vez. Sua ala foi junto querendo ou não."}
+],
+pday:[
+ {ttl:"Prison Day",ttl_pt:"Visita",lbl:"PRISON DAY",packs:3,bd:"Visit day brought a parcel through the hall — burn, teabags and a little protection folded into a bag of clean clothes.",bd_pt:"Dia de visita trouxe um pacote pelo salão — fumo, chá e um pouco de proteção dobrados num saco de roupa limpa."},
+ {ttl:"Prison Day",ttl_pt:"Faxina",lbl:"PRISON DAY",packs:2,bd:"You took the cleaning detail nobody wanted on the wing. It paid in burn and, more useful, a key that walks where it shouldn't.",bd_pt:"Pegou a faxina que ninguém queria na ala. Rendeu fumo e, mais útil, uma chave que anda onde não devia."},
+ {ttl:"Prison Day",ttl_pt:"Revista na cela",lbl:"PRISON DAY",packs:-3,bd:"A surprise spin turned every cell over. Whatever they found under your bunk, they took — burn and all.",bd_pt:"Uma revista surpresa virou toda cela. O que acharam embaixo do seu beliche, levaram — fumo e tudo."},
+ {ttl:"Prison Day",ttl_pt:"Taxa da ala",lbl:"PRISON DAY",packs:-2,bd:"The wing collected its tax. Everyone pays the landing to keep breathing; today it was your turn to pay it in burn.",bd_pt:"A ala cobrou sua taxa. Todo mundo paga o corredor pra continuar respirando; hoje foi sua vez de pagar em fumo."},
+ {ttl:"Prison Day",ttl_pt:"Celular alugado",lbl:"PRISON DAY",packs:2,bd:"You rented out a smuggled phone by the minute. Half the landing owes you burn by lock-up.",bd_pt:"Alugou um celular contrabandeado por minuto. Metade do corredor te deve fumo na hora de trancar."}
+]
+};
 /* ===== PER-REGION DECKS: base cards are global; some cities merge in a local set
    (e.g. Brazilian cities pull DECKS_BR on top of the base deck). ===== */
 let ADECKS=null;
@@ -1105,6 +1184,7 @@ function buildActiveDecks(region){
     let a=DECKS[k];
     if(region==="BR" && typeof DECKS_BR!=="undefined" && DECKS_BR[k]) a=a.concat(DECKS_BR[k]);
     else if(region==="MX" && typeof DECKS_MX!=="undefined" && DECKS_MX[k]) a=a.concat(DECKS_MX[k]);
+    else if(region==="UK" && typeof DECKS_UK!=="undefined" && DECKS_UK[k]) a=a.concat(DECKS_UK[k]);
     ADECKS[k]=a.map(c=>Object.assign({},c));   // clone so per-city native remap never mutates the source DECKS
   }
   // NATIVE per-city payouts anchored to the bodyguard: crimes 0.5..10 bg, hospital 0.5..5 bg
@@ -1205,7 +1285,7 @@ function renderSetupStart(){
      <div class="cfghead">1. ${L('PLAYERS','JOGADORES')} <span style="opacity:.55">${L('(you + rivals — set each seat next)','(você + rivais — defina cada lugar a seguir)')}</span></div>
      <div class="choice">${[2,3,4,5,6,7,8,9,10].map(pC).join('')}</div>
      <div class="cfghead">2. ${L('CITY','CIDADE')} <span style="opacity:.55">${L('(map · prison · local law)','(mapa · prisão · lei local)')}</span></div>
-     <div class="choice">${cityB('NY','NEW YORK')}${cityB('LA','LOS ANGELES')}${cityB('CWB','CURITIBA')}${cityB('RIO','RIO')}${cityB('CDMX','CDMX')}${cityB('SP','SÃO PAULO')}</div>
+     <div class="choice">${cityB('NY','NEW YORK')}${cityB('LA','LOS ANGELES')}${cityB('CWB','CURITIBA')}${cityB('RIO','RIO')}${cityB('CDMX','CDMX')}${cityB('SP','SÃO PAULO')}${cityB('LON','LONDON')}</div>
      <div class="cfghead">3. ${L('YEAR','ANO')} <span style="opacity:.55">${L('(the year play begins)','(o ano em que o jogo come\u00e7a)')}</span></div>
      <div class="choice"><button class="cfg sel" onclick="openYearPad()">[ ${setupData.year||1987} ]</button></div>
      <div class="cfgflavor">&gt; ${L('the clock starts in ','o rel\u00f3gio come\u00e7a em ')}${setupData.year||1987}${L(' \u2014 each year on the street rolls it forward',' \u2014 cada ano na rua avan\u00e7a o calend\u00e1rio')}</div>
@@ -1310,7 +1390,8 @@ const CITY_GHOSTS={
   CWB: ["GONZAGUINHA","ESCADINHA","ERASMO","SEVERINO","SILVINO","CABO BRUNO"],
   RIO: ["CASTOR","BEM-TE-VI","MATEMÁTICO","ELIAS MALUCO","GUARABU","ORLANDO","UÊ","ESCADINHA","MINEIRO","PLAYBOY","CASTORZINHO","CAPITÃO"],
   CDMX:["DURAZO","AMADO","EL BARBAS","EL INGENIERO","RAMÓN","NIÑO DE ORO","EL COCHILOCO","EL CHAYO","NACHO CORONEL","EL LAZCA","Z-1"],
-  SP:  ["PAREJA","HIROITO","LUZ VERMELHA","MATADOR","CONSELHEIRO","GELEIÃO","CESINHA","BIRÔ","TONHÃO","CABEÇA BRANCA"]
+  SP:  ["PAREJA","HIROITO","LUZ VERMELHA","MATADOR","CONSELHEIRO","GELEIÃO","CESINHA","BIRÔ","TONHÃO","CABEÇA BRANCA"],
+  LON: ["HAROLD","JEFF","CHARLIE","COLIN","SHAND","GAL","BACON","TOM","SOAP","EDDY","TURKISH","TOMMY","BRICKTOP","BORIS","VINNIE","MICKEY","DOUG","SOL","TYRONE","FRANKY","AVI","BULLET","LITTLE CHRIS","BIG CHRIS","HARRY","NICK","MORTY","GENE","JIMMY","FREDDY","STAN","JACK","RONNIE","REGGIE","ALBIE","LENNY","ARCHIE","GEORGE","VICTOR","MALCOLM","CLIFF","RAY","COLLINS","WALTER","ARTHUR","NIGEL","DENNIS","PETER","MICHAEL","TERRY"]
 };
 /* Brazilian maps use only these ghost names (Cidade de Deus / Tropa de Elite) */
 const BR_GHOSTS=["ZÉ PEQUENO","DADINHO","BENÉ","CABELEIRA","ALICATE","MARRECO","BARBANTINHO","FILÉ-COM-FRITAS","MANÉ GALINHA","CABEÇÃO","LAMPIÃO","PARAÍBA","NEGUINHO","TIO SAM","TOURO","GRANDE","JABÁ","PAULISTA","EXU","GELSON","OTTO","CENOURA","BOCA","BISCOITINHO","PELÉ","NASCIMENTO","NETO","MATIAS","BAIANO","XUXA","TUCO","FÁBIO","CAPITÃO OLIVEIRA","CAPITÃO AZEVEDO","SARGENTO OLIVEIRA","ROCHA","CLAUDINHO","BEIRADA","MARCINHO","GUIMARÃES","FORTUNATO","CADU","PLAYBOY","PERNAMBUCO","CHINA","BETO","JAPONÊS","RUSSO","CEBOLA","VADO","SANDRO","ALEMÃO","CEARÁ","MINEIRO","GORDO","BAIXINHO","NEGO","CHICO","NEGO PRETO","MAJESTADE","LADY DI","SEM CHANCE","EZEQUIEL","DEUSDETE","ZICO","PEIXEIRA","GILSON","DADÁ","BARBA","FUINHA","LULA","PIMENTA","CHARUTO","MÁRIO CACHORRO","COELHO","PAULO BOCA","ANTÔNIO CARLOS","CLAUDIOMIRO","ZÉ DA CASA VERDE","VALDIR","DITO","LILICA","FUMAÇA","SAPO","CHICO BARRIGUDO","ALFINETE","CIGANO","PIXOTE","DITO SAPO","GAROTO","SUJINHO","CRISTAL","BABALU","TIÃO","JORGINHO","CAMALEÃO","PARÁ","BOLACHA","MOSCA","CARECA","NELSÃO","DENTINHO","GAGO","FERRUGEM","BUIÚ","CARLINHOS","BODE","CANÁRIO","PORTUGUÊS","JACARÉ","BOCA RICA","ESCADINHA","ALEMÃOZINHO"];
