@@ -765,7 +765,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v24.2";
+const APP_VERSION="v24.3";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -1275,7 +1275,7 @@ function renderSetupStart(){
    </div>
    <div class="dosconfig" style="margin-bottom:16px">
      <div class="cfgline">C:\\> CRIMINAL_TERMINAL.EXE /CAREER</div>
-     <div class="cfgline" style="opacity:.75">${(()=>{const _c=careerLoad();return _c&&_c.active?(L("Career in progress \u2014 City ","Carreira em andamento \u2014 Cidade ")+(Math.min(_c.level,CAREER_LEVELS.length-1)+1)+"/"+CAREER_LEVELS.length):L("Rise from nothing to kingpin \u2014 6 cities, carry your fortune forward.","Suba do nada a chef\u00e3o \u2014 6 cidades, leve sua fortuna adiante.");})()}</div>
+     <div class="cfgline" style="opacity:.75">${(()=>{const _c=careerLoad();return _c&&_c.active?(L("Career in progress \u2014 City ","Carreira em andamento \u2014 Cidade ")+(Math.min(_c.level,CAREER_LEVELS.length-1)+1)+"/"+CAREER_LEVELS.length):L("Rise from nothing to kingpin \u2014 7 cities, one bloodline, from 1970 on.","Suba do nada a chef\u00e3o \u2014 7 cidades, uma linhagem, de 1970 em diante.");})()}</div>
      <button class="cfggo" onclick="openCareer()">${L('[ CAREER MODE \u00BB ]','[ MODO CARREIRA \u00BB ]')}</button>
    </div>
    <div class="dosconfig">
@@ -1485,16 +1485,51 @@ function confirmPlayer(){
 /* ================= CAREER MODE — one city at a time, carry your fortune ================= */
 const CAREER_KEY="ct_career_v1";
 const CAREER_LEVELS=[
-  {city:"CWB",status:"free",ai:1,police:0.5,dice:6,en:"You're a nobody in Curitiba — a few contacts, no money, and a city that doesn't know your name yet. Take the streets.",pt:"Você é um zé-ninguém em Curitiba — uns contatos, sem grana, e uma cidade que ainda não sabe seu nome. Tome as ruas."},
-  {city:"RIO",status:"free",ai:2,police:1,dice:6,en:"Word travels. Rio is bigger and meaner, and the hills already have owners. Bring your bankroll and make them kneel.",pt:"A fama corre. O Rio é maior e mais pesado, e os morros já têm dono. Traga sua grana e faça eles se ajoelharem."},
-  {city:"SP",status:"prison",ai:3,police:4,dice:6,en:"You land in São Paulo — straight into Carandiru. Do your bid, get out, and take the biggest city in the country.",pt:"Você chega em São Paulo — direto pro Carandiru. Cumpra a pena, saia, e domine a maior cidade do país."},
-  {city:"CDMX",status:"free",ai:3,police:3,dice:6,en:"You go international. Mexico City runs on cartel rules — bigger money, bigger bodies. Prove you belong.",pt:"Você fica internacional. A Cidade do México roda na lei do cartel — mais dinheiro, mais corpos. Prove que você é dessa."},
-  {city:"LA",status:"free",ai:4,police:3,dice:6,en:"Los Angeles. Sunshine, freeways and four crews who want you gone. This is the American game now.",pt:"Los Angeles. Sol, freeways e quatro quadrilhas que te querem fora. Agora é o jogo americano."},
-  {city:"NY",status:"free",ai:5,police:4,dice:8,en:"New York. The last city, the biggest table — five bosses between you and the crown. Take it all.",pt:"Nova York. A última cidade, a maior mesa — cinco chefões entre você e a coroa. Leve tudo."}
+  {city:"CWB",status:"free",ai:8,police:1,dice:6,stake:0,win:{cash:4000,biz:2,streets:2},
+   en:"You're a nobody in Curitiba — no money, eight crews ahead of you and a city that doesn't know your name. Build a real operation: the cash, the corners and the fronts.",
+   pt:"Você é um zé-ninguém em Curitiba — sem grana, oito quadrilhas na frente e uma cidade que não sabe seu nome. Monte uma operação de verdade: a grana, as bocas e os negócios."},
+  {city:"RIO",status:"free",ai:6,police:1,dice:8,stake:500,win:{cash:6000,biz:4,streets:4},
+   en:"Word travels. Rio is bigger and meaner and the hills already have owners. Run a full operation — four corners, four fronts, six million in the bank.",
+   pt:"A fama corre. O Rio é maior e mais pesado e os morros já têm dono. Toque uma operação completa — quatro bocas, quatro negócios, seis milhões no caixa."},
+  {city:"SP",status:"prison",ai:10,police:4,dice:8,stake:1000,win:{lms:true},
+   en:"São Paulo — straight into Carandiru with ten crews around you. There's only one way out on top: be the last boss standing.",
+   pt:"São Paulo — direto pro Carandiru com dez quadrilhas em volta. Só tem um jeito de sair por cima: ser o último chefão de pé."},
+  {city:"CDMX",status:"free",ai:9,police:3,dice:6,stake:2000,win:{lms:true},
+   en:"You go international. Mexico City runs on cartel rules — nine plazas, nine bosses. Bury every one of them.",
+   pt:"Você fica internacional. A Cidade do México roda na lei do cartel — nove praças, nove chefões. Enterre cada um deles."},
+  {city:"LA",status:"free",ai:6,police:3,dice:6,stake:500,win:{cash:50000,biz:4,streets:6},
+   en:"Los Angeles. Six crews, and the American money is real now — fifty million, six blocks and four fronts, or you're nobody out here.",
+   pt:"Los Angeles. Seis quadrilhas, e a grana americana é de verdade agora — cinquenta milhões, seis quarteirões e quatro negócios, ou você não é ninguém."},
+  {city:"NY",status:"free",ai:5,police:4,dice:8,stake:1000,win:{cash:100000},
+   en:"New York, the biggest table. Five bosses between you and the crown. Stack a hundred million and the city is yours.",
+   pt:"Nova York, a maior mesa. Cinco chefões entre você e a coroa. Junte cem milhões e a cidade é sua."},
+  {city:"LON",status:"free",ai:3,police:2,dice:10,stake:5000,win:{cash:1000000},
+   en:"London. Only three rivals left standing — but the game is a billion pounds now. Build the dynasty that ends untouchable.",
+   pt:"Londres. Só três rivais de pé — mas o jogo é um bilhão de libras agora. Construa a dinastia que termina intocável."}
 ];
 let careerState=null;
 function careerLoad(){ try{ const c=JSON.parse(localStorage.getItem(CAREER_KEY)); return (c&&typeof c.level==="number")?c:null; }catch(e){ return null; } }
 function careerSave(){ try{ if(careerState) localStorage.setItem(CAREER_KEY,JSON.stringify(careerState)); }catch(e){} }
+function careerCashTargetInternal(cashK){ const sc=(typeof S!=="undefined"&&S&&S.city&&CITIES[S.city])?CITIES[S.city].scale:1; return Math.round((cashK||0)/(sc||1)); }
+function careerCheckWin(p){
+  if(!careerActive()||S._careerEnded||!p||p.ai||!p.alive) return false;
+  const lv=CAREER_LEVELS[S.career.level]; const w=lv&&lv.win; if(!w) return false;
+  if(w.lms){ const al=S.players.filter(x=>x.alive); return al.length<=1 && al[0]===p; }
+  const es=empireStats(p);
+  if(w.cash!=null && netWorth(p) < careerCashTargetInternal(w.cash)) return false;
+  if(w.biz!=null && es.biz < w.biz) return false;
+  if(w.streets!=null && es.turf < w.streets) return false;
+  return (w.cash!=null||w.biz!=null||w.streets!=null);
+}
+function careerGoalText(lv){
+  const w=lv&&lv.win; if(!w) return L("OWN THE CITY","DOMINE A CIDADE");
+  if(w.lms) return L("LAST BOSS STANDING — outlive every rival","ÚLTIMO CHEFÃO DE PÉ — enterre todos os rivais");
+  const sc=(CITIES[lv.city]&&CITIES[lv.city].scale)||1; const g=[];
+  if(w.cash!=null) g.push(fmtKcity(Math.round(w.cash/sc),lv.city));
+  if(w.streets!=null) g.push(w.streets+L(" streets"," ruas"));
+  if(w.biz!=null) g.push(w.biz+L(" businesses"," negócios"));
+  return g.join(" + ");
+}
 function careerCityName(k){ return (CITIES[k]||CITIES.NY).name; }
 function fmtKcity(v,cityKey){ const c=CITIES[cityKey]||CITIES.NY; const sc=c.scale||1; const cur=c.cur; const neg=v<0?"-":""; v=Math.abs(v)*sc; const ff=(n)=>(n%1===0?n:n.toFixed(n>=10?0:1)); if(v>=1e9)return neg+cur+ff(v/1e9)+"T"; if(v>=1e6)return neg+cur+ff(v/1e6)+"B"; if(v>=1e3)return neg+cur+ff(v/1e3)+"M"; return neg+cur+Math.round(v)+"K"; }
 function policeLabelFor(fp){ return fp>=4?L("Brazilian","Brasileira"):fp>=3?L("Hard","Difícil"):fp>=1?L("Realistic","Realista"):fp>=0.5?L("Low","Baixa"):L("Very low","Muito baixa"); }
@@ -1544,7 +1579,7 @@ function careerNew(){
 }
 function careerBegin(){
   const nm=(_careerNameBuf||"").trim().toUpperCase().slice(0,14)||L("YOU","VOC\u00ca");
-  careerState={name:nm,level:0,cleared:-1,bankroll:0,year:(setupData.year||2000),age:13,gens:1,active:true};
+  careerState={name:nm,level:0,cleared:-1,bankroll:0,year:1970,bornYear:1970,age:13,gens:1,active:true};
   careerSave();
   careerBriefing(0);
 }
@@ -1560,22 +1595,23 @@ function careerBriefing(i){
     <div class="cfgline">C:\\> CITY ${i+1} / ${CAREER_LEVELS.length}</div>
     <div class="cfghead">${nm}</div>
     <div class="cfgline" style="opacity:.9;line-height:1.55">${L(lv.en,lv.pt)}</div>
-    <div class="cfgline" style="margin-top:10px">\u25B8 ${L("OBJECTIVE","OBJETIVO")}: <b>${L("OWN THE CITY \u2014 last boss standing.","DOMINE A CIDADE \u2014 \u00faltimo chef\u00e3o de p\u00e9.")}</b></div>
-    <div class="cfgline">\u25B8 ${L("Rivals","Rivais")}: ${lv.ai} \u00B7 ${L("Police","Pol\u00edcia")}: ${policeLabelFor(lv.police)}${prison?` \u00B7 <b style="color:var(--red)">${L("START IN PRISON","COME\u00c7A PRESO")}</b>`:""}</div>
+    <div class="cfgline" style="margin-top:10px">\u25B8 ${L("OBJECTIVE","OBJETIVO")}: <b>${careerGoalText(lv)}</b></div>
+    <div class="cfgline">\u25B8 ${L("Rivals","Rivais")}: ${lv.ai} \u00B7 ${L("Dice","Dado")}: d${lv.dice} \u00B7 ${L("Police","Pol\u00edcia")}: ${policeLabelFor(lv.police)}${prison?` \u00B7 <b style="color:var(--red)">${L("START IN PRISON","COME\u00c7A PRESO")}</b>`:""}</div>
     <div class="cfgline">\u25B8 ${L("You","Voc\u00ea")}: ${L("age","idade")} ${(careerState&&careerState.age)||13} \u00B7 ${L("generation","gera\u00e7\u00e3o")} ${(careerState&&careerState.gens)||1}</div>
-    <div class="cfgline">\u25B8 ${L("Your bankroll","Sua grana")}: <b>${fmtKcity(bank,lv.city)}</b> <span style="opacity:.6">${i>0?L("(carried over)","(trazida)"):L("(you start with nothing)","(voc\u00ea come\u00e7a do nada)")}</span></div>
+    <div class="cfgline">\u25B8 ${L("You start with","Voc\u00ea come\u00e7a com")}: <b>${lv.stake>0?fmtKcity(Math.round(lv.stake/((CITIES[lv.city]&&CITIES[lv.city].scale)||1)),lv.city):L("NOTHING","NADA")}</b> \u00B7 ${L("year","ano")} ${(careerState&&careerState.year)||1970}</div>
     <button class="cfggo" onclick="careerLaunch(${i})">${prison?L("[ INTO THE YARD \u00BB ]","[ PRO P\u00c1TIO \u00BB ]"):L("[ HIT THE STREETS \u00BB ]","[ PRAS RUAS \u00BB ]")}</button>
     <button class="cfggo" style="opacity:.65" onclick="openCareer()">${L("[ \u2039 BACK ]","[ \u2039 VOLTAR ]")}</button>
   </div>`;
 }
 function careerLaunch(i){
   careerState=careerState||careerLoad();
-  if(!careerState){ careerState={name:L("YOU","VOC\u00ca"),level:i,cleared:-1,bankroll:0,year:2000,age:13,gens:1,active:true}; }
+  if(!careerState){ careerState={name:L("YOU","VOC\u00ca"),level:i,cleared:-1,bankroll:0,year:1970,bornYear:1970,age:13,gens:1,active:true}; }
   const lv=CAREER_LEVELS[i];
-  const bank=Math.max(0,Math.round(careerState.bankroll||0));
+  const _sc=(CITIES[lv.city]&&CITIES[lv.city].scale)||1;
+  const stakeI=Math.max(0,Math.round((lv.stake||0)/_sc));
   setupData.city=lv.city; setupData.dice=lv.dice; setupData.dice0=lv.dice; setupData.police=lv.police;
-  setupData.status=lv.status; setupData.year=careerState.year||2000;
-  setupData.capital=bank; setupData.startCash=bank; setupData.n=1+lv.ai;
+  setupData.status=lv.status; setupData.year=careerState.year||1970;
+  setupData.capital=stakeI; setupData.startCash=stakeI; setupData.n=1+lv.ai;
   const tempers=["AGGRESSIVE","CAREFUL","AGGRESSIVE","CAUTIOUS","AGGRESSIVE","CAREFUL"];
   const players=[{name:(careerState.name||L("YOU","VOC\u00ca")),pattern:PATTERNS[0].k,ai:false,age:(careerState.age||13)}];
   setupData.players=players;
@@ -1614,8 +1650,8 @@ function careerComplete(winner){
   el.innerHTML=`<div class="lbl" style="background:${winner.color}">${L("CAREER COMPLETE","CARREIRA COMPLETA")}</div>
     <div style="text-align:center;font-size:40px;margin:8px 0">\u265B</div>
     <div class="ttl" style="text-align:center;color:${winner.color}">${winner.name} \u2014 ${L("KINGPIN","CHEF\u00c3O")}</div>
-    <div class="sub" style="text-align:center">${L("Curitiba to New York \u2014 six cities, every rival buried. You own it all.","De Curitiba a Nova York \u2014 seis cidades, todos os rivais enterrados. Voc\u00ea domina tudo.")}</div>
-    <div class="out" style="text-align:center">${L("Final fortune: ","Fortuna final: ")}<b>${fmtK(netWorth(winner))}</b> · ${L("across ","em ")}${(careerState&&careerState.gens)||1} ${L("generation(s)","geração(ões)")}</div>
+    <div class="sub" style="text-align:center">${L("Curitiba to London \u2014 seven cities, every rival buried. Your bloodline owns it all.","De Curitiba a Londres \u2014 sete cidades, todos os rivais enterrados. Sua linhagem domina tudo.")}</div>
+    <div class="out" style="text-align:center">${L("Final fortune: ","Fortuna final: ")}<b>${fmtK(netWorth(winner))}</b><br>${L("It took ","Levou ")}<b>${(careerState&&careerState.gens)||1}</b> ${L("generation(s)","geração(ões)")} ${L("and ","e ")}<b>${Math.max(0,(((careerState&&careerState.year)||gameYear())-((careerState&&careerState.bornYear)||1970)))}</b> ${L("years","anos")} (${(careerState&&careerState.bornYear)||1970}–${(careerState&&careerState.year)||gameYear()}) ${L("to reach the top.","pra chegar ao topo.")}</div>
     <div class="go"><button class="amber" onclick="toMainMenu()">${L("[ MAIN MENU ]","[ MENU ]")}</button></div>`;
   openModal();
 }
@@ -2755,8 +2791,11 @@ function stepMove(p,left){
     p.cleanLaps++;   // life does NOT heal on its own — you must pay to patch up at the HOSPITAL
     if(!p.ai) p._books={inc:(p._yrIn||0),wages:_wages,laund:_laund,ownML:_ownML,crew:_crew,year:(typeof gameYear==="function"?gameYear():1987)};
     p._yrIn=0;
-    if(careerActive()&&!p.ai&&p.age>=65){ careerState=careerState||careerLoad(); if(careerState){careerState.gens=(careerState.gens||1)+1;careerState.age=20;careerSave();} p.age=20; p._newGen={gen:(careerState&&careerState.gens)||2}; }
-    if(p.age>=65&&netWorth(p)>=retireTarget()){showRetire(p);return;}}   // RETIRE UNTOUCHABLE: $10M net worth + age 65
+    if(careerActive()&&!p.ai){
+      if(careerCheckWin(p)){ careerCityTaken(p); return; }
+      if(p.age>=65){ careerState=careerState||careerLoad(); if(careerState){careerState.gens=(careerState.gens||1)+1;careerState.age=20;careerSave();} p.age=20; p._newGen={gen:(careerState&&careerState.gens)||2}; }
+    }
+    if(!careerActive()&&p.age>=65&&netWorth(p)>=retireTarget()){showRetire(p);return;}}   // RETIRE UNTOUCHABLE: $10M net worth + age 65
   render();
   scrollToToken();
   document.getElementById("diceLbl").textContent=L("…moving (","…andando (")+left+")";
