@@ -765,7 +765,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v24.9";
+const APP_VERSION="v25.0";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -3350,14 +3350,15 @@ function wheelHouse(idx){
     <div class="sub">${n} ${L('dealer'+(n>1?'s':''),'crupiê'+(n>1?'s':''))} · ${L('take','rende')} ${fmtK(u*n)}/${L('yr','ano')} · ${L('table limit','limite')} ${fmtK(wheelLimit(idx,p))}</div>
     <div class="out">${L('Each dealer: ','Cada crupiê: ')}${fmtK(u)} — ${L('more dealers raise the take, the table limit, and the defense against a raid.','mais crupiês aumentam a renda, o limite da mesa e a defesa contra ataque.')}</div>
     <div class="go" style="flex-wrap:wrap">
-      ${p.cash>=u?`<button class="amber" onclick="wheelAddDealer(${idx},1)">${L('[ +1 DEALER ]','[ +1 CRUPIÊ ]')}</button>`:''}
-      ${p.cash>=u*5?`<button onclick="wheelAddDealer(${idx},5)">[ +5 ]</button>`:''}
+      ${(p.cash>=u&&unitRoom(p,idx)>=1)?`<button class="amber" onclick="wheelAddDealer(${idx},1)">${L('[ +1 DEALER ]','[ +1 CRUPIÊ ]')}</button>`:''}
+      ${(p.cash>=u*5&&unitRoom(p,idx)>=5)?`<button onclick="wheelAddDealer(${idx},5)">[ +5 ]</button>`:''}
+      ${unitRoom(p,idx)<1?`<span style="opacity:.7">${L('table full · '+UNIT_CAP+' dealers','mesa cheia · '+UNIT_CAP+' crupiês')}</span>`:''}
       <button class="red" onclick="sellProp(${idx})">${L('[ SELL ]','[ VENDER ]')}</button>
       <button onclick="closeModal();finish()">${L('[ DONE ]','[ CONCLUIR ]')}</button></div>
     ${statusBar()}`;
   openModal();
 }
-function wheelAddDealer(idx,nn){ const p=S.players[S.cur];const u=wheelUnit(idx); nn=Math.min(nn,Math.floor(p.cash/u)); if(nn<1)return;
+function wheelAddDealer(idx,nn){ const p=S.players[S.cur];const u=wheelUnit(idx); nn=Math.min(nn,Math.floor(p.cash/u),unitRoom(p,idx)); if(nn<1)return;
   p.cash-=u*nn; p.owns.set(idx,(p.owns.get(idx)||0)+nn); OUTER[idx].incomeBase=u;
   log(p.name+L(" hires "," contrata ")+nn+L(" dealer"," crupiê")+(nn>1?"s":"")+L(" for THE WHEEL (now "," pra A ROLETA (agora ")+p.owns.get(idx)+").","good"); render(); wheelHouse(idx); }
 function wheelOpen(idx){ const p=S.players[S.cur];const u=wheelUnit(idx); if(p.cash<u)return;
