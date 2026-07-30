@@ -765,7 +765,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v25.2";
+const APP_VERSION="v25.3";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -1340,16 +1340,16 @@ function openMultiplayer(){
   const yr=setupData.year||1987, yCustom=YEAR_PRESETS.indexOf(yr)<0;
   const yB=(n)=>`<button class="cfg${yr===n?' sel':''}" onclick="selectYear(${n})">[ ${n} ]</button>`;
   const ready=(cap!=null)&&sp&&(pol!=null)&&setupData.n;
-  const sv=loadSave();
+  const sv=loadSaveMP();
   document.getElementById("setupStage").innerHTML=`
-   ${(()=>{ const _cc=careerLoad(); const _hasC=!!(_cc&&_cc.active);
-     const _mid=_hasC?careerMidSave(Math.min(_cc.level,CAREER_LEVELS.length-1)):null;
-     if(!sv||_mid) return '';                       // a career snapshot belongs to the career page, not here
+   ${(()=>{ if(!sv) return '';
      const _alive=sv.players.filter(p=>p.alive).length+"/"+sv.players.length+" "+L('alive','vivos');
+     const _hum=sv.players.filter(p=>!p.ai).length;
      return `<div class="dosconfig" style="margin-bottom:16px">
-       <div class="cfgline">C:\\> /CONTINUE</div>
-       <div class="cfgline" style="opacity:.75">${L('Match in progress — turn','Partida em andamento — turno')} ${sv.turn} · ${_alive}</div>
-       <button class="cfggo" onclick="resumeGame()">${L('[ CONTINUE MATCH » ]','[ CONTINUAR PARTIDA » ]')}</button>
+       <div class="cfgline">C:\\> /LOADGAME</div>
+       <div class="cfgline" style="opacity:.75">${L('Saved match — turn','Partida salva — turno')} ${sv.turn} · ${_alive} · ${sv.players.length} ${L('bosses','chefões')} (${_hum} ${_hum===1?L('human','humano'):L('humans','humanos')})</div>
+       <button class="cfggo" onclick="resumeGame()">${L('[ LOAD GAME » ]','[ CARREGAR JOGO » ]')}</button>
+       <div class="cfgline" style="opacity:.55;margin-top:8px">${L('Starting a new match below replaces this save.','Começar uma nova partida abaixo substitui este save.')}</div>
      </div>`; })()}
    <div class="dosconfig">
      <div class="cfgline">C:\\> CRIMINAL_TERMINAL.EXE /NEWGAME</div>
@@ -1384,16 +1384,16 @@ function openMultiplayer(){
 /* ===== THE FRONT DOOR — pick a mode, nothing else. Settings live inside MULTIPLAYER,
    load/new live inside CAREER, so neither screen opens on a wall of options. ===== */
 function renderSetupStart(){
-  const sv=loadSave();
+  const sv=loadSaveMP();                       // multiplayer and career keep separate saves
   const _cc=careerLoad(); const _hasC=!!(_cc&&_cc.active);
   const _lvl=_hasC?Math.min(_cc.level,CAREER_LEVELS.length-1):0;
   const _mid=_hasC?careerMidSave(_lvl):null;
-  const _freeSave=!!(sv&&!_mid);
+  const _freeSave=!!sv;
   const careerSub=_hasC
     ? (L('City','Cidade')+' '+(_lvl+1)+'/'+CAREER_LEVELS.length+' · '+(_mid?(L('turn','turno')+' '+_mid.turn):(L('bankroll','grana')+' '+fmtKcity(_cc.bankroll||0,CAREER_LEVELS[_lvl].city))))
     : L('One city at a time, one bloodline','Uma cidade por vez, uma linhagem');
   const mpSub=_freeSave
-    ? (L('Match in progress — turn','Partida em andamento — turno')+' '+sv.turn)
+    ? (L('Saved match — turn','Partida salva — turno')+' '+sv.turn+' \u00b7 '+sv.players.length+' '+L('bosses','chef\u00f5es'))
     : L('Set the table — up to 10 bosses','Monte a mesa — at\u00e9 10 chef\u00f5es');
   document.getElementById("setupStage").innerHTML=`
    <div class="dosconfig" style="margin-bottom:16px">
@@ -1700,7 +1700,7 @@ function careerBegin(){
   careerSave();
   careerBriefing(0);
 }
-function careerReset(){ try{localStorage.removeItem(CAREER_KEY);}catch(e){} try{clearSave();}catch(e){} careerState=null; openCareer(); }
+function careerReset(){ try{localStorage.removeItem(CAREER_KEY);}catch(e){} clearSaveCareer(); careerState=null; openCareer(); }
 /* NEW GAME on top of a run in progress throws it away — say so before it happens */
 function careerNewConfirm(){
   const c=careerLoad(); if(!c||!c.active){ careerNewStart(); return; }
@@ -1718,7 +1718,7 @@ function careerNewConfirm(){
    snapshot carries the career with it. The briefing (a fresh city from turn 1) is only for
    when there is nothing to resume, otherwise continuing would silently wipe the run. */
 function careerMidSave(lvl){
-  const sv=loadSave();
+  const sv=loadSaveCareer();
   return (sv&&sv.career&&sv.career.active&&sv.career.level===lvl&&sv.players&&sv.players.length)?sv:null;
 }
 function careerContinue(lvl){
@@ -1894,14 +1894,33 @@ function launch(){
 }
 
 /* ===== SAVE / RESUME (localStorage — written at every turn boundary) ===== */
-const SAVE_KEY="ct_save_v2"; // v2: board order changed in v8.6 — old saves index the old layout
+const SAVE_KEY="ct_save_v2";              // multiplayer / free match (v2: board order changed in v8.6)
+const SAVE_KEY_CAREER="ct_save_career_v1"; // a career city in progress — its own slot, so a
+                                           // multiplayer game and a career never overwrite each other
+/* One save each. Which slot a game belongs to is decided by the game itself, not by the
+   screen you came from, so a career always lands in the career slot. */
+function saveSlotFor(g){ return (g&&g.career&&g.career.active)?SAVE_KEY_CAREER:SAVE_KEY; }
+function readSlot(key){ try{const s=JSON.parse(localStorage.getItem(key)); return (s&&s.players&&s.players.length)?s:null;}catch(e){return null;} }
+function loadSaveMP(){ return readSlot(SAVE_KEY); }
+function loadSaveCareer(){ return readSlot(SAVE_KEY_CAREER); }
+function clearSaveMP(){ try{localStorage.removeItem(SAVE_KEY);}catch(e){} }
+function clearSaveCareer(){ try{localStorage.removeItem(SAVE_KEY_CAREER);}catch(e){} }
+/* v25.2 and earlier kept both in one slot — move an in-progress career across on first run
+   so nobody loses the city they were playing. */
+(function migrateSaveSlots(){ try{
+  const raw=localStorage.getItem(SAVE_KEY); if(!raw) return;
+  const sv=JSON.parse(raw);
+  if(sv&&sv.career&&sv.career.active&&sv.players&&sv.players.length&&!localStorage.getItem(SAVE_KEY_CAREER)){
+    localStorage.setItem(SAVE_KEY_CAREER,raw); localStorage.removeItem(SAVE_KEY);
+  }
+}catch(e){} })();
 function snapshot(){
   return {turn:S.turn,cur:S.cur,n:S.n,ai:S.ai,baseDice:S.baseDice,diff:S.diff,police:S.police,city:S.city,startYear:S.startYear,career:(S.career||null),
     players:S.players.map(p=>{const o={...p};o.owns=Array.from(p.owns.entries());o._fresh=Array.from((p._fresh||new Map()).entries());delete o.auto;return o;})};
 }
-function saveGame(){ if(!S||S.over)return; try{localStorage.setItem(SAVE_KEY,JSON.stringify(snapshot()));}catch(e){} }
-function clearSave(){ try{localStorage.removeItem(SAVE_KEY);}catch(e){} }
-function loadSave(){ try{const s=JSON.parse(localStorage.getItem(SAVE_KEY)); return (s&&s.players&&s.players.length)?s:null;}catch(e){return null;} }
+function saveGame(){ if(!S||S.over)return; try{const snap=snapshot(); localStorage.setItem(saveSlotFor(snap),JSON.stringify(snap));}catch(e){} }
+function clearSave(){ try{localStorage.removeItem(saveSlotFor(typeof S!=="undefined"&&S?S:null));}catch(e){} }   // only the slot of the game in play
+function loadSave(){ return loadSaveMP(); }   // bare loadSave() means the multiplayer slot
 function loadFromSnapshot(sv,note){
   if(!sv||!sv.players||!sv.players.length) return false;
   const _cityKey=sv.city||"NY"; applyCity(_cityKey);
@@ -1928,7 +1947,7 @@ function loadFromSnapshot(sv,note){
   try{saveGame();}catch(e){}
   return true;
 }
-function resumeGame(){ const sv=loadSave(); if(sv) loadFromSnapshot(sv); }
+function resumeGame(){ const sv=loadSaveMP(); if(sv) loadFromSnapshot(sv); }
 /* ===== SAVE CODE: a portable save that works even where the browser blocks localStorage (itch iframe) ===== */
 function encodeSaveCode(sv){ try{ return btoa(unescape(encodeURIComponent(JSON.stringify(sv)))); }catch(e){ return ""; } }
 function decodeSaveCode(code){ try{ const o=JSON.parse(decodeURIComponent(escape(atob((code||"").replace(/\s+/g,""))))); return (o&&o.players&&o.players.length)?o:null; }catch(e){ return null; } }
