@@ -1876,6 +1876,12 @@ function loadFromSnapshot(sv,note){
   S={turn:sv.turn||1,cur:sv.cur||0,n:sv.n||sv.players.length,rolled:false,over:false,ai:sv.ai,roundEvents:[],baseDice:({1:6,2:8,3:10}[sv.baseDice]||sv.baseDice||6),diff:sv.diff,police:(sv.police!=null?sv.police:1),city:_cityKey,law:(CITIES[_cityKey]||CITIES.NY).law,startYear:(sv.startYear||1987),career:(sv.career||null),followAnim:true};
   S.players=sv.players.map((sp,i)=>{const pl=newPlayer(i,sp.name,sp.pattern);Object.assign(pl,sp);pl.owns=new Map(sp.owns||[]);pl.auto=false;return pl;});
   if(S.cur>=S.players.length)S.cur=0;
+  /* a save written before the cap existed can hold stacks above it — bring them down on load,
+     otherwise an old game keeps earning on numbers the game no longer allows anyone to reach */
+  let _trimmed=0,_trimHolders=0;
+  S.players.forEach(pl=>{ let hit=false;
+    pl.owns.forEach((c,idx)=>{ if(c>UNIT_CAP){ _trimmed+=c-UNIT_CAP; hit=true; pl.owns.set(idx,UNIT_CAP); } });
+    if(hit)_trimHolders++; });
   document.getElementById("setup").style.display="none";
   document.getElementById("screen").style.display="flex";
   buildBoardGrid();
@@ -1885,6 +1891,7 @@ function loadFromSnapshot(sv,note){
   if(document.fonts&&document.fonts.ready){document.fonts.ready.then(()=>setTimeout(fitBoard,40));}
   newRound();
   log(note||(L("SESSION RESTORED — turn ","SESSÃO RESTAURADA — turno ")+S.turn+". "+S.players[S.cur].name+L(" is up."," é a vez.")),"sys");
+  if(_trimmed>0) log(L("OLD SAVE — the ","JOGO ANTIGO — o limite de ")+UNIT_CAP+L(" cap now applies: "," agora vale: ")+_trimHolders+L(" boss"," chefe")+(_trimHolders>1?L("es",""):"")+L(" trimmed back, "," teve holdings cortados, ")+_trimmed+L(" over-cap bodies stood down."," corpos acima do limite dispensados."),"warn");
   if(S.players[S.cur].ai&&!S.over) setTimeout(()=>rollDiceAI(),aiDelay());
   try{saveGame();}catch(e){}
   return true;
