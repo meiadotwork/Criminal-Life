@@ -765,7 +765,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v25.0";
+const APP_VERSION="v25.1";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -1865,7 +1865,7 @@ function launch(){
 const SAVE_KEY="ct_save_v2"; // v2: board order changed in v8.6 — old saves index the old layout
 function snapshot(){
   return {turn:S.turn,cur:S.cur,n:S.n,ai:S.ai,baseDice:S.baseDice,diff:S.diff,police:S.police,city:S.city,startYear:S.startYear,career:(S.career||null),
-    players:S.players.map(p=>{const o={...p};o.owns=Array.from(p.owns.entries());delete o.auto;return o;})};
+    players:S.players.map(p=>{const o={...p};o.owns=Array.from(p.owns.entries());o._fresh=Array.from((p._fresh||new Map()).entries());delete o.auto;return o;})};
 }
 function saveGame(){ if(!S||S.over)return; try{localStorage.setItem(SAVE_KEY,JSON.stringify(snapshot()));}catch(e){} }
 function clearSave(){ try{localStorage.removeItem(SAVE_KEY);}catch(e){} }
@@ -1874,7 +1874,7 @@ function loadFromSnapshot(sv,note){
   if(!sv||!sv.players||!sv.players.length) return false;
   const _cityKey=sv.city||"NY"; applyCity(_cityKey);
   S={turn:sv.turn||1,cur:sv.cur||0,n:sv.n||sv.players.length,rolled:false,over:false,ai:sv.ai,roundEvents:[],baseDice:({1:6,2:8,3:10}[sv.baseDice]||sv.baseDice||6),diff:sv.diff,police:(sv.police!=null?sv.police:1),city:_cityKey,law:(CITIES[_cityKey]||CITIES.NY).law,startYear:(sv.startYear||1987),career:(sv.career||null),followAnim:true};
-  S.players=sv.players.map((sp,i)=>{const pl=newPlayer(i,sp.name,sp.pattern);Object.assign(pl,sp);pl.owns=new Map(sp.owns||[]);pl.auto=false;return pl;});
+  S.players=sv.players.map((sp,i)=>{const pl=newPlayer(i,sp.name,sp.pattern);Object.assign(pl,sp);pl.owns=new Map(sp.owns||[]);pl._fresh=new Map(sp._fresh||[]);pl._steps=sp._steps||0;pl.auto=false;return pl;});
   if(S.cur>=S.players.length)S.cur=0;
   /* a save written before the cap existed can hold stacks above it — bring them down on load,
      otherwise an old game keeps earning on numbers the game no longer allows anyone to reach */
@@ -2901,7 +2901,7 @@ function stepMove(p,left){
   if(PAUSED){ if(S)S._resume=()=>stepMove(p,left); return; }   // menu is open — freeze mid-move
   if(left<=0){arriveCell(p);return;}
   const ring=p.ring;const len=ring==="inner"?INNER.length:OUTER.length;
-  p.pos=(p.pos+1)%len;SFX.step();
+  p.pos=(p.pos+1)%len;p._steps=(p._steps||0)+1;SFX.step();
   // passing OVER one of your own businesses = you've lapped it (a year) → collect its profit
   if(ring==="outer" && left>1 && p.owns.has(p.pos)) collectOne(p,p.pos);
   if(ring==="inner"&&p.pos===0){p.sentence-=1;p.age++;p.yearsServed=(p.yearsServed||0)+1;log(p.name+L(" finishes a prison lap. 1 year done (now "," completa uma volta na prisão. 1 ano cumprido (agora ")+p.age+L(" yo). "," anos). ")+(p.sentence>0?p.sentence+L("y left","a restantes"):L("TIME SERVED","PENA CUMPRIDA")),p.sentence>0?"":"good");
@@ -3233,8 +3233,13 @@ function showBooksCard(bk,then){
 function collectOne(p,idx){
   if(!p.owns.has(idx))return 0;
   const cell=OUTER[idx];const unit=cell.incomeBase||cell.price||cell.income||0;
-  const inc=unit*p.owns.get(idx);
-  if(inc>0){p.cash+=inc;p._yrIn=(p._yrIn||0)+inc;mkDirty(p,inc);SFX.cash();log(p.name+L(" collects "," coleta ")+fmtK(inc)+L(" — a year's profit from "," — o lucro do ano de ")+cell.t+".","good");}
+  const held=p.owns.get(idx)||0;
+  const green=freshCount(p,idx);            // still serving their first lap — they earn nothing yet
+  const paid=Math.max(0,held-green);
+  const inc=unit*paid;
+  if(inc>0){p.cash+=inc;p._yrIn=(p._yrIn||0)+inc;mkDirty(p,inc);SFX.cash();
+    log(p.name+L(" collects "," coleta ")+fmtK(inc)+L(" — a year's profit from "," — o lucro do ano de ")+cell.t+(green>0?L(" ("+green+" still settling in)"," ("+green+" ainda se ambientando)"):"")+".","good");}
+  else if(green>0){ log(cell.t+L(" — "," — ")+green+L(" new on the payroll, nothing earned yet."," novos na folha, ainda não rendem."),""); }
   return inc;
 }
 function cellUnit(idx){const c=OUTER[idx];return c.incomeBase||c.price||c.income||0;}
@@ -3328,10 +3333,10 @@ function ownStreetOptions(idx){
     ${statusBar()}`;
   openModal();
 }
-function addSoldierTo(idx,per,n){const p=S.players[S.cur];n=Math.min(n,Math.floor(p.cash/per),unitRoom(p,idx));if(n<1)return;p.cash-=per*n;p.owns.set(idx,p.owns.get(idx)+n);log(p.name+L(" adds "," adiciona ")+n+L(" soldier"+""," soldado")+(n>1?"s":"")+L(" to "," a ")+OUTER[idx].t+L(" (now "," (agora ")+p.owns.get(idx)+").","good");render();ownStreetOptions(idx);}
-function buyStreet(idx,n,v){const p=S.players[S.cur];p.cash-=v;p.owns.set(idx,capUnits(n));log(p.name+L(" claims "," toma ")+OUTER[idx].t+" ("+fmtK(v)+").","good");render();ownStreetOptions(idx);}
+function addSoldierTo(idx,per,n){const p=S.players[S.cur];n=Math.min(n,Math.floor(p.cash/per),unitRoom(p,idx));if(n<1)return;p.cash-=per*n;grantUnits(p,idx,n);log(p.name+L(" adds "," adiciona ")+n+L(" soldier"+""," soldado")+(n>1?"s":"")+L(" to "," a ")+OUTER[idx].t+L(" (now "," (agora ")+p.owns.get(idx)+").","good");render();ownStreetOptions(idx);}
+function buyStreet(idx,n,v){const p=S.players[S.cur];p.cash-=v;seedUnits(p,idx,n);log(p.name+L(" claims "," toma ")+OUTER[idx].t+" ("+fmtK(v)+").","good");render();ownStreetOptions(idx);}
 function soldierLadder(b){return[{n:1,v:b},{n:4,v:b*4},{n:10,v:b*10},{n:25,v:b*25},{n:100,v:b*100}];}
-function sellProp(idx){const p=S.players[S.cur];const c=OUTER[idx];const per=OUTER[idx].incomeBase||c.price;const sold=p.owns.get(idx);
+function sellProp(idx){const p=S.players[S.cur];const c=OUTER[idx];const per=OUTER[idx].incomeBase||c.price;const sold=p.owns.get(idx);clearFresh(p,idx);
   const val=Math.round(per*sold);p.cash+=val;p.owns.delete(idx);
   log(p.name+L(" sells "," vende ")+c.t+L(" (with "," (com ")+sold+L(" workers) for "," funcionários) por ")+fmtK(val)+".","warn");closeModal();render();finish();}
 
@@ -3366,10 +3371,10 @@ function wheelHouse(idx){
   openModal();
 }
 function wheelAddDealer(idx,nn){ const p=S.players[S.cur];const u=wheelUnit(idx); nn=Math.min(nn,Math.floor(p.cash/u),unitRoom(p,idx)); if(nn<1)return;
-  p.cash-=u*nn; p.owns.set(idx,(p.owns.get(idx)||0)+nn); OUTER[idx].incomeBase=u;
+  p.cash-=u*nn; grantUnits(p,idx,nn); OUTER[idx].incomeBase=u;
   log(p.name+L(" hires "," contrata ")+nn+L(" dealer"," crupiê")+(nn>1?"s":"")+L(" for THE WHEEL (now "," pra A ROLETA (agora ")+p.owns.get(idx)+").","good"); render(); wheelHouse(idx); }
 function wheelOpen(idx){ const p=S.players[S.cur];const u=wheelUnit(idx); if(p.cash<u)return;
-  p.cash-=u; p.owns.set(idx,1); OUTER[idx].incomeBase=u; log(p.name+L(" opens THE WHEEL ("," abre A ROLETA (")+fmtK(u)+").","good"); render(); wheelHouse(idx); }
+  p.cash-=u; seedUnits(p,idx,1); OUTER[idx].incomeBase=u; log(p.name+L(" opens THE WHEEL ("," abre A ROLETA (")+fmtK(u)+").","good"); render(); wheelHouse(idx); }
 
 /* play the wheel — pick a side, place a bet, spin */
 function wheelPlay(idx){
@@ -3484,7 +3489,7 @@ function wheelRide(idx,stake0,pot){
 /* Ghosts play the wheel (so an owned house actually earns) and may open an unowned one */
 function wheelAI(p,idx,owner){
   const u=wheelUnit(idx);
-  if(!owner){ if(p.cash>=u*(aiProf(p).pokerMult||2)){ p.cash-=u; p.owns.set(idx,1); OUTER[idx].incomeBase=u; log(p.name+L(" opens THE WHEEL."," abre A ROLETA."),"good"); render(); } finish(); return; }
+  if(!owner){ if(p.cash>=u*(aiProf(p).pokerMult||2)){ p.cash-=u; seedUnits(p,idx,1); OUTER[idx].incomeBase=u; log(p.name+L(" opens THE WHEEL."," abre A ROLETA."),"good"); render(); } finish(); return; }
   const prob=({AGGRESSIVE:0.55,CAREFUL:0.30,CAUTIOUS:0.15,PASSIVE:0.06})[p.temper]||0.2;
   if(Math.random()>=prob){ finish(); return; }
   const stake=Math.min(Math.floor(p.cash*0.15), wheelLimit(idx,owner)); if(stake<1){ finish(); return; }
@@ -3503,7 +3508,7 @@ function tryBiz(c){
   if(p.ai){ aiBuyBiz(idx,c); return; }
   qpOpenBiz(idx,c);   // one screen: choose workers, open, done
 }
-function buyBiz(idx,cost){const p=S.players[S.cur];p.cash-=cost;p.owns.set(idx,1);log(p.name+L(" opens "," abre ")+OUTER[idx].t+" ("+fmtK(cost)+").","good");render();ownBizOptions(idx);}
+function buyBiz(idx,cost){const p=S.players[S.cur];p.cash-=cost;seedUnits(p,idx,1);log(p.name+L(" opens "," abre ")+OUTER[idx].t+" ("+fmtK(cost)+").","good");render();ownBizOptions(idx);}
 function ownBizOptions(idx){
   const p=S.players[S.cur];const c=OUTER[idx];const per=OUTER[idx].incomeBase||c.income;const cur=p.owns.get(idx);
   const maxN=Math.floor(p.cash/per);
@@ -3519,7 +3524,7 @@ function ownBizOptions(idx){
     ${statusBar()}`;
   openModal();
 }
-function addWorker(idx,per,n){const p=S.players[S.cur];n=Math.min(n,Math.floor(p.cash/per),unitRoom(p,idx));if(n<1)return;p.cash-=per*n;p.owns.set(idx,p.owns.get(idx)+n);log(p.name+L(" adds "," adiciona ")+n+L(" worker"+""," funcionário")+(n>1?"s":"")+L(" to "," a ")+OUTER[idx].t+L(" (now "," (agora ")+p.owns.get(idx)+").","good");render();ownBizOptions(idx);}
+function addWorker(idx,per,n){const p=S.players[S.cur];n=Math.min(n,Math.floor(p.cash/per),unitRoom(p,idx));if(n<1)return;p.cash-=per*n;grantUnits(p,idx,n);log(p.name+L(" adds "," adiciona ")+n+L(" worker"+""," funcionário")+(n>1?"s":"")+L(" to "," a ")+OUTER[idx].t+L(" (now "," (agora ")+p.owns.get(idx)+").","good");render();ownBizOptions(idx);}
 function buyProduct(p,owner,idx,c){
   const workers=owner.owns.get(idx)||1;         // charge for the WHOLE staffed business
   const capacity=c.income*workers;
@@ -3538,8 +3543,29 @@ function buyProduct(p,owner,idx,c){
   const pass=document.createElement("button");pass.textContent=L("[ PASS ]","[ PASSAR ]");pass.onclick=()=>{closeModal();finish();};pb.appendChild(pass);
   openModal();
 }
-function doProduct(pid,oid,amt){const p=S.players[pid],o=S.players[oid];p.cash-=amt;o.cash+=amt*2;mkDirty(o,amt*2);p.cash+=amt*2;mkDirty(p,amt*2);
-  log(p.name+L(" buys "," compra ")+fmtK(amt)+L(" product from "," de produto de ")+o.name+L(". You net +",". Você lucra +")+fmtK(amt)+", "+o.name+" +"+fmtK(amt*2)+".","good");closeModal();render();finish();}
+function doProduct(pid,oid,amt){const p=S.players[pid],o=S.players[oid];
+  const before=p.cash, oBefore=o.cash;
+  p.cash-=amt;o.cash+=amt*2;mkDirty(o,amt*2);p.cash+=amt*2;mkDirty(p,amt*2);
+  log(p.name+L(" buys "," compra ")+fmtK(amt)+L(" product from "," de produto de ")+o.name+L(". You net +",". Você lucra +")+fmtK(amt)+", "+o.name+" +"+fmtK(amt*2)+".","good");
+  render();
+  if(p.ai){ closeModal(); finish(); return; }
+  /* the deal, spelled out for both sides — who put in what and who walked away with what */
+  const el=document.getElementById("cardEl"); if(!el){ closeModal(); finish(); return; }
+  el.dataset.deck=""; el.dataset.read="";
+  el.innerHTML=`<div class="lbl" style="background:${o.color}">${L("THE DEAL","O NEGÓCIO")}</div>
+    <div class="art">$ &gt;&gt; $</div>
+    <div class="ttl">${p.name} ↔ ${o.name}</div>
+    <div class="bd">${L("You bought product at ","Você comprou produto em ")}${o.name}${L("'s business and moved it on."," e repassou.")}</div>
+    <div class="out" style="white-space:pre-wrap">${L("You paid in:","Você pagou:")} -${fmtK(amt)}
+${L("You sold it on:","Você revendeu:")} +${fmtK(amt*2)}
+→ ${L("YOUR PROFIT","SEU LUCRO")}: +${fmtK(amt)}
+${L("Your cash:","Seu dinheiro:")} ${fmtK(before)} → ${fmtK(p.cash)}
+
+${o.name} ${L("takes","fica com")}: +${fmtK(amt*2)}
+${L("Their cash:","Dinheiro dele:")} ${fmtK(oBefore)} → ${fmtK(o.cash)}</div>
+    <div class="go"><button onclick="closeModal();render();finish()">[ OK ]</button></div>
+    ${statusBar()}`;
+  openModal();}
 
 /* ===== RECRUITING (bulk) ===== */
 /* No single block or shop holds more than this many bodies, and no attack sends more than
@@ -3547,6 +3573,31 @@ function doProduct(pid,oid,amt){const p=S.players[pid],o=S.players[oid];p.cash-=
 const UNIT_CAP=100;
 function unitRoom(p,idx){ return Math.max(0, UNIT_CAP-((p&&p.owns&&p.owns.get(idx))||0)); }
 function capUnits(n){ return Math.max(0, Math.min(UNIT_CAP, Math.round(n||0))); }
+/* ===== THE LAP CLOCK — a body earns nothing until it has served a full lap =====
+   Buying a cell already costs a lap to walk back to it, but taking one by force, or hiring
+   onto a cell further up the board, used to pay a full year on the very next crossing.
+   Every new body is stamped with the step it arrived on; it only starts earning once the
+   owner has travelled a whole board length since. Per unit — bodies already on the payroll
+   keep earning on schedule while the new hires serve their lap. */
+function markFresh(p,idx,n){ n=Math.round(n||0); if(n<=0)return;
+  if(!p._fresh)p._fresh=new Map();
+  const a=p._fresh.get(idx)||[]; a.push([n,(p._steps||0)]); p._fresh.set(idx,a); }
+function freshCount(p,idx){            // bodies here still serving their first lap
+  if(!p||!p._fresh)return 0;
+  const a=p._fresh.get(idx); if(!a||!a.length)return 0;
+  const now=(p._steps||0), lap=OUTER.length;
+  const still=a.filter(b=>(now-b[1])<lap);                 // matured batches drop off for good
+  if(still.length!==a.length){ if(still.length)p._fresh.set(idx,still); else p._fresh.delete(idx); }
+  let n=0; still.forEach(b=>n+=b[0]);
+  return Math.min(n,(p.owns.get(idx)||0));                 // never claim more are green than are held
+}
+function clearFresh(p,idx){ if(p&&p._fresh)p._fresh.delete(idx); }
+function grantUnits(p,idx,n){          // n bodies join an existing holding — all of them fresh
+  n=Math.min(Math.max(0,Math.round(n||0)), unitRoom(p,idx));
+  if(n<=0)return 0;
+  p.owns.set(idx,(p.owns.get(idx)||0)+n); markFresh(p,idx,n); return n; }
+function seedUnits(p,idx,n){           // a holding changes hands / opens — everything on it is fresh
+  n=capUnits(n); clearFresh(p,idx); p.owns.set(idx,n); markFresh(p,idx,n); return n; }
 let SOLDIER_COST=100; // per soldier to hire (set per city in applyCity — cheaper in Brazil)
 let SOLDIER_WAGE=100; // paid per soldier every year (lap past START)
 const MAX_SOLDIERS=Infinity;   // no cap on soldiers
@@ -3593,8 +3644,8 @@ function openBuyWorkers(){
   _prevOuts.forEach((v,i)=>{ if(_outs[i])_outs[i].scrollTop=v; });
 }
 function hireCrewN(per,n){const p=S.players[S.cur];n=Math.min(n,Math.floor(p.cash/SOLDIER_COST));if(n<1)return;p.cash-=SOLDIER_COST*n;p.crew+=n;log(p.name+L(" hires "," contrata ")+n+L(" bodyguard"," guarda-costas")+(n>1?(LANG==='PT'?"":"s"):"")+L(" (now "," (agora ")+p.crew+").","good");render();openBuyWorkers();}
-function addSoldierAnytime(idx,per,n){const p=S.players[S.cur];n=Math.min(n,Math.floor(p.cash/per),unitRoom(p,idx));if(n<1)return;p.cash-=per*n;p.owns.set(idx,p.owns.get(idx)+n);log(p.name+L(" posts "," coloca ")+n+L(" soldier"," soldado")+(n>1?"s":"")+L(" at "," em ")+OUTER[idx].t+L(" (now "," (agora ")+p.owns.get(idx)+").","good");render();openBuyWorkers();}
-function addWorkerAnytime(idx,per,n){n=n||1;const p=S.players[S.cur];n=Math.min(n,Math.floor(p.cash/per),unitRoom(p,idx));if(n<1)return;p.cash-=per*n;p.owns.set(idx,p.owns.get(idx)+n);log(p.name+L(" hires "," contrata ")+n+L(" worker"," funcionário")+(n>1?"s":"")+L(" at "," em ")+OUTER[idx].t+L(" (now "," (agora ")+p.owns.get(idx)+").","good");render();openBuyWorkers();}
+function addSoldierAnytime(idx,per,n){const p=S.players[S.cur];n=Math.min(n,Math.floor(p.cash/per),unitRoom(p,idx));if(n<1)return;p.cash-=per*n;grantUnits(p,idx,n);log(p.name+L(" posts "," coloca ")+n+L(" soldier"," soldado")+(n>1?"s":"")+L(" at "," em ")+OUTER[idx].t+L(" (now "," (agora ")+p.owns.get(idx)+").","good");render();openBuyWorkers();}
+function addWorkerAnytime(idx,per,n){n=n||1;const p=S.players[S.cur];n=Math.min(n,Math.floor(p.cash/per),unitRoom(p,idx));if(n<1)return;p.cash-=per*n;grantUnits(p,idx,n);log(p.name+L(" hires "," contrata ")+n+L(" worker"," funcionário")+(n>1?"s":"")+L(" at "," em ")+OUTER[idx].t+L(" (now "," (agora ")+p.owns.get(idx)+").","good");render();openBuyWorkers();}
 
 /* ===== QUANTITY KEYPAD: type how many to buy (soldiers / workers) instead of +1/+5/+25/+100 ===== */
 let _qp=null;
@@ -3652,7 +3703,7 @@ function qpCell(idx,ret){ const p=S.players[S.cur]; const c=OUTER[idx]; const pe
   const isBiz=c.k==="biz"; const unit=isBiz?L("workers","funcionários"):L("soldiers","soldados");
   const done = ret==='st'?(()=>ownStreetOptions(idx)) : ret==='bz'?(()=>ownBizOptions(idx)) : openBuyWorkers;
   qtyPad({ title:c.t, unit, have:p.owns.get(idx)||0, per, max:Math.min(Math.floor(p.cash/per),unitRoom(p,idx)),
-    apply:(n)=>{ n=Math.min(n,unitRoom(p,idx)); if(n<1)return; p.cash-=per*n; p.owns.set(idx,(p.owns.get(idx)||0)+n);
+    apply:(n)=>{ n=Math.min(n,unitRoom(p,idx)); if(n<1)return; p.cash-=per*n; grantUnits(p,idx,n);
       log(p.name+L(" adds "," adiciona ")+n+" "+(isBiz?L("worker","funcionário"):L("soldier","soldado"))+((n>1&&LANG!=='PT')?"s":"")+L(" to "," a ")+c.t+L(" (now "," (agora ")+p.owns.get(idx)+").","good"); render(); },
     done });
 }
@@ -3662,7 +3713,7 @@ function qpOpenBiz(idx,c){ const p=S.players[S.cur]; const per=c.income; OUTER[i
   qtyPad({ title:c.t, unit:L("workers","funcionários"),
     note:L("Open this business — rivals landing here buy your product and you both profit. Each worker earns "+fmtK(per)+"/yr.","Abra este negócio — rivais que caírem aqui compram seu produto e os dois lucram. Cada funcionário rende "+fmtK(per)+"/ano."),
     have:0, per, start:0, max:Math.min(afford,UNIT_CAP),
-    apply:(n)=>{ n=Math.min(n,Math.floor(p.cash/per),UNIT_CAP); if(n<1)return; p.cash-=per*n; p.owns.set(idx,n);
+    apply:(n)=>{ n=Math.min(n,Math.floor(p.cash/per),UNIT_CAP); if(n<1)return; p.cash-=per*n; seedUnits(p,idx,n);
       log(p.name+L(" opens "," abre ")+c.t+L(" with "," com ")+n+" "+((n>1&&LANG!=='PT')?L("workers","funcionário"):L("worker","funcionário"))+" ("+fmtK(per*n)+").","good"); render(); },
     done:()=>{ closeModal(); finish(); } });
 }
@@ -3671,7 +3722,7 @@ function qpOpenStreet(idx,c){ const p=S.players[S.cur]; const per=c.price; OUTER
   qtyPad({ title:c.t, unit:L("soldiers","soldados"),
     note:L("Claim this turf — rivals landing here pay you a toll. Each soldier earns "+fmtK(per)+"/yr and defends it.","Tome esta área — rivais que caírem aqui pagam pedágio. Cada soldado rende "+fmtK(per)+"/ano e defende."),
     have:0, per, start:0, max:Math.min(afford,UNIT_CAP),
-    apply:(n)=>{ n=Math.min(n,Math.floor(p.cash/per),UNIT_CAP); if(n<1)return; p.cash-=per*n; p.owns.set(idx,n);
+    apply:(n)=>{ n=Math.min(n,Math.floor(p.cash/per),UNIT_CAP); if(n<1)return; p.cash-=per*n; seedUnits(p,idx,n);
       log(p.name+L(" claims "," toma ")+c.t+L(" with "," com ")+n+" "+((n>1&&LANG!=='PT')?L("soldiers","soldado"):L("soldier","soldado"))+" ("+fmtK(per*n)+").","good"); render(); },
     done:()=>{ closeModal(); finish(); } });
 }
@@ -3839,7 +3890,7 @@ function executePlayer(oid){
   const p=S.players[S.cur], o=S.players[oid]; if(!o||!o.alive)return;
   const cost=execCost(o); if(p.cash<cost)return;
   p.cash-=cost; S.rolled=true;
-  o.owns.forEach((cnt,idx)=>{ p.owns.set(idx,capUnits((p.owns.get(idx)||0)+cnt)); }); o.owns=new Map();
+  o.owns.forEach((cnt,idx)=>{ grantUnits(p,idx,cnt); clearFresh(o,idx); }); o.owns=new Map();
   o._deathCause=L("Executed on a contract — stripped of everything","Executado num contrato — perdeu tudo");
   o._gunDeath=true;
   closeModal(); try{SFX.overkill();}catch(e){}
@@ -3921,7 +3972,7 @@ function resolveAttack(p,o,idx,atk){
   const totalDown=killed*2;                   // casualties on BOTH sides — one volley per body
   SFX.soldierDown(totalDown||1);              // 3 gunshots per soldier killed in the battle (both sides)
   let title,body;
-  if(atk>def){ p.crew-=atk; o.owns.delete(idx); p.owns.set(idx,capUnits(Math.max(1,atk-def)));
+  if(atk>def){ p.crew-=atk; o.owns.delete(idx); clearFresh(o,idx); seedUnits(p,idx,Math.max(1,atk-def));
     title=L("TURF TAKEN","\u00c1REA TOMADA");
     body=LANG==='PT'?p.name+" mandou "+atk+" contra "+def+" de "+o.name+" em "+OUTER[idx].t+". Perdeu "+def+" na briga, varreu a equipe deles e tomou o quarteir\u00e3o com "+Math.max(1,atk-def)+" de p\u00e9.":p.name+" sent "+atk+" against "+o.name+"'s "+def+" at "+OUTER[idx].t+". Lost "+def+" in the fight, wiped their crew, and seized the block with "+Math.max(1,atk-def)+" left standing.";
     log(p.name+L(" takes "," toma ")+OUTER[idx].t+L(" from "," de ")+o.name+" ("+atk+" vs "+def+").","good"); }
@@ -4578,11 +4629,25 @@ function releaseHoldings(p){
 function empireLine(p){const s=(!p.alive&&p._empire)?p._empire:empireStats(p);
   return L("Net worth ","Patrimônio ")+fmtK(s.nw)+" · "+L("Cash ","Dinheiro ")+fmtK(s.cash)+"\n"+
     s.crew+L(" bodyguards"," guarda-costas")+" · "+s.turf+L(" streets ("," ruas (")+s.stSol+L(" soldiers)"," soldados)")+"\n"+
-    s.biz+L(" businesses ("," negócios (")+s.workers+L(" workers)"," funcionários)");
+    s.biz+L(" businesses ("," negócios (")+s.workers+L(" workers)"," funcionários)")+killLine(p);
+}
+/* Who they killed and who killed them — the same two lines on a living boss's record and on
+   a memorial, so a death always names both sides of it. */
+function killLine(p){
+  let out="";
+  const got=(p.bossKillNames||[]);
+  if(got.length) out+="\n"+L("Bosses killed: ","Chefes mortos: ")+got.map(k=>k.name+" (R"+k.turn+")").join(", ");
+  else if(p.bossKills) out+="\n"+L("Bosses killed: ","Chefes mortos: ")+p.bossKills;
+  if(!p.alive&&p.killedBy) out+="\n"+L("Killed by: ","Morto por: ")+p.killedBy;
+  return out;
 }
 function killPlayer(p,killer){
   if(careerActive()&&!p.ai&&p.alive&&(p.age>30)){ careerSonRevive(p); return; }
-  if(killer&&killer!==p&&killer.id!==p.id){ killer.bossKills=(killer.bossKills||0)+1; }   // credit the boss who ordered it
+  if(killer&&killer!==p&&killer.id!==p.id){ killer.bossKills=(killer.bossKills||0)+1;
+    // name it on both sheets: the killer's tally and the victim's cause of death
+    killer.bossKillNames=(killer.bossKillNames||[]).concat([{name:p.name,turn:S.turn,age:p.age}]);
+    p.killedBy=killer.name; p.killedById=killer.id;
+    log(killer.name+L(" put "," matou ")+p.name+L(" in the ground."," de vez."),"bad"); }
   if(p._gunDeath){SFX.flatline();setTimeout(()=>SFX.funeral(),350);}else{silentKill();setTimeout(()=>SFX.funeral(),1300);}
   if(!p._deathCause&&p._hospCause)p._deathCause=L("Flatlined in the hospital after ","Apagou no hospital depois de ")+p._hospCause;
   if(p.ring==="inner"){ p._diedInPrison=true; if(!p._deathCause){ const _di=Math.floor(Math.random()*PRISON_DEATHS.length); p._deathCause=(LANG==='PT'?PRISON_DEATHS_PT[_di].t:PRISON_DEATHS[_di].t); } }
@@ -4774,7 +4839,7 @@ function showRIP(id,viewer){
   el.innerHTML=`<div class="lbl" style="background:${p.color}">R · I · P</div>
     <div class="art">[ + ]</div>
     <div class="ttl" style="color:${p.color}">${p.name}</div>
-    <div class="sub">${L('Age','Idade')} ${p.startAge||died} – ${died} &nbsp;·&nbsp; ${L('Here lies','Aqui jaz')} ${e.kind}${e.spec}.</div>
+    <div class="sub">${L('Age','Idade')} ${p.startAge||died} – ${died} &nbsp;·&nbsp; ${L('Here lies','Aqui jaz')} ${e.kind}${e.spec}.${p.killedBy?`<br><b style="color:var(--red)">${L('Killed by ','Morto por ')}${p.killedBy}</b>`:''}</div>
     <div class="bd" style="text-align:left">${bossBio(p,'dead')}</div>
     <div class="out">${L('Rap sheet','Ficha')}: ${e.n} ${L('charges','acusa\u00e7\u00f5es')} · ${e.totalYears}${L('y exposure','a de exposi\u00e7\u00e3o')} · ${e.heists} ${L('robberies','roubos')} · ${e.hits} ${L('murders','homic\u00eddios')} · ${e.drugs} ${L('drug charges','crimes de drogas')}</div>
     <div class="out" style="white-space:pre-wrap">${empireLine(p)}</div>
@@ -4847,7 +4912,7 @@ function showRecap(){
     S.players.forEach(p=>{const h=p.nwHist||[]; if(r<h.length&&h[r]>bv){bv=h[r];best=p;}});
     if(best&&best!==lead){ if(lead!==null)changes++; lead=best; } }
   const deaths=S.players.filter(p=>!p.alive).sort((a,b)=>(a.diedTurn||0)-(b.diedTurn||0));
-  const obits=deaths.length?deaths.map(p=>`<div class="cvrow"><span>R${p.diedTurn||"?"} · ${p.name}</span><span>${(p._deathCause||L("gunned down","baleado"))} · ${p.diedAt||p.age}${L("y","a")}</span></div>`).join("")
+  const obits=deaths.length?deaths.map(p=>`<div class="cvrow"><span>R${p.diedTurn||"?"} · ${p.name}${p.killedBy?` <span style="opacity:.75">← ${p.killedBy}</span>`:""}</span><span>${(p._deathCause||L("gunned down","baleado"))} · ${p.diedAt||p.age}${L("y","a")}</span></div>`).join("")
     :`<div class="cvdim">${L("nobody died — a rare, polite war","ninguém morreu — uma guerra rara e educada")}</div>`;
   const sk=S.players.reduce((s,p)=>s+(p.soldierKills||0),0), bk=S.players.reduce((s,p)=>s+(p.bossKills||0),0);
   const el=document.getElementById("cardEl");
@@ -5117,7 +5182,7 @@ function aiReinforce(p){
   const fill=(idx,target,reserve)=>{                    // buy bodies into one holding, up to target
     const per=cellUnit(idx); if(per<=0) return;
     target=Math.min(UNIT_CAP,target);
-    while((p.owns.get(idx)||0)<target && p.cash-per>=reserve){ p.cash-=per; p.owns.set(idx,(p.owns.get(idx)||0)+1); added++; }
+    while((p.owns.get(idx)||0)<target && p.cash-per>=reserve){ p.cash-=per; grantUnits(p,idx,1); added++; }
   };
   const deepTarget=(idx)=>{
     const k=OUTER[idx]&&OUTER[idx].k;
@@ -5224,13 +5289,13 @@ function aiSpreadOK(p){
 function aiBuyStreet(idx,c){const p=S.players[S.cur];const mult=aiProf(p).buyMult;
   const thr=c.price*mult*(aiSpreadOK(p)?1:4);   // holdings still thin? only a bargain is worth widening for
   let ttl,body;
-  if(p.cash>=thr){p.cash-=c.price;p.owns.set(idx,1);log(p.name+L(" claims "," toma ")+c.t+".","good");
+  if(p.cash>=thr){p.cash-=c.price;seedUnits(p,idx,1);log(p.name+L(" claims "," toma ")+c.t+".","good");
     ttl=L("CLAIMS TURF","TOMA A ÁREA");body=p.name+L(" buys "," compra ")+c.t+L(" for "," por ")+fmtK(c.price)+".";}
   else {log(p.name+L(" passes on "," dispensa ")+c.t+".");ttl=L("WALKS PAST","PASSA DIRETO");body=p.name+L(" eyes "," olha ")+c.t+L(" but keeps the cash."," mas guarda o dinheiro.");}
   render();aiScene(aiSceneCard(p,ttl,body),finish);}
 function aiBuyBiz(idx,c){const p=S.players[S.cur];let ttl,body;
   const thr=c.income*1.5*(aiSpreadOK(p)?1:4);   // deepen what it runs before opening another shop
-  if(p.cash>=thr){p.cash-=c.income;p.owns.set(idx,1);log(p.name+L(" opens "," abre ")+c.t+".","good");
+  if(p.cash>=thr){p.cash-=c.income;seedUnits(p,idx,1);log(p.name+L(" opens "," abre ")+c.t+".","good");
     ttl=L("OPENS SHOP","ABRE NEGÓCIO");body=p.name+L(" opens "," abre ")+c.t+L(" for "," por ")+fmtK(c.income)+".";}
   else {log(p.name+L(" passes on "," dispensa ")+c.t+".");ttl=L("WALKS PAST","PASSA DIRETO");body=p.name+L(" passes on "," dispensa ")+c.t+".";}
   render();aiScene(aiSceneCard(p,ttl,body),finish);}
