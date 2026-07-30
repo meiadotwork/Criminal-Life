@@ -765,7 +765,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v24.8";
+const APP_VERSION="v24.9";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -1645,7 +1645,7 @@ function openCareer(){
     <div class="cfghead">${L("CAREER \u2014 ONE CITY AT A TIME","CARREIRA \u2014 UMA CIDADE POR VEZ")}</div>
     <div class="cfgline" style="opacity:.75;line-height:1.5">${L("Start with nothing. Own a city, then carry your fortune to the next \u2014 six cities, Curitiba to New York.","Comece do nada. Domine uma cidade e leve sua fortuna para a pr\u00f3xima \u2014 seis cidades, de Curitiba a Nova York.")}</div>
     ${rows}
-    ${has?`<div class="cfgline" style="margin-top:8px">${L("Bankroll","Grana")}: <b>${fmtKcity(careerState.bankroll||0,CAREER_LEVELS[lvl].city)}</b></div>
+    ${has?`<div class="cfgline" style="margin-top:8px">${L("Bankroll","Grana")}: <b>${fmtKcity(careerState.bankroll||0,CAREER_LEVELS[lvl].city)}</b>${careerStake(lvl)>0?` · ${L("buy-in for city","entrada da cidade")} ${lvl+1}: <b style="color:${careerCanAfford(lvl)?'inherit':'var(--red)'}">${fmtKcity(careerStake(lvl),CAREER_LEVELS[lvl].city)}</b>`:""}</div>
       <button class="cfggo" onclick="careerContinue(${lvl})">${L("[ CONTINUE \u2014 CITY ","[ CONTINUAR \u2014 CIDADE ")}${lvl+1} \u00BB ]</button>
       <button class="cfggo" style="opacity:.65" onclick="careerReset()">${L("[ RESTART CAREER ]","[ RECOME\u00c7AR CARREIRA ]")}</button>`
     :`<button class="cfggo" onclick="careerNewStart()">${L("[ START NEW CAREER \u00BB ]","[ NOVA CARREIRA \u00BB ]")}</button>`}
@@ -1694,13 +1694,25 @@ function careerContinue(lvl){
   if(sv){ loadFromSnapshot(sv,L("CAREER RESUMED — turn ","CARREIRA RETOMADA — turno ")+(sv.turn||1)+". "+((sv.players[sv.cur||0]||{}).name||"")+L(" is up."," é a vez.")); return; }
   careerBriefing(lvl);
 }
+/* CAREER BANKROLL — a city's starting capital is bought entirely out of the bankroll.
+   Take the city and your whole net worth becomes the new bankroll; lose it, or die in it,
+   and the buy-in is simply gone. Can't cover the next city's buy-in and you drop back a
+   city to rebuild — city 1 costs nothing, so a broke career always has somewhere to play. */
+function careerStake(i){ const lv=CAREER_LEVELS[i]; if(!lv)return 0; const sc=(CITIES[lv.city]&&CITIES[lv.city].scale)||1; return Math.max(0,Math.round((lv.stake||0)/sc)); }
+function careerBank(){ careerState=careerState||careerLoad(); return Math.max(0,Math.round((careerState&&careerState.bankroll)||0)); }
+function careerCanAfford(i){ return careerBank()>=careerStake(i); }
+function careerDropBack(){
+  careerState=careerState||careerLoad(); if(!careerState)return;
+  careerState.level=Math.max(0,(careerState.level||0)-1); careerSave();
+  careerShowStage(); careerBriefing(careerState.level);
+}
 function careerBriefing(i){
   if(i<0||i>=CAREER_LEVELS.length)i=0;
   careerState=careerState||careerLoad();
   const lv=CAREER_LEVELS[i]; const stage=document.getElementById("setupStage"); if(!stage)return;
   const nm=careerCityName(lv.city).toUpperCase();
-  const bank=(careerState&&careerState.bankroll)||0;
   const prison=lv.status==="prison";
+  const _stk=careerStake(i), _bank=careerBank(), _afford=_bank>=_stk;
   stage.innerHTML=`<div class="dosconfig">
     <div class="cfgline">C:\\> CITY ${i+1} / ${CAREER_LEVELS.length}</div>
     <div class="cfghead">${nm}</div>
@@ -1708,8 +1720,10 @@ function careerBriefing(i){
     <div class="cfgline" style="margin-top:10px">\u25B8 ${L("OBJECTIVE","OBJETIVO")}: <b>${careerGoalText(lv)}</b></div>
     <div class="cfgline">\u25B8 ${L("Rivals","Rivais")}: ${lv.ai} \u00B7 ${L("Dice","Dado")}: d${lv.dice} \u00B7 ${L("Police","Pol\u00edcia")}: ${policeLabelFor(lv.police)}${prison?` \u00B7 <b style="color:var(--red)">${L("START IN PRISON","COME\u00c7A PRESO")}</b>`:""}</div>
     <div class="cfgline">\u25B8 ${L("You","Voc\u00ea")}: ${L("age","idade")} ${(careerState&&careerState.age)||13} \u00B7 ${L("generation","gera\u00e7\u00e3o")} ${(careerState&&careerState.gens)||1}</div>
-    <div class="cfgline">\u25B8 ${L("You start with","Voc\u00ea come\u00e7a com")}: <b>${lv.stake>0?fmtKcity(Math.round(lv.stake/((CITIES[lv.city]&&CITIES[lv.city].scale)||1)),lv.city):L("NOTHING","NADA")}</b> \u00B7 ${L("year","ano")} ${(careerState&&careerState.year)||1970}</div>
-    <button class="cfggo" onclick="careerLaunch(${i})">${prison?L("[ INTO THE YARD \u00BB ]","[ PRO P\u00c1TIO \u00BB ]"):L("[ HIT THE STREETS \u00BB ]","[ PRAS RUAS \u00BB ]")}</button>
+    <div class="cfgline">\u25B8 ${L("Buy-in","Entrada")}: <b>${_stk>0?fmtKcity(_stk,lv.city):L("NOTHING","NADA")}</b>${_stk>0?` \u00B7 ${L("out of your bankroll","sai da sua grana")} ${fmtKcity(_bank,lv.city)} \u2192 <b>${fmtKcity(Math.max(0,_bank-_stk),lv.city)}</b>`:""} \u00B7 ${L("year","ano")} ${(careerState&&careerState.year)||1970}</div>
+    ${_afford?`<button class="cfggo" onclick="careerLaunch(${i})">${prison?L("[ INTO THE YARD \u00BB ]","[ PRO P\u00c1TIO \u00BB ]"):L("[ HIT THE STREETS \u00BB ]","[ PRAS RUAS \u00BB ]")}</button>`
+    :`<div class="cfgline" style="border:1px solid var(--red);color:var(--red);padding:8px;margin-top:8px;line-height:1.5">${L("You can't cover the buy-in here \u2014 it costs ","Voc\u00ea n\u00E3o tem a entrada dessa cidade \u2014 custa ")}<b>${fmtKcity(_stk,lv.city)}</b>${L(" and you hold "," e voc\u00ea tem ")}<b>${fmtKcity(_bank,lv.city)}</b>. ${L("Drop back a city and build the money up.","Volte uma cidade e junte a grana.")}</div>
+      <button class="cfggo" onclick="careerDropBack()">${L("[ \u2039 GO BACK A CITY ]","[ \u2039 VOLTAR UMA CIDADE ]")}</button>`}
     <button class="cfggo" style="opacity:.65" onclick="openCareer()">${L("[ \u2039 BACK ]","[ \u2039 VOLTAR ]")}</button>
   </div>`;
 }
@@ -1717,8 +1731,10 @@ function careerLaunch(i){
   careerState=careerState||careerLoad();
   if(!careerState){ careerState={name:L("YOU","VOC\u00ca"),level:i,cleared:-1,bankroll:0,year:1970,bornYear:1970,age:13,gens:1,active:true}; }
   const lv=CAREER_LEVELS[i];
-  const _sc=(CITIES[lv.city]&&CITIES[lv.city].scale)||1;
-  const stakeI=Math.max(0,Math.round((lv.stake||0)/_sc));
+  const stakeI=careerStake(i);
+  // the buy-in is bought out of the bankroll — no bankroll, no seat at this table
+  if(stakeI>careerBank()){ careerShowStage(); careerBriefing(i); return; }
+  careerState.bankroll=Math.max(0,careerBank()-stakeI); careerSave();
   setupData.city=lv.city; setupData.dice=lv.dice; setupData.dice0=lv.dice; setupData.police=lv.police;
   setupData.status=lv.status; setupData.year=careerState.year||1970;
   setupData.capital=stakeI; setupData.startCash=stakeI; setupData.n=1+lv.ai;
@@ -1769,12 +1785,16 @@ function careerFail(){
   if(!careerActive()||S._careerEnded)return; S._careerEnded=true; S.over=true;
   const i=S.career.level; try{clearSave();}catch(e){}
   const nm=careerCityName(CAREER_LEVELS[i].city).toUpperCase();
+  const _rStk=careerStake(i), _rBank=careerBank(), _rAfford=_rBank>=_rStk;
   const el=document.getElementById("cardEl"); if(!el)return; el.dataset.read="1"; el.dataset.deck="death";
   el.innerHTML=`<div class="lbl" style="background:#7a0d0d">${L("THE CITY BEAT YOU","A CIDADE TE VENCEU")}</div>
     <div style="text-align:center;font-size:40px;margin:8px 0">\u2620</div>
     <div class="ttl" style="text-align:center">${nm} ${L("wasn't yours","n\u00e3o foi sua")}</div>
-    <div class="sub" style="text-align:center">${L("You're out \u2014 but the career isn't over. Come back for this city with the fortune you walked in with.","Voc\u00ea caiu \u2014 mas a carreira n\u00e3o acabou. Volte pra essa cidade com a grana que voc\u00ea trouxe.")}</div>
-    <div class="go"><button class="amber" onclick="careerRetry()">${L("[ \u21BB RETRY CITY ]","[ \u21BB TENTAR DE NOVO ]")}</button><button onclick="toMainMenu()">${L("[ MAIN MENU ]","[ MENU ]")}</button></div>`;
+    <div class="sub" style="text-align:center">${_rStk>0?L("You're out, and the buy-in went with the city. The career isn't over \u2014 but another run at this place costs another stake.","Voc\u00ea caiu, e a entrada foi junto com a cidade. A carreira n\u00e3o acabou \u2014 mas outra tentativa aqui custa outra entrada."):L("You're out \u2014 but the career isn't over. This city costs nothing to walk back into.","Voc\u00ea caiu \u2014 mas a carreira n\u00e3o acabou. Voltar pra essa cidade n\u00e3o custa nada.")}</div>
+    <div class="out" style="text-align:center">${L("Bankroll","Grana")}: <b>${fmtKcity(_rBank,CAREER_LEVELS[i].city)}</b>${_rStk>0?` \u00b7 ${L("buy-in","entrada")} ${fmtKcity(_rStk,CAREER_LEVELS[i].city)}`:""}</div>
+    <div class="go">${_rAfford
+      ?`<button class="amber" onclick="careerRetry()">${L("[ \u21BB RETRY CITY ]","[ \u21BB TENTAR DE NOVO ]")}</button>`
+      :`<button class="amber" onclick="careerDropBack()">${L("[ \u2039 GO BACK A CITY ]","[ \u2039 VOLTAR UMA CIDADE ]")}</button>`}<button onclick="toMainMenu()">${L("[ MAIN MENU ]","[ MENU ]")}</button></div>`;
   openModal();
 }
 function careerRetry(){ const i=(typeof S!=="undefined"&&S&&S.career)?S.career.level:((careerState&&careerState.level)||0); careerShowStage(); careerLaunch(i); }
