@@ -765,7 +765,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v25.3";
+const APP_VERSION="v25.4";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -2797,7 +2797,7 @@ function openManual(){ window.speechSynthesis&&window.speechSynthesis.cancel(); 
   Toque no dado para rolar e andar — você resolve a casa onde CAIR. Antes de rolar você também pode apertar [ COMETER CRIME ] (3 chances por ano) para um assalto, morte encomendada ou tráfico aleatório — é uma ação GRATUITA, você ainda rola depois (mas prisão ou hospital encerram seu turno). O botão [ CONTRATAR ] funciona a qualquer momento no seu turno: guarda-costas, soldados de rua e funcionários. Tudo o que acontece aparece como uma carta.
 
   ${H("A RUA (anel externo)")}
-  Uma volta completa = UM ANO. Toda vez que passa pelo IN\u00cdCIO: voc\u00ea envelhece +1, suas 3 chances de crime renovam, paga o sal\u00e1rio dos soldados (${fmtK(SOLDIER_WAGE)} cada), os LAVADORES limpam o dinheiro SUJO que voc\u00ea ganhou naquele ano — um corte \u00fanico de 30% (s\u00f3 10% se voc\u00ea for DONO do neg\u00f3cio de lavagem). Dinheiro limpo nunca \u00e9 cobrado de novo; o caixa inicial e vendas de bens j\u00e1 s\u00e3o limpos. Passar POR CIMA de uma propriedade sua coleta a renda \u2014 n\u00e3o precisa cair exatamente nela.
+  Uma volta completa = UM ANO. Toda vez que passa pelo IN\u00cdCIO: voc\u00ea envelhece +1, suas 3 chances de crime renovam, paga o sal\u00e1rio dos GUARDA-COSTAS (${fmtK(SOLDIER_WAGE)} cada — soldados nas suas ruas e funcion\u00e1rios nos seus neg\u00f3cios j\u00e1 est\u00e3o quites e n\u00e3o custam nada), os LAVADORES limpam o dinheiro SUJO que voc\u00ea ganhou naquele ano — um corte \u00fanico de 30% (s\u00f3 10% se voc\u00ea for DONO do neg\u00f3cio de lavagem). Dinheiro limpo nunca \u00e9 cobrado de novo; o caixa inicial e vendas de bens j\u00e1 s\u00e3o limpos. Passar POR CIMA de uma propriedade sua coleta a renda \u2014 n\u00e3o precisa cair exatamente nela.
 
   ${H("AS CASAS")}
   \u25B8 ASSALTO / MATADOR / TR\u00c1FICO \u2014 uma carta de servi\u00e7o: pegue o dinheiro e sobreviva ao teste de pris\u00e3o (10% base + seu RISCO).<br>
@@ -2863,14 +2863,14 @@ function openManual(){ window.speechSynthesis&&window.speechSynthesis.cancel(); 
   Tap the die to roll and move — you resolve the space you LAND on. Before rolling you can also press [ COMMIT CRIME ] (3 chances per year) for a random heist, hit or drug run — it's a FREE action, you still roll afterwards (but an arrest or a trip to the hospital ends your turn). The [ HIRE ] button works any time on your turn: bodyguard soldiers, street soldiers, and business workers. Everything that happens to you shows up as a card.
 
   ${H("THE STREET (outer ring)")}
-  One full lap = ONE YEAR. Every time you pass START: you age +1, your 3 crime chances refill, you pay soldier wages (${fmtK(SOLDIER_WAGE)} each), the LAUNDERERS clean the DIRTY money you earned that year — a one-time 30% cut (only 10% if you OWN the money laundering business). Once cleaned, money is never charged again; your starting cash and asset sales are already clean. Passing OVER a property you own collects its income \u2014 no need to land on it exactly.
+  One full lap = ONE YEAR. Every time you pass START: you age +1, your 3 crime chances refill, you pay BODYGUARD wages (${fmtK(SOLDIER_WAGE)} each — soldiers on your streets and workers in your shops are already square and cost nothing), the LAUNDERERS clean the DIRTY money you earned that year — a one-time 30% cut (only 10% if you OWN the money laundering business). Once cleaned, money is never charged again; your starting cash and asset sales are already clean. Passing OVER a property you own collects its income \u2014 no need to land on it exactly.
 
   ${H("THE SPACES")}
   \u25B8 HEIST / HITMAN / DRUG \u2014 a job card: take the money, then survive the arrest roll (10% base + your HEAT).<br>
   \u25B8 The HITMAN also takes CONTRACTS \u2014 pay a third of the target's net worth to put a hit on a rival: 1/3 they dodge it, 1/3 their soldiers eat the bullets, 1/3 they land in the HOSPITAL. Ordering a hit adds +10 HEAT.<br>
   \u25B8 STREETS \u2014 buy turf. Land on a rival's and you pay THEM. Staff turf with soldiers to defend it.<br>
   \u25B8 BUSINESSES \u2014 open one for the price of 1 worker; every worker on staff earns that same amount per year. When a RIVAL lands on your business they buy PRODUCT: the shelf holds income \u00D7 workers, the buyer pays in and doubles their money \u2014 and the OWNER collects TWICE the buy. Everybody eats, but the house eats double. More workers = bigger deals for both sides.<br>
-  ▸ THE OPERATION — every holding earns on its own. A street pays whether or not you run a business, and a business moves product whether or not you hold turf. Street soldiers still draw a yearly wage, so turf you can't defend or profit from bleeds cash: staff it properly or sell the soldiers.<br>
+  ▸ THE OPERATION — every holding earns on its own, and every holding is square once you've bought it. Soldiers on a street and workers in a shop are paid for ONCE and never again — they bring money in, so they cover themselves. Only BODYGUARDS draw a yearly wage, because they only fight and earn nothing. A new soldier or worker needs one full lap on the payroll before it starts earning.<br>
   \u25B8 ATTACK \u2014 instead of rolling, hit the ACTION button and send soldiers at a rival's turf or business. Send MORE than they have defending and it's yours. Attacking IS your move for the round \u2014 you don't roll that turn.<br>
   \u25B8 POKER NIGHT \u2014 the casino. Land on an unowned house and you can BUY it: the house pays you ${fmtK(10*SOLDIER_COST)} A YEAR as you come around, plus every bet a rival loses at the tables goes straight to you (and you never have to gamble). Land on a house you don't own and you can play: set any stake up to your whole roll, then roll the die \u2014 4\u20136 DOUBLES your bet, 1\u20133 LOSES it, and if a rival owns the house your lost bet lands in their pocket. With another human at the table you can also go HEADS-UP: one roll each, high roll takes the stake.<br>
   \u25B8 PARTY / FATE \u2014 event cards: windfalls, trouble, shakedowns.<br>
@@ -2962,17 +2962,17 @@ function stepMove(p,left){
     if(p.heat>0){p.heat=Math.max(0,p.heat-5);log(p.name+L("'s heat cools a little (now ",": o risco esfria um pouco (agora ")+p.heat+"%).","");}
     {const _bz=Array.from(p.owns.keys()).filter(i=>OUTER[i]&&OUTER[i].k==="biz").length; if(_bz>0){const _bh=_bz*4; p.heat=Math.min(80,(p.heat||0)+_bh); log(p.name+L(" — the operation draws federal heat +"," — a operação atrai risco federal +")+_bh+"% ("+_bz+L(" biz)."," neg)."),"warn");}}
     let _wages=0,_laund=0,_ownML=false,_crew=p.crew;
-    {let _stsol=0;p.owns.forEach((cnt,i)=>{if(OUTER[i]&&OUTER[i].k==="street")_stsol+=cnt;});const _payroll=p.crew+_stsol;
+    /* ONLY BODYGUARDS ARE ON THE PAYROLL. They fight and earn nothing, so they cost every year.
+       Soldiers on a street and workers in a business are bought once and pay for themselves —
+       they bring the money in, so they are square already and are never charged again. */
+    {const _payroll=p.crew;
      if(_payroll>0){
        const _afford=Math.max(0,Math.floor(Math.max(0,p.cash)/SOLDIER_WAGE));
        if(_afford>=_payroll){ _wages=_payroll*SOLDIER_WAGE; p.cash-=_wages;
-         log(p.name+L(" pays soldier wages: "," paga salário dos soldados: ")+fmtK(_wages)+" ("+_payroll+" × "+fmtK(SOLDIER_WAGE)+L("/yr).","/ano)."),"warn"); }
+         log(p.name+L(" pays bodyguard wages: "," paga salário dos guarda-costas: ")+fmtK(_wages)+" ("+_payroll+" × "+fmtK(SOLDIER_WAGE)+L("/yr).","/ano)."),"warn"); }
        else { _wages=_afford*SOLDIER_WAGE; p.cash-=_wages; if(p.cash<0)p.cash=0;
-         let _desert=_payroll-_afford; const _lost=_desert;
-         const _cg=Math.min(p.crew,_desert); p.crew-=_cg; _desert-=_cg;
-         if(_desert>0){ for(const _idx of Array.from(p.owns.keys())){ if(_desert<=0)break; if(!OUTER[_idx]||OUTER[_idx].k!=="street")continue;
-           let _c=p.owns.get(_idx); const _d=Math.min(_c,_desert); _c-=_d; _desert-=_d; if(_c<=0)p.owns.delete(_idx); else p.owns.set(_idx,_c); } }
-         log(p.name+L(" can't make payroll — "," não paga o salário — ")+_lost+L(" soldier"," soldado")+(_lost>1?"s":"")+L(" walk off."," vão embora."),"bad"); }
+         const _lost=_payroll-_afford; p.crew=Math.max(0,p.crew-_lost);   // only bodyguards walk — turf and shops are untouched
+         log(p.name+L(" can't make payroll — "," não paga o salário — ")+_lost+L(" bodyguard"," guarda-costas")+((_lost>1&&LANG!=='PT')?"s":"")+L(" walk off."," vão embora."),"bad"); }
      }}
     if((p.dirty||0)>0&&p.cash>0){
       const base=Math.min(p.dirty,p.cash);
@@ -3267,7 +3267,7 @@ function showBooksCard(bk,then){
   const line=(label,val,good)=>`<div style="display:flex;justify-content:space-between;gap:12px;padding:6px 2px;border-bottom:1px solid var(--phos-dim)"><span>${label}</span><span style="color:${good?'var(--phos)':'var(--red)'};font-weight:bold;white-space:nowrap">${good?'+':'−'}${fmtK(Math.abs(val))}</span></div>`;
   let rows="";
   if(bk.inc>0) rows+=line(L("Income collected","Renda coletada"),bk.inc,true);
-  if(bk.wages>0) rows+=line(L("Soldier wages","Salário dos soldados")+" ("+bk.crew+")",bk.wages,false);
+  if(bk.wages>0) rows+=line(L("Bodyguard wages","Salário dos guarda-costas")+" ("+bk.crew+")",bk.wages,false);
   if(bk.laund>0) rows+=line(L("Money laundering","Lavagem de dinheiro")+" ("+(bk.ownML?"10%":"30%")+")",bk.laund,false);
   const net=bk.inc-bk.wages-bk.laund;
   const netRow=`<div style="display:flex;justify-content:space-between;gap:12px;padding:9px 2px 4px;font-weight:bold;font-size:15px"><span>${L("NET THIS YEAR","SALDO DO ANO")}</span><span style="color:${net>=0?'var(--phos)':'var(--red)'};white-space:nowrap">${net>=0?'+':'−'}${fmtK(Math.abs(net))}</span></div>`;
@@ -4556,7 +4556,7 @@ function pdayDrugsResolve(rr){
 }
 /* AI prison moves — silent (log only, no modal) */
 function aiPrisonTurn(p){
-  const payroll=(p.crew+streetSoldiers(p))*SOLDIER_WAGE;
+  const payroll=p.crew*SOLDIER_WAGE;   // bodyguards only
   const broke=p.cash < Math.max(SOLDIER_COST, payroll);
   if(p.packs<=1){                                   // protection first
     if(p.cash>=packPrice()*5){ const _pc=packPrice()*5; p.cash-=_pc; p.packs+=5; log(p.name+L(" buys 5 packs at the commissary (-"," compra 5 maços na cantina (-")+fmtK(_pc)+").","warn"); render(); finish(); return; }
@@ -5210,11 +5210,11 @@ function aiRecruit(p){
   const nw=Math.max(0,netWorth(p));
   const inc=aiYearIncome(p), streetSol=streetSoldiers(p);
   // an army you can't pay wages for bankrupts you: keep total wages under ~60% of yearly income (+ a small defensive floor)
-  const affordCrew=Math.max(2, Math.floor(inc*0.6/SOLDIER_WAGE)-streetSol);
+  const affordCrew=Math.max(2, Math.floor(inc*0.6/SOLDIER_WAGE));   // only bodyguards draw wages
   const grow=pr.crewStep?Math.floor(nw/(SOLDIER_COST*pr.crewStep)):0;
   const cap=Math.max(0, Math.min(pr.crewCap||pr.recruitCap, pr.recruitCap+grow, affordCrew));
   // reserve: a full year of the intended payroll, or a quarter of cash — never spend into insolvency
-  const reserve=Math.max((cap+streetSol)*SOLDIER_WAGE, Math.round(p.cash*0.30));
+  const reserve=Math.max(cap*SOLDIER_WAGE, Math.round(p.cash*0.30));
   let added=0;
   while(p.crew<cap && p.cash-SOLDIER_COST>=reserve){ p.cash-=SOLDIER_COST; p.crew++; added++; }
   if(added>0){ render(); log(p.name+L(" recruits "," recruta ")+added+L(" soldier"," soldado")+(added>1?"s":"")+L(" (now "," (agora ")+p.crew+").","good"); }
@@ -5227,7 +5227,7 @@ function aiReinforce(p){
   const pr=aiProf(p);
   const nw=Math.max(0,netWorth(p));
   const inc=aiYearIncome(p), streetSol=streetSoldiers(p);
-  const wageReserve=Math.max((p.crew+streetSol)*SOLDIER_WAGE, Math.round(p.cash*0.30));
+  const wageReserve=Math.max(p.crew*SOLDIER_WAGE, Math.round(p.cash*0.30));
   let added=0;
   const held=Array.from(p.owns.keys()).filter(i=>cellUnit(i)>0);
   const fill=(idx,target,reserve)=>{                    // buy bodies into one holding, up to target
@@ -5235,13 +5235,10 @@ function aiReinforce(p){
     target=Math.min(UNIT_CAP,target);
     while((p.owns.get(idx)||0)<target && p.cash-per>=reserve){ p.cash-=per; grantUnits(p,idx,1); added++; }
   };
-  const deepTarget=(idx)=>{
-    const k=OUTER[idx]&&OUTER[idx].k;
-    if(k==="biz") return Math.min(UNIT_CAP, pr.garCap||1, 4+Math.floor(inc/(SOLDIER_COST*8)));       // workers earn and cost no wage — stack them hard
-    const grow=pr.garStep?Math.floor(nw/(SOLDIER_COST*pr.garStep)):0;
-    return Math.min(UNIT_CAP, pr.garCap||1, 2+grow);                                                 // soldiers draw wages — deep, but not free
-  };
-  const reserveFor=(idx)=>((OUTER[idx]&&OUTER[idx].k)==="biz")?Math.round(p.cash*0.15):wageReserve;
+  /* Turf and shops are both square once bought — neither draws a wage — so a Ghost stacks
+     them the same way, as deep as its earnings justify. */
+  const deepTarget=(idx)=>Math.min(UNIT_CAP, pr.garCap||1, 4+Math.floor(inc/(SOLDIER_COST*8)));
+  const reserveFor=(idx)=>Math.round(p.cash*0.15);
   /* PASS 1 — no free gifts: a block sitting on one body is the cheapest thing on the board to
      take, so lift everything off the floor before anything gets deep. */
   const floor=Math.min(UNIT_CAP, Math.max(2, Math.round((pr.garCap||8)*0.15)));
@@ -5288,7 +5285,7 @@ function aiMaybeHit(p){
 function aiMaybeCrime(p){
   if(p.ring!=="outer"||p.inJail||p.crimeOps<=0) return false;
   let prob=({AGGRESSIVE:0.40,CAREFUL:0.22,CAUTIOUS:0.10,PASSIVE:0.04})[p.temper]||0.2;
-  const payroll=(p.crew+streetSoldiers(p))*SOLDIER_WAGE;
+  const payroll=p.crew*SOLDIER_WAGE;   // bodyguards only
   if(p.cash < Math.max(SOLDIER_COST, payroll)) prob=0.9;   // broke — hustle nearly every turn to raise cash
   if(Math.random()>=prob) return false;
   p.crimeOps--;
