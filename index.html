@@ -765,7 +765,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v25.1";
+const APP_VERSION="v25.2";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -1328,7 +1328,7 @@ const DIFFICULTY={
   HARD:  {cash:100,  label:"HARD", flavor:L("You scraped together seed money from corner jobs and stick-ups. It's lean out here.","Voc\u00ea juntou um capital com corres e assaltos de esquina. A vida t\u00e1 dura.")},
   REALISTIC:{cash:0, label:"REALISTIC", flavor:L("You came up from nothing - no money, no connections, just the streets. Every dollar has to be earned or stolen. This is real life.","Voc\u00ea veio do nada - sem dinheiro, sem contatos, s\u00f3 a rua. Cada d\u00f3lar tem que ser ganho ou roubado. Isso \u00e9 a vida real.")},
 };
-function renderSetupStart(){
+function openMultiplayer(){
   const cap=setupData.capital, sp=setupData.dice0, pol=setupData.police, cty=setupData.city||"NY";
   const cityB=(k,lbl)=>`<button class="cfg${cty===k?' sel':''}" onclick="selectCity('${k}')">[ ${lbl} ]</button>`;
   const cB=(c,lbl)=>`<button class="cfg${cap===c?' sel':''}" onclick="selectCapital(${c})">[ ${lbl} ]</button>`;
@@ -1343,29 +1343,14 @@ function renderSetupStart(){
   const sv=loadSave();
   document.getElementById("setupStage").innerHTML=`
    ${(()=>{ const _cc=careerLoad(); const _hasC=!!(_cc&&_cc.active);
-     const _lvl=_hasC?Math.min(_cc.level,CAREER_LEVELS.length-1):0;
-     // a snapshot belonging to the career in progress IS the career — never offer it a second time as a free match
-     const _mid=_hasC?careerMidSave(_lvl):null;
-     const _hasF=!!(sv&&!_mid);
-     if(!_hasC&&!_hasF)return '';
-     const _alive=(s)=>s.players.filter(p=>p.alive).length+"/"+s.players.length+" "+L('alive','vivos');
+     const _mid=_hasC?careerMidSave(Math.min(_cc.level,CAREER_LEVELS.length-1)):null;
+     if(!sv||_mid) return '';                       // a career snapshot belongs to the career page, not here
+     const _alive=sv.players.filter(p=>p.alive).length+"/"+sv.players.length+" "+L('alive','vivos');
      return `<div class="dosconfig" style="margin-bottom:16px">
-       <div class="cfgline">C:\\> CRIMINAL_TERMINAL.EXE /CONTINUE</div>
-       ${_hasC?`<div class="cfgline" style="opacity:.75">${L('Career — city','Carreira — cidade')} ${_lvl+1}/${CAREER_LEVELS.length} · ${_mid?(L('turn','turno')+' '+_mid.turn+' · '+_alive(_mid)):(L('bankroll','grana')+' '+fmtKcity(_cc.bankroll||0,CAREER_LEVELS[_lvl].city))}</div>
-         <button class="cfggo" onclick="careerContinue(${_lvl})">${_mid?L('[ CONTINUE CAREER — CITY IN PROGRESS » ]','[ CONTINUAR CARREIRA — CIDADE EM ANDAMENTO » ]'):L('[ CONTINUE CAREER » ]','[ CONTINUAR CARREIRA » ]')}</button>`:''}
-       ${_hasF?`<div class="cfgline" style="opacity:.75">${L('Free match — turn','Partida livre — turno')} ${sv.turn} · ${_alive(sv)}</div>
-         <button class="cfggo" onclick="resumeGame()">${L('[ CONTINUE FREE MATCH » ]','[ CONTINUAR PARTIDA LIVRE » ]')}</button>`:''}
+       <div class="cfgline">C:\\> /CONTINUE</div>
+       <div class="cfgline" style="opacity:.75">${L('Match in progress — turn','Partida em andamento — turno')} ${sv.turn} · ${_alive}</div>
+       <button class="cfggo" onclick="resumeGame()">${L('[ CONTINUE MATCH » ]','[ CONTINUAR PARTIDA » ]')}</button>
      </div>`; })()}
-   <div class="dosconfig" style="margin-bottom:16px">
-     <div class="cfgline">C:\\> CRIMINAL_TERMINAL.EXE /LOADCODE</div>
-     <div class="cfgline" style="opacity:.7">${L('Have a SAVE CODE from another device? Load it here.','Tem um CÓDIGO DE JOGO de outro aparelho? Carregue aqui.')}</div>
-     <button class="cfggo" onclick="openLoadCode()">${L('[ LOAD SAVE CODE ]','[ CARREGAR CÓDIGO ]')}</button>
-   </div>
-   <div class="dosconfig" style="margin-bottom:16px">
-     <div class="cfgline">C:\\> CRIMINAL_TERMINAL.EXE /CAREER</div>
-     <div class="cfgline" style="opacity:.75">${(()=>{const _c=careerLoad();return _c&&_c.active?(L("Career in progress \u2014 City ","Carreira em andamento \u2014 Cidade ")+(Math.min(_c.level,CAREER_LEVELS.length-1)+1)+"/"+CAREER_LEVELS.length):L("Rise from nothing to kingpin \u2014 7 cities, one bloodline, from 1970 on.","Suba do nada a chef\u00e3o \u2014 7 cidades, uma linhagem, de 1970 em diante.");})()}</div>
-     <button class="cfggo" onclick="openCareer()">${L('[ CAREER MODE \u00BB ]','[ MODO CARREIRA \u00BB ]')}</button>
-   </div>
    <div class="dosconfig">
      <div class="cfgline">C:\\> CRIMINAL_TERMINAL.EXE /NEWGAME</div>
      <div class="cfgline" id="playCount" style="opacity:.7">${PLAYCOUNT!=null?(L("CRIMINALS SERVED WORLDWIDE: ","CRIMINOSOS ATENDIDOS NO MUNDO: ")+PLAYCOUNT):L("CONNECTING TO CRIME NETWORK...","CONECTANDO \u00c0 REDE DO CRIME...")}</div>
@@ -1394,20 +1379,51 @@ function renderSetupStart(){
      <button class="cfggo" ${ready?'':'disabled'} onclick="afterSpeed()">${L('[ CONTINUE » ]','[ CONTINUAR » ]')}</button>
      <div class="hint">${L('Outer ring = the street (1 lap = 1 year). Arrested → JAIL → COURT → PRISON. Broke+hurt → HOSPITAL (3 = dead). 10+ soldiers = bonus die. Win: last boss standing, or retire with '+fmtK(retireTarget())+' at 65.','Anel externo = a rua (1 volta = 1 ano). Preso → CADEIA → TRIBUNAL → PRIS\u00c3O. Quebrado+ferido → HOSPITAL (3 = morto). 10+ soldados = dado b\u00f4nus. Vit\u00f3ria: \u00faltimo chef\u00e3o de p\u00e9, ou se aposente com '+fmtK(retireTarget())+' aos 65.')}</div>
    </div>
+   <button class="cfggo" style="opacity:.65;margin-top:14px" onclick="renderSetupStart()">${L('[ \u2039 BACK ]','[ \u2039 VOLTAR ]')}</button>`;
+}
+/* ===== THE FRONT DOOR — pick a mode, nothing else. Settings live inside MULTIPLAYER,
+   load/new live inside CAREER, so neither screen opens on a wall of options. ===== */
+function renderSetupStart(){
+  const sv=loadSave();
+  const _cc=careerLoad(); const _hasC=!!(_cc&&_cc.active);
+  const _lvl=_hasC?Math.min(_cc.level,CAREER_LEVELS.length-1):0;
+  const _mid=_hasC?careerMidSave(_lvl):null;
+  const _freeSave=!!(sv&&!_mid);
+  const careerSub=_hasC
+    ? (L('City','Cidade')+' '+(_lvl+1)+'/'+CAREER_LEVELS.length+' · '+(_mid?(L('turn','turno')+' '+_mid.turn):(L('bankroll','grana')+' '+fmtKcity(_cc.bankroll||0,CAREER_LEVELS[_lvl].city))))
+    : L('One city at a time, one bloodline','Uma cidade por vez, uma linhagem');
+  const mpSub=_freeSave
+    ? (L('Match in progress — turn','Partida em andamento — turno')+' '+sv.turn)
+    : L('Set the table — up to 10 bosses','Monte a mesa — at\u00e9 10 chef\u00f5es');
+  document.getElementById("setupStage").innerHTML=`
+   <div class="dosconfig" style="margin-bottom:16px">
+     <div class="cfgline">C:\\> CRIMINAL_TERMINAL.EXE</div>
+     <div class="cfgline" id="playCount" style="opacity:.7">${PLAYCOUNT!=null?(L("CRIMINALS SERVED WORLDWIDE: ","CRIMINOSOS ATENDIDOS NO MUNDO: ")+PLAYCOUNT):L("CONNECTING TO CRIME NETWORK...","CONECTANDO \u00c0 REDE DO CRIME...")}</div>
+     <div class="cfghead" style="margin-top:10px">${L('CHOOSE YOUR GAME','ESCOLHA SEU JOGO')}</div>
+
+     <div class="cfgline" style="opacity:.75;margin-top:8px">${mpSub}</div>
+     <button class="cfggo" onclick="openMultiplayer()">${_freeSave?L('[ MULTIPLAYER \u00BB ]','[ MULTIJOGADOR \u00BB ]'):L('[ MULTIPLAYER \u00BB ]','[ MULTIJOGADOR \u00BB ]')}</button>
+
+     <div class="cfgline" style="opacity:.75;margin-top:14px">${careerSub}</div>
+     <button class="cfggo" onclick="openCareer()">${L('[ CAREER \u00BB ]','[ CARREIRA \u00BB ]')}</button>
+
+     <div class="cfgline" style="opacity:.6;margin-top:16px">${L('Have a SAVE CODE from another device?','Tem um C\u00d3DIGO DE JOGO de outro aparelho?')}</div>
+     <button class="cfggo" style="opacity:.65" onclick="openLoadCode()">${L('[ LOAD SAVE CODE ]','[ CARREGAR C\u00d3DIGO ]')}</button>
+   </div>
    ${(()=>{let h=[];try{h=JSON.parse(localStorage.getItem("ct_hof_v1")||"[]").slice(0,5);}catch(e){}
-     return `<div class="dosconfig" style="margin-top:16px">
+     return `<div class="dosconfig">
        <div class="cfgline">C:\\> TYPE ${L("HALLOFFAME.TXT","HALLDAFAMA.TXT")}</div>
        ${h.length?h.map((x,i)=>`<div class="cfgline">${i+1}. ${x.n} — ${fmtK(x.nw)} · age ${x.age} · ${x.how}${hofVs(x)?" · "+hofVs(x):""}${x.diff?" · "+x.diff:""} · ${x.d}</div>`).join("")
          :`<div class="cfgline" style="opacity:.6">${L('NO BOSSES ON RECORD. Win any game — last boss standing, or retire with '+fmtK(retireTarget())+' at 65 — and your name gets carved here, with how many rivals you buried.','NENHUM CHEF\u00c3O REGISTRADO. Ven\u00e7a qualquer partida — \u00faltimo de p\u00e9, ou aposente com '+fmtK(retireTarget())+' aos 65 — e seu nome fica gravado aqui, com quantos rivais voc\u00ea enterrou.')}</div>`}
      </div>`})()}`;
 }
-function selectCity(k){ setupData.city=k; renderSetupStart(); }
-function selectCapital(c){ setupData.capital=c; setupData.startCash=c; renderSetupStart(); }
-function selectSpeed(n){ setupData.dice0=n; setupData.dice=n; renderSetupStart(); }
-function selectPolice(f){ setupData.police=f; renderSetupStart(); }
-function selectStatus(k){ setupData.status=k; renderSetupStart(); }
-function selectYear(n){ setupData.year=n; renderSetupStart(); }
-function selectCount(n){ setupData.n=n; renderSetupStart(); }
+function selectCity(k){ setupData.city=k; openMultiplayer(); }
+function selectCapital(c){ setupData.capital=c; setupData.startCash=c; openMultiplayer(); }
+function selectSpeed(n){ setupData.dice0=n; setupData.dice=n; openMultiplayer(); }
+function selectPolice(f){ setupData.police=f; openMultiplayer(); }
+function selectStatus(k){ setupData.status=k; openMultiplayer(); }
+function selectYear(n){ setupData.year=n; openMultiplayer(); }
+function selectCount(n){ setupData.n=n; openMultiplayer(); }
 /* INITIAL CAPITAL: type any amount on a keypad, with quick suggested amounts */
 let _cp=null;
 function openCapitalPad(){
@@ -1435,8 +1451,8 @@ function cpUpd(){ if(!_cp)return; const v=document.getElementById("cpval"); if(v
 function cpKey(d){ if(!_cp)return; if((_cp.val+d).length<=7)_cp.val=(_cp.val==="0"?"":_cp.val)+d; cpUpd(); }
 function cpDel(){ if(!_cp)return; _cp.val=_cp.val.slice(0,-1); cpUpd(); }
 function cpSuggest(a){ if(!_cp)return; _cp.val=String(a); cpUpd(); try{document.querySelectorAll('#cardEl .padsug').forEach(function(b){b.classList.toggle('amber',b.getAttribute('data-c')===String(a));});}catch(e){} }
-function cpOK(){ const nn=Math.round(cpNum()/cityScale()); _cp=null; setupData.capital=nn; setupData.startCash=nn; closeModal(); renderSetupStart(); }
-function cpBack(){ _cp=null; closeModal(); renderSetupStart(); }
+function cpOK(){ const nn=Math.round(cpNum()/cityScale()); _cp=null; setupData.capital=nn; setupData.startCash=nn; closeModal(); openMultiplayer(); }
+function cpBack(){ _cp=null; closeModal(); openMultiplayer(); }
 /* STARTING YEAR: type a 4-digit year on the keypad (same UI as capital) */
 let _yp=null;
 let _ypRet=null;
@@ -1464,8 +1480,8 @@ function ypUpd(){ if(!_yp)return; const v=document.getElementById("ypval"); if(v
 function ypKey(d){ if(!_yp)return; if((_yp.val||"").length>=4)_yp.val=""; _yp.val=(_yp.val==="0"?"":_yp.val)+d; ypUpd(); }
 function ypDel(){ if(!_yp)return; _yp.val=_yp.val.slice(0,-1); ypUpd(); }
 function ypSuggest(a){ if(!_yp)return; _yp.val=String(a); ypUpd(); try{document.querySelectorAll('#cardEl .padsug').forEach(function(b){b.classList.toggle('amber',b.getAttribute('data-y')===String(a));});}catch(e){} }
-function ypOK(){ let n=ypNum(); if(n<1)n=1987; if(n<1000)n=1987; if(n>3000)n=3000; _yp=null; setupData.year=n; closeModal(); if(_ypRet){const _f=_ypRet;_ypRet=null;_f();return;} renderSetupStart(); }
-function ypBack(){ _yp=null; closeModal(); if(_ypRet){const _f=_ypRet;_ypRet=null;_f();return;} renderSetupStart(); }
+function ypOK(){ let n=ypNum(); if(n<1)n=1987; if(n<1000)n=1987; if(n>3000)n=3000; _yp=null; setupData.year=n; closeModal(); if(_ypRet){const _f=_ypRet;_ypRet=null;_f();return;} openMultiplayer(); }
+function ypBack(){ _yp=null; closeModal(); if(_ypRet){const _f=_ypRet;_ypRet=null;_f();return;} openMultiplayer(); }
 /* CONTINUE from the config screen → straight into per-seat setup with the chosen count */
 function afterSpeed(){ if(!setupData.n)return; chooseCount(setupData.n); }
 /* mob names used to pre-fill AI seats (editable) */
@@ -1551,7 +1567,7 @@ function nextPlayerSetup(){
   window._pickColor=null;
   window._ageTyped=false;
 }
-function setupBack(){ setupData.players=[]; setupData.idx=0; setupData._seatAI=undefined; setupData._seatName=undefined; renderSetupStart(); }
+function setupBack(){ setupData.players=[]; setupData.idx=0; setupData._seatAI=undefined; setupData._seatName=undefined; openMultiplayer(); }
 function ageStep(d){ const inp=document.getElementById("page"); if(!inp)return; let v=(parseInt(inp.value)||25)+d; v=Math.max(1,Math.min(120,v)); inp.value=v; window._ageTyped=true; const s=document.getElementById("pageval"); if(s)s.textContent=v; }
 function ageKey(k){ const inp=document.getElementById("page"); if(!inp)return; let s=String(inp.value||"");
   if(k==='DEL'){ s=s.slice(0,-1); window._ageTyped=true; }
@@ -1646,9 +1662,12 @@ function openCareer(){
     <div class="cfgline" style="opacity:.75;line-height:1.5">${L("Start with nothing. Own a city, then carry your fortune to the next \u2014 six cities, Curitiba to New York.","Comece do nada. Domine uma cidade e leve sua fortuna para a pr\u00f3xima \u2014 seis cidades, de Curitiba a Nova York.")}</div>
     ${rows}
     ${has?`<div class="cfgline" style="margin-top:8px">${L("Bankroll","Grana")}: <b>${fmtKcity(careerState.bankroll||0,CAREER_LEVELS[lvl].city)}</b>${careerStake(lvl)>0?` · ${L("buy-in for city","entrada da cidade")} ${lvl+1}: <b style="color:${careerCanAfford(lvl)?'inherit':'var(--red)'}">${fmtKcity(careerStake(lvl),CAREER_LEVELS[lvl].city)}</b>`:""}</div>
-      <button class="cfggo" onclick="careerContinue(${lvl})">${L("[ CONTINUE \u2014 CITY ","[ CONTINUAR \u2014 CIDADE ")}${lvl+1} \u00BB ]</button>
-      <button class="cfggo" style="opacity:.65" onclick="careerReset()">${L("[ RESTART CAREER ]","[ RECOME\u00c7AR CARREIRA ]")}</button>`
-    :`<button class="cfggo" onclick="careerNewStart()">${L("[ START NEW CAREER \u00BB ]","[ NOVA CARREIRA \u00BB ]")}</button>`}
+      <div class="cfgline" style="opacity:.7;margin-top:10px">${(()=>{const m=careerMidSave(lvl);return m?(L("Saved mid-city \u2014 turn ","Salvo no meio da cidade \u2014 turno ")+m.turn):L("Ready to start this city.","Pronto pra come\u00e7ar essa cidade.");})()}</div>
+      <button class="cfggo" onclick="careerContinue(${lvl})">${L("[ LOAD GAME \u2014 CITY ","[ CARREGAR \u2014 CIDADE ")}${lvl+1} \u00BB ]</button>
+      <div class="cfgline" style="opacity:.6;margin-top:12px">${L("A new career wipes this run \u2014 bankroll, cities cleared, all of it.","Uma nova carreira apaga essa \u2014 grana, cidades vencidas, tudo.")}</div>
+      <button class="cfggo" style="opacity:.75" onclick="careerNewConfirm()">${L("[ NEW GAME \u00BB ]","[ NOVO JOGO \u00BB ]")}</button>`
+    :`<div class="cfgline" style="opacity:.7;margin-top:10px">${L("No career on record \u2014 start one.","Nenhuma carreira registrada \u2014 comece uma.")}</div>
+      <button class="cfggo" onclick="careerNewStart()">${L("[ NEW GAME \u00BB ]","[ NOVO JOGO \u00BB ]")}</button>`}
     <button class="cfggo" style="opacity:.65" onclick="renderSetupStart()">${L("[ \u2039 BACK ]","[ \u2039 VOLTAR ]")}</button>
   </div>`;
 }
@@ -1681,7 +1700,20 @@ function careerBegin(){
   careerSave();
   careerBriefing(0);
 }
-function careerReset(){ try{localStorage.removeItem(CAREER_KEY);}catch(e){} careerState=null; openCareer(); }
+function careerReset(){ try{localStorage.removeItem(CAREER_KEY);}catch(e){} try{clearSave();}catch(e){} careerState=null; openCareer(); }
+/* NEW GAME on top of a run in progress throws it away — say so before it happens */
+function careerNewConfirm(){
+  const c=careerLoad(); if(!c||!c.active){ careerNewStart(); return; }
+  const lvl=Math.min(c.level,CAREER_LEVELS.length-1);
+  const stage=document.getElementById("setupStage"); if(!stage)return;
+  stage.innerHTML=`<div class="dosconfig">
+    <div class="cfgline">C:\\> /CAREER /NEW</div>
+    <div class="cfghead" style="color:var(--red)">${L("START A NEW CAREER?","COME\u00c7AR UMA NOVA CARREIRA?")}</div>
+    <div class="cfgline" style="opacity:.85;line-height:1.5">${L("You have a run going \u2014 city ","Voc\u00ea tem uma carreira em andamento \u2014 cidade ")}${lvl+1}/${CAREER_LEVELS.length}${L(", bankroll ",", grana ")}${fmtKcity(c.bankroll||0,CAREER_LEVELS[lvl].city)}${L(". Starting a new one deletes it for good.",". Come\u00e7ar outra apaga tudo pra sempre.")}</div>
+    <button class="cfggo" style="color:var(--red);border-color:var(--red)" onclick="careerReset();careerNewStart()">${L("[ DELETE IT AND START OVER ]","[ APAGAR E RECOME\u00c7AR ]")}</button>
+    <button class="cfggo" onclick="openCareer()">${L("[ \u2039 KEEP MY CAREER ]","[ \u2039 MANTER MINHA CARREIRA ]")}</button>
+  </div>`;
+}
 /* A career city left half-played resumes exactly where you stopped — the turn-boundary
    snapshot carries the career with it. The briefing (a fresh city from turn 1) is only for
    when there is nothing to resume, otherwise continuing would silently wipe the run. */
