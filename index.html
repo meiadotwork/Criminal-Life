@@ -765,7 +765,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v24.7";
+const APP_VERSION="v24.8";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -1342,13 +1342,18 @@ function renderSetupStart(){
   const ready=(cap!=null)&&sp&&(pol!=null)&&setupData.n;
   const sv=loadSave();
   document.getElementById("setupStage").innerHTML=`
-   ${(()=>{ const _cc=careerLoad(); const _hasC=!!(_cc&&_cc.active); const _hasF=!!sv; if(!_hasC&&!_hasF)return '';
+   ${(()=>{ const _cc=careerLoad(); const _hasC=!!(_cc&&_cc.active);
      const _lvl=_hasC?Math.min(_cc.level,CAREER_LEVELS.length-1):0;
+     // a snapshot belonging to the career in progress IS the career — never offer it a second time as a free match
+     const _mid=_hasC?careerMidSave(_lvl):null;
+     const _hasF=!!(sv&&!_mid);
+     if(!_hasC&&!_hasF)return '';
+     const _alive=(s)=>s.players.filter(p=>p.alive).length+"/"+s.players.length+" "+L('alive','vivos');
      return `<div class="dosconfig" style="margin-bottom:16px">
        <div class="cfgline">C:\\> CRIMINAL_TERMINAL.EXE /CONTINUE</div>
-       ${_hasC?`<div class="cfgline" style="opacity:.75">${L('Career — city','Carreira — cidade')} ${_lvl+1}/${CAREER_LEVELS.length} · ${L('bankroll','grana')} ${fmtKcity(_cc.bankroll||0,CAREER_LEVELS[_lvl].city)}</div>
-         <button class="cfggo" onclick="careerBriefing(${_lvl})">${L('[ CONTINUE CAREER » ]','[ CONTINUAR CARREIRA » ]')}</button>`:''}
-       ${_hasF?`<div class="cfgline" style="opacity:.75">${L('Free match — turn','Partida livre — turno')} ${sv.turn} · ${sv.players.filter(p=>p.alive).length}/${sv.players.length} ${L('alive','vivos')}</div>
+       ${_hasC?`<div class="cfgline" style="opacity:.75">${L('Career — city','Carreira — cidade')} ${_lvl+1}/${CAREER_LEVELS.length} · ${_mid?(L('turn','turno')+' '+_mid.turn+' · '+_alive(_mid)):(L('bankroll','grana')+' '+fmtKcity(_cc.bankroll||0,CAREER_LEVELS[_lvl].city))}</div>
+         <button class="cfggo" onclick="careerContinue(${_lvl})">${_mid?L('[ CONTINUE CAREER — CITY IN PROGRESS » ]','[ CONTINUAR CARREIRA — CIDADE EM ANDAMENTO » ]'):L('[ CONTINUE CAREER » ]','[ CONTINUAR CARREIRA » ]')}</button>`:''}
+       ${_hasF?`<div class="cfgline" style="opacity:.75">${L('Free match — turn','Partida livre — turno')} ${sv.turn} · ${_alive(sv)}</div>
          <button class="cfggo" onclick="resumeGame()">${L('[ CONTINUE FREE MATCH » ]','[ CONTINUAR PARTIDA LIVRE » ]')}</button>`:''}
      </div>`; })()}
    <div class="dosconfig" style="margin-bottom:16px">
@@ -1641,7 +1646,7 @@ function openCareer(){
     <div class="cfgline" style="opacity:.75;line-height:1.5">${L("Start with nothing. Own a city, then carry your fortune to the next \u2014 six cities, Curitiba to New York.","Comece do nada. Domine uma cidade e leve sua fortuna para a pr\u00f3xima \u2014 seis cidades, de Curitiba a Nova York.")}</div>
     ${rows}
     ${has?`<div class="cfgline" style="margin-top:8px">${L("Bankroll","Grana")}: <b>${fmtKcity(careerState.bankroll||0,CAREER_LEVELS[lvl].city)}</b></div>
-      <button class="cfggo" onclick="careerBriefing(${lvl})">${L("[ CONTINUE \u2014 CITY ","[ CONTINUAR \u2014 CIDADE ")}${lvl+1} \u00BB ]</button>
+      <button class="cfggo" onclick="careerContinue(${lvl})">${L("[ CONTINUE \u2014 CITY ","[ CONTINUAR \u2014 CIDADE ")}${lvl+1} \u00BB ]</button>
       <button class="cfggo" style="opacity:.65" onclick="careerReset()">${L("[ RESTART CAREER ]","[ RECOME\u00c7AR CARREIRA ]")}</button>`
     :`<button class="cfggo" onclick="careerNewStart()">${L("[ START NEW CAREER \u00BB ]","[ NOVA CARREIRA \u00BB ]")}</button>`}
     <button class="cfggo" style="opacity:.65" onclick="renderSetupStart()">${L("[ \u2039 BACK ]","[ \u2039 VOLTAR ]")}</button>
@@ -1677,6 +1682,18 @@ function careerBegin(){
   careerBriefing(0);
 }
 function careerReset(){ try{localStorage.removeItem(CAREER_KEY);}catch(e){} careerState=null; openCareer(); }
+/* A career city left half-played resumes exactly where you stopped — the turn-boundary
+   snapshot carries the career with it. The briefing (a fresh city from turn 1) is only for
+   when there is nothing to resume, otherwise continuing would silently wipe the run. */
+function careerMidSave(lvl){
+  const sv=loadSave();
+  return (sv&&sv.career&&sv.career.active&&sv.career.level===lvl&&sv.players&&sv.players.length)?sv:null;
+}
+function careerContinue(lvl){
+  const sv=careerMidSave(lvl);
+  if(sv){ loadFromSnapshot(sv,L("CAREER RESUMED — turn ","CARREIRA RETOMADA — turno ")+(sv.turn||1)+". "+((sv.players[sv.cur||0]||{}).name||"")+L(" is up."," é a vez.")); return; }
+  careerBriefing(lvl);
+}
 function careerBriefing(i){
   if(i<0||i>=CAREER_LEVELS.length)i=0;
   careerState=careerState||careerLoad();
