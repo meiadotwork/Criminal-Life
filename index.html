@@ -1502,10 +1502,10 @@ function aiName(){
    net worth so a rich boss actually fields (and garrisons) a real empire instead of hoarding
    cash. reserveFrac = share of net worth kept liquid before it spends on military. */
 const AI_PROFILES={
-  AGGRESSIVE:{ lbl:["AGGRESSIVE","AGRESSIVO"], recruitCap:12, recruitReserve:2, atkMinCrew:2, atkAllIn:true,  atkProb:0.60, copHeat:40, buyMult:1.3, pokerMult:1.5, reserveFrac:0.30, crewCap:50, crewStep:3000,  garCap:20, garStep:6000  },
-  CAREFUL:   { lbl:["CAREFUL","CAUTELOSO"],     recruitCap:6,  recruitReserve:5, atkMinCrew:4, atkAllIn:false, atkProb:0.15, copHeat:15, buyMult:2.0, pokerMult:2.0, reserveFrac:0.45, crewCap:32, crewStep:6000,  garCap:12, garStep:12000 },
-  CAUTIOUS:  { lbl:["CAUTIOUS","RESERVADO"],    recruitCap:4,  recruitReserve:7, atkMinCrew:6, atkAllIn:false, atkProb:0.06, copHeat:10, buyMult:2.6, pokerMult:2.6, reserveFrac:0.55, crewCap:20, crewStep:10000, garCap:8,  garStep:20000 },
-  PASSIVE:   { lbl:["PASSIVE","PACÍFICO"],      recruitCap:2,  recruitReserve:9, atkMinCrew:9, atkAllIn:false, atkProb:0.02, copHeat:6,  buyMult:3.2, pokerMult:3.2, reserveFrac:0.65, crewCap:10, crewStep:20000, garCap:4,  garStep:40000 },
+  AGGRESSIVE:{ lbl:["AGGRESSIVE","AGRESSIVO"], recruitCap:12, recruitReserve:2, atkMinCrew:2, atkAllIn:true,  atkProb:0.60, copHeat:40, buyMult:1.3, pokerMult:1.5, reserveFrac:0.30, crewCap:50, crewStep:3000,  garCap:100, garStep:4000  },
+  CAREFUL:   { lbl:["CAREFUL","CAUTELOSO"],     recruitCap:6,  recruitReserve:5, atkMinCrew:4, atkAllIn:false, atkProb:0.15, copHeat:15, buyMult:2.0, pokerMult:2.0, reserveFrac:0.45, crewCap:32, crewStep:6000,  garCap:80,  garStep:8000  },
+  CAUTIOUS:  { lbl:["CAUTIOUS","RESERVADO"],    recruitCap:4,  recruitReserve:7, atkMinCrew:6, atkAllIn:false, atkProb:0.06, copHeat:10, buyMult:2.6, pokerMult:2.6, reserveFrac:0.55, crewCap:20, crewStep:10000, garCap:55,  garStep:14000 },
+  PASSIVE:   { lbl:["PASSIVE","PACÍFICO"],      recruitCap:2,  recruitReserve:9, atkMinCrew:9, atkAllIn:false, atkProb:0.02, copHeat:6,  buyMult:3.2, pokerMult:3.2, reserveFrac:0.65, crewCap:10, crewStep:20000, garCap:30,  garStep:26000 },
 };
 const AI_AGGRO_ORDER=["AGGRESSIVE","CAREFUL","CAUTIOUS","PASSIVE"];   // most → least aggressive
 function aiProf(p){ return AI_PROFILES[p&&p.temper]||AI_PROFILES.CAREFUL; }
@@ -3321,8 +3321,8 @@ function ownStreetOptions(idx){
     ${statusBar()}`;
   openModal();
 }
-function addSoldierTo(idx,per,n){const p=S.players[S.cur];n=Math.min(n,Math.floor(p.cash/per));if(n<1)return;p.cash-=per*n;p.owns.set(idx,p.owns.get(idx)+n);log(p.name+L(" adds "," adiciona ")+n+L(" soldier"+""," soldado")+(n>1?"s":"")+L(" to "," a ")+OUTER[idx].t+L(" (now "," (agora ")+p.owns.get(idx)+").","good");render();ownStreetOptions(idx);}
-function buyStreet(idx,n,v){const p=S.players[S.cur];p.cash-=v;p.owns.set(idx,n);log(p.name+L(" claims "," toma ")+OUTER[idx].t+" ("+fmtK(v)+").","good");render();ownStreetOptions(idx);}
+function addSoldierTo(idx,per,n){const p=S.players[S.cur];n=Math.min(n,Math.floor(p.cash/per),unitRoom(p,idx));if(n<1)return;p.cash-=per*n;p.owns.set(idx,p.owns.get(idx)+n);log(p.name+L(" adds "," adiciona ")+n+L(" soldier"+""," soldado")+(n>1?"s":"")+L(" to "," a ")+OUTER[idx].t+L(" (now "," (agora ")+p.owns.get(idx)+").","good");render();ownStreetOptions(idx);}
+function buyStreet(idx,n,v){const p=S.players[S.cur];p.cash-=v;p.owns.set(idx,capUnits(n));log(p.name+L(" claims "," toma ")+OUTER[idx].t+" ("+fmtK(v)+").","good");render();ownStreetOptions(idx);}
 function soldierLadder(b){return[{n:1,v:b},{n:4,v:b*4},{n:10,v:b*10},{n:25,v:b*25},{n:100,v:b*100}];}
 function sellProp(idx){const p=S.players[S.cur];const c=OUTER[idx];const per=OUTER[idx].incomeBase||c.price;const sold=p.owns.get(idx);
   const val=Math.round(per*sold);p.cash+=val;p.owns.delete(idx);
@@ -3511,7 +3511,7 @@ function ownBizOptions(idx){
     ${statusBar()}`;
   openModal();
 }
-function addWorker(idx,per,n){const p=S.players[S.cur];n=Math.min(n,Math.floor(p.cash/per));if(n<1)return;p.cash-=per*n;p.owns.set(idx,p.owns.get(idx)+n);log(p.name+L(" adds "," adiciona ")+n+L(" worker"+""," funcionário")+(n>1?"s":"")+L(" to "," a ")+OUTER[idx].t+L(" (now "," (agora ")+p.owns.get(idx)+").","good");render();ownBizOptions(idx);}
+function addWorker(idx,per,n){const p=S.players[S.cur];n=Math.min(n,Math.floor(p.cash/per),unitRoom(p,idx));if(n<1)return;p.cash-=per*n;p.owns.set(idx,p.owns.get(idx)+n);log(p.name+L(" adds "," adiciona ")+n+L(" worker"+""," funcionário")+(n>1?"s":"")+L(" to "," a ")+OUTER[idx].t+L(" (now "," (agora ")+p.owns.get(idx)+").","good");render();ownBizOptions(idx);}
 function buyProduct(p,owner,idx,c){
   const workers=owner.owns.get(idx)||1;         // charge for the WHOLE staffed business
   const capacity=c.income*workers;
@@ -3534,6 +3534,11 @@ function doProduct(pid,oid,amt){const p=S.players[pid],o=S.players[oid];p.cash-=
   log(p.name+L(" buys "," compra ")+fmtK(amt)+L(" product from "," de produto de ")+o.name+L(". You net +",". Você lucra +")+fmtK(amt)+", "+o.name+" +"+fmtK(amt*2)+".","good");closeModal();render();finish();}
 
 /* ===== RECRUITING (bulk) ===== */
+/* No single block or shop holds more than this many bodies, and no attack sends more than
+   this many at once — the ceiling that stops one holding from snowballing without limit. */
+const UNIT_CAP=100;
+function unitRoom(p,idx){ return Math.max(0, UNIT_CAP-((p&&p.owns&&p.owns.get(idx))||0)); }
+function capUnits(n){ return Math.max(0, Math.min(UNIT_CAP, Math.round(n||0))); }
 let SOLDIER_COST=100; // per soldier to hire (set per city in applyCity — cheaper in Brazil)
 let SOLDIER_WAGE=100; // paid per soldier every year (lap past START)
 const MAX_SOLDIERS=Infinity;   // no cap on soldiers
@@ -3580,8 +3585,8 @@ function openBuyWorkers(){
   _prevOuts.forEach((v,i)=>{ if(_outs[i])_outs[i].scrollTop=v; });
 }
 function hireCrewN(per,n){const p=S.players[S.cur];n=Math.min(n,Math.floor(p.cash/SOLDIER_COST));if(n<1)return;p.cash-=SOLDIER_COST*n;p.crew+=n;log(p.name+L(" hires "," contrata ")+n+L(" bodyguard"," guarda-costas")+(n>1?(LANG==='PT'?"":"s"):"")+L(" (now "," (agora ")+p.crew+").","good");render();openBuyWorkers();}
-function addSoldierAnytime(idx,per,n){const p=S.players[S.cur];n=Math.min(n,Math.floor(p.cash/per));if(n<1)return;p.cash-=per*n;p.owns.set(idx,p.owns.get(idx)+n);log(p.name+L(" posts "," coloca ")+n+L(" soldier"," soldado")+(n>1?"s":"")+L(" at "," em ")+OUTER[idx].t+L(" (now "," (agora ")+p.owns.get(idx)+").","good");render();openBuyWorkers();}
-function addWorkerAnytime(idx,per,n){n=n||1;n=Math.min(n,Math.floor(S.players[S.cur].cash/per));const p=S.players[S.cur];if(n<1)return;p.cash-=per*n;p.owns.set(idx,p.owns.get(idx)+n);log(p.name+L(" hires "," contrata ")+n+L(" worker"," funcionário")+(n>1?"s":"")+L(" at "," em ")+OUTER[idx].t+L(" (now "," (agora ")+p.owns.get(idx)+").","good");render();openBuyWorkers();}
+function addSoldierAnytime(idx,per,n){const p=S.players[S.cur];n=Math.min(n,Math.floor(p.cash/per),unitRoom(p,idx));if(n<1)return;p.cash-=per*n;p.owns.set(idx,p.owns.get(idx)+n);log(p.name+L(" posts "," coloca ")+n+L(" soldier"," soldado")+(n>1?"s":"")+L(" at "," em ")+OUTER[idx].t+L(" (now "," (agora ")+p.owns.get(idx)+").","good");render();openBuyWorkers();}
+function addWorkerAnytime(idx,per,n){n=n||1;const p=S.players[S.cur];n=Math.min(n,Math.floor(p.cash/per),unitRoom(p,idx));if(n<1)return;p.cash-=per*n;p.owns.set(idx,p.owns.get(idx)+n);log(p.name+L(" hires "," contrata ")+n+L(" worker"," funcionário")+(n>1?"s":"")+L(" at "," em ")+OUTER[idx].t+L(" (now "," (agora ")+p.owns.get(idx)+").","good");render();openBuyWorkers();}
 
 /* ===== QUANTITY KEYPAD: type how many to buy (soldiers / workers) instead of +1/+5/+25/+100 ===== */
 let _qp=null;
@@ -3638,8 +3643,8 @@ function qpCrew(){ const p=S.players[S.cur];
 function qpCell(idx,ret){ const p=S.players[S.cur]; const c=OUTER[idx]; const per=c.incomeBase||c.price||c.income;
   const isBiz=c.k==="biz"; const unit=isBiz?L("workers","funcionários"):L("soldiers","soldados");
   const done = ret==='st'?(()=>ownStreetOptions(idx)) : ret==='bz'?(()=>ownBizOptions(idx)) : openBuyWorkers;
-  qtyPad({ title:c.t, unit, have:p.owns.get(idx)||0, per, max:Math.floor(p.cash/per),
-    apply:(n)=>{ p.cash-=per*n; p.owns.set(idx,(p.owns.get(idx)||0)+n);
+  qtyPad({ title:c.t, unit, have:p.owns.get(idx)||0, per, max:Math.min(Math.floor(p.cash/per),unitRoom(p,idx)),
+    apply:(n)=>{ n=Math.min(n,unitRoom(p,idx)); if(n<1)return; p.cash-=per*n; p.owns.set(idx,(p.owns.get(idx)||0)+n);
       log(p.name+L(" adds "," adiciona ")+n+" "+(isBiz?L("worker","funcionário"):L("soldier","soldado"))+((n>1&&LANG!=='PT')?"s":"")+L(" to "," a ")+c.t+L(" (now "," (agora ")+p.owns.get(idx)+").","good"); render(); },
     done });
 }
@@ -3648,8 +3653,8 @@ function qpOpenBiz(idx,c){ const p=S.players[S.cur]; const per=c.income; OUTER[i
   const afford=Math.floor(p.cash/per);
   qtyPad({ title:c.t, unit:L("workers","funcionários"),
     note:L("Open this business — rivals landing here buy your product and you both profit. Each worker earns "+fmtK(per)+"/yr.","Abra este negócio — rivais que caírem aqui compram seu produto e os dois lucram. Cada funcionário rende "+fmtK(per)+"/ano."),
-    have:0, per, start:0, max:afford,
-    apply:(n)=>{ n=Math.min(n,Math.floor(p.cash/per)); if(n<1)return; p.cash-=per*n; p.owns.set(idx,n);
+    have:0, per, start:0, max:Math.min(afford,UNIT_CAP),
+    apply:(n)=>{ n=Math.min(n,Math.floor(p.cash/per),UNIT_CAP); if(n<1)return; p.cash-=per*n; p.owns.set(idx,n);
       log(p.name+L(" opens "," abre ")+c.t+L(" with "," com ")+n+" "+((n>1&&LANG!=='PT')?L("workers","funcionário"):L("worker","funcionário"))+" ("+fmtK(per*n)+").","good"); render(); },
     done:()=>{ closeModal(); finish(); } });
 }
@@ -3657,8 +3662,8 @@ function qpOpenStreet(idx,c){ const p=S.players[S.cur]; const per=c.price; OUTER
   const afford=Math.floor(p.cash/per);
   qtyPad({ title:c.t, unit:L("soldiers","soldados"),
     note:L("Claim this turf — rivals landing here pay you a toll. Each soldier earns "+fmtK(per)+"/yr and defends it.","Tome esta área — rivais que caírem aqui pagam pedágio. Cada soldado rende "+fmtK(per)+"/ano e defende."),
-    have:0, per, start:0, max:afford,
-    apply:(n)=>{ n=Math.min(n,Math.floor(p.cash/per)); if(n<1)return; p.cash-=per*n; p.owns.set(idx,n);
+    have:0, per, start:0, max:Math.min(afford,UNIT_CAP),
+    apply:(n)=>{ n=Math.min(n,Math.floor(p.cash/per),UNIT_CAP); if(n<1)return; p.cash-=per*n; p.owns.set(idx,n);
       log(p.name+L(" claims "," toma ")+c.t+L(" with "," com ")+n+" "+((n>1&&LANG!=='PT')?L("soldiers","soldado"):L("soldier","soldado"))+" ("+fmtK(per*n)+").","good"); render(); },
     done:()=>{ closeModal(); finish(); } });
 }
@@ -3826,7 +3831,7 @@ function executePlayer(oid){
   const p=S.players[S.cur], o=S.players[oid]; if(!o||!o.alive)return;
   const cost=execCost(o); if(p.cash<cost)return;
   p.cash-=cost; S.rolled=true;
-  o.owns.forEach((cnt,idx)=>{ p.owns.set(idx,(p.owns.get(idx)||0)+cnt); }); o.owns=new Map();
+  o.owns.forEach((cnt,idx)=>{ p.owns.set(idx,capUnits((p.owns.get(idx)||0)+cnt)); }); o.owns=new Map();
   o._deathCause=L("Executed on a contract — stripped of everything","Executado num contrato — perdeu tudo");
   o._gunDeath=true;
   closeModal(); try{SFX.overkill();}catch(e){}
@@ -3860,7 +3865,7 @@ function doAttack(fromMenu){
     const winnable=targets.filter(t=>t.s+1<=(aiProf(p).atkAllIn?p.crew:p.crew-1));
     if(!winnable.length){ log(p.name+L(" sizes up the rivals and stands down."," avalia os rivais e recua.")); finish(); return; }
     winnable.sort((a,b)=>cellUnit(b.idx)*b.s-cellUnit(a.idx)*a.s);
-    const t=winnable[0]; resolveAttack(p,t.o,t.idx,Math.min(p.crew,t.s+1)); return;
+    const t=winnable[0]; resolveAttack(p,t.o,t.idx,Math.min(p.crew,UNIT_CAP,t.s+1)); return;
   }
   const el=document.getElementById("cardEl");
   let btns=targets.map(t=>`<button onclick="attackTarget(${t.o.id},${t.idx})">[ ${t.o.name}: ${OUTER[t.idx].t} (${t.s} ${L('def','def')}) ]</button>`).join("");
@@ -3894,21 +3899,21 @@ function attackTarget(oid,idx){
   openModal();
 }
 function _atkShow(){ const p=S.players[S.cur]; const d=document.getElementById("atkval"); if(d)d.textContent=p._atkPick||0; const b=document.getElementById("atksend"); if(b)b.textContent=((p._atkPick||0)>0?(L('[ SEND ','[ ENVIAR ')+(p._atkPick)+' ]'):L('[ SEND · none ]','[ ENVIAR · nada ]')); }
-function atkKey(dg){ const p=S.players[S.cur]; const cur=String(p._atkPick||0); let nv=parseInt((cur==="0"?"":cur)+dg,10)||0; p._atkPick=Math.max(0,Math.min(p.crew,nv)); _atkShow(); }
+function atkKey(dg){ const p=S.players[S.cur]; const cur=String(p._atkPick||0); let nv=parseInt((cur==="0"?"":cur)+dg,10)||0; p._atkPick=Math.max(0,Math.min(p.crew,UNIT_CAP,nv)); _atkShow(); }
 function atkDel(){ const p=S.players[S.cur]; const cur=String(p._atkPick||0); p._atkPick=parseInt(cur.slice(0,-1),10)||0; _atkShow(); }
-function atkMax(){ const p=S.players[S.cur]; p._atkPick=p.crew; _atkShow(); }
+function atkMax(){ const p=S.players[S.cur]; p._atkPick=Math.min(p.crew,UNIT_CAP); _atkShow(); }
 function confirmAttack(){const p=S.players[S.cur];const t=p._atkTarget;const n=p._atkPick||0;if(n<1)return;p._atkPick=undefined;p._atkTarget=undefined;resolveAttack(p,S.players[t.oid],t.idx,n);}
 function resolveAttack(p,o,idx,atk){
   closeModal();
   const def=o.owns.get(idx)||0;
-  atk=Math.max(1,Math.min(atk||p.crew,p.crew));
+  atk=Math.max(1,Math.min(atk||p.crew,p.crew,UNIT_CAP));   // no wave bigger than the cap
   const killed=Math.min(atk,def);            // each side wipes out this many of the other's soldiers
   p.soldierKills=(p.soldierKills||0)+killed;  // attacker downs the defenders
   o.soldierKills=(o.soldierKills||0)+killed;  // defenders down that many attackers
   const totalDown=killed*2;                   // casualties on BOTH sides — one volley per body
   SFX.soldierDown(totalDown||1);              // 3 gunshots per soldier killed in the battle (both sides)
   let title,body;
-  if(atk>def){ p.crew-=atk; o.owns.delete(idx); p.owns.set(idx,Math.max(1,atk-def));
+  if(atk>def){ p.crew-=atk; o.owns.delete(idx); p.owns.set(idx,capUnits(Math.max(1,atk-def)));
     title=L("TURF TAKEN","\u00c1REA TOMADA");
     body=LANG==='PT'?p.name+" mandou "+atk+" contra "+def+" de "+o.name+" em "+OUTER[idx].t+". Perdeu "+def+" na briga, varreu a equipe deles e tomou o quarteir\u00e3o com "+Math.max(1,atk-def)+" de p\u00e9.":p.name+" sent "+atk+" against "+o.name+"'s "+def+" at "+OUTER[idx].t+". Lost "+def+" in the fight, wiped their crew, and seized the block with "+Math.max(1,atk-def)+" left standing.";
     log(p.name+L(" takes "," toma ")+OUTER[idx].t+L(" from "," de ")+o.name+" ("+atk+" vs "+def+").","good"); }
@@ -5061,7 +5066,7 @@ function rollDiceAI(){
     if(tgt){                                       // an aggressive AI hits a rival instead of moving — attacking IS its turn
       S.rolled=true;
       log(pp.name+L(" moves on "," parte pra cima de ")+tgt.o.name+L("'s "," em ")+OUTER[tgt.idx].t+".","warn");
-      resolveAttack(pp,tgt.o,tgt.idx,Math.min(pp.crew,tgt.s+1)); return;
+      resolveAttack(pp,tgt.o,tgt.idx,Math.min(pp.crew,UNIT_CAP,tgt.s+1)); return;
     }
     rollDice();
   };
@@ -5100,17 +5105,27 @@ function aiReinforce(p){
   const inc=aiYearIncome(p), streetSol=streetSoldiers(p);
   const wageReserve=Math.max((p.crew+streetSol)*SOLDIER_WAGE, Math.round(p.cash*0.30));
   let added=0;
-  for(const idx of Array.from(p.owns.keys())){
-    const k=OUTER[idx]&&OUTER[idx].k; const per=cellUnit(idx); if(per<=0) continue;
-    if(k==="biz"){
-      const target=Math.min(pr.garCap||1, 3+Math.floor(inc/(SOLDIER_COST*15)));   // workers = FREE income, no wage — staff generously
-      while((p.owns.get(idx)||0)<target && p.cash-per>=Math.round(p.cash*0.15)){ p.cash-=per; p.owns.set(idx,(p.owns.get(idx)||0)+1); added++; }
-    } else if(k==="street"){
-      const grow=pr.garStep?Math.floor(nw/(SOLDIER_COST*pr.garStep)):0;
-      const target=Math.min(pr.garCap||1, 1+grow);              // soldiers cost yearly wages — keep turf lean
-      while((p.owns.get(idx)||0)<target && p.cash-per>=wageReserve){ p.cash-=per; p.owns.set(idx,(p.owns.get(idx)||0)+1); added++; }
-    }
-  }
+  const held=Array.from(p.owns.keys()).filter(i=>cellUnit(i)>0);
+  const fill=(idx,target,reserve)=>{                    // buy bodies into one holding, up to target
+    const per=cellUnit(idx); if(per<=0) return;
+    target=Math.min(UNIT_CAP,target);
+    while((p.owns.get(idx)||0)<target && p.cash-per>=reserve){ p.cash-=per; p.owns.set(idx,(p.owns.get(idx)||0)+1); added++; }
+  };
+  const deepTarget=(idx)=>{
+    const k=OUTER[idx]&&OUTER[idx].k;
+    if(k==="biz") return Math.min(UNIT_CAP, pr.garCap||1, 4+Math.floor(inc/(SOLDIER_COST*8)));       // workers earn and cost no wage — stack them hard
+    const grow=pr.garStep?Math.floor(nw/(SOLDIER_COST*pr.garStep)):0;
+    return Math.min(UNIT_CAP, pr.garCap||1, 2+grow);                                                 // soldiers draw wages — deep, but not free
+  };
+  const reserveFor=(idx)=>((OUTER[idx]&&OUTER[idx].k)==="biz")?Math.round(p.cash*0.15):wageReserve;
+  /* PASS 1 — no free gifts: a block sitting on one body is the cheapest thing on the board to
+     take, so lift everything off the floor before anything gets deep. */
+  const floor=Math.min(UNIT_CAP, Math.max(2, Math.round((pr.garCap||8)*0.15)));
+  for(const idx of held) fill(idx,Math.min(floor,deepTarget(idx)),reserveFor(idx));
+  /* PASS 2 — depth beats breadth: everything left goes into the best earner first, one holding
+     at a time, instead of being sprinkled a body at a time across the whole map. */
+  const byValue=held.slice().sort((a,b)=>(cellUnit(b)-cellUnit(a))||((p.owns.get(b)||0)-(p.owns.get(a)||0)));
+  for(const idx of byValue) fill(idx,deepTarget(idx),reserveFor(idx));
   if(added>0){ render(); log(p.name+L(" digs in — +"," reforça — +")+added+L(" staff"," reforço")+(added>1?"s":"")+L(" across its turf."," pela área."),"good"); }
   return added;
 }
@@ -5120,7 +5135,7 @@ function aiAttackTarget(p){
   const pr=aiProf(p);
   const minCrew=pr.atkMinCrew;
   if(p.crew<minCrew) return null;
-  const cap=pr.atkAllIn?p.crew:p.crew-1;          // only the most aggressive goes all-in; others keep one back
+  const cap=Math.min(UNIT_CAP, pr.atkAllIn?p.crew:p.crew-1);   // only the most aggressive goes all-in; others keep one back
   const targets=[];
   S.players.forEach(o=>{ if(o.id!==p.id&&o.alive){ o.owns.forEach((s,idx)=>{ if(s+1<=cap) targets.push({o,idx,s}); }); } });
   if(!targets.length) return null;
@@ -5187,15 +5202,26 @@ function aiSceneGo(){ if(_aiSceneDone)return;
   if(typeof PAUSED!=="undefined"&&PAUSED){ if(S)S._resume=aiSceneGo; return; }   // held while PAUSE/MENU is open — resumes on unpause
   _aiSceneDone=true; closeModal(); const f=_aiSceneThen; _aiSceneThen=null; if(f)f(); }
 function aiSceneCard(p,ttl,body,cls){ return `<div class="lbl" style="background:${p.color}">${p.name}</div><div class="ttl"${cls?` style="color:${cls}"`:''}>${ttl}</div><div class="bd">${body}</div>`; }
+/* Spreading thin loses games: ten blocks on one body each earn a trickle and hand a rival ten
+   cheap conquests. Before a Ghost claims anything new, what it already holds has to carry some
+   real weight — and the bar rises as it gets richer, so late-game money deepens instead of sprawls. */
+function aiSpreadOK(p){
+  const held=Array.from(p.owns.keys()).filter(i=>cellUnit(i)>0);
+  if(!held.length) return true;                       // nothing yet — the first holding is always fine
+  const pr=aiProf(p);
+  const depth=held.reduce((a,i)=>a+(p.owns.get(i)||0),0)/held.length;
+  const need=Math.min(pr.garCap||8, Math.max(3, Math.round(Math.max(0,netWorth(p))/(SOLDIER_COST*40))));
+  return depth>=need;
+}
 function aiBuyStreet(idx,c){const p=S.players[S.cur];const mult=aiProf(p).buyMult;
-  const thr=c.price*mult;   // every street earns on its own now — no reason to hold out for a matching business
+  const thr=c.price*mult*(aiSpreadOK(p)?1:4);   // holdings still thin? only a bargain is worth widening for
   let ttl,body;
   if(p.cash>=thr){p.cash-=c.price;p.owns.set(idx,1);log(p.name+L(" claims "," toma ")+c.t+".","good");
     ttl=L("CLAIMS TURF","TOMA A ÁREA");body=p.name+L(" buys "," compra ")+c.t+L(" for "," por ")+fmtK(c.price)+".";}
   else {log(p.name+L(" passes on "," dispensa ")+c.t+".");ttl=L("WALKS PAST","PASSA DIRETO");body=p.name+L(" eyes "," olha ")+c.t+L(" but keeps the cash."," mas guarda o dinheiro.");}
   render();aiScene(aiSceneCard(p,ttl,body),finish);}
 function aiBuyBiz(idx,c){const p=S.players[S.cur];let ttl,body;
-  const thr=c.income*1.5;
+  const thr=c.income*1.5*(aiSpreadOK(p)?1:4);   // deepen what it runs before opening another shop
   if(p.cash>=thr){p.cash-=c.income;p.owns.set(idx,1);log(p.name+L(" opens "," abre ")+c.t+".","good");
     ttl=L("OPENS SHOP","ABRE NEGÓCIO");body=p.name+L(" opens "," abre ")+c.t+L(" for "," por ")+fmtK(c.income)+".";}
   else {log(p.name+L(" passes on "," dispensa ")+c.t+".");ttl=L("WALKS PAST","PASSA DIRETO");body=p.name+L(" passes on "," dispensa ")+c.t+".";}
