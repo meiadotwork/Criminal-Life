@@ -765,7 +765,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v25.8";
+const APP_VERSION="v25.9";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -2540,7 +2540,7 @@ function renderSpectate(force){
   if(force||sv.dataset.built!=="1"){
     sv.innerHTML=`<div class="cv" style="display:block">
       <div class="cvhead"><div class="cvtitle">${PAUSED?("‖ "+L("PAUSED","PAUSADO")):("▶ "+L("SPECTATING","ASSISTINDO"))}</div><div class="cvsub" id="specSub"></div></div>
-      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:2px 0 4px"><button onclick="toggleSpecPause()">${PAUSED?L("[ ▶ RESUME ]","[ ▶ CONTINUAR ]"):L("[ ‖ PAUSE ]","[ ‖ PAUSAR ]")}</button><span style="font-size:11px;opacity:.7;letter-spacing:1px;margin-left:4px">${L("SPEED","VELOCIDADE")}</span>${SPEC_SPEED_ORDER.map(k=>`<button class="tiny${_specSpeed===k?' amber':''}" onclick="setSpecSpeed('${k}')">${L(SPEC_SPEEDS[k].lbl[0],SPEC_SPEEDS[k].lbl[1])}</button>`).join("")}<button class="tiny${_specDeaths?' amber':''}" onclick="toggleSpecDeaths()" title="${L('stop & show the card when a boss dies','parar e mostrar quando um chefe morre')}" style="margin-left:6px">${L('\u2620 DEATHS','\u2620 MORTES')}</button></div>
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:2px 0 4px"><button onclick="toggleSpecPause()">${PAUSED?L("[ ▶ RESUME ]","[ ▶ CONTINUAR ]"):L("[ ‖ PAUSE ]","[ ‖ PAUSAR ]")}</button><span style="font-size:11px;opacity:.7;letter-spacing:1px;margin-left:4px">${L("SPEED","VELOCIDADE")}</span>${SPEC_SPEED_ORDER.map(k=>`<button class="tiny${_specSpeed===k?' amber':''}" onclick="setSpecSpeed('${k}')">${L(SPEC_SPEEDS[k].lbl[0],SPEC_SPEEDS[k].lbl[1])}</button>`).join("")}<button class="tiny${_specDeaths?' amber':''}" onclick="toggleSpecDeaths()" title="${L('stop & show the card when a boss dies','parar e mostrar quando um chefe morre')}" style="margin-left:6px">${L('\u2620 DEATHS','\u2620 MORTES')}</button><button class="tiny" onclick="openSettings()" title="${L('options','opções')}" style="margin-left:6px">${L('[ OPT ]','[ OPÇÕES ]')}</button></div>
       <div class="cvh" style="margin-top:2px">${L("NET WORTH OVER TIME","PATRIMÔNIO AO LONGO DO TEMPO")}</div>
       <div style="display:flex;justify-content:flex-end;gap:5px;margin:2px 0 4px"><button class="tiny" onclick="chartZoom(-1)">−</button><button class="tiny" id="chartZoomBtn" onclick="chartZoom(0)" title="reset zoom">100%</button><button class="tiny" onclick="chartZoom(1)">+</button></div>
       <div id="nwChartWrap" style="width:100%;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;border:1px solid #173a22"></div>
@@ -3868,7 +3868,9 @@ function hireConfirm(){
 
 /* ===== HITMAN SPACE: take a job yourself, or put a contract on a rival boss ===== */
 const HIT_COST=150;
-function hitCost(o){ try{ return Math.max(1, Math.round(netWorth(o)/3)); }catch(e){ return HIT_COST; } }
+/* A hit is a flat street price — five bodyguards' worth — not a slice of what the target owns.
+   Putting paper on the boss running away with the city costs the same as anyone else. */
+function hitCost(o){ try{ return Math.max(1, Math.round(5*SOLDIER_COST)); }catch(e){ return HIT_COST; } }
 function hitNotice(lbl,art,ttl,bd,then){ const p=S.players[S.cur]; if(p&&p.ai){ aiScene(aiSceneCard(p,ttl,bd), then); } else { showNotice(lbl,art,ttl,bd,then); } }
 function hitmanStop(){
   const p=S.players[S.cur];
@@ -3959,10 +3961,12 @@ function executePlayer(oid){
   const cost=execCost(o); if(p.cash<cost)return;
   p.cash-=cost; S.rolled=true;
   o.owns.forEach((cnt,idx)=>{ grantUnits(p,idx,cnt); clearFresh(o,idx); }); o.owns=new Map();
+  const took=Math.max(0,Math.round(o.cash||0));      // the safe comes with the empire
+  if(took>0){ p.cash+=took; mkDirty(p,took); o.cash=0; }
   o._deathCause=L("Executed on a contract — stripped of everything","Executado num contrato — perdeu tudo");
   o._gunDeath=true;
   closeModal(); try{SFX.overkill();}catch(e){}
-  log(p.name+L(" pays "," paga ")+fmtK(cost)+L(" to have "," pra mandar ")+o.name+L(" executed — and seizes their turf."," ser executado — e toma a área dele."),"bad");
+  log(p.name+L(" pays "," paga ")+fmtK(cost)+L(" to have "," pra mandar ")+o.name+L(" executed — seizes their turf and empties their safe"," ser executado — toma a área e esvazia o cofre")+(took>0?" (+"+fmtK(took)+")":"")+".","bad");
   render();
   killPlayer(o,p);
 }
