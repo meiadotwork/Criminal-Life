@@ -765,7 +765,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v26.8";
+const APP_VERSION="v26.9";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -781,9 +781,9 @@ const OUTER = [
   {t:"Queensbridge",ic:"#",k:"street",price:30},
   {t:"cocaine",ic:"co",k:"biz",income:200},
   {t:"Fordham Rd",ic:"#",k:"street",price:45},
-  {t:"Atlantic Ave",ic:"#",k:"street",price:90},
+  {t:"POLICE RAID",ic:"*",k:"raid"},
   {t:"DRUG DEAL",ic:"~",k:"drug"},
-  {t:"HITMAN",ic:"x",k:"hitman"},
+  {t:"Atlantic Ave",ic:"#",k:"street",price:90},
   {t:"CROOKED COP",ic:"$b",k:"cop"},
   {t:"weed",ic:"wd",k:"biz",income:80},
   {t:"Times Square",ic:"#",k:"street",price:350},   // 10 top-left corner
@@ -791,7 +791,7 @@ const OUTER = [
   {t:"Flatbush Av",ic:"#",k:"street",price:60},
   {t:"125th St",ic:"#",k:"street",price:75},
   {t:"guns",ic:"gn",k:"biz",income:150},
-  {t:"HITMAN",ic:"x",k:"hitman"},
+  {t:"POLICE RAID",ic:"*",k:"raid"},
   {t:"Bedford Ave",ic:"#",k:"street",price:100},
   {t:"HEIST",ic:"!",k:"heist"},
   {t:"meth",ic:"me",k:"biz",income:170},
