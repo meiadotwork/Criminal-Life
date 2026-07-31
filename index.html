@@ -765,7 +765,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v26.1";
+const APP_VERSION="v26.2";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -861,6 +861,12 @@ const CITIES = {
     // drugs separated (cocaína, crack, maconha — SP's Cracolândia) + cargo theft, PIX scam, chop shop, phone theft, piracy, laundering
     biz:{400:["cocaína","co"],200:["crack","ck"],180:["golpe PIX","px"],170:["roubo carga","cr"],150:["desmanche","dm"],110:["maconha","mc"],90:["roubo celular","cl"],80:["pirataria","pi"],70:["lavagem","$$"]},
     casino:["Jogo do Bicho","JB"] },
+  ASU: { name:"ASUNCIÓN", prison:"TACUMBÚ", law:{life:false, maxYears:30}, cur:"₲", scale:1000, region:"PY", soldier:8400, bg:8400,
+    // barrios keyed by fixed price: the riverside bañados at the bottom, Villa Morra at the top
+    streets:{20:"Chacarita",30:"Bañado Sur",45:"Bañado Norte",60:"Zeballos Cué",75:"Tacumbú",90:"Republicano",100:"San Blas",210:"Obrero",225:"Sajonia",230:"Centro",250:"Mburucuyá",280:"Ykua Satí",300:"Recoleta",350:"Carmelitas",400:"Villa Morra"},
+    // the real Paraguayan trade: transit cocaine, pressed weed, contraband, cigarettes, stolen cars
+    biz:{400:["cocaína","co"],200:["prensado","pr"],180:["contrabando","cb"],170:["cigarrillos","cg"],150:["autos robados","au"],110:["armas","ar"],90:["piratería","pi"],80:["usura","us"],70:["lavado","$$"]},
+    casino:["Quiniela","QN"] },
   LON: { name:"LONDON", prison:"HMP BLACKWALL", law:{life:true, maxYears:99}, cur:"$", scale:1, region:"UK", soldier:60, bg:60,
     // streets keyed by fixed price tier -> London turf, poorest -> richest (Mayfair on top)
     streets:{20:"Broadwater Fm",30:"Tottenham Hale",45:"Peckham Rye",60:"Brixton Road",75:"Harlesden",90:"Deptford High",100:"Elephant&Cast",210:"Camden Town",225:"Hackney Cent.",230:"Shoreditch",250:"Canary Wharf",280:"South Ken.",300:"Chelsea Kings",350:"Kensington Hi",400:"Mayfair"},
@@ -1245,6 +1251,60 @@ pday:[
  {ttl:"Prison Day",ttl_pt:"Celular alugado",lbl:"PRISON DAY",packs:2,bd:"You rented out a smuggled phone by the minute. Half the wing owes you smokes by lock-up.",bd_pt:"Alugou um celular contrabandeado por minuto. Metade da ala te deve cigarro na hora de trancar."}
 ]
 };
+/* ===== DECKS_PY: Paraguayan cards — the Hidrovía, the tri-border, prensado weed,
+   contraband cigarettes and stolen Brazilian cars. Merged into the base for ₲ cities. ===== */
+const DECKS_PY = {
+heist:[
+ {ttl:"Value truck on Ruta 2",ttl_pt:"Carro-forte na Ruta 2",lbl:"HEIST",arr:9,cut:23,bd:"You boxed the cash-in-transit truck where Ruta 2 narrows past Ypacaraí. The guards counted the rifles pointed at them and handed the sacks down without a word.",bd_pt:"Fechou o carro-forte onde a Ruta 2 estreita depois de Ypacaraí. Os guardas contaram os fuzis apontados e entregaram os sacos sem dizer nada."},
+ {ttl:"Mercado 4 gold row",ttl_pt:"Ourivesarias do Mercado 4",lbl:"HEIST",arr:4,cut:12,bd:"Two on a moto through the gold stalls at Mercado 4 — trays swept into a backpack, gone into the alleys before anyone dropped a shutter.",bd_pt:"Dois numa moto pelas bancas de ouro do Mercado 4 — bandejas varridas pra mochila, sumiram nos becos antes de alguém baixar a grade."},
+ {ttl:"Ciudad del Este run",ttl_pt:"Corre em Ciudad del Este",lbl:"HEIST",arr:7,cut:28,bd:"A currency house on the Puente de la Amistad moves more cash in a morning than a bank does in a week. You took the morning.",bd_pt:"Uma casa de câmbio na Ponte da Amizade movimenta mais dinheiro numa manhã do que um banco numa semana. Você levou a manhã."},
+ {ttl:"Villeta port container",ttl_pt:"Contêiner no porto de Villeta",lbl:"HEIST",arr:8,cut:26,bd:"A container walked off the quay at Villeta on the wrong truck. By the time the manifest was questioned it was already three departments away.",bd_pt:"Um contêiner saiu do cais de Villeta no caminhão errado. Quando questionaram o manifesto, já estava a três departamentos dali."},
+ {ttl:"Bank on Palma",ttl_pt:"Banco na Palma",lbl:"HEIST",arr:20,cut:40,bd:"A vault job on Calle Palma that went loud. A guard reached for his radio and didn't make it home — now there's a body on the paperwork.",bd_pt:"Um assalto a cofre na Calle Palma que saiu no barulho. Um guarda foi pro rádio e não voltou pra casa — agora tem um corpo na papelada."},
+ {ttl:"Soy silo skim",ttl_pt:"Desvio no silo de soja",lbl:"HEIST",arr:5,cut:16,bd:"Forty tonnes of soy left a silo in the Chaco on paperwork that never existed. The buyer in Brazil didn't ask where it grew.",bd_pt:"Quarenta toneladas de soja saíram de um silo no Chaco com papelada que nunca existiu. O comprador no Brasil não perguntou onde cresceu."},
+ {ttl:"Cattle off the Chaco",ttl_pt:"Gado do Chaco",lbl:"HEIST",arr:6,cut:18,bd:"Three hundred head crossed a fence line at night and came back branded for somebody else. The rancher reported it a week late.",bd_pt:"Trezentas cabeças cruzaram a cerca de noite e voltaram marcadas pra outro dono. O fazendeiro deu queixa uma semana depois."},
+ {ttl:"Pettirossi cargo shed",ttl_pt:"Galpão de carga do Pettirossi",lbl:"HEIST",arr:10,cut:31,bd:"A pallet of electronics left the Silvio Pettirossi cargo shed with a signature nobody could later match to a living employee.",bd_pt:"Um palete de eletrônicos saiu do galpão de carga do Silvio Pettirossi com uma assinatura que ninguém conseguiu ligar a um funcionário vivo."},
+ {ttl:"ATM in the small hours",ttl_pt:"Caixa eletrônico de madrugada",lbl:"HEIST",arr:3,cut:8,bd:"A gas bottle, a length of hose and a cash machine in Fernando de la Mora. Loud, crude, and paid for itself before dawn.",bd_pt:"Um botijão, um pedaço de mangueira e um caixa eletrônico em Fernando de la Mora. Barulhento, tosco, e se pagou antes do amanhecer."},
+ {ttl:"Itaipú payroll",ttl_pt:"Folha de pagamento de Itaipú",lbl:"HEIST",arr:11,cut:34,bd:"You knew the week the contractors got paid and the road they took to get there. The convoy never reached the second checkpoint.",bd_pt:"Você sabia a semana em que os empreiteiros recebiam e a estrada que pegavam. O comboio nunca chegou ao segundo posto."}
+],
+hitman:[
+ {ttl:"Border business",ttl_pt:"Acerto na fronteira",lbl:"HITMAN",arr:11,cut:6,bd:"Two outfits had wanted the same crossing for years. You settled which one kept it, on a dirt road outside Pedro Juan, and the crossing went quiet.",bd_pt:"Duas organizações queriam a mesma passagem havia anos. Você resolveu qual ficava com ela, numa estrada de terra fora de Pedro Juan, e a passagem sossegou."},
+ {ttl:"The prosecutor",ttl_pt:"O promotor",lbl:"HITMAN",arr:25,cut:14,bd:"A prosecutor who wouldn't take the envelope was shot on a beach across the border. The country heard about it for a month.",bd_pt:"Um promotor que não aceitou o envelope foi baleado numa praia do outro lado da fronteira. O país falou disso por um mês."},
+ {ttl:"Sicario from across",ttl_pt:"Sicário do outro lado",lbl:"HITMAN",arr:9,cut:5,bd:"You brought a shooter over the bridge who nobody in Asunción could name. He was back in Foz before the ambulance arrived.",bd_pt:"Trouxe um pistoleiro pela ponte que ninguém em Assunção sabia o nome. Ele voltou pra Foz antes da ambulância chegar."},
+ {ttl:"Motochorro contract",ttl_pt:"Serviço de motochorro",lbl:"HITMAN",arr:8,cut:4,bd:"Two helmets, one moto, a red light on Eusebio Ayala. Fifteen seconds of work and the debt was settled permanently.",bd_pt:"Dois capacetes, uma moto, um sinal vermelho na Eusebio Ayala. Quinze segundos de serviço e a dívida foi quitada em definitivo."},
+ {ttl:"Inside Tacumbú",ttl_pt:"Dentro de Tacumbú",lbl:"HITMAN",arr:14,cut:7,bd:"The order went in on a smuggled phone and was carried out in a corridor the guards had agreed to be somewhere else in.",bd_pt:"A ordem entrou num celular contrabandeado e foi cumprida num corredor onde os guardas tinham combinado de não estar."},
+ {ttl:"The informant",ttl_pt:"O informante",lbl:"HITMAN",arr:12,cut:6,bd:"Somebody had been talking to the anti-drug unit for months. He stopped talking on a Tuesday, in his own driveway.",bd_pt:"Alguém vinha conversando com a unidade antidrogas havia meses. Parou de conversar numa terça, na própria garagem."},
+ {ttl:"Debt on the river",ttl_pt:"Dívida no rio",lbl:"HITMAN",arr:10,cut:5,bd:"A barge captain skimmed one load too many. They found the barge at Concepción and never found him.",bd_pt:"Um capitão de balsa desviou uma carga a mais. Acharam a balsa em Concepción e nunca acharam ele."},
+ {ttl:"Made an example",ttl_pt:"Exemplo dado",lbl:"HITMAN",arr:22,cut:11,bd:"It wasn't about the money any more. It was about the six other people watching who now understood the arrangement.",bd_pt:"Já não era pelo dinheiro. Era pelas outras seis pessoas assistindo que agora entenderam o acordo."}
+],
+cop:[
+ {ttl:"Crooked Cop",ttl_pt:"Policial na folha",lbl:"CROOKED COP",cut:11,bd:"A comisario on a monthly envelope calls you the night before every operation. You empty the deposit and the warrant finds an empty shed.",bd_pt:"Um comisario num envelope mensal te liga na véspera de cada operação. Você esvazia o depósito e o mandado encontra um galpão vazio."},
+ {ttl:"The customs man",ttl_pt:"O homem da aduana",lbl:"CROOKED COP",cut:14,bd:"One signature at the Puente de la Amistad and a truck that was never inspected. He signs it every week and never reads the load.",bd_pt:"Uma assinatura na Ponte da Amizade e um caminhão que nunca foi vistoriado. Ele assina toda semana e nunca lê a carga."},
+ {ttl:"Anti-drug unit friend",ttl_pt:"Amigo na antidrogas",lbl:"CROOKED COP",cut:16,bd:"Somebody inside the anti-drug unit sells the operation calendar a week ahead. Everyone he sells it to stays free.",bd_pt:"Alguém dentro da antidrogas vende o calendário das operações com uma semana de antecedência. Todo mundo que compra continua livre."},
+ {ttl:"The judge's cousin",ttl_pt:"O primo do juiz",lbl:"CROOKED COP",cut:12,bd:"You don't pay the judge. You pay the cousin who tells you which judge is sitting, and that has always been enough.",bd_pt:"Você não paga o juiz. Paga o primo que diz qual juiz vai sentar, e isso sempre bastou."},
+ {ttl:"Highway patrol",ttl_pt:"Patrulha da estrada",lbl:"CROOKED COP",cut:8,bd:"A flat rate per truck at the checkpoint outside Coronel Oviedo. No questions, no scale, no paperwork.",bd_pt:"Uma taxa fixa por caminhão no posto fora de Coronel Oviedo. Sem perguntas, sem balança, sem papelada."},
+ {ttl:"Shakedown",ttl_pt:"Extorsão policial",lbl:"CROOKED COP",cut:-9,bd:"This one wasn't selling protection — he was collecting it. You paid because the alternative was a report with your name spelled correctly.",bd_pt:"Esse não estava vendendo proteção — estava cobrando. Você pagou porque a alternativa era um boletim com seu nome escrito certo."},
+ {ttl:"The file disappears",ttl_pt:"O processo some",lbl:"CROOKED COP",cut:15,bd:"A clerk in the courthouse moves one folder to the wrong shelf. Two years later nobody can prove the case ever opened.",bd_pt:"Um escrivão do fórum põe uma pasta na prateleira errada. Dois anos depois ninguém prova que o caso existiu."},
+ {ttl:"Political cover",ttl_pt:"Cobertura política",lbl:"CROOKED COP",cut:18,bd:"A deputy takes your money and your calls. The operations stop at the district line and everybody understands why.",bd_pt:"Um deputado aceita seu dinheiro e suas ligações. As operações param na divisa do distrito e todo mundo entende por quê."}
+],
+raid:[
+ {ttl:"SENAD at dawn",ttl_pt:"SENAD ao amanhecer",lbl:"POLICE RAID",bd:"SENAD came through the door before first light with the anti-drug unit behind them — every address on the intelligence package hit inside the same ten minutes.",bd_pt:"A SENAD entrou pela porta antes de clarear com a antidrogas atrás — cada endereço do pacote de inteligência batido nos mesmos dez minutos."},
+ {ttl:"The Hidrovía stop",ttl_pt:"Parada na Hidrovia",lbl:"POLICE RAID",bd:"A navy patrol boarded the barge convoy below Concepción and went through the grain holds with dogs. They knew which hold to open first.",bd_pt:"Uma patrulha naval abordou o comboio de balsas abaixo de Concepción e revistou os porões de grão com cães. Sabiam qual porão abrir primeiro."},
+ {ttl:"Joint operation",ttl_pt:"Operação conjunta",lbl:"POLICE RAID",bd:"Paraguayan and Brazilian units worked both sides of the bridge at once. Whatever you moved that morning had nowhere left to go.",bd_pt:"Unidades paraguaias e brasileiras trabalharam os dois lados da ponte ao mesmo tempo. O que você moveu naquela manhã não tinha pra onde ir."},
+ {ttl:"Mercado 4 sweep",ttl_pt:"Varredura no Mercado 4",lbl:"POLICE RAID",bd:"They closed both ends of the market and worked inward through the stalls. Half the district was inside the cordon before anyone thought to run.",bd_pt:"Fecharam as duas pontas do mercado e foram trabalhando pra dentro pelas bancas. Metade do bairro estava dentro do cerco antes de alguém pensar em correr."},
+ {ttl:"The tip-off",ttl_pt:"A denúncia",lbl:"POLICE RAID",bd:"Somebody who owed you money made a phone call instead of a payment. The unit arrived knowing which room to enter.",bd_pt:"Alguém que te devia dinheiro fez uma ligação em vez de um pagamento. A equipe chegou sabendo em qual cômodo entrar."},
+ {ttl:"Helicopter on the estancia",ttl_pt:"Helicóptero na estância",lbl:"POLICE RAID",bd:"They came over the treeline at the ranch north of Pedro Juan and were on the airstrip before the plane could turn.",bd_pt:"Vieram por cima das árvores na estância ao norte de Pedro Juan e chegaram na pista antes do avião conseguir virar."}
+],
+drug:[
+ {ttl:"Prensado to the border",ttl_pt:"Prensado pra fronteira",lbl:"DRUG DEAL",arr:6,cut:13,bd:"Pressed bricks out of Amambay, loaded at night onto trucks that cross before the shift changes. Half of Brazil smokes what leaves that department.",bd_pt:"Tijolos prensados saindo de Amambay, carregados de noite em caminhões que cruzam antes da troca de turno. Metade do Brasil fuma o que sai desse departamento."},
+ {ttl:"Barge cocaine",ttl_pt:"Cocaína na balsa",lbl:"DRUG DEAL",arr:14,cut:34,bd:"Bolivian product buried in a grain barge on the Paraguay river, bound for Europe through a port that never opened the hold.",bd_pt:"Produto boliviano enterrado numa balsa de grãos no rio Paraguai, rumo à Europa por um porto que nunca abriu o porão."},
+ {ttl:"Airstrip in the Chaco",ttl_pt:"Pista no Chaco",lbl:"DRUG DEAL",arr:12,cut:30,bd:"A dirt strip nobody maintains and a plane that lands twice a month. It's on no map and everybody in the department knows it.",bd_pt:"Uma pista de terra que ninguém mantém e um avião que pousa duas vezes por mês. Não está em mapa nenhum e todo mundo no departamento sabe."},
+ {ttl:"The Amambay farm",ttl_pt:"A roça de Amambay",lbl:"DRUG DEAL",arr:9,cut:20,bd:"Sixty hectares under cannabis in country the state visits once a year, worked by people who get paid in cash and asked nothing.",bd_pt:"Sessenta hectares de maconha numa região que o estado visita uma vez por ano, tocada por gente que recebe em dinheiro e não pergunta nada."},
+ {ttl:"Crack in the bañado",ttl_pt:"Crack no bañado",lbl:"DRUG DEAL",arr:5,cut:9,bd:"A house in the Bañado Sur selling to the same forty faces every day. Small money, every day, and the flood is the only thing that closes it.",bd_pt:"Uma casa no Bañado Sur vendendo pras mesmas quarenta caras todo dia. Dinheiro pouco, todo dia, e a cheia é a única coisa que fecha."},
+ {ttl:"Tri-border handover",ttl_pt:"Entrega na tríplice",lbl:"DRUG DEAL",arr:11,cut:26,bd:"Product changes hands in a car park where three countries meet and no single force has the authority to follow it out.",bd_pt:"O produto troca de mãos num estacionamento onde três países se encontram e nenhuma força sozinha tem autoridade pra seguir."},
+ {ttl:"Cargo of cigarettes",ttl_pt:"Carga de cigarro",lbl:"DRUG DEAL",arr:4,cut:11,bd:"Not a drug at all — just forty thousand cartons that pay better than most drugs and cost you a fine if they ever catch it.",bd_pt:"Nem é droga — só quarenta mil pacotes que pagam melhor que a maioria das drogas e custam uma multa se pegarem."},
+ {ttl:"The mule flight",ttl_pt:"Voo da mula",lbl:"DRUG DEAL",arr:8,cut:15,bd:"A courier out of Silvio Pettirossi with a false-bottomed case. She had never flown before and that was exactly the point.",bd_pt:"Uma mula saindo do Silvio Pettirossi com uma mala de fundo falso. Ela nunca tinha voado antes e era justamente esse o ponto."}
+]
+};
 /* ===== PER-REGION DECKS: base cards are global; some cities merge in a local set
    (e.g. Brazilian cities pull DECKS_BR on top of the base deck). ===== */
 let ADECKS=null;
@@ -1264,6 +1324,7 @@ function buildActiveDecks(region){
     else if(region==="MX" && typeof DECKS_MX!=="undefined" && DECKS_MX[k]) a=a.concat(DECKS_MX[k]);
     else if(region==="UK" && typeof DECKS_UK!=="undefined" && DECKS_UK[k]) a=a.concat(DECKS_UK[k]);
     else if(region==="CO" && typeof DECKS_CO!=="undefined" && DECKS_CO[k]) a=a.concat(DECKS_CO[k]);
+    else if(region==="PY" && typeof DECKS_PY!=="undefined" && DECKS_PY[k]) a=a.concat(DECKS_PY[k]);
     ADECKS[k]=a.map(c=>Object.assign({},c));   // clone so per-city native remap never mutates the source DECKS
   }
   // NATIVE per-city payouts anchored to the bodyguard: crimes 0.5..10 bg, hospital 0.5..5 bg
@@ -1358,7 +1419,7 @@ function openMultiplayer(){
      <div class="cfghead">1. ${L('PLAYERS','JOGADORES')} <span style="opacity:.55">${L('(you + rivals — set each seat next)','(você + rivais — defina cada lugar a seguir)')}</span></div>
      <div class="choice">${[2,3,4,5,6,7,8,9,10].map(pC).join('')}</div>
      <div class="cfghead">2. ${L('CITY','CIDADE')} <span style="opacity:.55">${L('(map · prison · local law)','(mapa · prisão · lei local)')}</span></div>
-     <div class="choice">${cityB('NY','NEW YORK')}${cityB('LA','LOS ANGELES')}${cityB('CWB','CURITIBA')}${cityB('RIO','RIO')}${cityB('CDMX','CDMX')}${cityB('SP','SÃO PAULO')}${cityB('LON','LONDON')}${cityB('MDE','MEDELLÍN')}</div>
+     <div class="choice">${cityB('NY','NEW YORK')}${cityB('LA','LOS ANGELES')}${cityB('CWB','CURITIBA')}${cityB('RIO','RIO')}${cityB('CDMX','CDMX')}${cityB('SP','SÃO PAULO')}${cityB('MDE','MEDELLÍN')}${cityB('ASU','ASUNCIÓN')}${cityB('LON','LONDON')}</div>
      <div class="cfghead">3. ${L('YEAR','ANO')} <span style="opacity:.55">${L('(the year play begins)','(o ano em que o jogo come\u00e7a)')}</span></div>
      <div class="choice">${YEAR_PRESETS.map(yB).join('')}<button class="cfg${yCustom?' sel':''}" onclick="openYearPad()">[ ${yCustom?yr:L('OTHER \u00bb','OUTRO \u00bb')} ]</button></div>
      <div class="cfgflavor">&gt; ${L('the clock starts in ','o rel\u00f3gio come\u00e7a em ')}${yr}${L(' \u2014 each year on the street rolls it forward',' \u2014 cada ano na rua avan\u00e7a o calend\u00e1rio')}</div>
@@ -1612,6 +1673,9 @@ const CAREER_LEVELS=[
   {city:"NY",status:"free",ai:5,police:4,dice:8,stake:1000,win:{cash:100000},
    en:"New York, the biggest table. Five bosses between you and the crown. Stack a hundred million and the city is yours.",
    pt:"Nova York, a maior mesa. Cinco chefões entre você e a coroa. Junte cem milhões e a cidade é sua."},
+  {city:"ASU",status:"free",ai:4,police:3,dice:8,stake:2000,win:{cash:10000000,biz:3,streets:4},
+   en:"Asunción runs on what crosses it — the river to the south, the bridge to the east, and everything that moves between them. Four crews already hold the routes. Take a real operation off them: four streets, three rackets and \u20b210B behind you.",
+   pt:"Assunção vive do que atravessa ela — o rio ao sul, a ponte a leste, e tudo que passa entre os dois. Quatro quadrilhas já seguram as rotas. Tome uma operação de verdade delas: quatro ruas, três negócios e \u20b210B no bolso."},
   {city:"LON",status:"free",ai:3,police:2,dice:10,stake:5000,win:{cash:1000000},
    en:"London. Only three rivals left standing — but the game is a billion pounds now. Build the dynasty that ends untouchable.",
    pt:"Londres. Só três rivais de pé — mas o jogo é um bilhão de libras agora. Construa a dinastia que termina intocável."}
