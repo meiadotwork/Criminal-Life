@@ -765,7 +765,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v26.3";
+const APP_VERSION="v26.4";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -1655,6 +1655,9 @@ const CAREER_LEVELS=[
   {city:"CWB",status:"free",ai:8,police:1,dice:6,stake:0,win:{cash:4000,biz:2,streets:2},
    en:"You're a nobody in Curitiba — no money, eight crews ahead of you and a city that doesn't know your name. Build a real operation: the cash, the corners and the fronts.",
    pt:"Você é um zé-ninguém em Curitiba — sem grana, oito quadrilhas na frente e uma cidade que não sabe seu nome. Monte uma operação de verdade: a grana, as bocas e os negócios."},
+  {city:"ASU",status:"free",ai:7,police:1,dice:6,stake:500,win:{cash:9000,biz:3,streets:3},
+   en:"You cross the border with whatever Curitiba left you. Asunción is smaller and closer to the bone — everything here moves through the river or over the bridge, and seven crews already tax both. Take three streets, three rackets and $9M off them.",
+   pt:"Você cruza a fronteira com o que Curitiba deixou. Assunção é menor e mais na carne — tudo aqui passa pelo rio ou pela ponte, e sete quadrilhas já cobram pedágio nos dois. Tome três ruas, três negócios e $9M deles."},
   {city:"RIO",status:"free",ai:6,police:1,dice:8,stake:500,win:{cash:6000,biz:4,streets:4},
    en:"Word travels. Rio is bigger and meaner and the hills already have owners. Run a full operation — four corners, four fronts, six million in the bank.",
    pt:"A fama corre. O Rio é maior e mais pesado e os morros já têm dono. Toque uma operação completa — quatro bocas, quatro negócios, seis milhões no caixa."},
@@ -1673,9 +1676,6 @@ const CAREER_LEVELS=[
   {city:"NY",status:"free",ai:5,police:4,dice:8,stake:1000,win:{cash:100000},
    en:"New York, the biggest table. Five bosses between you and the crown. Stack a hundred million and the city is yours.",
    pt:"Nova York, a maior mesa. Cinco chefões entre você e a coroa. Junte cem milhões e a cidade é sua."},
-  {city:"ASU",status:"free",ai:4,police:3,dice:8,stake:2000,win:{cash:18000,biz:3,streets:4},
-   en:"Asunción runs on what crosses it — the river to the south, the bridge to the east, and everything that moves between them. Four crews already hold the routes. Take a real operation off them: four streets, three rackets and $18M behind you.",
-   pt:"Assunção vive do que atravessa ela — o rio ao sul, a ponte a leste, e tudo que passa entre os dois. Quatro quadrilhas já seguram as rotas. Tome uma operação de verdade delas: quatro ruas, três negócios e $18M no bolso."},
   {city:"LON",status:"free",ai:3,police:2,dice:10,stake:5000,win:{cash:1000000},
    en:"London. Only three rivals left standing — but the game is a billion pounds now. Build the dynasty that ends untouchable.",
    pt:"Londres. Só três rivais de pé — mas o jogo é um bilhão de libras agora. Construa a dinastia que termina intocável."}
