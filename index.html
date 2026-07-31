@@ -765,7 +765,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v26.0";
+const APP_VERSION="v26.1";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -2506,13 +2506,21 @@ function takeOverGhost(oid){
 /* ===== SPECTATE: watch an all-AI match as a live dashboard (chart + leaderboard),
    with the round console right below. Unlike PAUSE, the game keeps running. ===== */
 let SPECTATING=false, _specTurn=-1;
-function startSpectate(){ if(!allAliveAI())return; SPECTATING=true; _specTurn=-1; const sv=document.getElementById("spectateView"); if(sv)sv.dataset.built=""; closeModal(); const ce=document.getElementById("cardEl"); if(ce)ce.innerHTML=""; /* drop the pause card's duplicate #nwChartWrap */ applySpectate(); }
-function exitSpectate(){ SPECTATING=false; if(PAUSED&&typeof unpauseGame==="function")unpauseGame(); applySpectate(); }
+function startSpectate(){
+  if(!allAliveAI())return;
+  SPECTATING=true; _specTurn=-1; _userPaused=false;
+  if(_specSpeed==="MAX") setSpecSpeed("TURBO");   /* never open a session at full blast — speed up on purpose, not from memory */
+  const sv=document.getElementById("spectateView"); if(sv)sv.dataset.built="";
+  closeModal();
+  const ce=document.getElementById("cardEl"); if(ce)ce.innerHTML="";   /* drop the pause card's duplicate #nwChartWrap */
+  applySpectate();
+}
+function exitSpectate(){ SPECTATING=false; _userPaused=false; if(PAUSED&&typeof unpauseGame==="function")unpauseGame(); applySpectate(); }
 /* freeze / unfreeze the AI turns while watching (no modal — reuses the PAUSED gate) */
 function toggleSpecDeaths(){ _specDeaths=!_specDeaths; if(typeof renderSpectate==="function") renderSpectate(true); }
 function toggleSpecPause(){
-  if(PAUSED){ if(typeof unpauseGame==="function") unpauseGame(); }
-  else { PAUSED=true; }
+  if(PAUSED){ _userPaused=false; if(typeof unpauseGame==="function") unpauseGame(); }
+  else { _userPaused=true; PAUSED=true; }
   renderSpectate(true);
 }
 function applySpectate(){
@@ -3104,7 +3112,8 @@ function fontScale(dir){
 }
 /* ===== PAUSE: opening the MENU freezes AI turns until it's closed ===== */
 let PAUSED=false;
-function unpauseGame(){ if(!PAUSED)return; PAUSED=false; const r=(S&&S._resume)||null; if(S)S._resume=null; if(typeof r==="function") setTimeout(()=>{ if(!PAUSED)r(); },90); }
+let _userPaused=false;   // the watcher hit PAUSE — no auto-closing card may undo it
+function unpauseGame(){ if(_userPaused)return; if(!PAUSED)return; PAUSED=false; const r=(S&&S._resume)||null; if(S)S._resume=null; if(typeof r==="function") setTimeout(()=>{ if(!PAUSED)r(); },90); }
 function openSettings(){
   PAUSED=true;   // pause the game while the menu is open
   const el=document.getElementById("cardEl"); if(!el)return; el.dataset.deck="";
@@ -5444,6 +5453,8 @@ function aiResumeTurn(){
 let _aiSceneThen=null,_aiSceneDone=true;
 function aiScene(inner,then){
   const el=document.getElementById("cardEl"); if(!el){ if(then)then(); return; }
+  // the watcher has a screen open (settings, standings, a boss's record) — wait, don't paint over it
+  if(document.body.classList.contains("usermodal")){ if(S)S._resume=()=>aiScene(inner,then); PAUSED=true; return; }
   el.dataset.deck=""; el._card=null;
   _aiSceneThen=then||null; _aiSceneDone=false;
   el.innerHTML=inner+`<div class="go"><button onclick="aiSceneGo()">${L('[ CONTINUE ]','[ CONTINUAR ]')}</button></div>`+statusBar();
