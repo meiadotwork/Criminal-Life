@@ -765,7 +765,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v26.2";
+const APP_VERSION="v26.3";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -861,7 +861,7 @@ const CITIES = {
     // drugs separated (cocaína, crack, maconha — SP's Cracolândia) + cargo theft, PIX scam, chop shop, phone theft, piracy, laundering
     biz:{400:["cocaína","co"],200:["crack","ck"],180:["golpe PIX","px"],170:["roubo carga","cr"],150:["desmanche","dm"],110:["maconha","mc"],90:["roubo celular","cl"],80:["pirataria","pi"],70:["lavagem","$$"]},
     casino:["Jogo do Bicho","JB"] },
-  ASU: { name:"ASUNCIÓN", prison:"TACUMBÚ", law:{life:false, maxYears:30}, cur:"₲", scale:1000, region:"PY", soldier:8400, bg:8400,
+  ASU: { name:"ASUNCIÓN", prison:"TACUMBÚ", law:{life:false, maxYears:30}, cur:"$", scale:1, region:"PY", soldier:14, bg:14,
     // barrios keyed by fixed price: the riverside bañados at the bottom, Villa Morra at the top
     streets:{20:"Chacarita",30:"Bañado Sur",45:"Bañado Norte",60:"Zeballos Cué",75:"Tacumbú",90:"Republicano",100:"San Blas",210:"Obrero",225:"Sajonia",230:"Centro",250:"Mburucuyá",280:"Ykua Satí",300:"Recoleta",350:"Carmelitas",400:"Villa Morra"},
     // the real Paraguayan trade: transit cocaine, pressed weed, contraband, cigarettes, stolen cars
@@ -1673,9 +1673,9 @@ const CAREER_LEVELS=[
   {city:"NY",status:"free",ai:5,police:4,dice:8,stake:1000,win:{cash:100000},
    en:"New York, the biggest table. Five bosses between you and the crown. Stack a hundred million and the city is yours.",
    pt:"Nova York, a maior mesa. Cinco chefões entre você e a coroa. Junte cem milhões e a cidade é sua."},
-  {city:"ASU",status:"free",ai:4,police:3,dice:8,stake:2000,win:{cash:10000000,biz:3,streets:4},
-   en:"Asunción runs on what crosses it — the river to the south, the bridge to the east, and everything that moves between them. Four crews already hold the routes. Take a real operation off them: four streets, three rackets and \u20b210B behind you.",
-   pt:"Assunção vive do que atravessa ela — o rio ao sul, a ponte a leste, e tudo que passa entre os dois. Quatro quadrilhas já seguram as rotas. Tome uma operação de verdade delas: quatro ruas, três negócios e \u20b210B no bolso."},
+  {city:"ASU",status:"free",ai:4,police:3,dice:8,stake:2000,win:{cash:18000,biz:3,streets:4},
+   en:"Asunción runs on what crosses it — the river to the south, the bridge to the east, and everything that moves between them. Four crews already hold the routes. Take a real operation off them: four streets, three rackets and $18M behind you.",
+   pt:"Assunção vive do que atravessa ela — o rio ao sul, a ponte a leste, e tudo que passa entre os dois. Quatro quadrilhas já seguram as rotas. Tome uma operação de verdade delas: quatro ruas, três negócios e $18M no bolso."},
   {city:"LON",status:"free",ai:3,police:2,dice:10,stake:5000,win:{cash:1000000},
    en:"London. Only three rivals left standing — but the game is a billion pounds now. Build the dynasty that ends untouchable.",
    pt:"Londres. Só três rivais de pé — mas o jogo é um bilhão de libras agora. Construa a dinastia que termina intocável."}
