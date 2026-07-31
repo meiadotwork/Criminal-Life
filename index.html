@@ -765,7 +765,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v26.6";
+const APP_VERSION="v26.7";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -828,52 +828,52 @@ const _ECON_VALS = OUTER.filter(c=>c.k==="street"||c.k==="biz").map(c=>c.k==="st
 const ECON_MIN = Math.min(..._ECON_VALS), ECON_MAX = Math.max(..._ECON_VALS);
 function nativePrice(base, bg, scale){ const t=(base-ECON_MIN)/(ECON_MAX-ECON_MIN); const tgt=(bg||100)*(0.5+1.5*t); return Math.max(1, Math.round(tgt/(scale||1))); }
 const CITIES = {
-  NY:  { name:"NEW YORK", prison:"RIKERS", law:{life:true, maxYears:99}, cur:"$", scale:1, region:"US", soldier:80, bg:80,
+  NY:  { name:"NEW YORK", prison:"RIKERS", law:{life:true, maxYears:99}, cur:"$", scale:1, region:"US", soldier:45, bg:45,
     streets:{20:"Mott Haven",30:"South Bronx",45:"Brownsville",60:"East New York",75:"Sunset Park",90:"Jackson Hts",100:"Bay Ridge",210:"Astoria",225:"Long Is City",230:"Bklyn Heights",250:"Greenwich Vil",280:"Hudson Yards",300:"SoHo",350:"Tribeca",400:"Upper E Side"},
     biz:{400:["cocaine","co"],200:["fentanyl","fn"],180:["extortion","ex"],170:["loan shark","ls"],150:["card fraud","id"],110:["heroin","he"],90:["cargo theft","cg"],80:["weed","wd"],70:["laundering","$$"]},
     casino:["Poker Club","PC"] },
-  CWB: { name:"CURITIBA", prison:"PIRAQUARA", law:{life:false, maxYears:40}, cur:"$", scale:1, region:"BR", soldier:7, bg:7,
+  CWB: { name:"CURITIBA", prison:"PIRAQUARA", law:{life:false, maxYears:40}, cur:"$", scale:1, region:"BR", soldier:10, bg:10,
     // streets keyed by their fixed price → local neighborhood (richest price = most prestigious area)
     streets:{20:"Caximba",30:"Tatuquara",45:"Cajuru",60:"CIC",75:"Sítio Cercado",90:"Boqueirão",100:"Portão",210:"Centro",225:"Centro Cívico",230:"Juvevê",250:"Cabral",280:"Água Verde",300:"Bigorrilho",350:"Ecoville",400:"Batel"},
     // businesses keyed by their fixed income → [name, icon]; drugs are separated. 400 = the laundering front
     biz:{400:["cocaína","co"],200:["crack","ck"],180:["golpe PIX","px"],170:["contrabando","cn"],150:["roubo carga","cr"],110:["desmanche","dm"],90:["maconha","mc"],80:["roubo celular","cl"],70:["lavagem","$$"]},
     casino:["Jogo do Bicho","JB"]
   },
-  LA: { name:"LOS ANGELES", prison:"TWIN TOWERS", law:{life:true, maxYears:99}, cur:"$", scale:1, region:"US", soldier:70, bg:70,
+  LA: { name:"LOS ANGELES", prison:"TWIN TOWERS", law:{life:true, maxYears:99}, cur:"$", scale:1, region:"US", soldier:45, bg:45,
     streets:{20:"Skid Row",30:"Watts",45:"South LA",60:"Boyle Hts",75:"Echo Park",90:"Hollywood",100:"Koreatown",210:"Downtown LA",225:"W. Hollywood",230:"Santa Monica",250:"Brentwood",280:"Pacific Pal.",300:"Beverly Hills",350:"Holmby Hills",400:"Bel Air"},
     // drugs separated (cocaine, fentanyl, meth, heroin) + firearms, cargo/retail theft, fraud, laundering
     biz:{400:["cocaine","co"],200:["fentanyl","fn"],180:["firearms","gn"],170:["meth","me"],150:["fraud/ID","id"],110:["heroin","he"],90:["cargo theft","cg"],80:["retail theft","rt"],70:["laundering","$$"]},
     casino:["Card Room","CR"]
   },
-  RIO: { name:"RIO DE JANEIRO", prison:"BANGU", law:{life:false, maxYears:40}, cur:"$", scale:1, region:"BR", soldier:8, bg:8,
+  RIO: { name:"RIO DE JANEIRO", prison:"BANGU", law:{life:false, maxYears:40}, cur:"$", scale:1, region:"BR", soldier:11, bg:11,
     streets:{20:"C.Alemão",30:"Cidade Deus",45:"Bangu",60:"Madureira",75:"Méier",90:"Tijuca",100:"Flamengo",210:"Botafogo",225:"Copacabana",230:"Barra",250:"Gávea",280:"Jd Botânico",300:"Lagoa",350:"Ipanema",400:"Leblon"},
     // drugs separated (cocaína, crack, maconha) + milícia extortion, cargo theft, chop shop, PIX scam, smuggling, laundering
     biz:{400:["cocaína","co"],200:["crack","ck"],180:["milícia","ml"],170:["golpe PIX","px"],150:["roubo carga","cr"],110:["contrabando","cn"],90:["desmanche","dm"],80:["maconha","mc"],70:["lavagem","$$"]},
     casino:["Jogo do Bicho","JB"]
   },
-  CDMX:{ name:"MEXICO CITY", prison:"ALTIPLANO", law:{life:false, maxYears:60}, cur:"$", scale:1, region:"MX", soldier:10, bg:10,
+  CDMX:{ name:"MEXICO CITY", prison:"ALTIPLANO", law:{life:false, maxYears:60}, cur:"$", scale:1, region:"MX", soldier:21, bg:21,
     streets:{20:"Neza",30:"Tepito",45:"Iztapalapa",60:"Doctores",75:"Centro Hist.",90:"Escandón",100:"Narvarte",210:"Del Valle",225:"Coyoacán",230:"Roma Norte",250:"Condesa",280:"Santa Fe",300:"Bosques Lomas",350:"Lomas Chap.",400:"Polanco"},
     // drugs separated (cocaína, cristal, mota) + cobro de piso extortion, huachicol, robo de carga, autopartes, piratería, lavado
     biz:{400:["cocaína","co"],200:["cristal","cr"],180:["huachicol","hu"],170:["cobro de piso","cp"],150:["secuestro","sq"],110:["robo carga","rc"],90:["mota","mt"],80:["piratería","pi"],70:["lavado","$$"]},
     casino:["Casino","CS"] },
-  SP:  { name:"SÃO PAULO", prison:"CARANDIRU", law:{life:false, maxYears:40}, cur:"$", scale:1, region:"BR", soldier:9, bg:9,
+  SP:  { name:"SÃO PAULO", prison:"CARANDIRU", law:{life:false, maxYears:40}, cur:"$", scale:1, region:"BR", soldier:12, bg:12,
     streets:{20:"Heliópolis",30:"Cid Tiradentes",45:"Capão Redondo",60:"Brás",75:"Santana",90:"Tatuapé",100:"Vila Mariana",210:"Perdizes",225:"Higienópolis",230:"Pinheiros",250:"Moema",280:"Itaim Bibi",300:"V.N. Conceição",350:"Jardim América",400:"Jardim Europa"},
     // drugs separated (cocaína, crack, maconha — SP's Cracolândia) + cargo theft, PIX scam, chop shop, phone theft, piracy, laundering
     biz:{400:["cocaína","co"],200:["crack","ck"],180:["golpe PIX","px"],170:["roubo carga","cr"],150:["desmanche","dm"],110:["maconha","mc"],90:["roubo celular","cl"],80:["pirataria","pi"],70:["lavagem","$$"]},
     casino:["Jogo do Bicho","JB"] },
-  ASU: { name:"ASUNCIÓN", prison:"TACUMBÚ", law:{life:false, maxYears:30}, cur:"$", scale:1, region:"PY", soldier:14, bg:14,
+  ASU: { name:"ASUNCIÓN", prison:"TACUMBÚ", law:{life:false, maxYears:30}, cur:"$", scale:1, region:"PY", soldier:15, bg:15,
     // barrios keyed by fixed price: the riverside bañados at the bottom, Villa Morra at the top
     streets:{20:"Chacarita",30:"Bañado Sur",45:"Bañado Norte",60:"Zeballos Cué",75:"Tacumbú",90:"Republicano",100:"San Blas",210:"Obrero",225:"Sajonia",230:"Centro",250:"Mburucuyá",280:"Ykua Satí",300:"Recoleta",350:"Carmelitas",400:"Villa Morra"},
     // the real Paraguayan trade: transit cocaine, pressed weed, contraband, cigarettes, stolen cars
     biz:{400:["cocaína","co"],200:["prensado","pr"],180:["contrabando","cb"],170:["cigarrillos","cg"],150:["autos robados","au"],110:["armas","ar"],90:["piratería","pi"],80:["usura","us"],70:["lavado","$$"]},
     casino:["Quiniela","QN"] },
-  LON: { name:"LONDON", prison:"HMP BLACKWALL", law:{life:true, maxYears:99}, cur:"$", scale:1, region:"UK", soldier:60, bg:60,
+  LON: { name:"LONDON", prison:"HMP BLACKWALL", law:{life:true, maxYears:99}, cur:"$", scale:1, region:"UK", soldier:100, bg:100,
     // streets keyed by fixed price tier -> London turf, poorest -> richest (Mayfair on top)
     streets:{20:"Broadwater Fm",30:"Tottenham Hale",45:"Peckham Rye",60:"Brixton Road",75:"Harlesden",90:"Deptford High",100:"Elephant&Cast",210:"Camden Town",225:"Hackney Cent.",230:"Shoreditch",250:"Canary Wharf",280:"South Ken.",300:"Chelsea Kings",350:"Kensington Hi",400:"Mayfair"},
     // criminal enterprises (manufacturing side) — cocaine import on top, laundering at the bottom
     biz:{400:["cocaine","co"],200:["pills","pl"],180:["fraud","fr"],170:["extortion","ex"],150:["cybercrime","cy"],110:["cannabis","cb"],90:["cargo theft","cg"],80:["counterfeit","ct"],70:["laundering","$$"]},
     casino:["The Crown Club","CW"] },
-  MDE: { name:"MEDELLÍN", prison:"LA ESTRELLA", law:{life:false, maxYears:60}, cur:"$", scale:1, region:"CO", soldier:8, bg:8,
+  MDE: { name:"MEDELLÍN", prison:"LA ESTRELLA", law:{life:false, maxYears:60}, cur:"$", scale:1, region:"CO", soldier:18, bg:18,
     // comunas & barrios, poorest → richest (El Poblado hills on top)
     streets:{20:"Comuna 13",30:"Popular",45:"Santo Domingo",60:"Manrique",75:"Aranjuez",90:"Castilla",100:"Buenos Aires",210:"Belén",225:"Laureles",230:"Estadio",250:"Envigado",280:"Provenza",300:"El Poblado",350:"Las Palmas",400:"Los Balsos"},
     // criminal enterprises only — cocaine on top, laundering at the bottom
@@ -1652,31 +1652,31 @@ function confirmPlayer(){
 /* ================= CAREER MODE — one city at a time, carry your fortune ================= */
 const CAREER_KEY="ct_career_v1";
 const CAREER_LEVELS=[
-  {city:"CWB",status:"free",ai:8,police:1,dice:6,stake:0,win:{cash:3500},
+  {city:"CWB",status:"free",ai:8,police:1,dice:6,stake:0,win:{cash:5000},
    en:"You're a nobody in Curitiba — no money, eight crews ahead of you and a city that doesn't know your name. Build a real operation: the cash, the corners and the fronts.",
    pt:"Você é um zé-ninguém em Curitiba — sem grana, oito quadrilhas na frente e uma cidade que não sabe seu nome. Monte uma operação de verdade: a grana, as bocas e os negócios."},
-  {city:"ASU",status:"free",ai:5,police:1,dice:8,stake:50,win:{cash:9800},
+  {city:"ASU",status:"free",ai:5,police:1,dice:8,stake:50,win:{cash:10500},
    en:"You cross the border with whatever Curitiba left you. Asunción is smaller and closer to the bone — everything here moves through the river or over the bridge, and seven crews already tax both. Take three streets, three rackets and $9M off them.",
    pt:"Você cruza a fronteira com o que Curitiba deixou. Assunção é menor e mais na carne — tudo aqui passa pelo rio ou pela ponte, e sete quadrilhas já cobram pedágio nos dois. Tome três ruas, três negócios e $9M deles."},
-  {city:"RIO",status:"free",ai:6,police:1,dice:8,stake:150,win:{cash:7200},
+  {city:"RIO",status:"free",ai:6,police:1,dice:8,stake:150,win:{cash:9900},
    en:"Word travels. Rio is bigger and meaner and the hills already have owners. Run a full operation — four corners, four fronts, six million in the bank.",
    pt:"A fama corre. O Rio é maior e mais pesado e os morros já têm dono. Toque uma operação completa — quatro bocas, quatro negócios, seis milhões no caixa."},
-  {city:"SP",status:"prison",ai:10,police:4,dice:8,stake:300,win:{cash:9000},
+  {city:"SP",status:"prison",ai:10,police:4,dice:8,stake:300,win:{cash:12000},
    en:"São Paulo — straight into Carandiru with ten crews around you. There's only one way out on top: be the last boss standing.",
    pt:"São Paulo — direto pro Carandiru com dez quadrilhas em volta. Só tem um jeito de sair por cima: ser o último chefão de pé."},
-  {city:"MDE",status:"free",ai:9,police:3,dice:6,stake:700,win:{cash:8800,biz:4,streets:5},
+  {city:"MDE",status:"free",ai:9,police:3,dice:6,stake:700,win:{cash:19800,biz:4,streets:5},
    en:"Medellín — the cocaine capital. Nine crews and the whole world buying. Build the empire: five million, three plazas, three fronts.",
    pt:"Medellín — a capital da cocaína. Nove quadrilhas e o mundo inteiro comprando. Construa o império: cinco milhões, três praças, três negócios."},
-  {city:"CDMX",status:"free",ai:9,police:3,dice:6,stake:500,win:{cash:11000},
+  {city:"CDMX",status:"free",ai:9,police:3,dice:6,stake:500,win:{cash:23100},
    en:"You go international. Mexico City runs on cartel rules — nine plazas, nine bosses. Bury every one of them.",
    pt:"Você fica internacional. A Cidade do México roda na lei do cartel — nove praças, nove chefões. Enterre cada um deles."},
-  {city:"LA",status:"free",ai:6,police:3,dice:6,stake:800,win:{cash:84000},
+  {city:"LA",status:"free",ai:6,police:3,dice:6,stake:800,win:{cash:54000},
    en:"Los Angeles. Six crews, and the American money is real now — fifty million, six blocks and four fronts, or you're nobody out here.",
    pt:"Los Angeles. Seis quadrilhas, e a grana americana é de verdade agora — cinquenta milhões, seis quarteirões e quatro negócios, ou você não é ninguém."},
-  {city:"NY",status:"free",ai:5,police:4,dice:8,stake:1000,win:{cash:120000},
+  {city:"NY",status:"free",ai:5,police:4,dice:8,stake:1000,win:{cash:67500},
    en:"New York, the biggest table. Five bosses between you and the crown. Stack a hundred million and the city is yours.",
    pt:"Nova York, a maior mesa. Cinco chefões entre você e a coroa. Junte cem milhões e a cidade é sua."},
-  {city:"LON",status:"free",ai:3,police:2,dice:10,stake:5000,win:{cash:150000},
+  {city:"LON",status:"free",ai:3,police:2,dice:10,stake:5000,win:{cash:250000},
    en:"London. Only three rivals left standing — but the game is a billion pounds now. Build the dynasty that ends untouchable.",
    pt:"Londres. Só três rivais de pé — mas o jogo é um bilhão de libras agora. Construa a dinastia que termina intocável."}
 ];
