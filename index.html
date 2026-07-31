@@ -765,7 +765,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v26.7";
+const APP_VERSION="v26.8";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -1664,7 +1664,7 @@ const CAREER_LEVELS=[
   {city:"SP",status:"prison",ai:10,police:4,dice:8,stake:300,win:{cash:12000},
    en:"São Paulo — straight into Carandiru with ten crews around you. There's only one way out on top: be the last boss standing.",
    pt:"São Paulo — direto pro Carandiru com dez quadrilhas em volta. Só tem um jeito de sair por cima: ser o último chefão de pé."},
-  {city:"MDE",status:"free",ai:9,police:3,dice:6,stake:700,win:{cash:19800,biz:4,streets:5},
+  {city:"MDE",status:"free",ai:9,police:3,dice:6,stake:400,win:{cash:18000},
    en:"Medellín — the cocaine capital. Nine crews and the whole world buying. Build the empire: five million, three plazas, three fronts.",
    pt:"Medellín — a capital da cocaína. Nove quadrilhas e o mundo inteiro comprando. Construa o império: cinco milhões, três praças, três negócios."},
   {city:"CDMX",status:"free",ai:9,police:3,dice:6,stake:500,win:{cash:23100},
