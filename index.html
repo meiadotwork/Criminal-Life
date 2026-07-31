@@ -765,7 +765,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v25.6";
+const APP_VERSION="v25.7";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -900,7 +900,7 @@ function capYears(y){ const m=cityLaw().maxYears||99; return Math.min(y,m); }
 const INNER = [
   {t:"prison entry",ic:">",k:"pentry"},{t:"prison day",ic:".",k:"pday"},{t:"prison fight",ic:"vs",k:"pfight"},
   {t:"prison day",ic:".",k:"pday"},{t:"prison day",ic:".",k:"pday"},{t:"riot",ic:"!!",k:"riot"},
-  {t:"prison day",ic:".",k:"pday"},{t:"prison day",ic:".",k:"pday"},{t:"prison fight",ic:"vs",k:"pfight"},
+  {t:"prison day",ic:".",k:"pday"},{t:"visit day",ic:"|:|",k:"visit"},{t:"prison fight",ic:"vs",k:"pfight"},
   {t:"prison day",ic:".",k:"pday"},{t:"riot",ic:"!!",k:"riot"},{t:"prison day",ic:".",k:"pday"},
   {t:"prison day",ic:".",k:"pday"},{t:"prison fight",ic:"vs",k:"pfight"},{t:"prison day",ic:".",k:"pday"},
   {t:"prison day",ic:".",k:"pday"},
@@ -2261,7 +2261,7 @@ function buildBoardGrid(){
     `<div id="prisonFence"><span class="pfw t">x x x x x x x x x x x x</span><span class="pfw b">x x x x x x x x x x x x</span><span class="pfw l">x x x x x x x x</span><span class="pfw r">x x x x x x x x</span><div id="innerLabel">${cityPrison().split("").join(" ")}</div></div>`);
 }
 
-const CELL_PT={"HEIST · START":"ASSALTO · IN\u00cdCIO","POLICE RAID":"BATIDA POLICIAL","RECRUITING":"RECRUTAR","ATTACK":"ATAQUE","DRUG DEAL":"TR\u00c1FICO","CROOKED COP":"POLICIAL CORRUPTO","FATE":"DESTINO","PARTY":"FESTA","POKER NIGHT":"NOITE DE P\u00d4QUER","VISIT/JAIL":"VISITA/CADEIA","HOSPITAL":"HOSPITAL","HITMAN":"MATADOR","HEIST":"ASSALTO","weed":"maconha","meth":"metanfetamina","heroin":"hero\u00edna","cocaine":"coca\u00edna","guns":"armas","pills":"comprimidos","money laundering":"lavagem de dinheiro","fake documents":"documentos falsos","garage GTA":"desmanche GTA","prison entry":"entrada da pris\u00e3o","prison day":"dia de pris\u00e3o","prison fight":"briga na pris\u00e3o","riot":"rebeli\u00e3o","fentanyl":"fentanila","loan shark":"agiotagem","cargo theft":"roubo de carga","extortion":"extors\u00e3o","card fraud":"golpe do cart\u00e3o","laundering":"lavagem","Poker Club":"Clube de P\u00f4quer"};
+const CELL_PT={"HEIST · START":"ASSALTO · IN\u00cdCIO","POLICE RAID":"BATIDA POLICIAL","RECRUITING":"RECRUTAR","ATTACK":"ATAQUE","DRUG DEAL":"TR\u00c1FICO","CROOKED COP":"POLICIAL CORRUPTO","FATE":"DESTINO","PARTY":"FESTA","POKER NIGHT":"NOITE DE P\u00d4QUER","VISIT/JAIL":"VISITA/CADEIA","HOSPITAL":"HOSPITAL","HITMAN":"MATADOR","HEIST":"ASSALTO","weed":"maconha","meth":"metanfetamina","heroin":"hero\u00edna","cocaine":"coca\u00edna","guns":"armas","pills":"comprimidos","money laundering":"lavagem de dinheiro","fake documents":"documentos falsos","garage GTA":"desmanche GTA","prison entry":"entrada da pris\u00e3o","prison day":"dia de pris\u00e3o","visit day":"dia de visita","prison fight":"briga na pris\u00e3o","riot":"rebeli\u00e3o","fentanyl":"fentanila","loan shark":"agiotagem","cargo theft":"roubo de carga","extortion":"extors\u00e3o","card fraud":"golpe do cart\u00e3o","laundering":"lavagem","Poker Club":"Clube de P\u00f4quer"};
 function render(){
   document.querySelectorAll("#board .cell").forEach(cell=>{
     const ring=cell.dataset.ring;if(!ring)return;
@@ -2889,7 +2889,7 @@ function openManual(){ window.speechSynthesis&&window.speechSynthesis.cancel(); 
   Crimes and businesses build heat, but they don't arrest you — the ONLY way to get busted is landing on a POLICE RAID. Your heat decides it: low heat you might slip, high heat you're almost certainly taken. A raid conviction is airtight — no soldier can take the fall, no bail, no court deal. You go STRAIGHT to prison to serve the years. Survive inside, or the block finishes you.
 
   ${H("PRISON (inner ring)")}
-  One inner lap = one year served. CIGARETTE PACKS are protection: with no packs on a prison day the block beats you into the hospital \u2014 or worse, there's a 1-in-4 chance they just kill you. Prison fights and riots can hospitalize you, and the worst ones turn fatal. MOST DEATHS HAPPEN IN PRISON \u2014 there are 50 different ways to die inside. On every PRISON DAY you choose how to spend it: LAY LOW and draw the day's card (dangerous with no packs), hit the COMMISSARY (5 packs for ${fmtK(packPrice()*5)}), BRIBE A CO to shave a year off your sentence (${fmtK(bgU(1))}), or RUN THE YARD \u2014 a hustle that usually earns 5\u201320 packs but can end in a brawl and a hospital bed. ESCAPE frees you now, but the skipped years (+5) come back if you're busted again.
+  One inner lap = one year served. CIGARETTE PACKS are protection: with no packs on a prison day the block beats you into the hospital \u2014 or worse, there's a 1-in-4 chance they just kill you. Prison fights and riots can hospitalize you, and the worst ones turn fatal. MOST DEATHS HAPPEN IN PRISON \u2014 there are 50 different ways to die inside. On every PRISON DAY you choose how to spend it: LAY LOW and draw the day's card (dangerous with no packs), hit the COMMISSARY (5 packs for ${fmtK(packPrice()*5)}), BRIBE A CO to shave a year off your sentence (${fmtK(bgU(1))}), or RUN THE YARD \u2014 a hustle that usually earns 5\u201320 packs but can end in a brawl and a hospital bed. Land on the VISIT DAY cell and your lawyer comes in: hire, sell off holdings or order an execution from inside \u2014 everything but crimes. ESCAPE frees you now, but the skipped years (+5) come back if you're busted again.
 
   ${H("HOSPITAL & DEBT")}
   Three hospital visits = DEAD. Each stay draws a card: usually just a bill, sometimes a recovery (one cleared), and rarely a complication (extra visit). A complication can leave you critical at 2/3 but never kills you on the same stay \u2014 the third strike has to come from a fresh injury, so one bad trip won't finish you. Can't pay a debt? Forced sale \u2014 cheapest property first, then soldiers. Broke with nothing left to sell = a beating and a hospital bed.
@@ -3331,6 +3331,10 @@ function resolveInner(){
     case "pday":
       if(p.ai){ aiPrisonTurn(p); break; }
       prisonDayMenu();
+      break;
+    case "visit":
+      if(p.ai){ aiVisitDay(p); break; }
+      pdayVisit();
       break;
     case "pfight":drawStory("pfight");break;
     case "riot":drawStory("riot");break;
@@ -4508,7 +4512,7 @@ function prisonDayMenu(){
       ${canPacks?`<button onclick="pdayPacks()">${L('[ COMMISSARY — 5 packs · ','[ CANTINA — 5 maços · ')+fmtK(packCost*5)+' ]'}</button>`:""}
       ${canBribe?`<button class="amber" onclick="pdayBribe()">${L('[ BRIBE A CO — −1 YEAR · ','[ SUBORNAR AGENTE — −1 ANO · ')+fmtK(bgU(1))+' ]'}</button>`:""}
       <button class="red" onclick="pdayYard()">${L('[ RUN THE YARD — hustle for packs, risk a brawl ]','[ CORRER O PÁTIO — ganhar maços, arriscar briga ]')}</button>
-      <button class="amber" onclick="pdayVisit()">${L('[ VISIT DAY — your lawyer comes in ]','[ DIA DE VISITA — seu advogado vem ]')}</button>
+
     </div>
     ${statusBar()}`;
   openModal();
@@ -4623,11 +4627,20 @@ function pdayVisit(){
   rows+=row(L("Crimes","Crimes"),L("not from in here \u2014 you would have to be on the street","daqui n\u00e3o \u2014 voc\u00ea teria que estar na rua"),off);
   el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('VISIT DAY','DIA DE VISITA')}</div>
     <div class="art">|:|</div><div class="ttl">${L('Your lawyer is here','Seu advogado chegou')}</div>
+    <div class="sub" style="opacity:.7">${L('Visits come round once a lap — make it count.','A visita s\u00f3 vem uma vez por volta — aproveite.')}</div>
     <div class="bd" style="text-align:left">${L('He sets the briefcase down and waits. Whatever you say in this room leaves with him \u2014 the business keeps running while you do your time.','Ele apoia a pasta e espera. O que voc\u00ea disser nesta sala sai com ele \u2014 o neg\u00f3cio continua girando enquanto voc\u00ea cumpre pena.')}</div>
     <div class="bd" style="text-align:left">${rows}</div>
     <div class="go"><button class="amber" onclick="pdayVisitDone()">${L('[ THAT\u2019S ALL \u2014 END THE DAY ]','[ \u00c9 S\u00d3 ISSO \u2014 ENCERRAR O DIA ]')}</button></div>
     ${statusBar()}`;
   openModal(true);
+}
+/* A Ghost's visit: the lawyer takes an order for bodyguards, within what it can spare. */
+function aiVisitDay(p){
+  const want=Math.min(3, Math.floor(Math.max(0,p.cash-SOLDIER_COST*2)/SOLDIER_COST));
+  let got=0; while(got<want && p.cash>=SOLDIER_COST){ p.cash-=SOLDIER_COST; p.crew++; got++; }
+  if(got>0) log(p.name+L(" takes a visit — sends word out for "," recebe visita — manda chamar ")+got+L(" soldier"," soldado")+((got>1&&LANG!=='PT')?"s":"")+".","good");
+  else log(p.name+L(" takes a visit — nothing to send out."," recebe visita — nada a mandar."),"");
+  render(); finish();
 }
 function pdayVisitDone(){ const p=S.players[S.cur]; p._visitDay=false;
   log(p.name+L(" spends the day with their lawyer — the operation keeps moving."," passa o dia com o advogado — a opera\u00e7\u00e3o segue andando."),"good");
