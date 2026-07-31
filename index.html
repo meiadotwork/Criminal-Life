@@ -765,7 +765,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v25.4";
+const APP_VERSION="v25.5";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -3579,7 +3579,9 @@ function addWorker(idx,per,n){const p=S.players[S.cur];n=Math.min(n,Math.floor(p
 function buyProduct(p,owner,idx,c){
   const workers=owner.owns.get(idx)||1;         // charge for the WHOLE staffed business
   const capacity=c.income*workers;
-  if(p.ai){ const amt=Math.min(capacity,Math.floor(p.cash/2)); if(amt>0){p.cash-=amt;owner.cash+=amt*2;mkDirty(owner,amt*2);p.cash+=amt*2;mkDirty(p,amt*2);log(p.name+L(" buys "," compra ")+fmtK(amt)+L(" product at "," de produto em ")+c.t+L(" of "," de ")+owner.name+" ("+workers+L(" staff)."," funcionários)."),"good");} render();finish();return; }
+  if(p.ai){ const amt=Math.min(capacity,Math.floor(p.cash/2));
+    if(amt<=0){ render(); finish(); return; }
+    doProduct(p.id,owner.id,amt); return; }
   const maxBuy=Math.min(capacity, p.cash);
   const el=document.getElementById("cardEl");
   el.innerHTML=`<div class="lbl" style="background:${owner.color}">${c.t.toUpperCase()} ${L('OF','DE')} ${owner.name.toUpperCase()}</div>
@@ -3599,7 +3601,17 @@ function doProduct(pid,oid,amt){const p=S.players[pid],o=S.players[oid];
   p.cash-=amt;o.cash+=amt*2;mkDirty(o,amt*2);p.cash+=amt*2;mkDirty(p,amt*2);
   log(p.name+L(" buys "," compra ")+fmtK(amt)+L(" product from "," de produto de ")+o.name+L(". You net +",". Você lucra +")+fmtK(amt)+", "+o.name+" +"+fmtK(amt*2)+".","good");
   render();
-  if(p.ai){ closeModal(); finish(); return; }
+  if(p.ai){
+    const yours=!o.ai;
+    aiScene(`<div class="lbl" style="background:${o.color}">${p.name} \u2194 ${o.name}</div>
+      <div class="art">$ &gt;&gt; $</div>
+      <div class="ttl"${yours?' style="color:var(--phos)"':''}>${yours?L("THEY BUY FROM YOU","ELES COMPRAM DE VOCÊ"):L("A DEAL IS MADE","NEGÓCIO FECHADO")}</div>
+      <div class="bd">${p.name} ${L("bought product at ","comprou produto em ")}${o.ai?o.name+L("'s business",""):L("YOUR business","SEU negócio")}.</div>
+      <div class="out" style="white-space:pre-wrap">${p.name} ${L("paid in:","pagou:")} -${fmtK(amt)}
+${p.name} ${L("sold it on:","revendeu:")} +${fmtK(amt*2)} (${L("profit","lucro")} +${fmtK(amt)})
+\u2192 ${o.name} ${L("takes","fica com")}: +${fmtK(amt*2)}
+${o.name} ${L("cash:","em caixa:")} ${fmtK(oBefore)} \u2192 ${fmtK(o.cash)}</div>`, finish);
+    return; }
   /* the deal, spelled out for both sides — who put in what and who walked away with what */
   const el=document.getElementById("cardEl"); if(!el){ closeModal(); finish(); return; }
   el.dataset.deck=""; el.dataset.read="";
@@ -5367,12 +5379,24 @@ function rentCard(p,owner,amt,reason){
   const liq=p._liq||[]; p._liq=[];
   render();
   const cont=()=>{ afterMoney(p); if(!p._sentToHospital) finish(); p._sentToHospital=false; };
-  if(p.ai){ cont(); return; }
   const ownerNm=LANG==='PT'?(CELL_PT[reason]||reason):reason;
   const soldHtml = liq.length
     ? `\n${L("Sold to raise the money:","Vendido para levantar o dinheiro:")}\n`+liq.map(x=>"  \u00b7 "+(LANG==='PT'?(CELL_PT[x.name]||x.name):x.name)+"  +"+fmtK(x.val)).join("\n")
     : "";
   const shortfall = p.cash<0 ? `\n${L("Still short — headed to the hospital.","Ainda falta — a caminho do hospital.")}` : "";
+  /* An AI paying is still money changing hands — show the same card on the AI card timer so a
+     human on the receiving end actually sees it arrive instead of just a console line. */
+  if(p.ai){
+    const yours=!owner.ai;
+    aiScene(`<div class="lbl" style="background:${p.color}">${p.name} \u2192 ${owner.name}</div>
+      <div class="art">$ &gt;&gt; $</div>
+      <div class="ttl"${yours?' style="color:var(--phos)"':''}>${yours?L("THEY PAY YOU","ELES TE PAGAM"):L("A TOLL IS PAID","PEDÁGIO PAGO")}</div>
+      <div class="bd">${p.name} ${L("landed on ","caiu em ")}${owner.ai?owner.name+L("'s turf",""):L("YOUR turf","SUA área")} \u2014 ${ownerNm}.</div>
+      <div class="out" style="white-space:pre-wrap">${p.name} ${L("owed","devia")}: -${fmtK(amt)}${soldHtml}
+\u2192 ${owner.name} ${L("collects","recebe")}: +${fmtK(paid)}
+${p.name} ${L("cash:","em caixa:")} ${fmtK(before)} \u2192 ${fmtK(Math.max(0,p.cash))}${shortfall}</div>`, cont);
+    return;
+  }
   const el=document.getElementById("cardEl");
   el.dataset.deck="";
   el.innerHTML=`<div class="lbl" style="background:${p.color}">${L("PAYDAY","HORA DE PAGAR")}</div>
