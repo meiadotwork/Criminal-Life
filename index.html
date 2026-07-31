@@ -765,7 +765,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v25.7";
+const APP_VERSION="v25.8";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -5258,6 +5258,7 @@ function rollDiceAI(){
   const act=()=>{
     if(!S||S.over||S.rolled) return;
     const pp=S.players[S.cur]; if(!pp||!pp.ai) return;
+    if(aiMaybeExecute(pp)) return;                 // rich enough to buy a boss outright — that IS its turn
     if(aiMaybeHit(pp)) return;                     // rich hostile AI puts paper on a rival — that IS its turn
     if(aiMaybeCrime(pp)) return;                   // free score before the roll — the turn resumes after the card
     const tgt=aiAttackTarget(pp);
@@ -5337,6 +5338,27 @@ function aiAttackTarget(p){
   if(Math.random() >= pr.atkProb) return null;    // even when able, doesn't attack every single turn
   targets.sort((a,b)=>cellUnit(b.idx)*b.s-cellUnit(a.idx)*a.s);
   return targets[0];
+}
+/* THE CONTRACT THAT ENDS A BOSS. It costs double what the target is worth and hands the buyer
+   everything they held, so a Ghost reaches for it the moment it can cover one and still have
+   money left. It goes after the richest rival it can actually pay for — the bigger the target,
+   the bigger the empire that changes hands. */
+function aiMaybeExecute(p){
+  if(p.ring!=="outer"||p.inJail||!p.alive) return false;
+  const pr=aiProf(p);
+  const reserve=Math.max(SOLDIER_COST*4, Math.round(p.cash*0.10));   // never spend itself to nothing
+  const afford=S.players.filter(o=>o.alive&&o.id!==p.id&&(p.cash-execCost(o))>=reserve);
+  if(!afford.length) return false;
+  if(Math.random() >= Math.min(0.9, 0.30+pr.atkProb)) return false;   // temperament still decides
+  const tgt=afford.sort((a,b)=>netWorth(b)-netWorth(a))[0];           // the biggest empire it can buy
+  const cost=execCost(tgt);
+  const body=L(`${p.name} puts ${fmtK(cost)} on the table — double what ${tgt.name} is worth — and takes everything they had.`,
+               `${p.name} põe ${fmtK(cost)} na mesa — o dobro do que ${tgt.name} vale — e fica com tudo que era dele.`);
+  aiScene(aiSceneCard(p,L("ORDERS AN EXECUTION","MANDA EXECUTAR"),body,"#ff5555"), ()=>{
+    if(!S||S.over||!tgt.alive) { if(!S.rolled) rollDice(); return; }
+    executePlayer(tgt.id);
+  });
+  return true;
 }
 /* A rich, hostile Ghost buys a contract instead of working the street. Prefers finishing a
    boss who's already at 2/3 hospital visits; otherwise goes after the richest rival. */
