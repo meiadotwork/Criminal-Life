@@ -765,7 +765,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v26.9";
+const APP_VERSION="v27.0";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -867,6 +867,24 @@ const CITIES = {
     // the real Paraguayan trade: transit cocaine, pressed weed, contraband, cigarettes, stolen cars
     biz:{400:["cocaína","co"],200:["prensado","pr"],180:["contrabando","cb"],170:["cigarrillos","cg"],150:["autos robados","au"],110:["armas","ar"],90:["piratería","pi"],80:["usura","us"],70:["lavado","$$"]},
     casino:["Quiniela","QN"] },
+  SV:  { name:"SAN SALVADOR", prison:"MARIONA", law:{life:false, maxYears:60}, cur:"$", scale:1, region:"SV", soldier:15, bg:15,
+    // colonias keyed by fixed price: the gang-held periphery at the bottom, Escalón at the top
+    streets:{20:"La Chacra",30:"Tutunichapa",45:"Soyapango",60:"Mejicanos",75:"Ilopango",90:"Apopa",100:"Cuscatancingo",210:"Centro",225:"San Jacinto",230:"Miramonte",250:"Miralvalle",280:"Zona Rosa",300:"Santa Elena",350:"San Benito",400:"Escalón"},
+    // la renta is the defining crime here; the rest is transit, coyotes and civil-war iron
+    biz:{400:["cocaína","co"],200:["extorsión","ex"],180:["coyotaje","cy"],170:["armas","ar"],150:["crack","ck"],110:["marihuana","mh"],90:["autos robados","au"],80:["piratería","pi"],70:["lavado","$$"]},
+    casino:["Gallera","GL"] },
+  TIJ: { name:"TIJUANA", prison:"LA MESA", law:{life:false, maxYears:60}, cur:"$", scale:1, region:"MX", soldier:20, bg:20,
+    streets:{20:"Camino Verde",30:"S. Taboada",45:"El Florido",60:"M. Matamoros",75:"Los Laureles",90:"La Presa",100:"Otay",210:"Zona Norte",225:"Centro",230:"La Mesa",250:"Playas",280:"Agua Caliente",300:"Hipódromo",350:"Chapultepec",400:"Cumbres"},
+    biz:{400:["cocaína","co"],200:["fentanilo","fn"],180:["metanfetamina","me"],170:["pollero","po"],150:["secuestro","sq"],110:["extorsión","ex"],90:["autos robados","au"],80:["piratería","pi"],70:["lavado","$$"]},
+    casino:["Caliente","CL"] },
+  MIA: { name:"MIAMI", prison:"DADE CI", law:{life:true, maxYears:99}, cur:"$", scale:1, region:"US", soldier:40, bg:40,
+    streets:{20:"Overtown",30:"Liberty City",45:"Opa-locka",60:"Little Haiti",75:"Allapattah",90:"Hialeah",100:"Little Havana",210:"Wynwood",225:"Downtown",230:"Coconut Grove",250:"Brickell",280:"Coral Gables",300:"Key Biscayne",350:"Miami Beach",400:"Star Island"},
+    biz:{400:["cocaine","co"],200:["pill mill","Rx"],180:["medicare fraud","mf"],170:["boat runs","bt"],150:["guns","gn"],110:["weed","wd"],90:["exotic cars","xc"],80:["chop shop","cs"],70:["laundering","$$"]},
+    casino:["Jai-Alai","JA"] },
+  CHI: { name:"CHICAGO", prison:"STATEVILLE", law:{life:true, maxYears:99}, cur:"$", scale:1, region:"US", soldier:42, bg:42,
+    streets:{20:"Englewood",30:"W Garfield Pk",45:"Austin",60:"Roseland",75:"South Shore",90:"Back of Yards",100:"Little Village",210:"Pilsen",225:"Bridgeport",230:"Logan Square",250:"Wicker Park",280:"River North",300:"Lincoln Park",350:"Streeterville",400:"Gold Coast"},
+    biz:{400:["cocaine","co"],200:["heroin","he"],180:["bookmaking","bk"],170:["loan shark","ls"],150:["union skim","un"],110:["fentanyl","fn"],90:["guns","gn"],80:["chop shop","cs"],70:["laundering","$$"]},
+    casino:["Policy Wheel","PW"] },
   LON: { name:"LONDON", prison:"HMP BLACKWALL", law:{life:true, maxYears:99}, cur:"$", scale:1, region:"UK", soldier:100, bg:100,
     // streets keyed by fixed price tier -> London turf, poorest -> richest (Mayfair on top)
     streets:{20:"Broadwater Fm",30:"Tottenham Hale",45:"Peckham Rye",60:"Brixton Road",75:"Harlesden",90:"Deptford High",100:"Elephant&Cast",210:"Camden Town",225:"Hackney Cent.",230:"Shoreditch",250:"Canary Wharf",280:"South Ken.",300:"Chelsea Kings",350:"Kensington Hi",400:"Mayfair"},
@@ -1305,6 +1323,60 @@ drug:[
  {ttl:"The mule flight",ttl_pt:"Voo da mula",lbl:"DRUG DEAL",arr:8,cut:15,bd:"A courier out of Silvio Pettirossi with a false-bottomed case. She had never flown before and that was exactly the point.",bd_pt:"Uma mula saindo do Silvio Pettirossi com uma mala de fundo falso. Ela nunca tinha voado antes e era justamente esse o ponto."}
 ]
 };
+/* ===== DECKS_SV: Salvadoran cards — la renta, the clicas, the coyote routes and Mariona.
+   Merged into the base for El Salvador. ===== */
+const DECKS_SV = {
+heist:[
+ {ttl:"Remittance office",ttl_pt:"Casa de remessas",lbl:"HEIST",arr:7,cut:19,bd:"Payday Friday at a remittance window in Soyapango — a whole month of the diaspora's money, counted and bagged before the guard finished his coffee.",bd_pt:"Sexta de pagamento numa casa de remessas em Soyapango — um mês inteiro do dinheiro da diáspora, contado e ensacado antes do guarda terminar o café."},
+ {ttl:"Bus route takeover",ttl_pt:"Tomada de linha de ônibus",lbl:"HEIST",arr:5,cut:12,bd:"Every microbus on the route pays or it doesn't run. You took the route off the last people collecting on it and kept the schedule the same.",bd_pt:"Todo micro-ônibus da linha paga ou não roda. Você tomou a linha de quem cobrava antes e manteve o mesmo horário."},
+ {ttl:"Armoured van, Boulevard",ttl_pt:"Carro-forte no Boulevard",lbl:"HEIST",arr:9,cut:24,bd:"You boxed the van at the lights on Boulevard del Ejército. Two of the guards knew it was coming and looked the other way.",bd_pt:"Fechou o carro-forte no semáforo do Boulevard del Ejército. Dois guardas sabiam que vinha e olharam pro outro lado."},
+ {ttl:"Coffee finca payroll",ttl_pt:"Folha da fazenda de café",lbl:"HEIST",arr:6,cut:16,bd:"Harvest week on a finca outside Santa Ana. The cutters get paid in cash and the road down is a single track with no phone signal.",bd_pt:"Semana de colheita numa fazenda fora de Santa Ana. Os cortadores recebem em dinheiro e a estrada é uma trilha só, sem sinal."},
+ {ttl:"Container off the port",ttl_pt:"Contêiner no porto",lbl:"HEIST",arr:8,cut:26,bd:"A container walked out of Acajutla on paperwork signed by a man who retired two years ago. Nobody at the gate reads that closely.",bd_pt:"Um contêiner saiu de Acajutla com papelada assinada por um homem que se aposentou há dois anos. Ninguém no portão lê com atenção."},
+ {ttl:"Bank on Alameda",ttl_pt:"Banco na Alameda",lbl:"HEIST",arr:20,cut:38,bd:"A vault job that went loud on the Alameda Roosevelt. A guard reached for his radio and didn't make it home — now it's a body on the job.",bd_pt:"Um assalto que saiu no barulho na Alameda Roosevelt. Um guarda foi pro rádio e não voltou pra casa — agora tem um corpo no serviço."},
+ {ttl:"Copper off the grid",ttl_pt:"Cobre da rede",lbl:"HEIST",arr:3,cut:7,bd:"Half a kilometre of cable out of a substation in the night. Three colonias lost power and the scrapyard paid without a question.",bd_pt:"Meio quilômetro de cabo de uma subestação de madrugada. Três colônias ficaram sem luz e o ferro-velho pagou sem perguntar."},
+ {ttl:"ATM, Metrocentro",ttl_pt:"Caixa no Metrocentro",lbl:"HEIST",arr:4,cut:10,bd:"A gas bottle and a length of hose against a cash machine in the mall car park. Crude, loud, and paid for itself before the guards arrived.",bd_pt:"Um botijão e um pedaço de mangueira contra um caixa no estacionamento do shopping. Tosco, barulhento, e se pagou antes dos guardas chegarem."},
+ {ttl:"The cargo trailer",ttl_pt:"A carreta",lbl:"HEIST",arr:7,cut:21,bd:"A trailer of televisions stopped at a checkpoint that wasn't on any map, and continued its journey to a warehouse that wasn't on any manifest.",bd_pt:"Uma carreta de televisores parou num posto que não estava em mapa nenhum, e seguiu viagem pra um galpão que não estava em manifesto nenhum."},
+ {ttl:"Gold chain sweep",ttl_pt:"Arrastão de correntes",lbl:"HEIST",arr:2,cut:6,bd:"Two on a motorcycle working the queue outside the Centro market. Forty chains in an afternoon, melted down by evening.",bd_pt:"Dois numa moto trabalhando a fila do mercado do Centro. Quarenta correntes numa tarde, derretidas até a noite."}
+],
+hitman:[
+ {ttl:"Clica business",ttl_pt:"Acerto de clica",lbl:"HITMAN",arr:12,cut:6,bd:"Two clicas had claimed the same three blocks for a year. You settled which one collected there, and the corner went quiet by the weekend.",bd_pt:"Duas clicas reivindicavam os mesmos três quarteirões havia um ano. Você resolveu quem cobrava ali, e a esquina sossegou no fim de semana."},
+ {ttl:"The one who didn't pay",ttl_pt:"O que não pagou",lbl:"HITMAN",arr:10,cut:5,bd:"A shopkeeper decided the renta was optional. The whole colonia learned it wasn't, in one afternoon, without anybody needing to explain it.",bd_pt:"Um comerciante achou que a renta era opcional. A colônia inteira aprendeu que não, numa tarde, sem ninguém precisar explicar."},
+ {ttl:"Order from inside",ttl_pt:"Ordem de dentro",lbl:"HITMAN",arr:14,cut:7,bd:"The call came out of Mariona on a phone that shouldn't exist, and was carried out four hours later by someone who had never met the target.",bd_pt:"A ligação saiu de Mariona num celular que não devia existir, e foi cumprida quatro horas depois por alguém que nunca tinha visto o alvo."},
+ {ttl:"The witness",ttl_pt:"A testemunha",lbl:"HITMAN",arr:20,cut:9,bd:"Somebody agreed to testify with protection. The protection was a police car outside the house, and it was parked on the wrong side.",bd_pt:"Alguém aceitou depor com proteção. A proteção era uma viatura na porta, e estava estacionada do lado errado."},
+ {ttl:"Bus driver's lesson",ttl_pt:"A lição do motorista",lbl:"HITMAN",arr:11,cut:5,bd:"The route stopped paying for eight days. On the ninth the bus came back to the terminal with nobody at the wheel and the route started paying again.",bd_pt:"A linha parou de pagar por oito dias. No nono o ônibus voltou ao terminal sem ninguém no volante e a linha voltou a pagar."},
+ {ttl:"Deportee with a name",ttl_pt:"Deportado com nome",lbl:"HITMAN",arr:13,cut:6,bd:"He came back from Los Angeles with a reputation and old business. It caught up with him at the airport road within a week.",bd_pt:"Ele voltou de Los Angeles com fama e pendências antigas. Foi cobrado na estrada do aeroporto em menos de uma semana."},
+ {ttl:"Green light",ttl_pt:"Luz verde",lbl:"HITMAN",arr:22,cut:10,bd:"The order went out to every clica at once. He had nowhere in the country left to sleep and everybody knew it before he did.",bd_pt:"A ordem saiu pra todas as clicas ao mesmo tempo. Ele não tinha mais onde dormir no país e todo mundo soube antes dele."},
+ {ttl:"Made an example",ttl_pt:"Exemplo dado",lbl:"HITMAN",arr:18,cut:8,bd:"It stopped being about the debt. It was about the twenty people who saw it happen and now understood the arrangement perfectly.",bd_pt:"Deixou de ser sobre a dívida. Virou sobre as vinte pessoas que viram e agora entendem perfeitamente o acordo."}
+],
+cop:[
+ {ttl:"Crooked Cop",ttl_pt:"Policial na folha",lbl:"CROOKED COP",cut:12,bd:"A subinspector on a monthly envelope calls the night before every operation. You empty the house and the raid finds bare walls.",bd_pt:"Um subinspetor num envelope mensal liga na véspera de cada operação. Você esvazia a casa e a batida encontra parede nua."},
+ {ttl:"The unit's calendar",ttl_pt:"O calendário da unidade",lbl:"CROOKED COP",cut:15,bd:"Somebody sells the anti-gang unit's schedule a week ahead. Everyone who buys it is somewhere else when the trucks arrive.",bd_pt:"Alguém vende o calendário da unidade antigangue com uma semana de antecedência. Quem compra está em outro lugar quando os caminhões chegam."},
+ {ttl:"Checkpoint rate",ttl_pt:"Taxa do posto",lbl:"CROOKED COP",cut:8,bd:"A flat price per vehicle at the checkpoint on the Panamericana. No search, no radio, no paperwork.",bd_pt:"Um preço fixo por veículo no posto da Panamericana. Sem revista, sem rádio, sem papelada."},
+ {ttl:"The file walks",ttl_pt:"O processo anda",lbl:"CROOKED COP",cut:14,bd:"A clerk moves one folder to the wrong shelf in the courthouse. Two years later nobody can prove the case was ever opened.",bd_pt:"Um escrivão põe uma pasta na prateleira errada no fórum. Dois anos depois ninguém prova que o processo existiu."},
+ {ttl:"Prison transfer",ttl_pt:"Transferência",lbl:"CROOKED COP",cut:16,bd:"For the right money a name moves from the maximum wing to the ordinary one, where the phones and the visits are.",bd_pt:"Pelo dinheiro certo um nome sai da ala de segurança máxima pra comum, onde estão os celulares e as visitas."},
+ {ttl:"Shakedown",ttl_pt:"Extorsão policial",lbl:"CROOKED COP",cut:-9,bd:"This one wasn't selling protection, he was collecting it. You paid because the alternative was a report with your name spelled correctly.",bd_pt:"Esse não vendia proteção, cobrava. Você pagou porque a alternativa era um boletim com seu nome escrito certo."},
+ {ttl:"The mayor's man",ttl_pt:"O homem do prefeito",lbl:"CROOKED COP",cut:18,bd:"Not a policeman at all. A man in the alcaldía who decides which colonias get patrols this month, and takes suggestions.",bd_pt:"Nem é policial. Um homem na prefeitura que decide quais colônias recebem patrulha esse mês, e aceita sugestões."},
+ {ttl:"Truce broker",ttl_pt:"Corretor de trégua",lbl:"CROOKED COP",cut:13,bd:"He carries messages between the wings and the street and takes a percentage of the quiet. Everyone pretends he doesn't exist.",bd_pt:"Ele leva recados entre as alas e a rua e tira uma porcentagem do sossego. Todo mundo finge que ele não existe."}
+],
+raid:[
+ {ttl:"Operation at dawn",ttl_pt:"Operação ao amanhecer",lbl:"POLICE RAID",bd:"Police and soldiers went into the colonia together before first light and sealed both ends of it. Nobody walked out for six hours.",bd_pt:"Polícia e soldados entraram juntos na colônia antes de clarear e fecharam as duas pontas. Ninguém saiu por seis horas."},
+ {ttl:"House by house",ttl_pt:"Casa por casa",lbl:"POLICE RAID",bd:"They took the whole block, one door at a time, and everyone with a tattoo or a cousin went into the truck. Sorting happened later.",bd_pt:"Levaram o quarteirão inteiro, porta por porta, e todo mundo com tatuagem ou primo entrou no caminhão. Separaram depois."},
+ {ttl:"The list",ttl_pt:"A lista",lbl:"POLICE RAID",bd:"Somebody handed the unit a list of names and addresses. They worked it in one night and were finished before the news knew.",bd_pt:"Alguém entregou à unidade uma lista de nomes e endereços. Trabalharam ela numa noite e terminaram antes do jornal saber."},
+ {ttl:"Terminal sweep",ttl_pt:"Varredura no terminal",lbl:"POLICE RAID",bd:"They closed the bus terminal and worked inward through the queues. Half the district was inside the cordon before anyone thought to run.",bd_pt:"Fecharam o terminal de ônibus e foram trabalhando pra dentro pelas filas. Metade do distrito estava dentro do cerco antes de alguém pensar em correr."},
+ {ttl:"Helicopter over the colonia",ttl_pt:"Helicóptero na colônia",lbl:"POLICE RAID",bd:"It came in low over the rooftops and everything stopped moving on the ground. The trucks were already at both entrances.",bd_pt:"Veio baixo por cima dos telhados e tudo parou no chão. Os caminhões já estavam nas duas entradas."},
+ {ttl:"The tip-off",ttl_pt:"A denúncia",lbl:"POLICE RAID",bd:"Somebody who owed you money made a phone call instead of a payment. The unit arrived knowing which room to enter.",bd_pt:"Alguém que te devia dinheiro fez uma ligação em vez de um pagamento. A equipe chegou sabendo em qual cômodo entrar."}
+],
+drug:[
+ {ttl:"Transit through the coast",ttl_pt:"Trânsito pela costa",lbl:"DRUG DEAL",arr:13,cut:32,bd:"A go-fast puts the load on a beach in Usulután at three in the morning. It is on a truck to Guatemala before the tide turns.",bd_pt:"Uma lancha rápida deixa a carga numa praia de Usulután às três da manhã. Está num caminhão pra Guatemala antes da maré virar."},
+ {ttl:"The corner",ttl_pt:"A esquina",lbl:"DRUG DEAL",arr:4,cut:8,bd:"A house on the corner selling to the same sixty faces every day. Small money, every day, and the whole colonia knows the hours.",bd_pt:"Uma casa na esquina vendendo pras mesmas sessenta caras todo dia. Dinheiro pouco, todo dia, e a colônia inteira sabe o horário."},
+ {ttl:"Crack in the passage",ttl_pt:"Crack no passagem",lbl:"DRUG DEAL",arr:5,cut:10,bd:"The passages between the houses are too narrow for a patrol car and everybody who lives there knows which door to knock on.",bd_pt:"As passagens entre as casas são estreitas demais pra viatura e quem mora ali sabe em qual porta bater."},
+ {ttl:"Coyote convoy",ttl_pt:"Comboio de coiote",lbl:"DRUG DEAL",arr:9,cut:22,bd:"Not drugs at all — forty people in a trailer, paid up front, moving north through three borders that were arranged weeks ago.",bd_pt:"Nem é droga — quarenta pessoas numa carreta, pagas adiantado, subindo por três fronteiras acertadas semanas antes."},
+ {ttl:"The renta round",ttl_pt:"A ronda da renta",lbl:"DRUG DEAL",arr:6,cut:14,bd:"Every shop, every bus, every stall on the block, collected weekly by a kid on a bicycle who has never been searched.",bd_pt:"Cada loja, cada ônibus, cada banca do quarteirão, cobrado toda semana por um moleque de bicicleta que nunca foi revistado."},
+ {ttl:"Warehouse on the highway",ttl_pt:"Galpão na rodovia",lbl:"DRUG DEAL",arr:11,cut:27,bd:"A shed on the road to the border where loads are broken down and rebuilt into other loads with other paperwork.",bd_pt:"Um galpão na estrada da fronteira onde as cargas são desmontadas e remontadas em outras cargas com outra papelada."},
+ {ttl:"Pills from the north",ttl_pt:"Comprimidos do norte",lbl:"DRUG DEAL",arr:7,cut:16,bd:"Deportation flights aren't the only thing that comes back down. A suitcase of pills goes further here than it ever did there.",bd_pt:"Voo de deportação não é a única coisa que desce. Uma mala de comprimidos rende mais aqui do que rendia lá."},
+ {ttl:"The mule flight",ttl_pt:"Voo da mula",lbl:"DRUG DEAL",arr:8,cut:15,bd:"A courier out of Comalapa with a false-bottomed case. She had never flown before and that was exactly the point.",bd_pt:"Uma mula saindo de Comalapa com uma mala de fundo falso. Ela nunca tinha voado antes e era justamente esse o ponto."}
+]
+};
 /* ===== PER-REGION DECKS: base cards are global; some cities merge in a local set
    (e.g. Brazilian cities pull DECKS_BR on top of the base deck). ===== */
 let ADECKS=null;
@@ -1325,6 +1397,7 @@ function buildActiveDecks(region){
     else if(region==="UK" && typeof DECKS_UK!=="undefined" && DECKS_UK[k]) a=a.concat(DECKS_UK[k]);
     else if(region==="CO" && typeof DECKS_CO!=="undefined" && DECKS_CO[k]) a=a.concat(DECKS_CO[k]);
     else if(region==="PY" && typeof DECKS_PY!=="undefined" && DECKS_PY[k]) a=a.concat(DECKS_PY[k]);
+    else if(region==="SV" && typeof DECKS_SV!=="undefined" && DECKS_SV[k]) a=a.concat(DECKS_SV[k]);
     ADECKS[k]=a.map(c=>Object.assign({},c));   // clone so per-city native remap never mutates the source DECKS
   }
   // NATIVE per-city payouts anchored to the bodyguard: crimes 0.5..10 bg, hospital 0.5..5 bg
@@ -1419,7 +1492,7 @@ function openMultiplayer(){
      <div class="cfghead">1. ${L('PLAYERS','JOGADORES')} <span style="opacity:.55">${L('(you + rivals — set each seat next)','(você + rivais — defina cada lugar a seguir)')}</span></div>
      <div class="choice">${[2,3,4,5,6,7,8,9,10].map(pC).join('')}</div>
      <div class="cfghead">2. ${L('CITY','CIDADE')} <span style="opacity:.55">${L('(map · prison · local law)','(mapa · prisão · lei local)')}</span></div>
-     <div class="choice">${cityB('NY','NEW YORK')}${cityB('LA','LOS ANGELES')}${cityB('CWB','CURITIBA')}${cityB('RIO','RIO')}${cityB('CDMX','CDMX')}${cityB('SP','SÃO PAULO')}${cityB('MDE','MEDELLÍN')}${cityB('ASU','ASUNCIÓN')}${cityB('LON','LONDON')}</div>
+     <div class="choice">${cityB('NY','NEW YORK')}${cityB('LA','LOS ANGELES')}${cityB('CWB','CURITIBA')}${cityB('RIO','RIO')}${cityB('CDMX','CDMX')}${cityB('SP','SÃO PAULO')}${cityB('MDE','MEDELLÍN')}${cityB('ASU','ASUNCIÓN')}${cityB('SV','SAN SALVADOR')}${cityB('TIJ','TIJUANA')}${cityB('MIA','MIAMI')}${cityB('CHI','CHICAGO')}${cityB('LON','LONDON')}</div>
      <div class="cfghead">3. ${L('YEAR','ANO')} <span style="opacity:.55">${L('(the year play begins)','(o ano em que o jogo come\u00e7a)')}</span></div>
      <div class="choice">${YEAR_PRESETS.map(yB).join('')}<button class="cfg${yCustom?' sel':''}" onclick="openYearPad()">[ ${yCustom?yr:L('OTHER \u00bb','OUTRO \u00bb')} ]</button></div>
      <div class="cfgflavor">&gt; ${L('the clock starts in ','o rel\u00f3gio come\u00e7a em ')}${yr}${L(' \u2014 each year on the street rolls it forward',' \u2014 cada ano na rua avan\u00e7a o calend\u00e1rio')}</div>
@@ -1558,6 +1631,11 @@ const CITY_GHOSTS={
   CDMX:["DURAZO","AMADO","EL BARBAS","EL INGENIERO","RAMÓN","NIÑO DE ORO","EL COCHILOCO","EL CHAYO","NACHO CORONEL","EL LAZCA","Z-1"],
   SP:  ["PAREJA","HIROITO","LUZ VERMELHA","MATADOR","CONSELHEIRO","GELEIÃO","CESINHA","BIRÔ","TONHÃO","CABEÇA BRANCA"],
   LON: ["HAROLD","JEFF","CHARLIE","COLIN","SHAND","GAL","BACON","TOM","SOAP","EDDY","TURKISH","TOMMY","BRICKTOP","BORIS","VINNIE","MICKEY","DOUG","SOL","TYRONE","FRANKY","AVI","BULLET","LITTLE CHRIS","BIG CHRIS","HARRY","NICK","MORTY","GENE","JIMMY","FREDDY","STAN","JACK","RONNIE","REGGIE","ALBIE","LENNY","ARCHIE","GEORGE","VICTOR","MALCOLM","CLIFF","RAY","COLLINS","WALTER","ARTHUR","NIGEL","DENNIS","PETER","MICHAEL","TERRY"],
+  ASU: ["EL CHINO","KACHIQUE","TAVI","EL PYNANDI","CACHO","MBORE","LOBO","EL PARAGUA","SAPUCAI","KURUPI","EL RUBIO","TOCO","GUASU","KARAI","EL CHACO"],
+  SV:  ["EL DIABLITO","VIEJO LIN","CHORY","SIRRA","EL CRAZY","TRECE","SNAIL","PALABRERO","LA BESTIA","MOYO","SHYBOY","EL DIRECTO","GATO","CHEPE","BLUE"],
+  TIJ: ["EL MON","EL TIGRILLO","EL TEO","EL MAYEL","EL POZOLERO","EL MULETAS","EL INGENIERO","KITTY","LA RANA","EL AQUILES","EL CHOLO","EL CRIS","EL RAMPA","EL CHAN","EL MUÑECO"],
+  MIA: ["GRISELDA","RIVI","EL LOCO","MICKEY MUNDAY","PAPO","TONY","MANNY","SOSA","FRANK","LA MADRINA","WILLY","SAL","THE COWBOY","MERMAID","BOATMAN"],
+  CHI: ["BIG AL","NITTI","RICCA","ACCARDO","GIANCANA","THE ANT","JOEY DOVES","MILWAUKEE PHIL","THE CLOWN","HUMPHREYS","TORRIO","LEFTY","JACKIE THE LACKEY","KING DAVID","LARRY HOOVER"],
   MDE: ["EL PATRÓN","GONZALO","EL MEXICANO","PACHO","KIKO","POPEYE","LA QUICA","TYSON","PININA","OTTO","ARETE","CHOPO","BLACKIE","YUCA","YESID","ALEXIS","WÍLMAR","FERNEY","EMILIO","MARIACHI","ROSARIO","EL CHILE","MOSCO","TILINGO","PALOMO","EL ENANO","CEJAS","CACHACO","EL MONO","EL FLACO","EL ZARCO","PECOSO","CUERVO","PATEBOMBA","CACO","YEISON","BRAYAN","MECHAS","EL TUERTO","RÁMBER","MARINO","TABARES","NELSON","RICARDO","EL OSO","CHIRUZA","PIRRACA","COMBA","VAQUERO","EL CHINO"]
 };
 /* Brazilian maps use only these ghost names (Cidade de Deus / Tropa de Elite) */
@@ -1667,12 +1745,24 @@ const CAREER_LEVELS=[
   {city:"MDE",status:"free",ai:9,police:3,dice:6,stake:400,win:{cash:18000},
    en:"Medellín — the cocaine capital. Nine crews and the whole world buying. Build the empire: five million, three plazas, three fronts.",
    pt:"Medellín — a capital da cocaína. Nove quadrilhas e o mundo inteiro comprando. Construa o império: cinco milhões, três praças, três negócios."},
+  {city:"SV",status:"free",ai:9,police:3,dice:6,stake:450,win:{cash:15750},
+   en:"San Salvador does not run on turf, it runs on the renta — every shop, every bus, every stall pays somebody on Friday. Nine clicas already collect here. Take the city off them.",
+   pt:"San Salvador não vive de área, vive da renta — cada loja, cada ônibus, cada banca paga alguém na sexta. Nove clicas já cobram aqui. Tome a cidade delas."},
   {city:"CDMX",status:"free",ai:9,police:3,dice:6,stake:500,win:{cash:23100},
    en:"You go international. Mexico City runs on cartel rules — nine plazas, nine bosses. Bury every one of them.",
    pt:"Você fica internacional. A Cidade do México roda na lei do cartel — nove praças, nove chefões. Enterre cada um deles."},
+  {city:"TIJ",status:"free",ai:8,police:3,dice:6,stake:650,win:{cash:23000},
+   en:"Everything that goes north goes through here, and everybody who takes it north pays somebody. Eight crews hold the crossings and the Zona Norte. Take the border off them.",
+   pt:"Tudo que sobe passa por aqui, e todo mundo que leva paga alguém. Oito quadrilhas seguram as passagens e a Zona Norte. Tome a fronteira delas."},
   {city:"LA",status:"free",ai:6,police:3,dice:6,stake:800,win:{cash:54000},
    en:"Los Angeles. Six crews, and the American money is real now — fifty million, six blocks and four fronts, or you're nobody out here.",
    pt:"Los Angeles. Seis quadrilhas, e a grana americana é de verdade agora — cinquenta milhões, seis quarteirões e quatro negócios, ou você não é ninguém."},
+  {city:"CHI",status:"free",ai:6,police:4,dice:8,stake:900,win:{cash:54600},
+   en:"The Outfit ran this city for eighty years on bookmaking, unions and loans, and the wards still remember the arrangement. Six crews hold what is left. Take it.",
+   pt:"A Outfit tocou essa cidade por oitenta anos com apostas, sindicatos e agiotagem, e os bairros ainda lembram do acordo. Seis quadrilhas seguram o resto. Tome."},
+  {city:"MIA",status:"free",ai:7,police:3,dice:8,stake:950,win:{cash:56000},
+   en:"Everything from the south lands here first — the boats, the money, the people. Seven crews already own the water and the banks that wash it. Take Miami.",
+   pt:"Tudo que vem do sul chega aqui primeiro — os barcos, o dinheiro, a gente. Sete quadrilhas já são donas da água e dos bancos que lavam. Tome Miami."},
   {city:"NY",status:"free",ai:5,police:4,dice:8,stake:1000,win:{cash:67500},
    en:"New York, the biggest table. Five bosses between you and the crown. Stack a hundred million and the city is yours.",
    pt:"Nova York, a maior mesa. Cinco chefões entre você e a coroa. Junte cem milhões e a cidade é sua."},
@@ -2719,8 +2809,8 @@ function openActions(){
     canHire?`<button onclick="actDo('hire')">${L("[ HIRE ]","[ CONTRATAR ]")}</button>`:off);
   rows+=row(L("Attack a rival","Atacar um rival"), L("send soldiers at a rival's turf or business \u2014 this is your move (no roll)","envie soldados contra a \u00e1rea ou neg\u00f3cio de um rival \u2014 \u00e9 sua jogada (sem rolar)"),
     canAttack?`<button class="red" onclick="actDo('attack')">${L("[ ATTACK \u00b7 ","[ ATACAR \u00b7 ")}${p.crew}${L(" sol ]"," sol ]")}</button>`:off);
-    const canExec=!S.rolled&&p.ring==="outer"&&!p.inJail&&S.players.some(o=>o.id!==p.id&&o.alive&&p.cash>=execCost(o));
-  rows+=row(L("Call an execution","Mandar executar"), L("2× the target's net worth — instant kill, and you seize their turf","2× o patrimônio do alvo — morte na hora, e você toma a área dele"),
+    const canExec=execUnlocked()&&!S.rolled&&p.ring==="outer"&&!p.inJail&&S.players.some(o=>o.id!==p.id&&o.alive&&p.cash>=execCost(o));
+  rows+=row(L("Call an execution","Mandar executar"), execUnlocked()?L("2× the target's net worth — instant kill, and you seize their turf","2× o patrimônio do alvo — morte na hora, e você toma a área dele"):execLockNote(),
     canExec?`<button class="red" onclick="execMenu()">${L("[ EXECUTE ]","[ EXECUTAR ]")}</button>`:off);
   rows+=row(L("Sell assets","Vender bens"), L("cash out property or businesses","liquidar propriedades ou neg\u00f3cios"),
     canSell?`<button class="red" onclick="actDo('sell')">${L("[ SELL ]","[ VENDER ]")}</button>`:off);
@@ -4014,6 +4104,10 @@ function orderHit(oid,free){
 }
 
 function execCost(o){ return Math.max(1, Math.round(netWorth(o)*2)); }
+/* A contract on a boss is off the table until the city has had a year to settle —
+   nobody buys the biggest hit in town in their first twelve months. */
+function execUnlocked(){ try{ return gameYear() > ((S&&S.startYear)||1987); }catch(e){ return true; } }
+function execLockNote(){ return L("Nobody takes that contract in your first year \u2014 available from ","Ningu\u00e9m aceita esse contrato no seu primeiro ano \u2014 liberado a partir de ")+(((S&&S.startYear)||1987)+1)+"."; }
 function execMenu(){
   const p=S.players[S.cur]; const rivals=S.players.filter(o=>o.alive&&o.id!==p.id);
   const el=document.getElementById("cardEl"); el.dataset.deck="";
@@ -4027,6 +4121,7 @@ function execMenu(){
   openModal();
 }
 function executePlayer(oid){
+  if(!execUnlocked())return;   // locked for the opening year
   const p=S.players[S.cur], o=S.players[oid]; if(!o||!o.alive)return;
   const cost=execCost(o); if(p.cash<cost)return;
   p.cash-=cost; S.rolled=true;
@@ -4042,7 +4137,7 @@ function executePlayer(oid){
 }
 /* ===== ATTACK (reworked) ===== */
 /* atkExit: when the attack came from the ACTION menu it must NOT end the turn — just return to play. */
-function atkExit(){ const p=S.players[S.cur]; if(p&&p._atkMenu){ p._atkMenu=false; closeModal(); render(); } else { finish(); } }
+function atkExit(){ const p=S.players[S.cur]; if(p&&p._visitDay){ p._atkMenu=false; pdayVisit(); return; } if(p&&p._atkMenu){ p._atkMenu=false; closeModal(); render(); } else { finish(); } }
 function atkNotice(msg){ // menu-mode: show a message without ending the turn
   const p=S.players[S.cur];const el=document.getElementById("cardEl");el.dataset.deck="";
   el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('ATTACK','ATAQUE')}</div>
@@ -4052,13 +4147,14 @@ function atkNotice(msg){ // menu-mode: show a message without ending the turn
     ${statusBar()}`;
   openModal();
 }
-function p_backToActions(){ const p=S.players[S.cur]; p._atkMenu=false; openActions(); }
+function p_backToActions(){ const p=S.players[S.cur]; p._atkMenu=false; if(p._visitDay){ pdayVisit(); return; } openActions(); }
 function doAttack(fromMenu){
   const p=S.players[S.cur];
   if(fromMenu!==undefined) p._atkMenu=!!fromMenu;
   const menu=!!p._atkMenu;
   const targets=[];
   S.players.forEach(o=>{if(o.id!==p.id&&o.alive){o.owns.forEach((s,idx)=>targets.push({o,idx,s}));}});
+  if(p.ring==="inner" && !p._visitDay){ if(menu){atkNotice(L("You can only send the crew out on a VISIT DAY.","S\u00f3 d\u00e1 pra mandar a equipe num DIA DE VISITA."));return;} finish(); return; }
   if(p.crew<1){ if(menu){atkNotice(L("You have no soldiers to attack with. Hire crew first.","Você não tem soldados para atacar. Contrate equipe primeiro."));return;} log(p.name+L(" has no soldiers to attack with."," não tem soldados para atacar.")); finish(); return;}
   if(targets.length===0){ if(menu){atkNotice(L("No rival controls any turf yet — nothing to attack.","Nenhum rival controla área ainda — nada para atacar."));return;} log(L("No rival turf to attack.","Nenhuma área rival para atacar.")); finish(); return;}
   if(p.ai){
@@ -4722,7 +4818,7 @@ function pdayLayLow(){const p=S.players[S.cur];closeModal();pdayResolve(p);}
 function pdayVisit(){
   const p=S.players[S.cur]; p._visitDay=true;
   const el=document.getElementById("cardEl"); el.dataset.deck="";
-  const canExec=S.players.some(o=>o.id!==p.id&&o.alive&&p.cash>=execCost(o));
+  const canExec=execUnlocked()&&S.players.some(o=>o.id!==p.id&&o.alive&&p.cash>=execCost(o));
   const canSell=p.owns.size>0||p.crew>0;
   const off=`<span style="opacity:.4">\u2014</span>`;
   const row=(label,desc,btn)=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 2px;border-bottom:1px solid var(--phos-dim)"><span>${label}${desc?`<br><span style="opacity:.55;font-size:11px">${desc}</span>`:""}</span><span style="white-space:nowrap">${btn}</span></div>`;
@@ -4731,7 +4827,11 @@ function pdayVisit(){
     `<button onclick="openBuyWorkers()">${L("[ HIRE ]","[ CONTRATAR ]")}</button>`);
   rows+=row(L("Let people go","Dispensar / vender"),L("sell off turf, shops or soldiers to raise cash","venda \u00e1reas, neg\u00f3cios ou soldados pra levantar grana"),
     canSell?`<button class="red" onclick="openSellAssets()">${L("[ FIRE / SELL ]","[ DISPENSAR / VENDER ]")}</button>`:off);
-  rows+=row(L("Call an execution","Mandar executar"),L("2\u00d7 the target's net worth \u2014 ordered from in here, carried out on the street","2\u00d7 o patrim\u00f4nio do alvo \u2014 encomendado daqui, feito na rua"),
+  const rivalTurf=S.players.some(o=>o.id!==p.id&&o.alive&&o.owns.size>0);
+  const canAtk=p.crew>=1&&rivalTurf;
+  rows+=row(L("Send the crew in","Mandar a equipe"),L("your soldiers move on a rival's turf while you sit here","seus soldados avan\u00e7am na \u00e1rea de um rival enquanto voc\u00ea fica aqui"),
+    canAtk?`<button class="red" onclick="doAttack(true)">${L("[ ATTACK \u00b7 ","[ ATACAR \u00b7 ")}${p.crew}${L(" sol ]"," sol ]")}</button>`:off);
+  rows+=row(L("Call an execution","Mandar executar"),execUnlocked()?L("2\u00d7 the target's net worth \u2014 ordered from in here, carried out on the street","2\u00d7 o patrim\u00f4nio do alvo \u2014 encomendado daqui, feito na rua"):execLockNote(),
     canExec?`<button class="red" onclick="execMenu()">${L("[ EXECUTE ]","[ EXECUTAR ]")}</button>`:off);
   rows+=row(L("Crimes","Crimes"),L("not from in here \u2014 you would have to be on the street","daqui n\u00e3o \u2014 voc\u00ea teria que estar na rua"),off);
   el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('VISIT DAY','DIA DE VISITA')}</div>
@@ -5453,6 +5553,7 @@ function aiAttackTarget(p){
    money left. It goes after the richest rival it can actually pay for — the bigger the target,
    the bigger the empire that changes hands. */
 function aiMaybeExecute(p){
+  if(!execUnlocked()) return false;   // Ghosts wait out the first year too
   if(p.ring!=="outer"||p.inJail||!p.alive) return false;
   const pr=aiProf(p);
   const reserve=Math.max(SOLDIER_COST*4, Math.round(p.cash*0.10));   // never spend itself to nothing
