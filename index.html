@@ -41,7 +41,7 @@
   /* subtle rolling-flicker on the whole screen */
   #screen,#setup{animation:crtflick 8s infinite}
   @keyframes crtflick{0%,96%,100%{opacity:1}97%{opacity:.94}98%{opacity:1}99%{opacity:.97}}
-  #screen{height:100%;padding:calc(env(safe-area-inset-top,0px) + 52px) 12px calc(env(safe-area-inset-bottom,0px) + 12px);display:flex;flex-direction:column;gap:8px;max-width:1240px;margin:0 auto}
+  #screen{height:100%;padding:12px;display:flex;flex-direction:column;gap:8px;max-width:1240px;margin:0 auto}
   .bar{border:1px solid var(--phos-dim);border-radius:2px;padding:6px 12px;display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap;
     background:linear-gradient(180deg,rgba(28,156,60,.10),transparent);box-shadow:inset 0 0 12px rgba(57,255,116,.06),0 0 0 1px rgba(10,61,24,.6)}
   .bar h1{font-size:16px;letter-spacing:4px;font-weight:bold;text-shadow:0 0 6px rgba(57,255,116,.6)}
@@ -329,6 +329,11 @@
   body.spectating:not(.usermodal) #modal{opacity:0 !important;pointer-events:none !important;}
   /* the leaderboard rides in the right column, under the console (see .speclb-panel) */
   .speclb-panel #specBoardSide{overflow-y:auto;}
+  /* THE CHART CANNOT BE SQUASHED. Its wrapper clips on the y axis, so any flex parent that
+     shrank it silently cut the bottom off the plot. A floor plus a scrollable board panel
+     means the chart is always drawn whole and anything that does not fit is scrolled to. */
+  body.spectating #nwChartWrap{min-height:240px;}
+  body.spectating .board-panel{overflow-y:auto;-webkit-overflow-scrolling:touch;min-height:0;}
   @media(min-width:901px){
     /* right column: console stays short (few lines), leaderboard fills the rest and scrolls */
     body.spectating .speclb-panel{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;}
@@ -339,6 +344,7 @@
        spectate dashboard (chart · console · leaderboard) scroll as one so every row is reachable */
     body.spectating .main{overflow-y:auto;-webkit-overflow-scrolling:touch;}
     body.spectating .board-panel,body.spectating .side,body.spectating .speclb-panel{overflow:visible;}
+    body.spectating #nwChartWrap{min-height:220px;}
     body.spectating .speclb-panel #specBoardSide{overflow:visible;max-height:none;}
   }
   /* PLAYER ON TURN (full width) */
@@ -765,7 +771,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v27.2";
+const APP_VERSION="v27.3";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
