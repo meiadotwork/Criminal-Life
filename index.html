@@ -765,7 +765,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v27.0";
+const APP_VERSION="v27.1";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -4154,7 +4154,7 @@ function doAttack(fromMenu){
   const menu=!!p._atkMenu;
   const targets=[];
   S.players.forEach(o=>{if(o.id!==p.id&&o.alive){o.owns.forEach((s,idx)=>targets.push({o,idx,s}));}});
-  if(p.ring==="inner" && !p._visitDay){ if(menu){atkNotice(L("You can only send the crew out on a VISIT DAY.","S\u00f3 d\u00e1 pra mandar a equipe num DIA DE VISITA."));return;} finish(); return; }
+  if(p.ring==="inner"){ if(menu){atkNotice(L("You can't run an attack from inside.","Voc\u00ea n\u00e3o comanda ataque de dentro."));return;} finish(); return; }
   if(p.crew<1){ if(menu){atkNotice(L("You have no soldiers to attack with. Hire crew first.","Você não tem soldados para atacar. Contrate equipe primeiro."));return;} log(p.name+L(" has no soldiers to attack with."," não tem soldados para atacar.")); finish(); return;}
   if(targets.length===0){ if(menu){atkNotice(L("No rival controls any turf yet — nothing to attack.","Nenhum rival controla área ainda — nada para atacar."));return;} log(L("No rival turf to attack.","Nenhuma área rival para atacar.")); finish(); return;}
   if(p.ai){
@@ -4827,13 +4827,9 @@ function pdayVisit(){
     `<button onclick="openBuyWorkers()">${L("[ HIRE ]","[ CONTRATAR ]")}</button>`);
   rows+=row(L("Let people go","Dispensar / vender"),L("sell off turf, shops or soldiers to raise cash","venda \u00e1reas, neg\u00f3cios ou soldados pra levantar grana"),
     canSell?`<button class="red" onclick="openSellAssets()">${L("[ FIRE / SELL ]","[ DISPENSAR / VENDER ]")}</button>`:off);
-  const rivalTurf=S.players.some(o=>o.id!==p.id&&o.alive&&o.owns.size>0);
-  const canAtk=p.crew>=1&&rivalTurf;
-  rows+=row(L("Send the crew in","Mandar a equipe"),L("your soldiers move on a rival's turf while you sit here","seus soldados avan\u00e7am na \u00e1rea de um rival enquanto voc\u00ea fica aqui"),
-    canAtk?`<button class="red" onclick="doAttack(true)">${L("[ ATTACK \u00b7 ","[ ATACAR \u00b7 ")}${p.crew}${L(" sol ]"," sol ]")}</button>`:off);
   rows+=row(L("Call an execution","Mandar executar"),execUnlocked()?L("2\u00d7 the target's net worth \u2014 ordered from in here, carried out on the street","2\u00d7 o patrim\u00f4nio do alvo \u2014 encomendado daqui, feito na rua"):execLockNote(),
     canExec?`<button class="red" onclick="execMenu()">${L("[ EXECUTE ]","[ EXECUTAR ]")}</button>`:off);
-  rows+=row(L("Crimes","Crimes"),L("not from in here \u2014 you would have to be on the street","daqui n\u00e3o \u2014 voc\u00ea teria que estar na rua"),off);
+  rows+=row(L("Crimes and attacks","Crimes e ataques"),L("not from in here \u2014 you would have to be on the street","daqui n\u00e3o \u2014 voc\u00ea teria que estar na rua"),off);
   el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('VISIT DAY','DIA DE VISITA')}</div>
     <div class="art">|:|</div><div class="ttl">${L('Your lawyer is here','Seu advogado chegou')}</div>
     <div class="sub" style="opacity:.7">${L('Visits come round once a lap — make it count.','A visita s\u00f3 vem uma vez por volta — aproveite.')}</div>
