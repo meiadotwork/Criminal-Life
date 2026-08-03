@@ -4,3 +4,5 @@ CriminalTerminal-offline.zip
 CriminalTerminal-StarterKit*.zip
 # versioned standalone copy — same bytes as index.html, rebuilt per release
 CriminalTerminal-v*.html
+# the itch redirect upload — rebuilt from itch-redirect/index.html
+criminal-terminal-link.zip

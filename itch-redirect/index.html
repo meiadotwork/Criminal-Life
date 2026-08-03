@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>CRIMINAL TERMINAL</title>
+<!-- no-JS fallback only: JS gets first attempt so it can break out of the itch frame -->
+<meta http-equiv="refresh" content="4;url=https://criminalterminal.pages.dev">
+<link rel="canonical" href="https://criminalterminal.pages.dev">
+<style>
+  :root{--phos:#33ff66;--dim:#1c7a35;--bg:#010602}
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0}
+  body{background:var(--bg);color:var(--phos);display:flex;align-items:center;justify-content:center;
+       font-family:"Courier New",Courier,monospace;text-align:center;padding:20px;overflow:hidden}
+  .wrap{max-width:640px;width:100%}
+  h1{font-size:clamp(22px,7vw,44px);letter-spacing:.32em;margin:0 0 6px;text-shadow:0 0 12px rgba(51,255,102,.45)}
+  h2{font-size:clamp(11px,3vw,18px);letter-spacing:.5em;margin:0 0 26px;opacity:.75;font-weight:400}
+  p{font-size:14px;line-height:1.7;opacity:.8;margin:0 0 22px}
+  a.go{display:inline-block;border:1px solid var(--phos);color:var(--phos);text-decoration:none;
+       padding:14px 26px;font-size:16px;letter-spacing:.12em;background:rgba(51,255,102,.06)}
+  a.go:hover,a.go:focus{background:var(--phos);color:var(--bg);outline:none}
+  .url{margin-top:20px;font-size:12px;opacity:.5;word-break:break-all}
+  .dots::after{content:"";animation:d 1.2s steps(4,end) infinite}
+  @keyframes d{0%{content:""}25%{content:"."}50%{content:".."}75%{content:"..."}}
+  @media (prefers-reduced-motion:reduce){.dots::after{content:"..."animation:none}}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>CRIMINAL</h1>
+    <h2>TERMINAL</h2>
+    <p>C:\&gt; CONNECTING TO THE STREET<span class="dots"></span></p>
+    <a class="go" id="go" href="https://criminalterminal.pages.dev" target="_top" rel="noopener">[ ENTER THE CITY &raquo; ]</a>
+    <div class="url">criminalterminal.pages.dev</div>
+  </div>
+<script>
+(function(){
+  var DEST="https://criminalterminal.pages.dev";
+  // itch.io embeds this page in an iframe. Breaking out to the top window is what gives the
+  // player the real address bar, fullscreen and the tip button; if the frame won't allow it
+  // (cross-origin block), fall back to loading in place, which still plays fine.
+  var framed=false;
+  try{ framed = window.top !== window.self; }catch(e){ framed = true; }
+  try{
+    if(framed){ window.top.location.replace(DEST); return; }
+  }catch(e){ /* sandboxed — fall through */ }
+  window.location.replace(DEST);
+})();
+</script>
+</body>
+</html>
