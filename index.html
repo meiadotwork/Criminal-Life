@@ -344,8 +344,13 @@
   @media(max-width:900px){
     /* phone: don't trap the leaderboard in a clipped panel below the fold — let the whole
        spectate dashboard (chart · console · leaderboard) scroll as one so every row is reachable */
-    body.spectating .main{overflow-y:auto;-webkit-overflow-scrolling:touch;}
+    /* .main is a grid, and a grid divides its fixed height between the rows — so the dashboard row
+       was being sized to the leftover space (410px) instead of its content (484px), and the chart
+       hanging past that got painted over by the console below it. max-content rows + start
+       alignment make each row as tall as it needs, and the scroller here carries the overflow. */
+    body.spectating .main{overflow-y:auto;-webkit-overflow-scrolling:touch;grid-auto-rows:max-content;align-content:start;}
     body.spectating .board-panel,body.spectating .side,body.spectating .speclb-panel{overflow:visible;}
+    body.spectating .board-panel{max-height:none;}
     body.spectating #nwChartWrap{min-height:220px;}
     body.spectating .speclb-panel #specBoardSide{overflow:visible;max-height:none;}
   }
@@ -773,7 +778,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v27.4";
+const APP_VERSION="v27.5";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
