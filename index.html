@@ -41,7 +41,7 @@
   /* subtle rolling-flicker on the whole screen */
   #screen,#setup{animation:crtflick 8s infinite}
   @keyframes crtflick{0%,96%,100%{opacity:1}97%{opacity:.94}98%{opacity:1}99%{opacity:.97}}
-  #screen{height:100%;padding:12px;display:flex;flex-direction:column;gap:8px;max-width:1240px;margin:0 auto}
+  #screen{height:100%;padding:calc(env(safe-area-inset-top,0px) + 52px) 12px calc(env(safe-area-inset-bottom,0px) + 12px);display:flex;flex-direction:column;gap:8px;max-width:1240px;margin:0 auto}
   .bar{border:1px solid var(--phos-dim);border-radius:2px;padding:6px 12px;display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap;
     background:linear-gradient(180deg,rgba(28,156,60,.10),transparent);box-shadow:inset 0 0 12px rgba(57,255,116,.06),0 0 0 1px rgba(10,61,24,.6)}
   .bar h1{font-size:16px;letter-spacing:4px;font-weight:bold;text-shadow:0 0 6px rgba(57,255,116,.6)}
@@ -154,7 +154,7 @@
   .card .status span{white-space:nowrap}
   .card .ladder{margin:2px 0}
   .card .ladder div{display:flex;justify-content:space-between;padding:1px 0}
-  #setup{position:fixed;inset:0;z-index:70;display:flex;align-items:center;justify-content:flex-start;flex-direction:column;gap:14px;background:var(--bg);padding:24px 20px 40px;text-align:center;overflow-y:auto;-webkit-overflow-scrolling:touch}
+  #setup{position:fixed;inset:0;z-index:70;display:flex;align-items:center;justify-content:flex-start;flex-direction:column;gap:14px;background:var(--bg);padding:calc(env(safe-area-inset-top,0px) + 62px) 20px 40px;text-align:center;overflow-y:auto;-webkit-overflow-scrolling:touch}
   #setup pre{font-size:clamp(4px,1.3vw,10px);line-height:1.1;margin-top:8px;flex-shrink:0}
   #setupStage{width:100%;max-width:520px}
   .choice{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
@@ -225,7 +225,7 @@
   .blink{animation:dosblink 1.05s steps(1) infinite;}
 
   /* password + boot terminal overlay */
-  #dosgate{position:fixed;inset:0;z-index:9999;padding:20px 16px;overflow:hidden;font-size:20px;line-height:1.32;}
+  #dosgate{position:fixed;inset:0;z-index:9999;padding:calc(env(safe-area-inset-top,0px) + 62px) 16px 20px;overflow:hidden;font-size:20px;line-height:1.32;}
   #dosgate pre{margin:0;white-space:pre-wrap;word-break:break-word;font-size:inherit;line-height:inherit;}
   #dosgate.hidden{display:none;}
 
@@ -765,7 +765,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v27.1";
+const APP_VERSION="v27.2";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
