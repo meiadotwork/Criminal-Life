@@ -778,7 +778,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v27.5";
+const APP_VERSION="v28.0";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -839,7 +839,9 @@ const BASE_ECON = OUTER.map(c=>({price:c.price, income:c.income}));  // snapshot
 /* property/business prices are NATIVE per city: cheapest tile = 1/2 the bodyguard, priciest = 2x the bodyguard, interpolated across the base tiers */
 const _ECON_VALS = OUTER.filter(c=>c.k==="street"||c.k==="biz").map(c=>c.k==="street"?c.price:c.income);
 const ECON_MIN = Math.min(..._ECON_VALS), ECON_MAX = Math.max(..._ECON_VALS);
-function nativePrice(base, bg, scale){ const t=(base-ECON_MIN)/(ECON_MAX-ECON_MIN); const tgt=(bg||100)*(0.5+1.5*t); return Math.max(1, Math.round(tgt/(scale||1))); }
+/* econ = optional per-city fine-tune on property prices, default 1. The cap sets a city's ceiling
+   in whole steps of its per-lap total; econ shaves the step so a target lands exactly. */
+function nativePrice(base, bg, scale, econ){ const t=(base-ECON_MIN)/(ECON_MAX-ECON_MIN); const tgt=(bg||100)*(econ||1)*(0.5+1.5*t); return Math.max(1, Math.round(tgt/(scale||1))); }
 const CITIES = {
   NY:  { name:"NEW YORK", prison:"RIKERS", law:{life:true, maxYears:99}, cur:"$", scale:1, region:"US", soldier:45, bg:45,
     streets:{20:"Mott Haven",30:"South Bronx",45:"Brownsville",60:"East New York",75:"Sunset Park",90:"Jackson Hts",100:"Bay Ridge",210:"Astoria",225:"Long Is City",230:"Bklyn Heights",250:"Greenwich Vil",280:"Hudson Yards",300:"SoHo",350:"Tribeca",400:"Upper E Side"},
@@ -898,7 +900,7 @@ const CITIES = {
     streets:{20:"Englewood",30:"W Garfield Pk",45:"Austin",60:"Roseland",75:"South Shore",90:"Back of Yards",100:"Little Village",210:"Pilsen",225:"Bridgeport",230:"Logan Square",250:"Wicker Park",280:"River North",300:"Lincoln Park",350:"Streeterville",400:"Gold Coast"},
     biz:{400:["cocaine","co"],200:["heroin","he"],180:["bookmaking","bk"],170:["loan shark","ls"],150:["union skim","un"],110:["fentanyl","fn"],90:["guns","gn"],80:["chop shop","cs"],70:["laundering","$$"]},
     casino:["Policy Wheel","PW"] },
-  LON: { name:"LONDON", prison:"HMP BLACKWALL", law:{life:true, maxYears:99}, cur:"$", scale:1, region:"UK", soldier:100, bg:100,
+  LON: { name:"LONDON", prison:"HMP BLACKWALL", law:{life:true, maxYears:99}, cur:"$", scale:1, econ:0.997, region:"UK", soldier:100, bg:100,
     // streets keyed by fixed price tier -> London turf, poorest -> richest (Mayfair on top)
     streets:{20:"Broadwater Fm",30:"Tottenham Hale",45:"Peckham Rye",60:"Brixton Road",75:"Harlesden",90:"Deptford High",100:"Elephant&Cast",210:"Camden Town",225:"Hackney Cent.",230:"Shoreditch",250:"Canary Wharf",280:"South Ken.",300:"Chelsea Kings",350:"Kensington Hi",400:"Mayfair"},
     // criminal enterprises (manufacturing side) — cocaine import on top, laundering at the bottom
@@ -911,19 +913,48 @@ const CITIES = {
     biz:{400:["cocaína","co"],200:["base de coca","bs"],180:["vacuna","vc"],170:["secuestro","sq"],150:["esmeraldas","em"],110:["oro ilegal","or"],90:["contrabando","cn"],80:["microtráfico","mt"],70:["lavado","$$"]},
     casino:["Casino Nápoles","CN"] }
 };
+/* ===== PER-CITY GARRISON CAP =====
+   Every board pays a fixed amount per unit per lap, so the cap on units per holding is what sets
+   a city's maximum yearly take once everything is fully staffed. Making it per-city gives each
+   place its own wealth AND its own texture: a poor city fills up fast and forces you to spread
+   across the map, a rich one lets a single business grow into a fortress.
+   cap x that city's per-lap total = the ceiling in the table below. */
+const CITY_CAP={
+  CWB:48,   //  $15M/yr fully employed
+  ASU:64,   //  $30M
+  RIO:173,  //  $60M
+  SP:239,   //  $90M
+  MDE:177,  // $100M
+  SV:127,   //  $60M
+  CDMX:304, // $200M
+  TIJ:191,  // $120M
+  LA:213,   // $300M
+  NY:177,   // $250M
+  CHI:91,   // $120M
+  MIA:80,   // $100M
+  LON:128   // $400M — needs econ 0.997 below: 3125 x 128 lands on 400,000 exactly
+};
+/* Set by applyCity() from the map above. Everything that reads a unit ceiling — garrison room,
+   attack wave size, AI stacking — reads this, so all of it scales with the city together. */
+let UNIT_CAP=100;
+/* AI army/garrison numbers in AI_PROFILES were tuned against a 100-unit board. Read them as a
+   percentage of whatever this city's cap is, so a Ghost fields an army in proportion to the
+   garrisons it has to crack instead of bringing 50 men to a 304-man door. */
+function capScaled(v){ return Math.max(1, Math.round((v||0)*UNIT_CAP/100)); }
 function applyCity(key){
   const city=CITIES[key]||CITIES.NY;
+  UNIT_CAP = CITY_CAP[key] || 100;
   OUTER.forEach((c,i)=>{
     const base=CITY_BASE[i];
-    if(c.k==="street"){ const bp=BASE_ECON[i].price; c.t=(city.streets&&city.streets[bp])||base.t; c.price=nativePrice(bp, city.bg, city.scale); }
-    else if(c.k==="biz"){ const bi=BASE_ECON[i].income; const b=city.biz&&city.biz[bi]; c.t=b?b[0]:base.t; c.ic=b?b[1]:base.ic; c.income=nativePrice(bi, city.bg, city.scale); }
+    if(c.k==="street"){ const bp=BASE_ECON[i].price; c.t=(city.streets&&city.streets[bp])||base.t; c.price=nativePrice(bp, city.bg, city.scale, city.econ); }
+    else if(c.k==="biz"){ const bi=BASE_ECON[i].income; const b=city.biz&&city.biz[bi]; c.t=b?b[0]:base.t; c.ic=b?b[1]:base.ic; c.income=nativePrice(bi, city.bg, city.scale, city.econ); }
     else if(c.k==="poker"){ c.t=L("THE WHEEL","A ROLETA"); c.ic="()"; }
     else { c.t=base.t; c.ic=base.ic; }
   });
   // NATIVE per-city bodyguard price (stored as the displayed local amount; /scale so fmtK renders it natively). Wage = hire cost.
   SOLDIER_COST = Math.max(1, Math.round((city.bg||100)/(city.scale||1)));
   SOLDIER_WAGE = SOLDIER_COST;
-  const _pk=OUTER.find(c=>c.k==="poker"); if(_pk)_pk.price=5*SOLDIER_COST;   // THE WHEEL: 5 bodyguards per dealer
+  const _pk=OUTER.find(c=>c.k==="poker"); if(_pk)_pk.price=Math.max(1,Math.round(5*SOLDIER_COST*(city.econ||1)));   // THE WHEEL: 5 bodyguards per dealer
   TREAT_COST = Math.round(0.5*SOLDIER_COST);                                  // hospital treatment fee = 0.5 bodyguard
   // per-region card decks: R$ cities (SP/RIO/CWB) pull the Brazilian set on top of the base
   buildActiveDecks(city.region||"US");
@@ -3811,7 +3842,6 @@ ${L("Their cash:","Dinheiro dele:")} ${fmtK(oBefore)} → ${fmtK(o.cash)}</div>
 /* ===== RECRUITING (bulk) ===== */
 /* No single block or shop holds more than this many bodies, and no attack sends more than
    this many at once — the ceiling that stops one holding from snowballing without limit. */
-const UNIT_CAP=100;
 function unitRoom(p,idx){ return Math.max(0, UNIT_CAP-((p&&p.owns&&p.owns.get(idx))||0)); }
 function capUnits(n){ return Math.max(0, Math.min(UNIT_CAP, Math.round(n||0))); }
 /* ===== THE LAP CLOCK — a body earns nothing until it has served a full lap =====
@@ -3994,7 +4024,7 @@ function doCrime(job){
 }
 function offerHire(){
   const p=S.players[S.cur];
-  if(p.ai){ const pr=aiProf(p); const aiCap=pr.recruitCap; while(p.crew<aiCap && p.cash>=SOLDIER_COST*pr.recruitReserve){p.cash-=SOLDIER_COST;p.crew++;} log(p.name+L(" recruits soldiers."," recruta soldados."),"good"); finish(); return; }
+  if(p.ai){ const pr=aiProf(p); const aiCap=capScaled(pr.recruitCap); while(p.crew<aiCap && p.cash>=SOLDIER_COST*pr.recruitReserve){p.cash-=SOLDIER_COST;p.crew++;} log(p.name+L(" recruits soldiers."," recruta soldados."),"good"); finish(); return; }
   const slotsLeft=MAX_SOLDIERS-p.crew;
   const affordable=Math.floor(p.cash/SOLDIER_COST);
   const canBuy=Math.min(slotsLeft,affordable);
@@ -5505,7 +5535,7 @@ function aiRecruit(p){
   // an army you can't pay wages for bankrupts you: keep total wages under ~60% of yearly income (+ a small defensive floor)
   const affordCrew=Math.max(2, Math.floor(inc*0.6/SOLDIER_WAGE));   // only bodyguards draw wages
   const grow=pr.crewStep?Math.floor(nw/(SOLDIER_COST*pr.crewStep)):0;
-  const cap=Math.max(0, Math.min(pr.crewCap||pr.recruitCap, pr.recruitCap+grow, affordCrew));
+  const cap=Math.max(0, Math.min(capScaled(pr.crewCap||pr.recruitCap), capScaled(pr.recruitCap)+grow, affordCrew));
   // reserve: a full year of the intended payroll, or a quarter of cash — never spend into insolvency
   const reserve=Math.max(cap*SOLDIER_WAGE, Math.round(p.cash*0.30));
   let added=0;
@@ -5530,11 +5560,11 @@ function aiReinforce(p){
   };
   /* Turf and shops are both square once bought — neither draws a wage — so a Ghost stacks
      them the same way, as deep as its earnings justify. */
-  const deepTarget=(idx)=>Math.min(UNIT_CAP, pr.garCap||1, 4+Math.floor(inc/(SOLDIER_COST*8)));
+  const deepTarget=(idx)=>Math.min(UNIT_CAP, capScaled(pr.garCap||1), 4+Math.floor(inc/(SOLDIER_COST*8)));
   const reserveFor=(idx)=>Math.round(p.cash*0.15);
   /* PASS 1 — no free gifts: a block sitting on one body is the cheapest thing on the board to
      take, so lift everything off the floor before anything gets deep. */
-  const floor=Math.min(UNIT_CAP, Math.max(2, Math.round((pr.garCap||8)*0.15)));
+  const floor=Math.min(UNIT_CAP, Math.max(2, Math.round(capScaled(pr.garCap||8)*0.15)));
   for(const idx of held) fill(idx,Math.min(floor,deepTarget(idx)),reserveFor(idx));
   /* PASS 2 — depth beats breadth: everything left goes into the best earner first, one holding
      at a time, instead of being sprinkled a body at a time across the whole map. */
@@ -5648,7 +5678,7 @@ function aiSpreadOK(p){
   if(!held.length) return true;                       // nothing yet — the first holding is always fine
   const pr=aiProf(p);
   const depth=held.reduce((a,i)=>a+(p.owns.get(i)||0),0)/held.length;
-  const need=Math.min(pr.garCap||8, Math.max(3, Math.round(Math.max(0,netWorth(p))/(SOLDIER_COST*40))));
+  const need=Math.min(capScaled(pr.garCap||8), Math.max(3, Math.round(Math.max(0,netWorth(p))/(SOLDIER_COST*40))));
   return depth>=need;
 }
 function aiBuyStreet(idx,c){const p=S.players[S.cur];const mult=aiProf(p).buyMult;
