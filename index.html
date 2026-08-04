@@ -315,7 +315,8 @@
   .condice-panel{display:flex;gap:9px;align-items:stretch;}
   .condice-panel .concol{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;}
   .condice-panel .dicecol{flex:0 0 44%;max-width:172px;min-width:118px;display:flex;flex-direction:column;}
-  .condice-panel #log{flex:1 1 auto;min-height:16vh;max-height:34vh;overflow-y:auto;}
+  /* the console owns the whole pane when its tab is open, so let the log run long */
+  .condice-panel #log{flex:1 1 auto;min-height:16vh;max-height:56vh;overflow-y:auto;}
   .condice-panel #diceBox{margin-bottom:6px;}
   .condice-panel .controls{display:flex;flex-direction:column;align-items:stretch;gap:5px;}
   .condice-panel .controls button{width:100%;font-size:12px;padding:6px 4px;}
@@ -354,6 +355,32 @@
     body.spectating #nwChartWrap{min-height:220px;}
     body.spectating .speclb-panel #specBoardSide{overflow:visible;max-height:none;}
   }
+  /* ===== TABBED SIDE COLUMN =====
+     PLAYER ON TURN · CONSOLE · OTHER PLAYERS used to be three panels stacked in one column,
+     each squeezed to a few lines. One tab open at a time gives whichever you're reading the
+     whole column, which is what makes room for the action groups below. */
+  .ptabs{display:flex;gap:3px;flex:0 0 auto;margin-bottom:-1px;}
+  .ptab{flex:1 1 0;min-width:0;font-size:9.5px;letter-spacing:1.2px;padding:8px 3px;border-radius:2px 2px 0 0;
+        border-color:var(--phos-dark);color:var(--phos-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-shadow:none;}
+  .ptab.on{background:var(--phos) !important;color:#020a04 !important;border-color:var(--phos);text-shadow:none;}
+  .ptab #conDot{color:var(--amber);}
+  .ptab.on #conDot{color:#020a04;}
+  .side .pane{display:none;}
+  .side .pane.on{display:block;}
+  /* ===== ACTION GROUPS — one bordered block per kind of move, with air between them ===== */
+  .acts{display:flex;flex-direction:column;gap:10px;margin-top:10px;}
+  .arow{display:flex;gap:9px;align-items:stretch;}
+  .asec{border:1px solid var(--phos-dark);border-radius:2px;padding:9px;min-width:0;
+        background:linear-gradient(180deg,rgba(10,61,24,.10),rgba(1,6,2,.25));}
+  .asec.grow{flex:1 1 auto;}
+  .asec:empty,.asec.hide{display:none;}
+  .ahd{font-size:9.5px;letter-spacing:2.5px;color:var(--phos-dim);margin-bottom:8px;}
+  .acol{display:flex;flex-direction:column;gap:7px;align-items:stretch;}
+  .acol button{width:100%;padding:10px 8px;font-size:12px;text-align:center;}
+  .adice{flex:0 0 auto;display:flex;flex-direction:column;gap:6px;align-items:center;justify-content:flex-start;
+         border:1px solid var(--phos-dark);border-radius:2px;padding:9px 8px;
+         background:linear-gradient(180deg,rgba(10,61,24,.10),rgba(1,6,2,.25));}
+  .adice .ctx{font-size:10px;opacity:.65;text-align:center;line-height:1.25;max-width:118px;}
   /* PLAYER ON TURN (full width) */
   .curplayer-panel{flex:0 0 auto;}
   #players{gap:6px;}
@@ -362,9 +389,17 @@
   .pl .row{gap:5px;align-items:center;}
   /* OTHER PLAYERS (horizontal strip) */
   .others-panel{flex:0 0 auto;}
-  #othersRow{display:flex;gap:5px;overflow-x:auto;padding-bottom:4px;}
-  #othersRow .pl{flex:0 0 auto;min-width:118px;padding:5px 7px;font-size:11px;}
+  #othersRow{display:flex;gap:5px;flex-wrap:wrap;padding-bottom:4px;}
+  #othersRow .pl{flex:1 1 132px;min-width:118px;padding:6px 8px;font-size:11px;}
   #othersRow .pl .row{line-height:1.15;}
+  /* ===== STANDINGS — the chart + full player list, parked below the fold =====
+     Scroll past the board and the panel and this is what you land on, so the leaderboard is
+     reachable without pausing the game. The column scrolls; this block sizes to its content. */
+  .side{overflow-y:auto;-webkit-overflow-scrolling:touch;}
+  .stand-panel{flex:0 0 auto;overflow:visible;}
+  #standChart{margin-bottom:6px;}
+  body.spectating .stand-panel,body.spectating .ptabs{display:none !important;}
+  body.spectating .condice-panel{display:flex !important;}
 </style>
 <style id="dos77">
   /* DOS config (difficulty + speed on one screen) */
@@ -404,6 +439,13 @@
 <style id="dos78">
   @media(max-width:900px){
     .board-panel{max-height:46vh;}
+    /* phone: the whole screen scrolls as one, so below the board you get the panel and then
+       the standings block — nothing lives past a clipped edge you can't reach */
+    .main{overflow-y:auto;-webkit-overflow-scrolling:touch;grid-auto-rows:max-content;align-content:start;}
+    .side{overflow:visible;}
+    .arow{flex-direction:column;}
+    .adice{flex-direction:row;justify-content:center;gap:12px;align-items:center;}
+    .adice .ctx{max-width:none;text-align:left;}
   }
   .agestep{display:flex;align-items:center;justify-content:center;gap:10px;margin:2px 0 4px;}
   .agestep button{font-size:20px;padding:4px 14px;line-height:1;}
@@ -416,6 +458,12 @@
   #cardEl .qdisp #qval{font-size:40px;font-weight:bold;letter-spacing:3px}
   #cardEl .qcalc{display:flex;justify-content:space-between;font-size:12.5px;margin:8px 2px 4px}
   #cardEl .qcalc .qtot{font-weight:bold}
+  /* SELL · X · BUY stay on one line at any width — X takes only what it needs */
+  #cardEl .qgo{display:flex;flex-wrap:nowrap;gap:6px;align-items:stretch;margin-top:10px}
+  #cardEl .qgo button{flex:1 1 0;min-width:0;padding:11px 2px;font-size:10.5px;letter-spacing:0;
+                      white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #cardEl .qgo button.qx{flex:0 0 auto;padding:11px 9px;letter-spacing:1px}
+  @media(min-width:520px){ #cardEl .qgo button{font-size:12.5px;padding:11px 6px;letter-spacing:.5px} }
 </style>
 <style id="dos79">
   /* board-cell chips: tiny, so give each pattern a solid readable mark (no hollow squares) */
@@ -747,30 +795,57 @@
       <div id="spectateView" style="display:none;width:100%"></div>
     </div>
     <div class="side">
-      <div class="panel condice-panel">
-        <div class="concol" onclick="openBigConsole()" title="tap to enlarge" style="cursor:pointer">
-          <h2>CONSOLE — this round <span class="expicon">[ TAP TO ZOOM ]</span></h2>
-          <div id="log"></div>
-        </div>
-        <div class="dicecol">
-          <div id="diceBox"><div id="diceRow"><div class="die roller" onclick="rollDice()" title="tap to roll"><span class="dielbl">DICE</span></div></div><div style="font-size:13px;opacity:.7;display:none" id="diceLbl">tap die to roll</div></div>
-          <div class="controls" style="min-height:8px">
-            <button id="actionBtn" class="amber" onclick="openActions()">[ ACTION ]</button>
-          </div>
-          <div class="ctx" id="ctxHint" style="display:none"></div>
-        </div>
+      <!-- three tabs across the top of the column; one pane is open at a time so each one
+           gets the whole panel instead of three cramped strips sharing it -->
+      <div class="ptabs" id="ptabs">
+        <button class="ptab on" id="tab-turn" onclick="setPanelTab('turn')">PLAYER ON TURN</button>
+        <button class="ptab" id="tab-con" onclick="setPanelTab('con')">CONSOLE<span id="conDot"></span></button>
+        <button class="ptab" id="tab-oth" onclick="setPanelTab('oth')">OTHER PLAYERS</button>
       </div>
       <div class="panel speclb-panel" style="display:none">
         <h2>LEADERBOARD</h2>
         <div id="specBoardSide"></div>
       </div>
-      <div class="panel curplayer-panel">
-        <h2>PLAYER ON TURN</h2>
+      <div class="panel pane on curplayer-panel" id="pane-turn">
         <div id="players"></div>
+        <div class="acts">
+          <div class="arow">
+            <div class="asec grow" id="secCrime">
+              <div class="ahd" id="ahdCrime">CRIME</div>
+              <div class="acol" id="actCrime"></div>
+            </div>
+            <div class="adice">
+              <div id="diceBox"><div id="diceRow"><div class="die roller" onclick="rollDice()" title="tap to roll"><span class="dielbl">DICE</span></div></div><div style="font-size:13px;opacity:.7;display:none" id="diceLbl">tap die to roll</div></div>
+              <div class="ctx" id="ctxHint"></div>
+            </div>
+          </div>
+          <div class="asec" id="secHire">
+            <div class="ahd" id="ahdHire">HIRE CREW</div>
+            <div class="acol" id="actHire"></div>
+          </div>
+          <div class="asec" id="secWar">
+            <div class="acol" id="actWar"></div>
+          </div>
+          <div class="asec" id="secMisc">
+            <div class="acol" id="actMisc"></div>
+          </div>
+        </div>
       </div>
-      <div class="panel others-panel">
+      <div class="panel pane condice-panel" id="pane-con">
+        <div class="concol" onclick="openBigConsole()" title="tap to enlarge" style="cursor:pointer">
+          <h2>CONSOLE — this round <span class="expicon">[ TAP TO ZOOM ]</span></h2>
+          <div id="log"></div>
+        </div>
+      </div>
+      <div class="panel pane others-panel" id="pane-oth">
         <h2>OTHER PLAYERS — tap for record</h2>
         <div id="othersRow"></div>
+      </div>
+      <!-- scroll past the board/panel and the chart + full player list are waiting down here -->
+      <div class="panel stand-panel" id="pane-stand">
+        <h2>STANDINGS — NET WORTH</h2>
+        <div id="standChart" style="overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;border:1px solid #173a22;display:none"></div>
+        <div id="standRows"></div>
       </div>
     </div>
   </div>
@@ -798,7 +873,7 @@ const ROLE_ES={"Crooked Sergeant":"Sargento Corrupto","Crooked Detective":"Detec
 const ES_STATIC={"NEW YORK CITY":"NUEVA YORK","PLAYERS — tap for record":"JUGADORES — toca para la ficha","DICE":"DADOS","ACTIONS":"ACCIONES","CONSOLE — this round":"CONSOLA — esta ronda","PLAYER ON TURN":"JUGADOR EN TURNO","OTHER PLAYERS — tap for record":"OTROS JUGADORES — toca para la ficha","[ MANUAL ]":"[ MANUAL ]","[reset]":"[reiniciar]","[ FOLLOW: OFF ]":"[ SEGUIR: NO ]","[ FOLLOW: ON ]":"[ SEGUIR: SÍ ]","[ AUTO: OFF ]":"[ AUTO: NO ]","[ AUTO: ON ]":"[ AUTO: SÍ ]","tap die to roll":"toca el dado para tirar","roll to move":"tira para avanzar","landed":"cayó"};
 const POLICE_LABELS_ES={0.25:"MUY BAJA",0.5:"BAJA",1:"REALISTA",3:"DIFÍCIL",4:"BRASILEÑA"};
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v32.2";
+const APP_VERSION="v32.3";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -3525,6 +3600,8 @@ function render(){
   tb.style.background=cp.color;tb.style.borderColor=cp.color;
   if(SPECTATING)renderSpectate(false);        // live spectate dashboard
   else if(FOCUS_MODE)renderFocusCard();       // keep the focus card following the token
+  try{ renderActions(); }catch(e){}            // buying/selling changes what the buttons can offer
+  try{ renderStandings(); }catch(e){}          // chart + leaderboard below the fold
   const bh=document.querySelector(".board-panel h2");
   if(bh) bh.textContent = (S.city==="NY")?L("NEW YORK CITY","NOVA YORK"):((CITIES[S.city]||CITIES.NY).name);
 }
@@ -3787,7 +3864,8 @@ function log(m,cls=""){const d=document.createElement("div");d.className="l "+cl
   box.insertBefore(d,anchor);
   // keep the enlarged console (if open) in sync
   const big=document.getElementById("logBig"),src=document.getElementById("log");
-  if(big&&src) big.innerHTML=src.innerHTML;}
+  if(big&&src) big.innerHTML=src.innerHTML;
+  try{ markConsoleUnread(); }catch(e){}}
 
 /* tap the CONSOLE panel → read it in a big, scrollable modal (easier on phones) */
 function openBigConsole(){
@@ -3819,13 +3897,111 @@ function updateControls(){
   else if(p.ring==="inner")h.textContent=L("PRISON. Tap ACTION for a move, then the die to do your time.","PRISÃO. Toque em AÇÃO pra um corre, depois no dado pra cumprir a pena.");
   else if(!S.rolled)h.textContent=L("Tap the die to move.","Toque no dado para andar.");
   else h.textContent=L("Move resolved — next player up...","Jogada resolvida — pr\u00f3ximo jogador...");
-  const ab=document.getElementById("actionBtn");
-  if(ab){
-    ab.style.display=(!p.ai&&p.alive&&!S.over)?"block":"none";
-    if(p.auto){ ab.textContent=L("[ \u25a0 STOP AUTO ]","[ \u25a0 PARAR AUTO ]"); ab.className="red"; ab.setAttribute("onclick","stopAuto()"); }
-    else { ab.textContent=L("[ ACTION ]","[ A\u00c7\u00c3O ]"); ab.className="amber"; ab.setAttribute("onclick","openActions()"); }
-  }
+  renderActions();
 }
+/* ===== THE TABBED SIDE COLUMN =====
+   One pane open at a time. The console keeps a dot on its tab while you're not looking at it,
+   so a line you missed still announces itself. */
+let _ptab=(function(){try{const v=localStorage.getItem("ct_ptab");return (v==="con"||v==="oth")?v:"turn";}catch(e){return "turn";}})();
+function setPanelTab(t){
+  if(t!=="con"&&t!=="oth")t="turn";
+  _ptab=t; try{localStorage.setItem("ct_ptab",t);}catch(e){}
+  ["turn","con","oth"].forEach(k=>{
+    const pane=document.getElementById("pane-"+k), tab=document.getElementById("tab-"+k);
+    if(pane)pane.classList.toggle("on",k===t);
+    if(tab)tab.classList.toggle("on",k===t);
+  });
+  if(t==="con"){ const d=document.getElementById("conDot"); if(d)d.textContent=""; }
+}
+function markConsoleUnread(){
+  if(_ptab==="con")return;
+  const d=document.getElementById("conDot"); if(d&&!d.textContent)d.textContent=" \u2022";
+}
+/* ===== ACTIONS, INLINE =====
+   Every move the player can make is a button in its own group right in the panel \u2014 crime and
+   the dice on one row, hiring in the next block, war in the last. Nothing is buried in a menu.
+   The dice element is static markup: this only ever rewrites the button columns around it. */
+function actBtn(on,cls,fn,lbl,title){
+  return `<button ${on?"":"disabled"} class="${cls||""}"${on?` onclick="${fn}"`:""}${title?` title="${title}"`:""}>${lbl}</button>`;
+}
+function renderActions(){
+  if(typeof S==="undefined"||!S||!S.players)return;
+  const p=S.players[S.cur]; if(!p)return;
+  const g=id=>document.getElementById(id);
+  const crime=g("actCrime"), hire=g("actHire"), war=g("actWar"), misc=g("actMisc");
+  if(!crime||!hire||!war||!misc)return;
+  const secHire=g("secHire"), secWar=g("secWar"), secMisc=g("secMisc");
+  const live=!p.ai&&p.alive&&!S.over;
+  // AUTO-PLAY takes the wheel \u2014 the only thing on screen is the way to take it back
+  if(live&&p.auto){
+    g("ahdCrime").textContent=L("AUTO-PLAY","JOGO AUTOMÁTICO","JUEGO AUTOMÁTICO");
+    crime.innerHTML=`<button class="red" onclick="stopAuto()">${L("[ \u25a0 STOP AUTO ]","[ \u25a0 PARAR AUTO ]","[ \u25a0 PARAR AUTO ]")}</button>`;
+    hire.innerHTML=""; war.innerHTML=""; misc.innerHTML="";
+    [secHire,secWar,secMisc].forEach(s=>s&&s.classList.add("hide"));
+    return;
+  }
+  [secHire,secWar,secMisc].forEach(s=>s&&s.classList.remove("hide"));
+  if(!live){
+    g("ahdCrime").textContent=L("CRIME","CRIME","CRIMEN");
+    crime.innerHTML=`<span style="opacity:.45;font-size:11px">${p.ai?L("AI is thinking...","IA pensando...","La IA est\u00e1 pensando..."):(!p.alive?L("dead","morto","muerto"):L("game over","fim de jogo","fin del juego"))}</span>`;
+    hire.innerHTML=""; war.innerHTML=""; misc.innerHTML="";
+    [secHire,secWar,secMisc].forEach(s=>s&&s.classList.add("hide"));
+    return;
+  }
+  /* ---- INSIDE: one prison move a turn, then do your time ---- */
+  if(p.ring==="inner"){
+    const acted=!!p._prisonActed;
+    g("ahdCrime").textContent=L("PRISON MOVE","CORRE NA PRIS\u00c3O","MOVIDA EN PRISI\u00d3N");
+    crime.innerHTML=
+      actBtn(!acted,"","pdayRob()",L("[ ROB AN INMATE ]","[ ASSALTAR UM PRESO ]","[ ROBAR A UN PRESO ]"),L("roll over half the die = grab packs","dado acima da metade = leva ma\u00e7os"))+
+      actBtn(!acted,"red","pdayHit()",L("[ HIT JOB ]","[ SERVI\u00c7O ]","[ TRABAJO SUCIO ]"),L("kill for packs + cash; a low roll = caught","mata por ma\u00e7os + grana; dado baixo = rodou"))+
+      actBtn(!acted,"amber","pdayDrugs()",L("[ SELL DRUGS ]","[ VENDER DROGA ]","[ VENDER DROGA ]"),L("roll for cash + packs","dado por grana + ma\u00e7os"))+
+      (acted?`<span style="opacity:.45;font-size:11px">${L("move used \u2014 tap the die to do your time","corre usado \u2014 toque no dado pra cumprir a pena","movida usada \u2014 toca el dado para cumplir")}</span>`:"");
+    hire.innerHTML=`<span style="opacity:.45;font-size:11px">${L("your lawyer carries orders on VISIT DAY","seu advogado leva as ordens no DIA DE VISITA","tu abogado lleva las \u00f3rdenes el D\u00cdA DE VISITA")}</span>`;
+    war.innerHTML=""; secWar&&secWar.classList.add("hide");
+    misc.innerHTML=`<button id="autoBtn" onclick="toggleAuto()">${tr(p.auto?"[ AUTO: ON ]":"[ AUTO: OFF ]")}</button>`;
+    return;
+  }
+  /* ---- OUTSIDE ---- */
+  const canCrime=!S.rolled&&!p.inJail&&p.crimeOps>0;
+  g("ahdCrime").textContent=L("CRIME","CRIME","CRIMEN")+(canCrime?` \u00b7 ${p.crimeOps}`:"");
+  crime.innerHTML=
+    actBtn(canCrime,"","doCrime('heist')",L("[ HEIST ]","[ ASSALTO ]","[ ATRACO ]"),L("rob for cash","roubar por grana"))+
+    actBtn(canCrime,"red","doCrime('hitman')",L("[ HIT ]","[ MATADOR ]","[ SICARIO ]"),L("a contract kill","morte encomendada"))+
+    actBtn(canCrime,"amber","doCrime('drug')",L("[ DRUG RUN ]","[ TR\u00c1FICO ]","[ NARCOTR\u00c1FICO ]"),L("move product","girar produto"));
+  const canHire=!p.inJail;
+  g("ahdHire").textContent=L("HIRE CREW","CONTRATAR EQUIPE","CONTRATAR EQUIPO");
+  const nSt=Array.from(p.owns.keys()).filter(i=>OUTER[i]&&OUTER[i].k==="street").length;
+  const nBz=Array.from(p.owns.keys()).filter(i=>OUTER[i]&&OUTER[i].k==="biz").length;
+  hire.innerHTML=
+    actBtn(canHire,"amber","qpCrew()",L("[ BODYGUARDS \u00b7 ","[ GUARDA-COSTAS \u00b7 ","[ ESCOLTAS \u00b7 ")+p.crew+" ]")+
+    actBtn(canHire&&nSt>0,"","openHireList('street')",L("[ STREET SOLDIERS \u00b7 ","[ SOLDADOS DE RUA \u00b7 ","[ SOLDADOS DE CALLE \u00b7 ")+nSt+" ]",nSt?"":L("claim a street first","tome uma rua primeiro"))+
+    actBtn(canHire&&nBz>0,"","openHireList('biz')",L("[ BUSINESS WORKERS \u00b7 ","[ FUNCION\u00c1RIOS \u00b7 ","[ EMPLEADOS \u00b7 ")+nBz+" ]",nBz?"":L("open a business first","abra um neg\u00f3cio primeiro"));
+  const rivalTurf=S.players.some(o=>o.id!==p.id&&o.alive&&o.owns.size>0);
+  const canAttack=!S.rolled&&!p.inJail&&p.crew>=1&&rivalTurf;
+  const canExec=execUnlocked()&&!S.rolled&&!p.inJail&&S.players.some(o=>o.id!==p.id&&o.alive&&p.cash>=execCost(o));
+  war.innerHTML=
+    actBtn(canExec,"red","execMenu()",L("[ CALL EXECUTION ]","[ MANDAR EXECUTAR ]","[ ORDENAR EJECUCI\u00d3N ]"),execUnlocked()?L("2\u00d7 the target's net worth \u2014 instant kill","2\u00d7 o patrim\u00f4nio do alvo \u2014 morte na hora"):execLockNote())+
+    actBtn(canAttack,"red","doAttack(true)",L("[ ATTACK RIVAL \u00b7 ","[ ATACAR RIVAL \u00b7 ","[ ATACAR RIVAL \u00b7 ")+p.crew+L(" sol ]"," sol ]"),L("send soldiers at a rival's turf \u2014 this is your move (no roll)","envie soldados contra a \u00e1rea de um rival \u2014 \u00e9 sua jogada (sem rolar)"));
+  misc.innerHTML=`<button id="autoBtn" onclick="toggleAuto()">${tr(p.auto?"[ AUTO: ON ]":"[ AUTO: OFF ]")}</button>`;
+}
+/* ===== STANDINGS BELOW THE FOLD \u2014 the pause chart and leaderboard, live, no pausing =====
+   Rebuilt only when the round changes (the SVG is expensive and the lines only move once a round). */
+let _standTurn=-1,_standW=0;
+function renderStandings(force){
+  if(typeof S==="undefined"||!S||!S.players)return;
+  const rows=document.getElementById("standRows"); if(!rows)return;
+  rows.innerHTML=standingsRows(false);
+  const c=document.getElementById("standChart"); if(!c)return;
+  const any=S.players.some(p=>(p.nwHist||[]).length>1);
+  c.style.display=any?"block":"none";
+  if(!any)return;
+  const cw=Math.max(280,c.clientWidth||300);
+  if(!force && S.turn===_standTurn && cw===_standW) return;
+  _standTurn=S.turn; _standW=cw;
+  c.innerHTML=nwChartSVG(orderedPlayers(), cw);
+}
+setPanelTab(_ptab);   // restore whichever tab was last open
 function stopAuto(){
   const p=S.players[S.cur]; if(!p) return;
   p.auto=false;
@@ -3874,8 +4050,8 @@ function openActions(){
     const canExec=execUnlocked()&&!S.rolled&&p.ring==="outer"&&!p.inJail&&S.players.some(o=>o.id!==p.id&&o.alive&&p.cash>=execCost(o));
   rows+=row(L("Call an execution","Mandar executar"), execUnlocked()?L("2× the target's net worth — instant kill, and you seize their turf","2× o patrimônio do alvo — morte na hora, e você toma a área dele"):execLockNote(),
     canExec?`<button class="red" onclick="execMenu()">${L("[ EXECUTE ]","[ EXECUTAR ]")}</button>`:off);
-  rows+=row(L("Sell assets","Vender bens"), L("cash out property or businesses","liquidar propriedades ou neg\u00f3cios"),
-    canSell?`<button class="red" onclick="actDo('sell')">${L("[ SELL ]","[ VENDER ]")}</button>`:off);
+  /* No sell row: selling lives on the hire keypad now, where the same typed number either
+     hires that many or lets that many go. */
   rows+=row(L("Auto-play","Jogo autom\u00e1tico"), L("let the game play your turns","deixe o jogo jogar por voc\u00ea"),
     `<button id="autoBtn" onclick="toggleAuto()">${tr(p.auto?"[ AUTO: ON ]":"[ AUTO: OFF ]")}</button>`);
   el.innerHTML=`<div class="lbl" style="background:${p.color}">${L("ACTIONS","A\u00c7\u00d5ES")}</div>
@@ -3888,46 +4064,10 @@ function openActions(){
 function actDo(what){
   if(what==='crime')commitCrime();
   else if(what==='hire')openBuyWorkers();
-  else if(what==='sell')openSellAssets();
   else if(what==='attack')doAttack(true);
 }
-function openSellAssets(){
-  const p=S.players[S.cur];
-  if(p.ai||!p.alive||S.over)return;
-  const el=document.getElementById("cardEl");
-  const rows=Array.from(p.owns.entries());
-  const SGUARD=Math.round(SOLDIER_COST*0.5);   // disband payout per bodyguard
-  const guardRow = p.crew>0 ? `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin:3px 0;border-bottom:1px solid #1a2a1a;padding-bottom:4px">
-      <span>${L("Bodyguard soldiers","Soldados guarda-costas")} x${p.crew}<br><span style="opacity:.6;font-size:11px">${L("disband for","dispensar por")} ${fmtK(SGUARD)} ${L("each","cada")}</span></span>
-      <span style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end"><button class="red" onclick="sellSoldier(1)">${L("[ SELL 1 ]","[ VENDER 1 ]")}</button>${p.crew>1?`<button class="red" onclick="sellSoldier(${p.crew})">${L("[ ALL ","[ TODOS ")}${p.crew} \u00b7 ${fmtK(SGUARD*p.crew)} ]</button>`:''}</span></div>` : "";
-  const propBody = rows.map(([idx,cnt])=>{
-    const c=OUTER[idx];const per=c.incomeBase||c.price||c.income||0;const val=Math.round(per*cnt);
-    return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin:3px 0;border-bottom:1px solid #1a2a1a;padding-bottom:4px">
-      <span>${c.t} x${cnt}<br><span style="opacity:.6;font-size:11px">${L("worth","vale")} ${fmtK(per*cnt)}</span></span>
-      <button class="red" onclick="sellAssetFromMenu(${idx})">${L("[ SELL ","[ VENDER ")}${fmtK(val)} ]</button></div>`;
-  }).join("");
-  const body = (guardRow+propBody) || "<div style='opacity:.6'>"+L("You own nothing to sell.","Voc\u00ea n\u00e3o tem nada para vender.")+"</div>";
-  el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('SELL ASSETS','VENDER BENS')}</div>
-    <div class="ttl">${L('Cash out','Fazer caixa')}</div>
-    <div class="bd">${L('Sell property or businesses back for the full price you paid, or disband bodyguards for half their cost, to cover debts or free up cash. This does NOT end your turn.','Venda propriedades ou neg\u00f3cios pelo pre\u00e7o cheio que pagou, ou dispense guarda-costas por metade do custo, para cobrir d\u00edvidas ou liberar dinheiro. Isso N\u00c3O encerra seu turno.')}</div>
-    <div class="out">${L('Cash on hand','Dinheiro em m\u00e3os')}: ${fmtK(p.cash)}</div>
-    <div class="out" style="max-height:210px;overflow:auto;background:#0d1510;border-left:4px solid ${p.color}">${body}</div>
-    <div class="go"><button onclick="(S.players[S.cur]._visitDay?pdayVisit:openActions)()">${L('[ ‹ BACK ]','[ ‹ VOLTAR ]')}</button><button onclick="closeModal()">${L('[ DONE ]','[ CONCLUIR ]')}</button></div>`;
-  openModal();
-}
-function sellAssetFromMenu(idx){
-  const p=S.players[S.cur];const c=OUTER[idx];const cnt=p.owns.get(idx);if(!cnt)return;
-  const per=c.incomeBase||c.price||c.income||0;const val=Math.round(per*cnt);
-  p.cash+=val;p.owns.delete(idx);
-  log(p.name+L(" sells "," vende ")+c.t+" (x"+cnt+L(") for ",") por ")+fmtK(val)+".","warn");
-  render();openSellAssets();
-}
-function sellSoldier(n){
-  const p=S.players[S.cur]; n=Math.min(n||1,p.crew); if(n<1)return;
-  const val=Math.round(SOLDIER_COST*0.5)*n; p.crew-=n; p.cash+=val;
-  log(p.name+L(" disbands "," dispensa ")+n+L(" bodyguard"," guarda-costas")+(n>1&&LANG!=='PT'?"s":"")+L(" for "," por ")+fmtK(val)+".","warn");
-  render();openSellAssets();
-}
+/* The SELL ASSETS screen is gone: the hire keypad sells, and selling the last body on a
+   holding releases the holding itself. */
 
 /* ===== ROLL + STEP MOVEMENT (always visible) ===== */
 let _bz=1,_fit=1;
@@ -4423,6 +4563,7 @@ const STATIC_LABELS=[
   ["NEW YORK CITY","NOVA YORK","NUEVA YORK"],["DICE","DADOS","DADOS"],
   ["CONSOLE — this round","CONSOLE — esta rodada","CONSOLA — esta ronda"],["PLAYER ON TURN","JOGADOR DA VEZ","JUGADOR EN TURNO"],
   ["OTHER PLAYERS — tap for record","OUTROS JOGADORES — toque p/ ficha","OTROS JUGADORES — toca para la ficha"],
+  ["STANDINGS — NET WORTH","CLASSIFICAÇÃO — PATRIMÔNIO","CLASIFICACIÓN — PATRIMONIO"],
   ["PLAYERS — tap for record","JOGADORES — toque para a ficha","JUGADORES — toca para la ficha"],
   ["LEADERBOARD","CLASSIFICAÇÃO","CLASIFICACIÓN"],["ACTIONS","AÇÕES","ACCIONES"],
   ["HOLDINGS","PROPRIEDADES","PROPIEDADES"],["NETWORK","REDE","RED"]
@@ -4434,6 +4575,15 @@ function applyStaticLang(){
   const fb=document.getElementById("followBtn"); if(fb)fb.textContent=tr((typeof S!=="undefined"&&S&&S.followAnim)?"[ FOLLOW: ON ]":"[ FOLLOW: OFF ]");
   const ab=document.getElementById("autoBtn"); if(ab&&/OFF|NÃO/.test(ab.textContent))ab.textContent=tr("[ AUTO: OFF ]");
   const rs=document.querySelector("a.reset"); if(rs)rs.textContent=L("[reset]","[reiniciar]");
+  // the side-column tabs are buttons, not headings, so they need naming here
+  const TABS={turn:["PLAYER ON TURN","JOGADOR DA VEZ","JUGADOR EN TURNO"],
+              con:["CONSOLE","CONSOLE","CONSOLA"],
+              oth:["OTHER PLAYERS","OUTROS JOGADORES","OTROS JUGADORES"]};
+  Object.keys(TABS).forEach(k=>{
+    const b=document.getElementById("tab-"+k); if(!b)return;
+    const t=TABS[k], txt=(LANG==='PT'?t[1]:LANG==='ES'?t[2]:t[0]);
+    b.innerHTML=txt+(k==='con'?'<span id="conDot"></span>':'');
+  });
 }
 applyStaticLang();
 /* switch interface language live from the menu, keeping the game in play */
@@ -4905,22 +5055,22 @@ function openBuyWorkers(){
   // BODYGUARDS (crew)
   const crewRow=`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin:3px 0;border-bottom:1px solid #1a2a1a;padding-bottom:4px">
       <span>${L("Bodyguard soldiers","Soldados guarda-costas")} · ${p.crew}<br><span style="opacity:.6;font-size:11px">${fmtK(SOLDIER_COST)} ${L("each","cada")} · ${fmtK(SOLDIER_WAGE)}/${L("yr","ano")} · ${L("take falls & beatings, fight attacks","assumem culpa e surra, lutam em ataques")}</span></span>
-      ${p.cash>=SOLDIER_COST?`<button style="padding:6px 12px;font-size:12px" class="amber" onclick="qpCrew()">${L("[ + HIRE ]","[ + CONTRATAR ]")}</button>`:`<span style="opacity:.5;font-size:11px">${L("need ","precisa de ")}${fmtK(SOLDIER_COST)}</span>`}</div>`;
+      ${(p.cash>=SOLDIER_COST||p.crew>0)?`<button style="padding:6px 12px;font-size:12px" class="amber" onclick="qpCrew()">${L("[ HIRE / SELL ]","[ CONTRATAR / VENDER ]","[ CONTRATAR / VENDER ]")}</button>`:`<span style="opacity:.5;font-size:11px">${L("need ","precisa de ")}${fmtK(SOLDIER_COST)}</span>`}</div>`;
   // STREET SOLDIERS
   const sts=Array.from(p.owns.entries()).filter(([idx])=>OUTER[idx].k==="street");
   const stBody=sts.length?sts.map(([idx,cnt])=>{
-    const c=OUTER[idx];const per=c.incomeBase||c.price;const can=p.cash>=per;
+    const c=OUTER[idx];const per=c.incomeBase||c.price;const can=p.cash>=per||cnt>0;
     return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin:3px 0;border-bottom:1px solid #1a2a1a;padding-bottom:4px">
       <span>${c.t} · ${cnt} ${L("soldier","soldado")}${cnt>1?"s":""}<br><span style="opacity:.6;font-size:11px">${fmtK(per)} ${L("each · earns","cada · rende")} ${fmtK(per*cnt)}/${L("yr","ano")}</span></span>
-      ${can?`<button style="padding:6px 12px;font-size:12px" class="amber" onclick="qpCell(${idx},'bw')">${L("[ + ADD ]","[ + ADD ]")}</button>`:`<span style="opacity:.5;font-size:11px">${L("need ","precisa de ")}${fmtK(per)}</span>`}</div>`;
+      ${can?`<button style="padding:6px 12px;font-size:12px" class="amber" onclick="qpCell(${idx},'bw')">${L("[ HIRE / SELL ]","[ CONTRATAR / VENDER ]","[ CONTRATAR / VENDER ]")}</button>`:`<span style="opacity:.5;font-size:11px">${L("need ","precisa de ")}${fmtK(per)}</span>`}</div>`;
   }).join(""):"<div style='opacity:.6'>"+L("No streets yet — land on a STREET space to claim one.","Nenhuma rua ainda — caia numa casa de RUA para tomar uma.")+"</div>";
   // BUSINESS WORKERS
   const biz=Array.from(p.owns.entries()).filter(([idx])=>OUTER[idx].k==="biz");
   const bizBody=biz.length?biz.map(([idx,cnt])=>{
-    const c=OUTER[idx];const per=c.incomeBase||c.income;const can=p.cash>=per;
+    const c=OUTER[idx];const per=c.incomeBase||c.income;const can=p.cash>=per||cnt>0;
     return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin:3px 0;border-bottom:1px solid #1a2a1a;padding-bottom:4px">
       <span>${c.t} · ${cnt} ${L("worker","funcionário")}${cnt>1?"s":""}<br><span style="opacity:.6;font-size:11px">${fmtK(per)} ${L("each · earns","cada · rende")} ${fmtK(per*cnt)}/${L("yr","ano")}</span></span>
-      ${can?`<button style="padding:6px 12px;font-size:12px" class="amber" onclick="qpCell(${idx},'bw')">${L("[ + ADD ]","[ + ADD ]")}</button>`:`<span style="opacity:.5;font-size:11px">${L("need ","precisa de ")}${fmtK(per)}</span>`}</div>`;
+      ${can?`<button style="padding:6px 12px;font-size:12px" class="amber" onclick="qpCell(${idx},'bw')">${L("[ HIRE / SELL ]","[ CONTRATAR / VENDER ]","[ CONTRATAR / VENDER ]")}</button>`:`<span style="opacity:.5;font-size:11px">${L("need ","precisa de ")}${fmtK(per)}</span>`}</div>`;
   }).join(""):"<div style='opacity:.6'>"+L("No businesses yet — land on a BUSINESS space to open one.","Nenhum negócio ainda — caia numa casa de NEGÓCIO para abrir um.")+"</div>";
   el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('HIRE','CONTRATAR')}</div>
     <div class="ttl">${L('Staff your empire','Monte seu império')}</div>
@@ -4936,6 +5086,31 @@ function openBuyWorkers(){
   const _outs=[...el.querySelectorAll(".out")];
   _prevOuts.forEach((v,i)=>{ if(_outs[i])_outs[i].scrollTop=v; });
 }
+/* ===== ONE HOLDING TYPE AT A TIME =====
+   The panel's HIRE CREW block has a button per kind, so this lists only that kind and hands
+   each one to the keypad — where the same screen both hires and sells. */
+function openHireList(kind){
+  const p=S.players[S.cur];
+  if(p.ai||!p.alive||S.over)return;
+  if(!p._visitDay && (p.ring!=="outer"||p.inJail))return;
+  const isBiz=kind==="biz";
+  const el=document.getElementById("cardEl"); if(!el)return; el.dataset.deck="";
+  const rows=Array.from(p.owns.entries()).filter(([idx])=>OUTER[idx]&&OUTER[idx].k===kind);
+  const body=rows.length?rows.map(([idx,cnt])=>{
+    const c=OUTER[idx], per=c.incomeBase||(isBiz?c.income:c.price)||0;
+    return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin:3px 0;border-bottom:1px solid #1a2a1a;padding-bottom:5px">
+      <span>${c.t} · ${cnt} ${isBiz?L("worker","funcionário","empleado"):L("soldier","soldado","soldado")}${(cnt>1&&LANG!=='PT')?"s":""}<br><span style="opacity:.6;font-size:11px">${fmtK(per)} ${L("each · earns","cada · rende","cada · rinde")} ${fmtK(per*cnt)}/${L("yr","ano","año")}</span></span>
+      <button style="padding:6px 12px;font-size:12px" class="amber" onclick="qpCell(${idx},'${isBiz?'hb':'hs'}')">${L("[ HIRE / SELL ]","[ CONTRATAR / VENDER ]","[ CONTRATAR / VENDER ]")}</button></div>`;
+  }).join(""):"<div style='opacity:.6'>"+(isBiz?L("No businesses yet — land on a BUSINESS space to open one.","Nenhum negócio ainda — caia numa casa de NEGÓCIO para abrir um."):L("No streets yet — land on a STREET space to claim one.","Nenhuma rua ainda — caia numa casa de RUA para tomar uma."))+"</div>";
+  el.innerHTML=`<div class="lbl" style="background:${p.color}">${isBiz?L("BUSINESS WORKERS","FUNCIONÁRIOS","EMPLEADOS"):L("STREET SOLDIERS","SOLDADOS DE RUA","SOLDADOS DE CALLE")}</div>
+    <div class="ttl">${isBiz?L("Staff your businesses","Equipe seus negócios","Dota tus negocios"):L("Post soldiers on your turf","Coloque soldados nas suas áreas","Coloca soldados en tu territorio")}</div>
+    <div class="bd">${L("Pick one — the keypad hires more or sells any number back.","Escolha um — o teclado contrata mais ou vende quantos quiser.","Elige uno — el teclado contrata más o vende los que quieras.")}</div>
+    <div class="out">${L('Cash on hand','Dinheiro em mãos','Efectivo en mano')}: ${fmtK(p.cash)}</div>
+    <div class="out" style="max-height:230px;overflow:auto;background:#0d1510;border-left:4px solid ${p.color}">${body}</div>
+    <div class="go"><button onclick="closeModal()">${L('[ DONE ]','[ CONCLUIR ]','[ LISTO ]')}</button></div>
+    ${statusBar()}`;
+  openModal();
+}
 function hireCrewN(per,n){const p=S.players[S.cur];n=Math.min(n,Math.floor(p.cash/SOLDIER_COST));if(n<1)return;p.cash-=SOLDIER_COST*n;p.crew+=n;log(p.name+L(" hires "," contrata ")+n+L(" bodyguard"," guarda-costas")+(n>1?(LANG==='PT'?"":"s"):"")+L(" (now "," (agora ")+p.crew+").","good");render();openBuyWorkers();}
 function addSoldierAnytime(idx,per,n){const p=S.players[S.cur];n=Math.min(n,Math.floor(p.cash/per),unitRoom(p,idx));if(n<1)return;p.cash-=per*n;grantUnits(p,idx,n);log(p.name+L(" posts "," coloca ")+n+L(" soldier"," soldado")+(n>1?"s":"")+L(" at "," em ")+OUTER[idx].t+L(" (now "," (agora ")+p.owns.get(idx)+").","good");render();openBuyWorkers();}
 function addWorkerAnytime(idx,per,n){n=n||1;const p=S.players[S.cur];n=Math.min(n,Math.floor(p.cash/per),unitRoom(p,idx));if(n<1)return;p.cash-=per*n;grantUnits(p,idx,n);log(p.name+L(" hires "," contrata ")+n+L(" worker"," funcionário")+(n>1?"s":"")+L(" at "," em ")+OUTER[idx].t+L(" (now "," (agora ")+p.owns.get(idx)+").","good");render();openBuyWorkers();}
@@ -4943,15 +5118,27 @@ function addWorkerAnytime(idx,per,n){n=n||1;const p=S.players[S.cur];n=Math.min(
 /* ===== QUANTITY KEYPAD: type how many to buy (soldiers / workers) instead of +1/+5/+25/+100 ===== */
 let _qp=null;
 function qpNum(){ if(!_qp)return 0; let n=parseInt(_qp.val||"0",10)||0; if(n<0)n=0; if(n>_qp.max)n=_qp.max; return n; }
+/* The same keypad both hires and fires. There is no separate sell screen: type a number, then
+   BUY takes it on at cost or SELL lets that many go for what they're worth. The typed number is
+   clamped per button — BUY by what you can afford, SELL by what you actually hold — so one
+   number can never mean more than either side allows. */
+function qpBuyMax(){ return _qp?Math.max(0,Math.floor(_qp.buyMax||0)):0; }
+function qpHeld(){ return _qp?Math.max(0,Math.floor(_qp.held||0)):0; }
+function qpBuyN(){ return Math.min(qpNum(), qpBuyMax()); }
+function qpSellN(){ return Math.min(qpNum(), qpHeld()); }
 function qtyPad(cfg){
   const per=cfg.per; if(!per||per<=0){ if(cfg.done)cfg.done(); return; }
-  _qp={ ...cfg, val:(cfg.start?String(cfg.start):""), max:Math.max(0,Math.floor(cfg.max||0)) };
+  const buyMax=Math.max(0,Math.floor(cfg.max||0));
+  const held=Math.max(0,Math.floor(cfg.held||0));
+  const canSell=!!cfg.sell && held>0 && (cfg.sellPer||0)>0;
+  _qp={ ...cfg, val:(cfg.start?String(cfg.start):""), buyMax, held, canSell,
+        max:Math.max(buyMax, canSell?held:0) };
   const p=S.players[S.cur]; const el=document.getElementById("cardEl"); if(!el)return; el.dataset.deck="";
   el.innerHTML=`<div class="lbl">${cfg.title}</div>
     ${cfg.sub?`<div style="font-size:12px;opacity:.8;font-style:italic;margin:6px 2px 0;line-height:1.4">${cfg.sub}</div>`:''}
     ${cfg.note?`<div style="font-size:12px;opacity:.82;margin:8px 2px 0;line-height:1.45">${cfg.note}</div>`:''}
     <div style="font-size:14px;color:#eaffef;margin:10px 0 2px">${cfg.unit} · ${L("you have","você tem")} ${cfg.have||0}</div>
-    <div style="font-size:12px;opacity:.7;margin-bottom:8px">${fmtK(per)} ${L("each","cada")} · ${fmtK(p.cash)} ${L("cash","em caixa")} · ${L("max","máx")} ${_qp.max}</div>
+    <div style="font-size:12px;opacity:.7;margin-bottom:8px">${fmtK(per)} ${L("each","cada")} · ${fmtK(p.cash)} ${L("cash","em caixa")} · ${L("hire up to","contrate até","contrata hasta")} ${buyMax}${canSell?` · ${L("sell up to","venda até","vende hasta")} ${held} @ ${fmtK(cfg.sellPer)}`:''}</div>
     <div class="out qdisp"><span id="qval">0</span></div>
     <div class="qcalc"><span class="qtot" id="qtot"></span><span id="qleft" style="opacity:.7"></span></div>
     <div class="qkrow">
@@ -4960,23 +5147,32 @@ function qtyPad(cfg){
       <button onclick="qpKey('7')">7</button><button onclick="qpKey('8')">8</button><button onclick="qpKey('9')">9</button>
       <button class="amber" onclick="qpMax()">MAX</button><button onclick="qpKey('0')">0</button><button onclick="qpDel()">&#9003;</button>
     </div>
-    <div class="go" style="margin-top:10px"><button onclick="qpBack()">${L("[ CANCEL ]","[ CANCELAR ]")}</button><button class="amber" id="qbuy" onclick="qpBuy()">[ ${L("BUY","COMPRAR")} ]</button></div>
+    <div class="go qgo">
+      ${canSell?`<button class="red" id="qsell" onclick="qpSell()">[ ${L("SELL","VENDER","VENDER")} ]</button>`:''}
+      <button class="qx" onclick="qpBack()" title="${L("close","fechar","cerrar")}">[ X ]</button>
+      <button class="amber" id="qbuy" onclick="qpBuy()">[ ${L("BUY","COMPRAR")} ]</button>
+    </div>
     ${statusBar()}`;
   openModal(true);
   qpUpdate();
 }
 function qpUpdate(){
-  if(!_qp)return; const p=S.players[S.cur]; const n=qpNum(); const per=_qp.per; const tot=per*n;
+  if(!_qp)return; const p=S.players[S.cur]; const n=qpNum(); const per=_qp.per;
+  const bn=qpBuyN(), sn=qpSellN(), tot=per*bn, sval=Math.round((_qp.sellPer||0)*sn);
   const set=(id,t)=>{const e=document.getElementById(id);if(e)e.textContent=t;};
   set("qval", n);
-  set("qtot", `${n} × ${fmtK(per)} = ${fmtK(tot)}`);
+  set("qtot", `${bn} × ${fmtK(per)} = ${fmtK(tot)}`);
   set("qleft", L("cash left: ","sobra: ")+fmtK(Math.max(0,p.cash-tot)));
-  set("qbuy", n>0?`[ ${L("BUY","COMPRAR")} ${n} · ${fmtK(tot)} ]`:L("[ BUY · none ]","[ COMPRAR · nada ]"));
+  set("qbuy", bn>0?`[ ${L("BUY","COMPRAR")} ${bn} · ${fmtK(tot)} ]`:L("[ BUY · none ]","[ COMPRAR · nada ]"));
+  if(_qp.canSell) set("qsell", sn>0?`[ ${L("SELL","VENDER","VENDER")} ${sn} · +${fmtK(sval)} ]`:L("[ SELL · none ]","[ VENDER · nada ]","[ VENDER · nada ]"));
 }
 function qpKey(d){ if(!_qp)return; if((_qp.val+d).length<=7)_qp.val=(_qp.val==="0"?"":_qp.val)+d; qpUpdate(); }
 function qpDel(){ if(!_qp)return; _qp.val=_qp.val.slice(0,-1); qpUpdate(); }
-function qpMax(){ if(!_qp)return; _qp.val=String(_qp.max); qpUpdate(); }
-function qpBuy(){ if(!_qp)return; const n=qpNum(); const c=_qp; _qp=null; if(n>0&&c.apply)c.apply(n); if(c.done)c.done(); }
+/* MAX means "as many as I can hire" — unless you can't afford one, in which case the only
+   number that means anything is everything you're holding. */
+function qpMax(){ if(!_qp)return; _qp.val=String(qpBuyMax()>0?qpBuyMax():qpHeld()); qpUpdate(); }
+function qpBuy(){ if(!_qp)return; const n=qpBuyN(); const c=_qp; _qp=null; if(n>0&&c.apply)c.apply(n); if(c.done)c.done(); }
+function qpSell(){ if(!_qp)return; const n=qpSellN(); const c=_qp; _qp=null; if(n>0&&c.sell)c.sell(n); if(c.done)c.done(); }
 function qpBack(){ if(!_qp)return; const c=_qp; _qp=null; if(c.done)c.done(); }
 /* physical keyboard support while the keypad is up */
 document.addEventListener("keydown",function(e){
@@ -4988,18 +5184,43 @@ document.addEventListener("keydown",function(e){
 });
 /* openers — build the right config for each buy spot, then hand off to the keypad */
 function qpCrew(){ const p=S.players[S.cur];
+  const back=Math.round(SOLDIER_COST*0.5);   // a disbanded bodyguard walks with half what he cost
   qtyPad({ title:L("HIRE SOLDIERS","CONTRATAR SOLDADOS"), unit:L("bodyguard soldiers","soldados guarda-costas"),
     have:p.crew, per:SOLDIER_COST, max:Math.floor(p.cash/SOLDIER_COST),
+    held:p.crew, sellPer:back,
     apply:(n)=>{ p.cash-=SOLDIER_COST*n; p.crew+=n; log(p.name+L(" hires "," contrata ")+n+L(" bodyguard"," guarda-costas")+((n>1&&LANG!=='PT')?"s":"")+L(" (now "," (agora ")+p.crew+").","good"); render(); },
-    done:openBuyWorkers });
+    sell:(n)=>{ sellCrewN(n); },
+    done:closeModal });
 }
 function qpCell(idx,ret){ const p=S.players[S.cur]; const c=OUTER[idx]; const per=c.incomeBase||c.price||c.income;
   const isBiz=c.k==="biz"; const unit=isBiz?L("workers","funcionários"):L("soldiers","soldados");
-  const done = ret==='st'?(()=>ownStreetOptions(idx)) : ret==='bz'?(()=>ownBizOptions(idx)) : openBuyWorkers;
+  const done = ret==='st'?(()=>ownStreetOptions(idx)) : ret==='bz'?(()=>ownBizOptions(idx))
+             : ret==='hs'?(()=>openHireList('street')) : ret==='hb'?(()=>openHireList('biz')) : openBuyWorkers;
   qtyPad({ title:c.t, unit, have:p.owns.get(idx)||0, per, max:Math.min(Math.floor(p.cash/per),unitRoom(p,idx)),
+    held:p.owns.get(idx)||0, sellPer:per,
     apply:(n)=>{ n=Math.min(n,unitRoom(p,idx)); if(n<1)return; p.cash-=per*n; grantUnits(p,idx,n);
       log(p.name+L(" adds "," adiciona ")+n+" "+(isBiz?L("worker","funcionário"):L("soldier","soldado"))+((n>1&&LANG!=='PT')?"s":"")+L(" to "," a ")+c.t+L(" (now "," (agora ")+p.owns.get(idx)+").","good"); render(); },
+    sell:(n)=>{ sellUnitsAt(idx,n); },
     done });
+}
+/* ===== LETTING PEOPLE GO — any number, not the whole holding =====
+   Selling the last body on a street or in a business releases the holding itself, which is how
+   a property is cashed out now that there is no separate sell screen. */
+function sellCrewN(n){
+  const p=S.players[S.cur]; n=Math.min(Math.max(0,Math.round(n||0)),p.crew); if(n<1)return;
+  const val=Math.round(SOLDIER_COST*0.5)*n; p.crew-=n; p.cash+=val;
+  log(p.name+L(" disbands "," dispensa ")+n+L(" bodyguard"," guarda-costas")+((n>1&&LANG!=='PT')?"s":"")+L(" for "," por ")+fmtK(val)+".","warn");
+  render();
+}
+function sellUnitsAt(idx,n){
+  const p=S.players[S.cur]; const c=OUTER[idx]; const have=p.owns.get(idx)||0;
+  n=Math.min(Math.max(0,Math.round(n||0)),have); if(n<1)return;
+  const per=c.incomeBase||c.price||c.income||0, val=Math.round(per*n), left=have-n;
+  if(left>0) p.owns.set(idx,left); else { p.owns.delete(idx); clearFresh(p,idx); }
+  p.cash+=val;
+  const isBiz=c.k==="biz";
+  log(p.name+L(" lets "," dispensa ")+n+" "+(isBiz?L("worker","funcionário"):L("soldier","soldado"))+((n>1&&LANG!=='PT')?"s":"")+L(" go at "," em ")+c.t+" (+"+fmtK(val)+")"+(left>0?"":L(" — the holding is gone."," — a posse foi embora.")),"warn");
+  render();
 }
 /* OPEN a new business / CLAIM new turf — one screen: pick how many workers/soldiers, buy, done */
 function qpOpenBiz(idx,c){ const p=S.players[S.cur]; const per=c.income; OUTER[idx].incomeBase=c.income;
@@ -5562,13 +5783,13 @@ function copStop(){
   const cost=copCardPrice();   // the price of a get-out-of-prison card
   if(p.ai){ if(p.freeArrest<1 && p.cash>=cost*3){p.cash-=cost;p.freeArrest=(p.freeArrest||0)+1;log(p.name+L(" buys a card from a crooked cop — one arrest goes away."," compra uma carta de um policial corrupto — uma prisão some."),"warn");render();finish();} else drawStory("cop"); return; }
   const rivals=S.players.filter(o=>o.alive&&o.id!==p.id);
-  const canPayoff = p.cash>=cost;
+  const canPayoff = netWorth(p)>=cost;         // cash or not — he'll take it out of what you own
   const canHit    = rivals.length>0 && rivals.some(o=>p.cash>=hitCost(o));
   if(!canPayoff && !canHit){ drawStory("cop"); return; }   // nothing he can do for you today — just hear him out
   const el=document.getElementById("cardEl");
   el.dataset.deck="cop";
   let opts="";
-  if(canPayoff) opts+=`<button class="amber" onclick="copPayoff(${cost})">${L('[ BUY A GET-OUT CARD · ','[ COMPRAR CARTA DE SA\u00cdDA · ')}${fmtK(cost)} ]</button>`;
+  if(canPayoff) opts+=`<button class="amber" onclick="copPayoff(${cost})">${L('[ BUY A GET-OUT CARD · ','[ COMPRAR CARTA DE SA\u00cdDA · ')}${fmtK(cost)}${p.cash<cost?L(' · he sells your assets',' · ele vende seus bens',' · vende tus bienes'):''} ]</button>`;
   if(canHit)    opts+=`<button class="red" onclick="_hitBackTo='cop';orderHitMenu()">${L('[ ORDER A HIT ]','[ ENCOMENDAR MORTE ]')}</button>`;
   opts+=`<button onclick="closeModal();drawStory('cop')">${L('[ HEAR HIM OUT ]','[ OUVIR O QUE ELE TEM ]')}</button>`;
   const heatLine = `${L('Your file','Sua ficha')}: ${p.crimes.filter(x=>typeof x==="object").length} ${L('charges','acusações')} \u00b7 ${fileSentence(p)}${L('y if they ever take you','a se te pegarem')}
@@ -5583,7 +5804,9 @@ ${L('Raids that end in cuffs at this police level','Batidas que acabam em algema
   openModal();
 }
 function copCardPrice(){ return Math.round(6*SOLDIER_COST); }
-function copPayoff(cost){const p=S.players[S.cur];if(p.cash<cost)return;p.cash-=cost;p.freeArrest=(p.freeArrest||0)+1;log(p.name+L(" buys a card from the cop (-"," compra uma carta do policial (-")+fmtK(cost)+L(") — the next arrest disappears.",") — a próxima prisão some."),"good");closeModal();render();finish();}
+/* Buy as many get-out cards as you can pay for — there is no limit on how many you hold, and
+   if the cash isn't there the cop sells your holdings to make the number. */
+function copPayoff(cost){const p=S.players[S.cur];let _sold=[];if(p.cash<cost){_sold=liquidateFor(p,cost-p.cash).sold;}if(p.cash<cost)return;p.cash-=cost;p.freeArrest=(p.freeArrest||0)+1;log(p.name+L(" buys a card from the cop (-"," compra uma carta do policial (-")+fmtK(cost)+L(") — the next arrest disappears.",") — a próxima prisão some.")+(_sold.length?L(" He moved your assets to cover it: "," Ele passou seus bens adiante pra cobrir: "," Movió tus bienes para cubrirlo: ")+_sold.join(", ")+".":""),"good");closeModal();render();finish();}
 
 /* ===== EVENT NOTICE CARDS: anything that happens to a player shows as a card ===== */
 let _noticeNext=null;
@@ -5621,14 +5844,15 @@ function arrestFlow(p){
   el.dataset.deck="law";
   const hasSoldier=p.crew>0 && !p._raidBust;
   const bribe=policeBribeCost(p);              // half of everything you are worth
-  const canBribe=bribe>0 && p.cash>=bribe;
+  const canBribe=bribe>0;                      // short on cash? he sells what you own to cover it
+  const shortBribe=canBribe && p.cash<bribe;
   el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('BUSTED','PRESO EM FLAGRANTE')}</div>
     <div class="art">PD</div><div class="ttl">${L("You're going down","Voc\u00ea vai cair")}</div>
     <div class="bd">${L("The cuffs are out — ","As algemas j\u00e1 sa\u00edram — ")}${years==30?L("they're calling it LIFE","est\u00e3o chamando de PERP\u00c9TUA"):years+L(" years"," anos")}${L(" hanging over you."," pesando sobre voc\u00ea.")}${hasSoldier?L(" One of your soldiers can take the fall and do the time in your place."," Um dos seus soldados pode assumir a culpa e cumprir a pena no seu lugar."):L(" No soldiers to cover you."," Sem soldados para te cobrir.")}</div>
     <div class="out">${hasSoldier?L("Send a soldier, or face it yourself.","Mande um soldado, ou encare voc\u00ea mesmo."):L("A crooked CO offers cigarette packs cheap by the pack — packs keep you safe inside.","Um agente corrupto oferece ma\u00e7os de cigarro baratos no maço — ma\u00e7os te mant\u00eam vivo l\u00e1 dentro.")}</div>
-    <div class="out" style="border-color:#ffb642;color:#ffb642">${bribe>0?(L("The arresting officer names a number: ","O policial diz um n\u00famero: ")+"<b>"+fmtK(bribe)+"</b>"+L(" — half of everything you're worth. Cash only, right now."," — metade de tudo que voc\u00ea vale. S\u00f3 dinheiro, agora.")+(canBribe?"":L(" You don't have it in cash."," Voc\u00ea n\u00e3o tem isso em dinheiro."))):L("You're worth nothing — nobody's taking a bribe for you.","Voc\u00ea n\u00e3o vale nada — ningu\u00e9m aceita propina por voc\u00ea.")}</div>
+    <div class="out" style="border-color:#ffb642;color:#ffb642">${bribe>0?(L("The arresting officer names a number: ","O policial diz um n\u00famero: ")+"<b>"+fmtK(bribe)+"</b>"+L(" — half of everything you're worth."," — metade de tudo que voc\u00ea vale."," — la mitad de todo lo que vales.")+(shortBribe?L(" You don't have it in cash — take the deal and he sells your holdings himself to cover it. Cheapest first."," Voc\u00ea n\u00e3o tem em dinheiro — aceite o acordo e ele mesmo vende seus bens pra cobrir. Os mais baratos primeiro."," No lo tienes en efectivo — acepta el trato y \u00e9l mismo vende tus bienes para cubrirlo. Los m\u00e1s baratos primero."):"")):L("You're worth nothing — nobody's taking a bribe for you.","Voc\u00ea n\u00e3o vale nada — ningu\u00e9m aceita propina por voc\u00ea.")}</div>
     <div class="go" style="flex-wrap:wrap">
-      ${canBribe?`<button class="amber" onclick="bribePolice(${bribe})">${L('[ BRIBE THE POLICE \u00b7 ','[ SUBORNAR A POL\u00cdCIA \u00b7 ')}${fmtK(bribe)} ]</button>`:''}
+      ${canBribe?`<button class="amber" onclick="bribePolice(${bribe})">${L('[ BRIBE THE POLICE \u00b7 ','[ SUBORNAR A POL\u00cdCIA \u00b7 ')}${fmtK(bribe)}${shortBribe?L(' \u00b7 he sells your assets',' \u00b7 ele vende seus bens',' \u00b7 vende tus bienes'):''} ]</button>`:''}
       ${hasSoldier?`<button class="amber" onclick="soldierTakesFall()">${L('[ SOLDIER TAKES FALL ]','[ SOLDADO ASSUME A CULPA ]')}</button>`:''}
       <button onclick="goToJailWithCigs(${years})">[ ${hasSoldier?L("FACE IT","ENCARAR"):L("GO IN","ENTRAR")} ]</button>
     </div>
@@ -5638,14 +5862,44 @@ function arrestFlow(p){
 /* Buy your way out of the cuffs before you are ever processed. The price is half of
    everything you are worth, in cash, and the charges never reach a courtroom. */
 function policeBribeCost(p){ return Math.max(0, Math.round(Math.max(0,netWorth(p))/2)); }
+/* ===== THE COP TAKES IT IN KIND =====
+   A bribe is never blocked for want of cash. Take the deal and he moves what you own himself —
+   the smallest holdings first, so your best turf is the last thing to go, and only as many
+   bodies as the number needs. Bodyguards are the last resort, at half what they cost. A bribe
+   is half of net worth and holdings sell at full price, so there is always enough there. */
+function liquidateFor(p,need){
+  let raised=0; const sold=[];
+  if(need<=0) return {raised,sold};
+  const ents=Array.from(p.owns.entries()).map(([idx,cnt])=>{
+    const c=OUTER[idx]; return {idx,cnt,per:c.incomeBase||c.price||c.income||0,t:c.t}; })
+    .filter(e=>e.per>0).sort((a,b)=>(a.per*a.cnt)-(b.per*b.cnt));
+  for(const e of ents){
+    if(raised>=need)break;
+    const want=Math.min(e.cnt, Math.max(1,Math.ceil((need-raised)/e.per)));
+    const val=want*e.per; raised+=val; p.cash+=val;
+    const left=e.cnt-want;
+    if(left>0) p.owns.set(e.idx,left); else { p.owns.delete(e.idx); clearFresh(p,e.idx); }
+    sold.push(e.t+" \u00d7"+want);
+  }
+  if(raised<need && p.crew>0){
+    const per=Math.max(1,Math.round(SOLDIER_COST*0.5));
+    const want=Math.min(p.crew, Math.ceil((need-raised)/per));
+    const val=want*per; raised+=val; p.cash+=val; p.crew-=want;
+    sold.push(L("bodyguards","guarda-costas","escoltas")+" \u00d7"+want);
+  }
+  return {raised,sold};
+}
 function bribePolice(cost){
   const p=S.players[S.cur];
-  if(p.cash<cost) return;
-  p.cash-=cost; p._pendingYears=null; p.inJail=false; p._raidBust=false;
-  log(p.name+L(" pays off the arresting officer ("," acerta com o policial (")+fmtK(cost)+L(") — the charges never get written up."," ) — a ocorr\u00eancia nunca \u00e9 registrada."),"warn");
+  let sold=[];
+  if(p.cash<cost){ sold=liquidateFor(p,cost-p.cash).sold; }
+  const paid=Math.min(cost,Math.max(0,p.cash));
+  p.cash-=paid; p._pendingYears=null; p.inJail=false; p._raidBust=false;
+  const soldLine=sold.length?(L(" He moved it himself: "," Ele mesmo passou adiante: "," \u00c9l mismo lo movi\u00f3: ")+sold.join(", ")+"."):"";
+  log(p.name+L(" pays off the arresting officer ("," acerta com o policial (")+fmtK(paid)+L(") — the charges never get written up."," ) — a ocorr\u00eancia nunca \u00e9 registrada.")+(sold.length?L(" Assets sold to cover it."," Bens vendidos pra cobrir."," Bienes vendidos para cubrirlo."):""),"warn");
   closeModal(); render(); SFX.good&&SFX.good();
   showNotice(L("BOUGHT AND PAID FOR","COMPRADO E PAGO"),"PD",L("The paperwork disappears","A papelada some"),
-    p.name+L(" hands over "," entrega ")+fmtK(cost)+L(" in the back of the squad car. The cuffs come off, the report never gets filed — but a cop who took your money knows exactly who you are. Heat +10%."," no banco de tr\u00e1s da viatura. As algemas saem, o boletim nunca \u00e9 registrado — mas um policial que pegou seu dinheiro sabe exatamente quem voc\u00ea \u00e9. Risco +10%."),
+    p.name+L(" hands over "," entrega ")+fmtK(paid)+L(" in the back of the squad car. The cuffs come off, the report never gets filed — but a cop who took your money knows exactly who you are. Heat +10%."," no banco de tr\u00e1s da viatura. As algemas saem, o boletim nunca \u00e9 registrado — mas um policial que pegou seu dinheiro sabe exatamente quem voc\u00ea \u00e9. Risco +10%.")+soldLine,
     ()=>finish());
 }
 function soldierTakesFall(){const p=S.players[S.cur];p.crew--;log(L("","O soldado de ")+p.name+L("'s soldier takes the fall and goes to prison. "," assume a culpa e vai preso. ")+p.name+L(" stays free."," continua livre."),"good");p._pendingYears=null;closeModal();render();finish();}
@@ -5891,8 +6145,8 @@ function pdayVisit(){
   let rows="";
   rows+=row(L("Hire crew","Contratar equipe"),L("bodyguards, street soldiers, workers \u2014 the word goes out with him","guarda-costas, soldados, funcion\u00e1rios \u2014 o recado sai com ele"),
     `<button onclick="openBuyWorkers()">${L("[ HIRE ]","[ CONTRATAR ]")}</button>`);
-  rows+=row(L("Let people go","Dispensar / vender"),L("sell off turf, shops or soldiers to raise cash","venda \u00e1reas, neg\u00f3cios ou soldados pra levantar grana"),
-    canSell?`<button class="red" onclick="openSellAssets()">${L("[ FIRE / SELL ]","[ DISPENSAR / VENDER ]")}</button>`:off);
+  rows+=row(L("Let people go","Dispensar / vender"),L("the hire screen sells too \u2014 type a number and hit SELL","a tela de contratar tamb\u00e9m vende \u2014 digite um n\u00famero e toque em VENDER","la pantalla de contratar tambi\u00e9n vende \u2014 escribe un n\u00famero y toca VENDER"),
+    canSell?`<button class="red" onclick="openBuyWorkers()">${L("[ FIRE / SELL ]","[ DISPENSAR / VENDER ]")}</button>`:off);
   rows+=row(L("Call an execution","Mandar executar"),execUnlocked()?L("2\u00d7 the target's net worth \u2014 ordered from in here, carried out on the street","2\u00d7 o patrim\u00f4nio do alvo \u2014 encomendado daqui, feito na rua"):execLockNote(),
     canExec?`<button class="red" onclick="execMenu()">${L("[ EXECUTE ]","[ EXECUTAR ]")}</button>`:off);
   rows+=row(L("Crimes and attacks","Crimes e ataques"),L("not from in here \u2014 you would have to be on the street","daqui n\u00e3o \u2014 voc\u00ea teria que estar na rua"),off);
