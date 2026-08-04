@@ -778,7 +778,7 @@ let LANG=(function(){try{return localStorage.getItem('ct_lang')==='PT'?'PT':'EN'
 function L(en,pt){return LANG==='PT'?pt:en;}
 function setLang(l){LANG=(l==='PT'?'PT':'EN');try{localStorage.setItem('ct_lang',LANG);}catch(e){}}
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v28.1";
+const APP_VERSION="v28.2";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -911,7 +911,19 @@ const CITIES = {
     streets:{20:"Comuna 13",30:"Popular",45:"Santo Domingo",60:"Manrique",75:"Aranjuez",90:"Castilla",100:"Buenos Aires",210:"Belén",225:"Laureles",230:"Estadio",250:"Envigado",280:"Provenza",300:"El Poblado",350:"Las Palmas",400:"Los Balsos"},
     // criminal enterprises only — cocaine on top, laundering at the bottom
     biz:{400:["cocaína","co"],200:["base de coca","bs"],180:["vacuna","vc"],170:["secuestro","sq"],150:["esmeraldas","em"],110:["oro ilegal","or"],90:["contrabando","cn"],80:["microtráfico","mt"],70:["lavado","$$"]},
-    casino:["Casino Nápoles","CN"] }
+    casino:["Casino Nápoles","CN"] },
+  MOW: { name:"MOSCOW", prison:"BUTYRKA", law:{life:true, maxYears:99}, cur:"$", scale:1, region:"RU", soldier:14, bg:14,
+    // districts, roughest → richest: the Kapotnya refinery fumes up to the Rublyovka money road
+    streets:{20:"Kapotnya",30:"Biryulyovo",45:"Golyanovo",60:"Lyublino",75:"Maryino",90:"Perovo",100:"Otradnoye",210:"Sokol",225:"Taganka",230:"Presnya",250:"Zamoskvorechye",280:"Arbat",300:"Tverskaya",350:"Ostozhenka",400:"Rublyovka"},
+    // what the bratva actually earns on — Afghan heroin on top, laundering at the bottom
+    biz:{400:["heroin","he"],200:["krysha","kr"],180:["arms","ar"],170:["oil skim","oi"],150:["bank fraud","bf"],110:["fake vodka","vk"],90:["car theft","ct"],80:["scrap metal","sc"],70:["laundering","$$"]},
+    casino:["Katran","KT"] },
+  TYO: { name:"TOKYO", prison:"FUCHU", law:{life:true, maxYears:99}, cur:"$", scale:1, region:"JP", soldier:54, bg:54,
+    // wards & districts, the San'ya doss-houses up to Marunouchi land prices
+    streets:{20:"San'ya",30:"Kamata",45:"Adachi",60:"Kita-Senju",75:"Ikebukuro",90:"Nippori",100:"Ueno",210:"Kabukicho",225:"Shinjuku",230:"Shibuya",250:"Roppongi",280:"Akasaka",300:"Aoyama",350:"Ginza",400:"Marunouchi"},
+    // yakuza earners — shabu on top, laundering at the bottom
+    biz:{400:["shabu","sb"],200:["hostess clubs","hc"],180:["sokaiya","sk"],170:["yamikin","yk"],150:["pachinko","pa"],110:["construction","cn"],90:["counterfeits","cf"],80:["smuggling","sm"],70:["laundering","$$"]},
+    casino:["Tehonbiki","TB"] }
 };
 /* ===== PER-CITY GARRISON CAP =====
    Every board pays a fixed amount per unit per lap, so the cap on units per holding is what sets
@@ -932,7 +944,9 @@ const CITY_CAP={
   NY:177,   // $250M
   CHI:91,   // $120M
   MIA:80,   // $100M
-  LON:128   // $400M — needs econ 0.997 below: 3125 x 128 lands on 400,000 exactly
+  LON:128,  // $400M — needs econ 0.997 below: 3125 x 128 lands on 400,000 exactly
+  MOW:342,  // $150M
+  TYO:59    // $100M
 };
 /* Set by applyCity() from the map above. Everything that reads a unit ceiling — garrison room,
    attack wave size, AI stacking — reads this, so all of it scales with the city together. */
@@ -1431,7 +1445,115 @@ function remapBg(deck, lo, hi, fields){ fields=fields||["cut"]; const arr=ADECKS
     const vs=arr.map(c=>c[f]).filter(v=>typeof v==="number"&&Math.sign(v)===sign).map(Math.abs); if(!vs.length)return;
     const mn=Math.min(...vs),mx=Math.max(...vs),d=(mx-mn)||1;
     arr.forEach(c=>{ if(typeof c[f]==="number"&&Math.sign(c[f])===sign) c[f]=sign*bgU(lo+(hi-lo)*(Math.abs(c[f])-mn)/d); });
-  }); }); }
+  }); }); }/* ===== DECKS_RU: Moscow cards — the krysha, the vory, the Afghan pipe and Butyrka.
+   Merged into the base for Russia. ===== */
+const DECKS_RU = {
+heist:[
+ {ttl:"Aluminium plant payroll",ttl_pt:"Folha da metalúrgica",lbl:"HEIST",arr:8,cut:21,bd:"Payday at a smelter outside the ring road. Two thousand men get paid in cash and the security is three pensioners with a shotgun between them.",bd_pt:"Dia de pagamento numa metalúrgica fora do anel viário. Dois mil homens recebem em dinheiro e a segurança são três aposentados com uma espingarda pra dividir."},
+ {ttl:"Armoured car, Garden Ring",ttl_pt:"Carro-forte no Anel dos Jardins",lbl:"HEIST",arr:11,cut:27,bd:"You boxed the van in the tunnel where the cameras have been broken since spring. Ninety seconds in, out the far end with the bags.",bd_pt:"Fechou o carro-forte no túnel onde as câmeras estão quebradas desde a primavera. Noventa segundos lá dentro, saiu pelo outro lado com os malotes."},
+ {ttl:"Pipeline tap",ttl_pt:"Furo no oleoduto",lbl:"HEIST",arr:6,cut:23,bd:"A hot tap welded into the export line at night, a hose to a waiting tanker, and eighty tonnes of crude that officially never left the pipe.",bd_pt:"Uma derivação soldada na linha de exportação de madrugada, uma mangueira pro caminhão-tanque, e oitenta toneladas de petróleo que oficialmente nunca saíram do duto."},
+ {ttl:"Bank on Tverskaya",ttl_pt:"Banco na Tverskaya",lbl:"HEIST",arr:22,cut:40,bd:"The vault job went loud on Tverskaya. A guard reached for his radio and didn't make it home — now there's a body on the paperwork.",bd_pt:"O assalto ao cofre saiu no barulho na Tverskaya. Um guarda foi pro rádio e não voltou pra casa — agora tem um corpo na papelada."},
+ {ttl:"Museum storeroom",ttl_pt:"Reserva técnica do museu",lbl:"HEIST",arr:9,cut:30,bd:"Not the gallery — the basement, where the uncatalogued pieces sit. Nobody reports what nobody has written down.",bd_pt:"Não a galeria — o porão, onde ficam as peças não catalogadas. Ninguém denuncia o que ninguém anotou."},
+ {ttl:"Container off the rail yard",ttl_pt:"Contêiner do pátio ferroviário",lbl:"HEIST",arr:7,cut:18,bd:"A container walked out of a Moscow rail yard on paperwork signed by a dispatcher who has been dead two years. Nobody at the gate reads that closely.",bd_pt:"Um contêiner saiu de um pátio ferroviário de Moscou com papelada assinada por um despachante morto há dois anos. Ninguém no portão lê com atenção."},
+ {ttl:"Cash office, the market",ttl_pt:"Tesouraria do mercado",lbl:"HEIST",arr:5,cut:13,bd:"Every trader in the market pays their rent in cash on the same morning. You took the room where it all gets counted.",bd_pt:"Todo comerciante do mercado paga o aluguel em dinheiro na mesma manhã. Você tomou a sala onde tudo é contado."},
+ {ttl:"Jeweller on the Arbat",ttl_pt:"Joalheria no Arbat",lbl:"HEIST",arr:4,cut:11,bd:"Sledgehammer through the front glass at four in the morning. Cases empty in ninety seconds and fenced before the shift changed.",bd_pt:"Marreta no vidro da frente às quatro da manhã. Vitrines vazias em noventa segundos e repassadas antes da troca de turno."},
+ {ttl:"Copper off the substation",ttl_pt:"Cobre da subestação",lbl:"HEIST",arr:3,cut:6,bd:"Half a kilometre of cable pulled out of a substation in the dark. Three districts lost power and the scrapyard paid without a question.",bd_pt:"Meio quilômetro de cabo arrancado de uma subestação no escuro. Três distritos ficaram sem luz e o ferro-velho pagou sem perguntar."},
+ {ttl:"Vodka bond warehouse",ttl_pt:"Armazém alfandegado de vodca",lbl:"HEIST",arr:6,cut:15,bd:"Forty thousand litres under bond, still unstamped. By the time the excise men came to count it, it was in shops with somebody else's label.",bd_pt:"Quarenta mil litros sob alfândega, ainda sem selo. Quando os fiscais foram contar, já estava nas lojas com o rótulo de outro."}
+],
+hitman:[
+ {ttl:"Vor business",ttl_pt:"Acerto entre vory",lbl:"HITMAN",arr:14,cut:7,bd:"Two thieves-in-law had claimed the same markets for a year. You settled which one collected there, and the stalls went quiet by the weekend.",bd_pt:"Dois ladrões-na-lei reivindicavam os mesmos mercados havia um ano. Você resolveu quem cobrava ali, e as barracas sossegaram no fim de semana."},
+ {ttl:"Contract in the stairwell",ttl_pt:"Contrato na escadaria",lbl:"HITMAN",arr:18,cut:9,bd:"Between the lift and his own front door — the oldest arrangement in this city, and still the one nobody sees coming.",bd_pt:"Entre o elevador e a própria porta — o arranjo mais antigo desta cidade, e ainda o que ninguém vê chegando."},
+ {ttl:"Banker who talked",ttl_pt:"Banqueiro que falou",lbl:"HITMAN",arr:20,cut:12,bd:"He was building a file for the prosecutors and telling people about it. The file survived him; the case did not.",bd_pt:"Ele montava um dossiê pros promotores e contava pra todo mundo. O dossiê sobreviveu a ele; o caso não."},
+ {ttl:"Car on the embankment",ttl_pt:"Carro no cais",lbl:"HITMAN",arr:24,cut:14,bd:"A device under the driver's seat and a man watching from a parked Zhiguli. The whole embankment heard it.",bd_pt:"Um artefato sob o banco do motorista e um homem olhando de um Zhiguli parado. O cais inteiro ouviu."},
+ {ttl:"Debt with interest",ttl_pt:"Dívida com juros",lbl:"HITMAN",arr:9,cut:5,bd:"He'd been paying late for months and telling the others it was fine. It stopped being fine, and the others started paying on time.",bd_pt:"Ele atrasava havia meses e dizia aos outros que estava tudo bem. Deixou de estar, e os outros passaram a pagar em dia."},
+ {ttl:"The sit-down went wrong",ttl_pt:"A reunião deu errado",lbl:"HITMAN",arr:16,cut:8,bd:"A meeting called to end a dispute ended it in the way nobody at the table had agreed to beforehand.",bd_pt:"Uma reunião marcada pra encerrar uma disputa encerrou do jeito que ninguém na mesa tinha combinado antes."},
+ {ttl:"Witness before the hearing",ttl_pt:"Testemunha antes da audiência",lbl:"HITMAN",arr:22,cut:11,bd:"He was due in court on Monday. On Monday the prosecutor stood up and explained that the witness could not be located.",bd_pt:"Ele ia depor na segunda. Na segunda o promotor levantou e explicou que a testemunha não podia ser localizada."},
+ {ttl:"Somebody else's crew",ttl_pt:"O bando de outro",lbl:"HITMAN",arr:12,cut:6,bd:"They had been collecting on your streets and calling it a misunderstanding. It got understood.",bd_pt:"Estavam cobrando nas suas ruas e chamavam de mal-entendido. Foi entendido."}
+],
+cop:[
+ {ttl:"Crooked Cop",ttl_pt:"Policial na folha",lbl:"CROOKED COP",cut:13,bd:"A major on a monthly envelope calls the night before every operation. You empty the flat and the raid finds bare walls.",bd_pt:"Um major num envelope mensal liga na véspera de cada operação. Você esvazia o apartamento e a batida encontra parede nua."},
+ {ttl:"Crooked Cop",ttl_pt:"Policial na folha",lbl:"CROOKED COP",cut:9,bd:"The traffic post at the district line waves your cars through. It costs a fixed sum a month and it has never once been discussed out loud.",bd_pt:"O posto de trânsito na divisa do distrito libera seus carros. Custa uma quantia fixa por mês e nunca foi falado em voz alta."},
+ {ttl:"Crooked Cop",ttl_pt:"Policial na folha",lbl:"CROOKED COP",cut:17,bd:"An investigator loses the one page that ties you to the file. The rest of the case reads like it was written about somebody else.",bd_pt:"Um investigador perde a única página que te liga ao processo. O resto do caso parece escrito sobre outra pessoa."},
+ {ttl:"Crooked Cop",ttl_pt:"Policial na folha",lbl:"CROOKED COP",cut:7,bd:"He does not take money — he takes favours, and he has just called one in. The debt is worse than a bill.",bd_pt:"Ele não pega dinheiro — pega favores, e acabou de cobrar um. A dívida é pior que a conta."},
+ {ttl:"Crooked Cop",ttl_pt:"Policial na folha",lbl:"CROOKED COP",cut:20,bd:"A colonel sells you the roster for the whole district: who is on nights, who is honest, and who is already on somebody else's envelope.",bd_pt:"Um coronel te vende a escala do distrito inteiro: quem está na noite, quem é honesto e quem já está no envelope de outro."},
+ {ttl:"Crooked Cop",ttl_pt:"Policial na folha",lbl:"CROOKED COP",cut:11,bd:"The evidence room has a leak. Two kilos went in and one kilo will be produced at trial, and nobody will ask about the difference.",bd_pt:"A sala de provas tem vazamento. Dois quilos entraram e um quilo será apresentado no julgamento, e ninguém vai perguntar da diferença."},
+ {ttl:"Crooked Cop",ttl_pt:"Policial na folha",lbl:"CROOKED COP",cut:15,bd:"He warns you which of your own men has been talking. The warning costs more than the man was earning.",bd_pt:"Ele avisa qual dos seus homens andou falando. O aviso custa mais do que o homem ganhava."},
+ {ttl:"Crooked Cop",ttl_pt:"Policial na folha",lbl:"CROOKED COP",cut:5,bd:"A sergeant at the holding cells lets your people out before the paperwork starts. Cheap, reliable, and he never asks what they did.",bd_pt:"Um sargento na carceragem solta seu pessoal antes da papelada começar. Barato, confiável, e nunca pergunta o que fizeram."}
+],
+raid:[
+ {ttl:"OMON at dawn",ttl_pt:"OMON ao amanhecer",lbl:"POLICE RAID",bd:"Masked units came through both doors of the block before first light and put everyone on the floor of their own hallway.",bd_pt:"Unidades mascaradas entraram pelas duas portas do bloco antes de clarear e puseram todo mundo no chão do próprio corredor."},
+ {ttl:"Market swept",ttl_pt:"Mercado varrido",lbl:"POLICE RAID",bd:"They sealed the market and went stall by stall. Half the traders had nothing to hide and got taken in anyway.",bd_pt:"Fecharam o mercado e foram barraca por barraca. Metade dos comerciantes não tinha nada a esconder e foi levada mesmo assim."},
+ {ttl:"Tax police at the office",ttl_pt:"Polícia fiscal no escritório",lbl:"POLICE RAID",bd:"They did not come for the drugs. They came for the books, which is worse, and they took the computers with them.",bd_pt:"Não vieram pela droga. Vieram pelos livros, que é pior, e levaram os computadores junto."},
+ {ttl:"Roadblock on the ring",ttl_pt:"Bloqueio no anel viário",lbl:"POLICE RAID",bd:"Every car off the ring road checked, boot and back seat, for six hours. Whatever was moving that night stopped moving.",bd_pt:"Todo carro saindo do anel viário revistado, porta-malas e banco de trás, por seis horas. O que estava rodando naquela noite parou."},
+ {ttl:"The katran turned over",ttl_pt:"O katran virado",lbl:"POLICE RAID",bd:"They knew which flat, which floor and what time the big game ran. Somebody at the table had told them.",bd_pt:"Sabiam qual apartamento, qual andar e a que horas rolava o jogo grande. Alguém na mesa tinha contado."},
+ {ttl:"Warehouse sealed",ttl_pt:"Galpão lacrado",lbl:"POLICE RAID",bd:"Investigators put tape across the doors and posted a man outside. Everything inside is now evidence, including what was only being stored.",bd_pt:"Investigadores lacraram as portas e deixaram um homem do lado de fora. Tudo lá dentro agora é prova, inclusive o que só estava guardado."}
+],
+drug:[
+ {ttl:"Afghan line through the south",ttl_pt:"Rota afegã pelo sul",lbl:"DRUG DEAL",arr:15,cut:34,bd:"It comes up through Central Asia in a lorry of melons and reaches a lock-up in Moscow without one border guard opening a crate.",bd_pt:"Sobe pela Ásia Central num caminhão de melões e chega a um depósito em Moscou sem um guarda de fronteira abrir uma caixa."},
+ {ttl:"Ring road handover",ttl_pt:"Entrega no anel viário",lbl:"DRUG DEAL",arr:9,cut:19,bd:"Two cars, four minutes, a service road nobody uses after dark. The money went one way and the load went the other.",bd_pt:"Dois carros, quatro minutos, uma via de serviço que ninguém usa depois de escurecer. O dinheiro foi pra um lado e a carga pro outro."},
+ {ttl:"Chemist in the industrial zone",ttl_pt:"Químico na zona industrial",lbl:"DRUG DEAL",arr:12,cut:28,bd:"A shuttered plant with the power still connected, and a man who used to do this legally running the reaction at night.",bd_pt:"Uma fábrica fechada com a energia ainda ligada, e um homem que fazia isso legalmente tocando a reação de madrugada."},
+ {ttl:"Nightclub supply",ttl_pt:"Fornecimento de balada",lbl:"DRUG DEAL",arr:6,cut:14,bd:"Every door on the strip buys from you now. The bouncers do the selling and the club takes a cut for the trouble.",bd_pt:"Toda porta da região compra de você agora. Os seguranças vendem e a casa fica com um corte pelo incômodo."},
+ {ttl:"Courier on the express",ttl_pt:"Mula no expresso",lbl:"DRUG DEAL",arr:7,cut:12,bd:"A student with a rail ticket and a rucksack he was told not to open. He does the route twice a week and has never once been searched.",bd_pt:"Um estudante com passagem de trem e uma mochila que mandaram não abrir. Faz a rota duas vezes por semana e nunca foi revistado."},
+ {ttl:"Seized load, bought back",ttl_pt:"Carga apreendida, recomprada",lbl:"DRUG DEAL",arr:11,cut:22,bd:"The police took it on Tuesday and you bought most of it back on Thursday from the men who took it.",bd_pt:"A polícia levou na terça e você recomprou a maior parte na quinta dos homens que levaram."},
+ {ttl:"Port of Petersburg",ttl_pt:"Porto de Petersburgo",lbl:"DRUG DEAL",arr:14,cut:31,bd:"It arrives in a container of Finnish timber, gets split in a yard outside the city and is in Moscow before the manifest is filed.",bd_pt:"Chega num contêiner de madeira finlandesa, é dividida num pátio fora da cidade e está em Moscou antes do manifesto ser registrado."},
+ {ttl:"The lab got raided",ttl_pt:"O laboratório foi estourado",lbl:"DRUG DEAL",arr:19,cut:4,bd:"Somebody sold the address. You lost the glassware, the stock and two cooks, and walked out with what was in your coat.",bd_pt:"Alguém vendeu o endereço. Perdeu a vidraria, o estoque e dois cozinheiros, e saiu com o que tinha no casaco."}
+]
+};
+/* ===== DECKS_JP: Tokyo cards — the kumi, the mizu shobai, shabu and Fuchu.
+   Merged into the base for Japan. ===== */
+const DECKS_JP = {
+heist:[
+ {ttl:"Pachinko parlour count",ttl_pt:"Tesouraria do pachinko",lbl:"HEIST",arr:7,cut:18,bd:"You hit the counting room on the night the week's takings were still in the building. The manager knew better than to describe anyone.",bd_pt:"Você bateu na sala de contagem na noite em que a féria da semana ainda estava no prédio. O gerente sabia que não devia descrever ninguém."},
+ {ttl:"Cash truck, Shuto Expressway",ttl_pt:"Carro-forte na Shuto",lbl:"HEIST",arr:10,cut:26,bd:"Boxed on the ramp where the expressway narrows to one lane. Four minutes of traffic and the truck was lighter by a lot.",bd_pt:"Fechado na alça onde a via expressa afunila pra uma faixa. Quatro minutos de trânsito e o caminhão ficou bem mais leve."},
+ {ttl:"Jeweller in Ginza",ttl_pt:"Joalheria em Ginza",lbl:"HEIST",arr:5,cut:16,bd:"In through the service corridor at closing, out through the same door in eleven minutes with the display trays.",bd_pt:"Entrou pelo corredor de serviço no fechamento, saiu pela mesma porta em onze minutos com as bandejas da vitrine."},
+ {ttl:"Bank in Marunouchi",ttl_pt:"Banco em Marunouchi",lbl:"HEIST",arr:21,cut:39,bd:"The vault job went loud in Marunouchi. A guard went for the alarm and did not go home — now there is a body on the job.",bd_pt:"O assalto ao cofre saiu no barulho em Marunouchi. Um guarda foi pro alarme e não voltou pra casa — agora tem um corpo no serviço."},
+ {ttl:"Container off the bay",ttl_pt:"Contêiner da baía",lbl:"HEIST",arr:8,cut:24,bd:"A container left Tokyo Bay on paperwork signed by a clerk who retired three years ago. Nobody on the gate reads that closely.",bd_pt:"Um contêiner saiu da Baía de Tóquio com papelada assinada por um funcionário aposentado há três anos. Ninguém no portão lê com atenção."},
+ {ttl:"Construction payroll",ttl_pt:"Folha da obra",lbl:"HEIST",arr:6,cut:14,bd:"The site pays its day labour in envelopes from a portacabin with one lock. The foreman handed them over and reported it an hour late.",bd_pt:"A obra paga os diaristas em envelopes num contêiner de escritório com uma fechadura. O mestre entregou e só avisou uma hora depois."},
+ {ttl:"Hostess club float",ttl_pt:"Caixa do clube de hostess",lbl:"HEIST",arr:4,cut:10,bd:"Friday's float in Kabukicho, taken off the mamasan between the bank and the door. She never called it in.",bd_pt:"O caixa de sexta em Kabukicho, tomado da mamasan entre o banco e a porta. Ela nunca deu queixa."},
+ {ttl:"Vending route",ttl_pt:"Rota de máquinas",lbl:"HEIST",arr:2,cut:5,bd:"Two hundred machines emptied over one night across three wards. Small money each, real money together.",bd_pt:"Duzentas máquinas esvaziadas numa noite em três bairros. Pouco em cada uma, muito no total."},
+ {ttl:"Art off a private collection",ttl_pt:"Arte de coleção particular",lbl:"HEIST",arr:9,cut:29,bd:"A collector in Aoyama who cannot report the theft, because he could not explain how he came to own it either.",bd_pt:"Um colecionador em Aoyama que não pode dar queixa, porque também não saberia explicar como veio a ter aquilo."},
+ {ttl:"Rare metals off the line",ttl_pt:"Metais raros da linha",lbl:"HEIST",arr:6,cut:17,bd:"A pallet of catalyst walked out of an electronics plant in Kamata. It was melted before anyone checked the inventory.",bd_pt:"Um palete de catalisador saiu de uma fábrica de eletrônicos em Kamata. Foi derretido antes de alguém conferir o estoque."}
+],
+hitman:[
+ {ttl:"Kumi business",ttl_pt:"Acerto entre kumi",lbl:"HITMAN",arr:13,cut:7,bd:"Two families had claimed the same blocks of Kabukicho for a year. You settled which one collected there, and the street went quiet.",bd_pt:"Duas famílias reivindicavam os mesmos quarteirões de Kabukicho havia um ano. Você resolveu quem cobrava ali, e a rua sossegou."},
+ {ttl:"The finger was not enough",ttl_pt:"O dedo não bastou",lbl:"HITMAN",arr:15,cut:8,bd:"He had already given a joint for the last mistake. There was nothing left to take that would have settled this one.",bd_pt:"Ele já tinha dado uma falange pelo erro anterior. Não sobrava nada a tomar que resolvesse este."},
+ {ttl:"Succession settled",ttl_pt:"Sucessão resolvida",lbl:"HITMAN",arr:23,cut:13,bd:"The old man named one heir and half the kumi preferred the other. The argument was ended in a car park in Akasaka.",bd_pt:"O velho nomeou um herdeiro e metade do kumi preferia o outro. A discussão foi encerrada num estacionamento em Akasaka."},
+ {ttl:"Prosecutor's witness",ttl_pt:"Testemunha do promotor",lbl:"HITMAN",arr:21,cut:11,bd:"He was due to testify about the construction bids. He did not testify about the construction bids.",bd_pt:"Ele ia depor sobre as licitações da construção. Não depôs sobre as licitações da construção."},
+ {ttl:"Debt at the yamikin",ttl_pt:"Dívida no yamikin",lbl:"HITMAN",arr:8,cut:5,bd:"Ten-for-ten every ten days, and he had missed four. The others on the book started paying the morning after.",bd_pt:"Dez por dez a cada dez dias, e ele falhou quatro. Os outros da caderneta começaram a pagar na manhã seguinte."},
+ {ttl:"Sokaiya who overreached",ttl_pt:"Sokaiya que passou do ponto",lbl:"HITMAN",arr:17,cut:9,bd:"He was squeezing a board that was already paying somebody else. Two envelopes, one company — it was never going to hold.",bd_pt:"Ele apertava um conselho que já pagava a outro. Dois envelopes, uma empresa — nunca ia se sustentar."},
+ {ttl:"Rival in the bathhouse",ttl_pt:"Rival na casa de banho",lbl:"HITMAN",arr:19,cut:10,bd:"Nobody carries anything in there, which is exactly why it was chosen, and exactly why it worked.",bd_pt:"Ninguém leva nada pra lá dentro, que é justamente por que foi escolhido, e justamente por que funcionou."},
+ {ttl:"Somebody else's crew",ttl_pt:"O bando de outro",lbl:"HITMAN",arr:11,cut:6,bd:"They had been taking the rent off your doors and calling it a misunderstanding. It got understood.",bd_pt:"Estavam pegando o aluguel das suas portas e chamando de mal-entendido. Foi entendido."}
+],
+cop:[
+ {ttl:"Crooked Cop",ttl_pt:"Policial na folha",lbl:"CROOKED COP",cut:12,bd:"An inspector on a monthly envelope calls the night before every sweep. You clear the office and they find an empty room.",bd_pt:"Um inspetor num envelope mensal liga na véspera de cada operação. Você esvazia o escritório e eles encontram uma sala vazia."},
+ {ttl:"Crooked Cop",ttl_pt:"Policial na folha",lbl:"CROOKED COP",cut:8,bd:"The koban on the corner has decided your doorway is not its business. It costs a fixed sum and a great deal of politeness.",bd_pt:"O koban da esquina decidiu que sua porta não é assunto dele. Custa uma quantia fixa e muita educação."},
+ {ttl:"Crooked Cop",ttl_pt:"Policial na folha",lbl:"CROOKED COP",cut:18,bd:"A retired officer now sits on your payroll as an adviser. He still knows every man on the organised crime desk by name.",bd_pt:"Um policial aposentado agora está na sua folha como consultor. Ainda conhece pelo nome todo mundo da delegacia do crime organizado."},
+ {ttl:"Crooked Cop",ttl_pt:"Policial na folha",lbl:"CROOKED COP",cut:6,bd:"He does not want money. He wants an arrest he can announce, and he has told you which of your people would do.",bd_pt:"Ele não quer dinheiro. Quer uma prisão que possa anunciar, e já disse qual do seu pessoal serviria."},
+ {ttl:"Crooked Cop",ttl_pt:"Policial na folha",lbl:"CROOKED COP",cut:19,bd:"A senior man sells you the whole schedule: which wards get worked this month and which names are already on the list.",bd_pt:"Um graduado te vende a agenda inteira: quais bairros serão trabalhados este mês e quais nomes já estão na lista."},
+ {ttl:"Crooked Cop",ttl_pt:"Policial na folha",lbl:"CROOKED COP",cut:10,bd:"The statement gets rewritten before it is filed. What you actually said is now a much shorter and duller paragraph.",bd_pt:"O depoimento é reescrito antes de ser arquivado. O que você realmente disse virou um parágrafo bem mais curto e sem graça."},
+ {ttl:"Crooked Cop",ttl_pt:"Policial na folha",lbl:"CROOKED COP",cut:14,bd:"He tells you which of your own men has been meeting them on his day off. The information costs more than the man ever earned.",bd_pt:"Ele te diz qual dos seus homens andou encontrando com eles na folga. A informação custa mais do que o homem jamais ganhou."},
+ {ttl:"Crooked Cop",ttl_pt:"Policial na folha",lbl:"CROOKED COP",cut:4,bd:"A desk sergeant lets your people go before the twenty-three days start running. Cheap, and he never asks what they did.",bd_pt:"Um sargento de plantão solta seu pessoal antes dos vinte e três dias começarem a correr. Barato, e nunca pergunta o que fizeram."}
+],
+raid:[
+ {ttl:"Gasa-ire at dawn",ttl_pt:"Gasa-ire ao amanhecer",lbl:"POLICE RAID",bd:"They came into the office with a warrant and a camera crew waiting outside, and carried the filing cabinets out in front of the neighbours.",bd_pt:"Entraram no escritório com mandado e uma equipe de TV esperando lá fora, e carregaram os arquivos na frente dos vizinhos."},
+ {ttl:"Kabukicho swept",ttl_pt:"Kabukicho varrido",lbl:"POLICE RAID",bd:"Every club on the block checked for licences, for minors and for you. Three doors did not open again that month.",bd_pt:"Todo clube do quarteirão checado por alvará, por menores e por você. Três portas não reabriram naquele mês."},
+ {ttl:"Exclusion ordinance",ttl_pt:"Portaria de exclusão",lbl:"POLICE RAID",bd:"Not a raid — a notice. The banks close your accounts, the landlords end your leases, and none of it needs a conviction.",bd_pt:"Não é batida — é notificação. Os bancos fecham suas contas, os locadores encerram os aluguéis, e nada disso precisa de condenação."},
+ {ttl:"Roadblock on the expressway",ttl_pt:"Bloqueio na via expressa",lbl:"POLICE RAID",bd:"Every car off the ramp stopped and opened for six hours. Whatever was moving that night stopped moving.",bd_pt:"Todo carro saindo da alça parado e aberto por seis horas. O que estava rodando naquela noite parou."},
+ {ttl:"The tehonbiki turned over",ttl_pt:"O tehonbiki virado",lbl:"POLICE RAID",bd:"They knew the building, the floor and the hour the big game ran. Somebody at that table had told them.",bd_pt:"Sabiam o prédio, o andar e a hora em que rolava o jogo grande. Alguém naquela mesa tinha contado."},
+ {ttl:"Warehouse sealed",ttl_pt:"Galpão lacrado",lbl:"POLICE RAID",bd:"Tape across the shutters and an officer on the door. Everything inside is evidence now, including what was only being stored.",bd_pt:"Fita nas portas e um policial na entrada. Tudo lá dentro agora é prova, inclusive o que só estava guardado."}
+],
+drug:[
+ {ttl:"Shabu off the boat",ttl_pt:"Shabu do barco",lbl:"DRUG DEAL",arr:16,cut:35,bd:"A fishing boat meets a freighter outside the shipping lane and comes back into a small port with the catch on top of the load.",bd_pt:"Um barco pesqueiro encontra um cargueiro fora da rota e volta a um porto pequeno com o peixe por cima da carga."},
+ {ttl:"Club supply in Roppongi",ttl_pt:"Fornecimento em Roppongi",lbl:"DRUG DEAL",arr:8,cut:20,bd:"Every door on the strip takes from you now. The touts do the selling and the club takes a cut for the trouble.",bd_pt:"Toda porta da região pega de você agora. Os cambistas vendem e a casa fica com um corte pelo incômodo."},
+ {ttl:"Courier on the Shinkansen",ttl_pt:"Mula no Shinkansen",lbl:"DRUG DEAL",arr:6,cut:13,bd:"A salaryman with a return ticket and a case he was told not to open. He does the run twice a month and has never been stopped.",bd_pt:"Um assalariado com passagem de ida e volta e uma maleta que mandaram não abrir. Faz a rota duas vezes por mês e nunca foi parado."},
+ {ttl:"Cook in the mountains",ttl_pt:"Cozinha nas montanhas",lbl:"DRUG DEAL",arr:13,cut:29,bd:"A shuttered inn two hours out of the city with the power still on, and a chemist who used to do this for a company.",bd_pt:"Uma pousada fechada a duas horas da cidade com a energia ligada, e um químico que fazia isso pra uma empresa."},
+ {ttl:"Handover at the parking tower",ttl_pt:"Entrega no edifício-garagem",lbl:"DRUG DEAL",arr:9,cut:18,bd:"Level seven, two cars, four minutes. The money went down one ramp and the load went down the other.",bd_pt:"Sétimo andar, dois carros, quatro minutos. O dinheiro desceu por uma rampa e a carga pela outra."},
+ {ttl:"Pills through the clinic",ttl_pt:"Comprimidos pela clínica",lbl:"DRUG DEAL",arr:7,cut:15,bd:"A doctor writing scripts for patients who never existed, and a pharmacy that stopped counting a long time ago.",bd_pt:"Um médico receitando pra pacientes que nunca existiram, e uma farmácia que parou de contar faz tempo."},
+ {ttl:"Seized load, bought back",ttl_pt:"Carga apreendida, recomprada",lbl:"DRUG DEAL",arr:12,cut:23,bd:"They took it on Tuesday and you bought most of it back on Thursday, from the men who took it.",bd_pt:"Levaram na terça e você recomprou a maior parte na quinta, dos homens que levaram."},
+ {ttl:"The cook got raided",ttl_pt:"A cozinha foi estourada",lbl:"DRUG DEAL",arr:20,cut:4,bd:"Somebody sold the address. You lost the glassware, the stock and two cooks, and walked out with what was in your pockets.",bd_pt:"Alguém vendeu o endereço. Perdeu a vidraria, o estoque e dois cozinheiros, e saiu com o que tinha nos bolsos."}
+]
+};
+
 function buildActiveDecks(region){
   ADECKS={};
   for(const k in DECKS){
@@ -1442,6 +1564,8 @@ function buildActiveDecks(region){
     else if(region==="CO" && typeof DECKS_CO!=="undefined" && DECKS_CO[k]) a=a.concat(DECKS_CO[k]);
     else if(region==="PY" && typeof DECKS_PY!=="undefined" && DECKS_PY[k]) a=a.concat(DECKS_PY[k]);
     else if(region==="SV" && typeof DECKS_SV!=="undefined" && DECKS_SV[k]) a=a.concat(DECKS_SV[k]);
+    else if(region==="RU" && typeof DECKS_RU!=="undefined" && DECKS_RU[k]) a=a.concat(DECKS_RU[k]);
+    else if(region==="JP" && typeof DECKS_JP!=="undefined" && DECKS_JP[k]) a=a.concat(DECKS_JP[k]);
     ADECKS[k]=a.map(c=>Object.assign({},c));   // clone so per-city native remap never mutates the source DECKS
   }
   // NATIVE per-city payouts anchored to the bodyguard: crimes 0.5..10 bg, hospital 0.5..5 bg
@@ -1536,7 +1660,7 @@ function openMultiplayer(){
      <div class="cfghead">1. ${L('PLAYERS','JOGADORES')} <span style="opacity:.55">${L('(you + rivals — set each seat next)','(você + rivais — defina cada lugar a seguir)')}</span></div>
      <div class="choice">${[2,3,4,5,6,7,8,9,10].map(pC).join('')}</div>
      <div class="cfghead">2. ${L('CITY','CIDADE')} <span style="opacity:.55">${L('(map · prison · local law)','(mapa · prisão · lei local)')}</span></div>
-     <div class="choice">${cityB('NY','NEW YORK')}${cityB('LA','LOS ANGELES')}${cityB('CWB','CURITIBA')}${cityB('RIO','RIO')}${cityB('CDMX','CDMX')}${cityB('SP','SÃO PAULO')}${cityB('MDE','MEDELLÍN')}${cityB('ASU','ASUNCIÓN')}${cityB('SV','SAN SALVADOR')}${cityB('TIJ','TIJUANA')}${cityB('MIA','MIAMI')}${cityB('CHI','CHICAGO')}${cityB('LON','LONDON')}</div>
+     <div class="choice">${cityB('NY','NEW YORK')}${cityB('LA','LOS ANGELES')}${cityB('CWB','CURITIBA')}${cityB('RIO','RIO')}${cityB('CDMX','CDMX')}${cityB('SP','SÃO PAULO')}${cityB('MDE','MEDELLÍN')}${cityB('ASU','ASUNCIÓN')}${cityB('SV','SAN SALVADOR')}${cityB('TIJ','TIJUANA')}${cityB('MIA','MIAMI')}${cityB('CHI','CHICAGO')}${cityB('TYO','TOKYO')}${cityB('MOW','MOSCOW')}${cityB('LON','LONDON')}</div>
      <div class="cfghead">3. ${L('YEAR','ANO')} <span style="opacity:.55">${L('(the year play begins)','(o ano em que o jogo come\u00e7a)')}</span></div>
      <div class="choice">${YEAR_PRESETS.map(yB).join('')}<button class="cfg${yCustom?' sel':''}" onclick="openYearPad()">[ ${yCustom?yr:L('OTHER \u00bb','OUTRO \u00bb')} ]</button></div>
      <div class="cfgflavor">&gt; ${L('the clock starts in ','o rel\u00f3gio come\u00e7a em ')}${yr}${L(' \u2014 each year on the street rolls it forward',' \u2014 cada ano na rua avan\u00e7a o calend\u00e1rio')}</div>
@@ -1680,7 +1804,9 @@ const CITY_GHOSTS={
   TIJ: ["EL MON","EL TIGRILLO","EL TEO","EL MAYEL","EL POZOLERO","EL MULETAS","EL INGENIERO","KITTY","LA RANA","EL AQUILES","EL CHOLO","EL CRIS","EL RAMPA","EL CHAN","EL MUÑECO"],
   MIA: ["GRISELDA","RIVI","EL LOCO","MICKEY MUNDAY","PAPO","TONY","MANNY","SOSA","FRANK","LA MADRINA","WILLY","SAL","THE COWBOY","MERMAID","BOATMAN"],
   CHI: ["BIG AL","NITTI","RICCA","ACCARDO","GIANCANA","THE ANT","JOEY DOVES","MILWAUKEE PHIL","THE CLOWN","HUMPHREYS","TORRIO","LEFTY","JACKIE THE LACKEY","KING DAVID","LARRY HOOVER"],
-  MDE: ["EL PATRÓN","GONZALO","EL MEXICANO","PACHO","KIKO","POPEYE","LA QUICA","TYSON","PININA","OTTO","ARETE","CHOPO","BLACKIE","YUCA","YESID","ALEXIS","WÍLMAR","FERNEY","EMILIO","MARIACHI","ROSARIO","EL CHILE","MOSCO","TILINGO","PALOMO","EL ENANO","CEJAS","CACHACO","EL MONO","EL FLACO","EL ZARCO","PECOSO","CUERVO","PATEBOMBA","CACO","YEISON","BRAYAN","MECHAS","EL TUERTO","RÁMBER","MARINO","TABARES","NELSON","RICARDO","EL OSO","CHIRUZA","PIRRACA","COMBA","VAQUERO","EL CHINO"]
+  MDE: ["EL PATRÓN","GONZALO","EL MEXICANO","PACHO","KIKO","POPEYE","LA QUICA","TYSON","PININA","OTTO","ARETE","CHOPO","BLACKIE","YUCA","YESID","ALEXIS","WÍLMAR","FERNEY","EMILIO","MARIACHI","ROSARIO","EL CHILE","MOSCO","TILINGO","PALOMO","EL ENANO","CEJAS","CACHACO","EL MONO","EL FLACO","EL ZARCO","PECOSO","CUERVO","PATEBOMBA","CACO","YEISON","BRAYAN","MECHAS","EL TUERTO","RÁMBER","MARINO","TABARES","NELSON","RICARDO","EL OSO","CHIRUZA","PIRRACA","COMBA","VAQUERO","EL CHINO"],
+  MOW: ["YAPONCHIK","DED HASAN","SILVESTR","OTARIK","GLOBUS","MACEDONIAN","TSIRUL","MANSUR","KALINA","PUDEL","BRIGADIR","MONYA"],
+  TYO: ["TAOKA","KODAMA","ISHII","INAGAWA","MACHII","TAKENAKA","THE BEAR","YOSHIO","SUSUMU","KAKUJI","TOSEI","RIKIO"],
 };
 /* Brazilian maps use only these ghost names (Cidade de Deus / Tropa de Elite) */
 const BR_GHOSTS=["ZÉ PEQUENO","DADINHO","BENÉ","CABELEIRA","ALICATE","MARRECO","BARBANTINHO","FILÉ-COM-FRITAS","MANÉ GALINHA","CABEÇÃO","LAMPIÃO","PARAÍBA","NEGUINHO","TIO SAM","TOURO","GRANDE","JABÁ","PAULISTA","EXU","GELSON","OTTO","CENOURA","BOCA","BISCOITINHO","PELÉ","NASCIMENTO","NETO","MATIAS","BAIANO","XUXA","TUCO","FÁBIO","CAPITÃO OLIVEIRA","CAPITÃO AZEVEDO","SARGENTO OLIVEIRA","ROCHA","CLAUDINHO","BEIRADA","MARCINHO","GUIMARÃES","FORTUNATO","CADU","PLAYBOY","PERNAMBUCO","CHINA","BETO","JAPONÊS","RUSSO","CEBOLA","VADO","SANDRO","ALEMÃO","CEARÁ","MINEIRO","GORDO","BAIXINHO","NEGO","CHICO","NEGO PRETO","MAJESTADE","LADY DI","SEM CHANCE","EZEQUIEL","DEUSDETE","ZICO","PEIXEIRA","GILSON","DADÁ","BARBA","FUINHA","LULA","PIMENTA","CHARUTO","MÁRIO CACHORRO","COELHO","PAULO BOCA","ANTÔNIO CARLOS","CLAUDIOMIRO","ZÉ DA CASA VERDE","VALDIR","DITO","LILICA","FUMAÇA","SAPO","CHICO BARRIGUDO","ALFINETE","CIGANO","PIXOTE","DITO SAPO","GAROTO","SUJINHO","CRISTAL","BABALU","TIÃO","JORGINHO","CAMALEÃO","PARÁ","BOLACHA","MOSCA","CARECA","NELSÃO","DENTINHO","GAGO","FERRUGEM","BUIÚ","CARLINHOS","BODE","CANÁRIO","PORTUGUÊS","JACARÉ","BOCA RICA","ESCADINHA","ALEMÃOZINHO"];
@@ -1810,6 +1936,12 @@ const CAREER_LEVELS=[
   {city:"NY",status:"free",ai:5,police:4,dice:8,stake:1000,win:{cash:67500},
    en:"New York, the biggest table. Five bosses between you and the crown. Stack a hundred million and the city is yours.",
    pt:"Nova York, a maior mesa. Cinco chefões entre você e a coroa. Junte cem milhões e a cidade é sua."},
+  {city:"TYO",status:"free",ai:5,police:4,dice:8,stake:1200,win:{cash:45000},
+   en:"Tokyo. The kumi run this city on politeness and paperwork, and there is far less room here than you are used to — a shop only holds so many bodies. Take the wards anyway.",
+   pt:"Tóquio. Os kumi tocam esta cidade na base da educação e da papelada, e aqui tem muito menos espaço do que você está acostumado — uma loja só comporta tanta gente. Tome os bairros mesmo assim."},
+  {city:"MOW",status:"free",ai:4,police:4,dice:8,stake:2000,win:{cash:75000},
+   en:"Moscow. Men are cheap here and the buildings are not, so the crews run deep — three hundred to a doorway and nobody blinks. Out-hold the vory or go home.",
+   pt:"Moscou. Homem é barato aqui e prédio não é, então os bandos são fundos — trezentos numa porta e ninguém se espanta. Segure mais que os vory ou vá pra casa."},
   {city:"LON",status:"free",ai:3,police:2,dice:10,stake:5000,win:{cash:250000},
    en:"London. Only three rivals left standing — but the game is a billion pounds now. Build the dynasty that ends untouchable.",
    pt:"Londres. Só três rivais de pé — mas o jogo é um bilhão de libras agora. Construa a dinastia que termina intocável."}
