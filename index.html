@@ -867,7 +867,7 @@ const ROLE_ES={"Crooked Sergeant":"Sargento Corrupto","Crooked Detective":"Detec
 const ES_STATIC={"NEW YORK CITY":"NUEVA YORK","PLAYERS — tap for record":"JUGADORES — toca para la ficha","DICE":"DADOS","ACTIONS":"ACCIONES","CONSOLE — this round":"CONSOLA — esta ronda","PLAYER ON TURN":"JUGADOR EN TURNO","OTHER PLAYERS — tap for record":"OTROS JUGADORES — toca para la ficha","[ MANUAL ]":"[ MANUAL ]","[reset]":"[reiniciar]","[ FOLLOW: OFF ]":"[ SEGUIR: NO ]","[ FOLLOW: ON ]":"[ SEGUIR: SÍ ]","[ AUTO: OFF ]":"[ AUTO: NO ]","[ AUTO: ON ]":"[ AUTO: SÍ ]","tap die to roll":"toca el dado para tirar","roll to move":"tira para avanzar","landed":"cayó"};
 const POLICE_LABELS_ES={0.25:"MUY BAJA",0.5:"BAJA",1:"REALISTA",3:"DIFÍCIL",4:"BRASILEÑA"};
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v32.3";
+const APP_VERSION="v32.4";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -995,6 +995,38 @@ const CITIES = {
     // criminal enterprises (manufacturing side) — cocaine import on top, laundering at the bottom
     biz:{400:["cocaine","co"],200:["pills","pl"],180:["fraud","fr"],170:["extortion","ex"],150:["cybercrime","cy"],110:["cannabis","cb"],90:["cargo theft","cg"],80:["counterfeit","ct"],70:["laundering","$$"]},
     casino:["The Crown Club","CW"] },
+  LDB: { name:"LONDRINA", prison:"PEL", law:{life:false, maxYears:40}, cur:"$", scale:1, region:"BR", soldier:10, bg:10,
+    streets:{20:"União da Vitória",30:"Cinco Conjuntos",45:"Jd. Bandeirantes",60:"Jd. San Rafael",75:"Vila Nova",90:"Parque Ouro Verde",100:"Igapó",210:"Centro",225:"Vila Casoni",230:"Shangri-lá",250:"Aurora",280:"Vitória Régia",300:"Lago Parque",350:"Terra Bonita",400:"Gleba Palhano"},
+    biz:{400:["cocaína","co"],200:["crack","ck"],180:["defensivo agrícola","dv"],170:["contrabando","cn"],150:["roubo carga","cr"],110:["desmanche","dm"],90:["maconha","mc"],80:["golpe PIX","px"],70:["lavagem","$$"]},
+    casino:["Jogo do Bicho","JB"] },
+  CGR: { name:"CAMPO GRANDE", prison:"MÁXIMA", law:{life:false, maxYears:40}, cur:"$", scale:1, region:"BR", soldier:10, bg:10,
+    streets:{20:"Nova Campo Grande",30:"Dom Antônio Barbosa",45:"Jd. Noroeste",60:"Moreninhas",75:"Nova Lima",90:"Tiradentes",100:"Coophavila",210:"Centro",225:"Amambaí",230:"Vila Planalto",250:"Monte Castelo",280:"Santa Fé",300:"Jd. dos Estados",350:"Carandá Bosque",400:"Chácara Cachoeira"},
+    biz:{400:["cocaína","co"],200:["pasta base","pb"],180:["contrabando","cn"],170:["gado roubado","gd"],150:["roubo carga","cr"],110:["desmanche","dm"],90:["maconha","mc"],80:["golpe PIX","px"],70:["lavagem","$$"]},
+    casino:["Jogo do Bicho","JB"] },
+  POA: { name:"PORTO ALEGRE", prison:"CENTRAL", law:{life:false, maxYears:40}, cur:"$", scale:1, region:"BR", soldier:10, bg:10,
+    streets:{20:"Vila Cruzeiro",30:"Mário Quintana",45:"Bom Jesus",60:"Rubem Berta",75:"Restinga",90:"Sarandi",100:"Partenon",210:"Centro Histórico",225:"Bom Fim",230:"Cidade Baixa",250:"Menino Deus",280:"Auxiliadora",300:"Petrópolis",350:"Bela Vista",400:"Moinhos de Vento"},
+    biz:{400:["cocaína","co"],200:["crack","ck"],180:["contrabando","cn"],170:["cigarro paraguaio","cg"],150:["roubo carga","cr"],110:["desmanche","dm"],90:["maconha","mc"],80:["roubo celular","cl"],70:["lavagem","$$"]},
+    casino:["Jogo do Bicho","JB"] },
+  SSA: { name:"SALVADOR", prison:"LEMOS BRITO", law:{life:false, maxYears:40}, cur:"$", scale:1, region:"BR", soldier:10, bg:10,
+    streets:{20:"Bairro da Paz",30:"Alto do Cabrito",45:"Calabar",60:"Fazenda Grande",75:"Nordeste de Amaralina",90:"Cajazeiras",100:"Liberdade",210:"Comércio",225:"Itaigara",230:"Graça",250:"Pituba",280:"Rio Vermelho",300:"Barra",350:"Vitória",400:"Horto Florestal"},
+    biz:{400:["cocaína","co"],200:["crack","ck"],180:["arrastão","ar"],170:["extorsão","ex"],150:["golpe PIX","px"],110:["desmanche","dm"],90:["maconha","mc"],80:["roubo celular","cl"],70:["lavagem","$$"]},
+    casino:["Jogo do Bicho","JB"] },
+  BEL: { name:"BELÉM", prison:"SANTA IZABEL", law:{life:false, maxYears:40}, cur:"$", scale:1, region:"BR", soldier:10, bg:10,
+    streets:{20:"Icoaraci",30:"Tapanã",45:"Cabanagem",60:"Bengui",75:"Jurunas",90:"Terra Firme",100:"Guamá",210:"Comércio",225:"Campina",230:"Cidade Velha",250:"Reduto",280:"Marco",300:"Umarizal",350:"Batista Campos",400:"Nazaré"},
+    biz:{400:["cocaína","co"],200:["pasta base","pb"],180:["pirataria fluvial","pf"],170:["madeira ilegal","md"],150:["roubo carga","cr"],110:["desmanche","dm"],90:["maconha","mc"],80:["golpe PIX","px"],70:["lavagem","$$"]},
+    casino:["Jogo do Bicho","JB"] },
+  FOR: { name:"FORTALEZA", prison:"ITAITINGA", law:{life:false, maxYears:40}, cur:"$", scale:1, region:"BR", soldier:10, bg:10,
+    streets:{20:"Vila Velha",30:"Granja Portugal",45:"Conj. Palmeiras",60:"Bom Jardim",75:"Pirambu",90:"Barra do Ceará",100:"Antônio Bezerra",210:"Centro",225:"Benfica",230:"Praia de Iracema",250:"Papicu",280:"Cocó",300:"Varjota",350:"Aldeota",400:"Meireles"},
+    biz:{400:["cocaína","co"],200:["crack","ck"],180:["extorsão","ex"],170:["roubo celular","cl"],150:["golpe PIX","px"],110:["desmanche","dm"],90:["maconha","mc"],80:["roubo carga","cr"],70:["lavagem","$$"]},
+    casino:["Jogo do Bicho","JB"] },
+  MAO: { name:"MANAUS", prison:"COMPAJ", law:{life:false, maxYears:40}, cur:"$", scale:1, region:"BR", soldier:10, bg:10,
+    streets:{20:"Zumbi",30:"Nova Cidade",45:"Jorge Teixeira",60:"Cidade de Deus",75:"São José",90:"Compensa",100:"Japiim",210:"Centro",225:"Cachoeirinha",230:"Chapada",250:"Parque 10",280:"Aleixo",300:"Vieiralves",350:"Adrianópolis",400:"Ponta Negra"},
+    biz:{400:["cocaína","co"],200:["pasta base","pb"],180:["pirataria fluvial","pf"],170:["ouro ilegal","ou"],150:["contrabando","cn"],110:["desmanche","dm"],90:["maconha","mc"],80:["golpe PIX","px"],70:["lavagem","$$"]},
+    casino:["Jogo do Bicho","JB"] },
+  REC: { name:"RECIFE", prison:"COTEL", law:{life:false, maxYears:40}, cur:"$", scale:1, region:"BR", soldier:10, bg:10,
+    streets:{20:"Brasília Teimosa",30:"Bode",45:"Roda de Fogo",60:"Alto José do Pinho",75:"Coque",90:"Ibura",100:"Torrões",210:"Recife Antigo",225:"Boa Vista",230:"Madalena",250:"Aflitos",280:"Casa Forte",300:"Graças",350:"Espinheiro",400:"Boa Viagem"},
+    biz:{400:["cocaína","co"],200:["crack","ck"],180:["roubo de contêiner","ct"],170:["extorsão","ex"],150:["golpe PIX","px"],110:["desmanche","dm"],90:["maconha","mc"],80:["roubo celular","cl"],70:["lavagem","$$"]},
+    casino:["Jogo do Bicho","JB"] },
   MDE: { name:"MEDELLÍN", prison:"LA ESTRELLA", law:{life:false, maxYears:60}, cur:"$", scale:1, region:"CO", soldier:18, bg:18,
     // comunas & barrios, poorest → richest (El Poblado hills on top)
     streets:{20:"Comuna 13",30:"Popular",45:"Santo Domingo",60:"Manrique",75:"Aranjuez",90:"Castilla",100:"Buenos Aires",210:"Belén",225:"Laureles",230:"Estadio",250:"Envigado",280:"Provenza",300:"El Poblado",350:"Las Palmas",400:"Los Balsos"},
@@ -1155,12 +1187,20 @@ const CITIES = {
 /* ===== CONTINENT GROUPING =====
    The city list is long enough now that a flat row of forty-five buttons is unreadable.
    These group it on the picker and set the order the career ladder walks. ===== */
-const CITY_CONT={CWB:"SA",ASU:"SA",RIO:"SA",SP:"SA",BUE:"SA",MDE:"SA",GYE:"SA",SV:"NA",CDMX:"NA",TIJ:"NA",LA:"NA",CHI:"NA",MIA:"NA",NY:"NA",HK:"EA",MAC:"EA",TPE:"EA",SHA:"EA",SEL:"EA",TYO:"EA",IST:"WA",BEY:"WA",BGD:"WA",THR:"WA",KBL:"WA",DXB:"WA",CAS:"AF",LOS:"AF",NBO:"AF",JNB:"AF",CPT:"AF",SYD:"OC",MEL:"OC",BNE:"OC",PER:"OC",AKL:"OC",BUC:"EU",NAP:"EU",PAL:"EU",MRS:"EU",ROT:"EU",ANT:"EU",BER:"EU",MOW:"EU",LON:"EU"};
+const CITY_CONT={CWB:"SA",LDB:"SA",ASU:"SA",CGR:"SA",POA:"SA",SSA:"SA",RIO:"SA",BEL:"SA",FOR:"SA",MAO:"SA",REC:"SA",SP:"SA",BUE:"SA",MDE:"SA",GYE:"SA",SV:"NA",CDMX:"NA",TIJ:"NA",LA:"NA",CHI:"NA",MIA:"NA",NY:"NA",HK:"EA",MAC:"EA",TPE:"EA",SHA:"EA",SEL:"EA",TYO:"EA",IST:"WA",BEY:"WA",BGD:"WA",THR:"WA",KBL:"WA",DXB:"WA",CAS:"AF",LOS:"AF",NBO:"AF",JNB:"AF",CPT:"AF",SYD:"OC",MEL:"OC",BNE:"OC",PER:"OC",AKL:"OC",BUC:"EU",NAP:"EU",PAL:"EU",MRS:"EU",ROT:"EU",ANT:"EU",BER:"EU",MOW:"EU",LON:"EU"};
 const CONT_LABEL={SA:["SOUTH AMERICA","AMÉRICA DO SUL","AMÉRICA DEL SUR"],NA:["NORTH AMERICA","AMÉRICA DO NORTE","AMÉRICA DEL NORTE"],EA:["EAST ASIA","ÁSIA ORIENTAL","ASIA ORIENTAL"],WA:["WEST ASIA","ÁSIA OCIDENTAL","ASIA OCCIDENTAL"],AF:["AFRICA","ÁFRICA","ÁFRICA"],OC:["OCEANIA","OCEANIA","OCEANÍA"],EU:["EUROPE","EUROPA","EUROPA"]};
 const CONT_ORDER=["SA","NA","EA","WA","AF","OC","EU"];
 function contLabel(c){ const l=CONT_LABEL[c]||["",""]; return LANG==='PT'?l[1]:LANG==='ES'?l[2]:l[0]; }
 const CITY_CAP={
   CWB:48,     
+  LDB:64,     
+  CGR:112,    
+  POA:144,    
+  SSA:176,    
+  BEL:208,    
+  FOR:240,    
+  MAO:256,    
+  REC:272,    
   ASU:64,     
   RIO:173,    
   SP:239,     
@@ -1219,6 +1259,16 @@ function capScaled(v){ return Math.max(1, Math.round((v||0)*UNIT_CAP/100)); }
    one carries a plain one-line definition — what the crime is, then what you actually do —
    in all three languages. Keyed by the same name string the board cell uses. ===== */
 const BIZ_DESC={
+ "defensivo agrícola":["Stolen farm chemicals. Pesticide lifted from silos and sheds, resold to growers off the books.","Defensivo agrícola roubado. Veneno levado de silos e barracões, revendido a produtores por fora.","Agroquímicos robados. Pesticida sacado de silos y galpones, revendido a productores por fuera."],
+ "pasta base":["Coca paste. The unrefined stage before it becomes cocaine.","Pasta base. O estágio bruto antes de virar cocaína.","Pasta base. La etapa sin refinar antes de volverse cocaína."],
+ "gado roubado":["Cattle rustling. Herds lifted off farms and sold through crooked slaughterhouses.","Gado roubado. Rebanhos levados de fazendas e vendidos por frigoríficos de fachada.","Ganado robado. Rebaños sacados de estancias y vendidos por frigoríficos de fachada."],
+ "cigarro paraguaio":["Smuggled cigarettes. Cartons brought over the border and sold with no tax paid.","Cigarro contrabandeado. Caixas atravessadas na fronteira e vendidas sem imposto.","Cigarrillos de contrabando. Cajas cruzadas por la frontera y vendidas sin impuesto."],
+ "arrastão":["Street sweeps. A crew robs everyone on a beach or a bus in one pass.","Arrastão. A turma assalta todo mundo na praia ou no ônibus de uma vez.","Arrastón. Una banda roba a todos en la playa o el autobús de una pasada."],
+ "extorsão":["Protection money. Shops pay every month or something happens to them.","Extorsão. O comércio paga todo mês ou alguma coisa acontece.","Extorsión. Los comercios pagan cada mes o algo les pasa."],
+ "pirataria fluvial":["River piracy. Boats are boarded out on the water and their cargo taken.","Pirataria fluvial. Barcos são abordados no rio e a carga é levada.","Piratería fluvial. Abordan barcos en el río y se llevan la carga."],
+ "madeira ilegal":["Illegal logging. Hardwood cut without a licence and sold with forged papers.","Madeira ilegal. Árvore derrubada sem licença e vendida com nota fria.","Madera ilegal. Talada sin licencia y vendida con papeles falsos."],
+ "ouro ilegal":["Illegal gold. Dug out of unlicensed mines and sold as if it were clean.","Ouro ilegal. Tirado de garimpo sem licença e vendido como se fosse limpo.","Oro ilegal. Sacado de minas sin licencia y vendido como si fuera limpio."],
+ "roubo de contêiner":["Container theft. Boxes lifted off the docks, or off the trucks that leave them.","Roubo de contêiner. Cargas levadas do porto, ou dos caminhões que saem dele.","Robo de contenedores. Cajas sacadas del puerto, o de los camiones que salen de él."],
  "cocaine":["Cocaine. You buy it wholesale and sell it on.","Cocaína. Você compra no atacado e revende.","Cocaína. La compras al por mayor y la revendes."],
  "cocaína":["Cocaine. You buy it wholesale and sell it on.","Cocaína. Você compra no atacado e revende.","Cocaína. La compras al por mayor y la revendes."],
  "base de coca":["Coca paste. The unrefined stage before it becomes cocaine.","Pasta base. O estágio bruto antes de virar cocaína.","Pasta base. La etapa sin refinar antes de volverse cocaína."],
@@ -2700,12 +2750,44 @@ const CAREER_LEVELS=[
   {city:"CWB",status:"free",ai:8,police:1,dice:6,stake:0,win:{cash:3300},
    en:"You're a nobody in Curitiba — no money, eight crews ahead of you and a city that doesn't know your name. Build a real operation: the cash, the corners and the fronts.",
    pt:"Você é um zé-ninguém em Curitiba — sem grana, oito quadrilhas na frente e uma cidade que não sabe seu nome. Monte uma operação de verdade: a grana, as bocas e os negócios."},
+  {city:"LDB",status:"free",ai:6,police:1,dice:6,stake:10,win:{cash:4600},
+   en:"Londrina is the first stop up the BR-369 — soy money, a university and a road that runs all the way to the Paraguayan border. Six crews already work that road. Take it off them.",
+   pt:"Londrina é a primeira parada subindo a BR-369 — dinheiro da soja, universidade e uma estrada que vai até a fronteira do Paraguai. Seis quadrilhas já trabalham essa estrada. Tome ela deles.",
+   es:"Londrina es la primera parada subiendo la BR-369 — plata de la soja, una universidad y una ruta que llega hasta la frontera paraguaya. Seis bandas ya trabajan esa ruta. Quítasela."},
   {city:"ASU",status:"free",ai:5,police:1,dice:8,stake:40,win:{cash:6900},
    en:"You cross the border with whatever Curitiba left you. Asunción is smaller and closer to the bone — everything here moves through the river or over the bridge, and seven crews already tax both. Take three streets, three rackets and $9M off them.",
    pt:"Você cruza a fronteira com o que Curitiba deixou. Assunção é menor e mais na carne — tudo aqui passa pelo rio ou pela ponte, e sete quadrilhas já cobram pedágio nos dois. Tome três ruas, três negócios e $9M deles."},
+  {city:"CGR",status:"free",ai:7,police:2,dice:6,stake:50,win:{cash:8200},
+   en:"Campo Grande sits on the corridor — Bolivia on one side, Paraguay on the other, and everything that crosses passes through here. Cattle, powder and paperwork. Seven crews split it. Make it yours.",
+   pt:"Campo Grande fica no corredor — Bolívia de um lado, Paraguai do outro, e tudo que atravessa passa por aqui. Gado, pó e papelada. Sete quadrilhas dividem. Faça virar seu.",
+   es:"Campo Grande está en el corredor — Bolivia de un lado, Paraguay del otro, y todo lo que cruza pasa por aquí. Ganado, polvo y papeleo. Siete bandas se lo reparten. Hazlo tuyo."},
+  {city:"POA",status:"free",ai:8,police:3,dice:6,stake:90,win:{cash:10800},
+   en:"Porto Alegre. The Central is the worst prison in the country and the men who run it also run the streets outside. Cold city, old arrangements, no patience for outsiders. Prove you belong.",
+   pt:"Porto Alegre. O Central é o pior presídio do país e quem manda lá dentro manda na rua também. Cidade fria, acordos antigos, sem paciência pra forasteiro. Prove que você é dali.",
+   es:"Porto Alegre. El Central es la peor cárcel del país y los que mandan adentro mandan en la calle también. Ciudad fría, arreglos viejos, sin paciencia para forasteros. Demuestra que perteneces."},
+  {city:"SSA",status:"free",ai:8,police:3,dice:8,stake:120,win:{cash:13300},
+   en:"Salvador. The old capital — a port, a tourist strip and a hillside that has never answered to anybody. The money is on the beach and the trade is above it. Take both.",
+   pt:"Salvador. A capital velha — um porto, a orla dos turistas e um morro que nunca respondeu a ninguém. O dinheiro está na praia e o corre está acima dela. Tome os dois.",
+   es:"Salvador. La vieja capital — un puerto, la franja turística y un morro que nunca le respondió a nadie. La plata está en la playa y el negocio está arriba. Toma los dos."},
   {city:"RIO",status:"free",ai:6,police:1,dice:8,stake:70,win:{cash:14300},
    en:"Word travels. Rio is bigger and meaner and the hills already have owners. Run a full operation — four corners, four fronts, six million in the bank.",
    pt:"A fama corre. O Rio é maior e mais pesado e os morros já têm dono. Toque uma operação completa — quatro bocas, quatro negócios, seis milhões no caixa."},
+  {city:"BEL",status:"free",ai:8,police:3,dice:8,stake:160,win:{cash:15900},
+   en:"Belém, where the river meets the sea. Everything out of the Amazon leaves through this port — timber, powder, whatever was on the boat. Eight crews board those boats. Board them first.",
+   pt:"Belém, onde o rio encontra o mar. Tudo que sai da Amazônia passa por esse porto — madeira, pó, o que estiver no barco. Oito quadrilhas abordam esses barcos. Aborde primeiro.",
+   es:"Belém, donde el río encuentra el mar. Todo lo que sale de la Amazonía pasa por ese puerto — madera, polvo, lo que hubiera en el barco. Ocho bandas abordan esos barcos. Abórdalos tú primero."},
+  {city:"FOR",status:"free",ai:9,police:3,dice:8,stake:190,win:{cash:18500},
+   en:"Fortaleza. A tourist coast in front, a war between factions behind it, and a port that ships straight to Europe. Nine crews and none of them talking. Be the one left standing on the sand.",
+   pt:"Fortaleza. Orla de turista na frente, guerra de facção atrás, e um porto que despacha direto pra Europa. Nove quadrilhas e nenhuma conversando. Seja a que sobra na areia.",
+   es:"Fortaleza. Costa turística al frente, guerra de facciones detrás, y un puerto que despacha directo a Europa. Nueve bandas y ninguna hablando. Sé el que queda de pie en la arena."},
+  {city:"MAO",status:"free",ai:9,police:3,dice:8,stake:220,win:{cash:19800},
+   en:"Manaus — a thousand miles up the river and the last stop before the Solimões. Gold, fuel, powder and a prison that has burned more than once. Nine crews. Only the river gets out.",
+   pt:"Manaus — mil e quinhentos quilômetros rio acima e a última parada antes do Solimões. Ouro, combustível, pó e um presídio que já pegou fogo mais de uma vez. Nove quadrilhas. Só o rio sai daqui.",
+   es:"Manaus — mil quinientos kilómetros río arriba y la última parada antes del Solimões. Oro, combustible, polvo y una cárcel que ya se incendió más de una vez. Nueve bandas. Solo el río sale de aquí."},
+  {city:"REC",status:"free",ai:9,police:4,dice:8,stake:240,win:{cash:21300},
+   en:"Recife. Containers on the docks, cranes over the old town, and a murder rate that has its own name. Everything you built is worth something here — and everybody knows you are coming.",
+   pt:"Recife. Contêiner no cais, guindaste sobre a cidade velha, e um índice de homicídio que já tem nome próprio. Tudo que você montou vale alguma coisa aqui — e todo mundo sabe que você vem vindo.",
+   es:"Recife. Contenedores en el muelle, grúas sobre el casco viejo, y una tasa de homicidios que ya tiene nombre propio. Todo lo que construiste vale algo aquí — y todos saben que vienes."},
   {city:"SP",status:"free",ai:10,police:4,dice:8,stake:100,win:{cash:22300},
    en:"São Paulo — straight into Carandiru with ten crews around you. There's only one way out on top: be the last boss standing.",
    pt:"São Paulo — direto pro Carandiru com dez quadrilhas em volta. Só tem um jeito de sair por cima: ser o último chefão de pé."},
@@ -2838,6 +2920,10 @@ const CAREER_LEVELS=[
    or WORLD for the whole thing. careerState.level indexes the ACTIVE campaign's ladder, never
    the master list, so a continent run is a short game with its own ending. ===== */
 const CAMPAIGNS=[
+  /* A campaign is normally a continent. BRAZIL is the exception: `region` makes it select on the
+     city's own country code instead, so one country with enough maps can be a run of its own. */
+  {code:"BR",   en:"BRAZIL",          pt:"BRASIL",                  es:"BRASIL", region:"BR",
+   enTitle:"BRAZIL CONTROL", ptTitle:"CONTROLE DO BRASIL", esTitle:"CONTROL DE BRASIL"},
   {code:"SA",   en:"SOUTH AMERICA",   pt:"AM\u00c9RICA DO SUL",    es:"AM\u00c9RICA DEL SUR"},
   {code:"NA",   en:"NORTH AMERICA",   pt:"AM\u00c9RICA DO NORTE",  es:"AM\u00c9RICA DEL NORTE"},
   {code:"EA",   en:"EAST ASIA",       pt:"\u00c1SIA ORIENTAL",     es:"ASIA ORIENTAL"},
@@ -2852,13 +2938,22 @@ function campLabel(code){ const c=CAMPAIGNS.find(x=>x.code===code)||CAMPAIGNS[CA
 /* what the run is called on the menu and on the trophy: "<REGION> CONTROL" */
 function campTitle(code){
   if(code==="WORLD") return L("WORLD CONTROL","CONTROLE MUNDIAL","CONTROL MUNDIAL");
+  /* A campaign may carry its own title per language — BRAZIL needs "CONTROLE DO BRASIL",
+     not the "DA" the seven continents take. */
+  const c=CAMPAIGNS.find(x=>x.code===code);
+  if(c && c.enTitle) return LANG==='PT'?c.ptTitle:LANG==='ES'?c.esTitle:c.enTitle;
   /* English puts the noun last, Portuguese and Spanish put it first with a preposition.
-     Every region name here is feminine in PT, so "DA" covers all seven. */
+     Every continent name is feminine in PT, so "DA" covers all seven. */
   if(LANG==='PT') return "CONTROLE DA "+campLabel(code);
   if(LANG==='ES') return "CONTROL DE "+campLabel(code);
   return campLabel(code)+" CONTROL";
 }
-function campLevels(code){ return code==="WORLD"?CAREER_LEVELS.slice():CAREER_LEVELS.filter(l=>CITY_CONT[l.city]===code); }
+function campLevels(code){
+  if(code==="WORLD") return CAREER_LEVELS.slice();
+  const c=CAMPAIGNS.find(x=>x.code===code);
+  if(c && c.region) return CAREER_LEVELS.filter(l=>CITIES[l.city]&&CITIES[l.city].region===c.region);
+  return CAREER_LEVELS.filter(l=>CITY_CONT[l.city]===code);
+}
 function campOf(c){ return (c&&c.camp)||"WORLD"; }
 /* the ladder the run in progress is actually playing */
 function CL(){ return campLevels(campOf(careerState)); }
@@ -2937,7 +3032,7 @@ function careerPickCamp(){
   stage.innerHTML=`<div class="dosconfig">
     <div class="cfgline">C:\\> NEW CAREER</div>
     <div class="cfghead">${L("CHOOSE YOUR RUN","ESCOLHA SUA CAMPANHA")}</div>
-    <div class="cfgline" style="opacity:.72;line-height:1.5">${L("Take one continent, or every city on the board. Each run is its own career \u2014 own the last city and it is yours.","Domine um continente, ou todas as cidades do tabuleiro. Cada campanha \u00e9 uma carreira \u2014 domine a \u00faltima cidade e ela \u00e9 sua.")}</div>
+    <div class="cfgline" style="opacity:.72;line-height:1.5">${L("Take one country, one continent, or every city on the board. Each run is its own career \u2014 own the last city and it is yours.","Domine um pa\u00eds, um continente, ou todas as cidades do tabuleiro. Cada campanha \u00e9 uma carreira \u2014 domine a \u00faltima cidade e ela \u00e9 sua.","Domina un pa\u00eds, un continente, o todas las ciudades del tablero. Cada campa\u00f1a es una carrera \u2014 domina la \u00faltima ciudad y es tuya.")}</div>
     <div class="choicecol">${rows}</div>
     <div class="cfgline" style="opacity:.7;margin-top:10px">${L1.length} ${L("cities","cidades")} \u00b7 ${first} \u2192 ${last}</div>
     <button class="cfggo" onclick="careerNew()">${L("[ CONTINUE \u00BB ]","[ CONTINUAR \u00BB ]")}</button>
@@ -3026,7 +3121,7 @@ function careerBriefing(i){
   stage.innerHTML=`<div class="dosconfig">
     <div class="cfgline">C:\\> ${campTitle(campOf(careerState))} ${i+1} / ${CL().length}</div>
     <div class="cfghead">${nm}</div>
-    <div class="cfgline" style="opacity:.9;line-height:1.55">${L(lv.en,lv.pt)}</div>
+    <div class="cfgline" style="opacity:.9;line-height:1.55">${L(lv.en,lv.pt,lv.es)}</div>
     <div class="cfgline" style="margin-top:10px">\u25B8 ${L("OBJECTIVE","OBJETIVO")}: <b>${careerGoalText(lv)}</b></div>
     <div class="cfgline">\u25B8 ${L("Rivals","Rivais")}: ${lv.ai} \u00B7 ${L("Dice","Dado")}: d${lv.dice} \u00B7 ${L("Police","Pol\u00edcia")}: ${policeLabelFor(lv.police)}${prison?` \u00B7 <b style="color:var(--red)">${L("START IN PRISON","COME\u00c7A PRESO")}</b>`:""}</div>
     <div class="cfgline">\u25B8 ${L("You","Voc\u00ea")}: ${L("age","idade")} ${(careerState&&careerState.age)||13} \u00B7 ${L("generation","gera\u00e7\u00e3o")} ${(careerState&&careerState.gens)||1}</div>
