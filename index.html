@@ -795,7 +795,7 @@ const ROLE_ES={"Crooked Sergeant":"Sargento Corrupto","Crooked Detective":"Detec
 const ES_STATIC={"NEW YORK CITY":"NUEVA YORK","PLAYERS — tap for record":"JUGADORES — toca para la ficha","DICE":"DADOS","ACTIONS":"ACCIONES","CONSOLE — this round":"CONSOLA — esta ronda","PLAYER ON TURN":"JUGADOR EN TURNO","OTHER PLAYERS — tap for record":"OTROS JUGADORES — toca para la ficha","[ MANUAL ]":"[ MANUAL ]","[reset]":"[reiniciar]","[ FOLLOW: OFF ]":"[ SEGUIR: NO ]","[ FOLLOW: ON ]":"[ SEGUIR: SÍ ]","[ AUTO: OFF ]":"[ AUTO: NO ]","[ AUTO: ON ]":"[ AUTO: SÍ ]","tap die to roll":"toca el dado para tirar","roll to move":"tira para avanzar","landed":"cayó"};
 const POLICE_LABELS_ES={0.25:"MUY BAJA",0.5:"BAJA",1:"REALISTA",3:"DIFÍCIL",4:"BRASILEÑA"};
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v31.1";
+const APP_VERSION="v32.0";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -2302,9 +2302,28 @@ const DIFFICULTY={
   HARD:  {cash:100,  label:"HARD", flavor:L("You scraped together seed money from corner jobs and stick-ups. It's lean out here.","Voc\u00ea juntou um capital com corres e assaltos de esquina. A vida t\u00e1 dura.")},
   REALISTIC:{cash:0, label:"REALISTIC", flavor:L("You came up from nothing - no money, no connections, just the streets. Every dollar has to be earned or stolen. This is real life.","Voc\u00ea veio do nada - sem dinheiro, sem contatos, s\u00f3 a rua. Cada d\u00f3lar tem que ser ganho ou roubado. Isso \u00e9 a vida real.")},
 };
+function cityB(k,lbl){ const cty=(setupData.city||"NY");
+  return `<button class="cfg${cty===k?' sel':''}" onclick="selectCity('${k}')">[ ${lbl} ]</button>`; }
+/* City picker is 45 buttons wide if you show them all, so show one region at a time:
+   tap a region and it opens, tapping another closes the first. The region holding the
+   currently-selected city opens by default so you can always see what you picked. */
+let _contOpen=null;   // null = follow the selection, "" = all closed, otherwise the open region
+function curOpenCont(){ if(_contOpen!==null) return _contOpen; return CITY_CONT[setupData.city||"NY"]||null; }
+function toggleCont(c){ _contOpen=(curOpenCont()===c)?"":c; openMultiplayer(); }
+function _cRow(code){
+  const cur=setupData.city||"NY";
+  /* career order, so the list inside a region reads the way the ladder plays it */
+  const keys=CAREER_LEVELS.filter(l=>CITY_CONT[l.city]===code).map(l=>l.city);
+  const open=(curOpenCont()===code);
+  const has=keys.indexOf(cur)>=0;
+  const head=`<button class="cfg${has?' sel':''}" onclick="toggleCont('${code}')">[ ${open?'\u2212':'+'} ${contLabel(code)} \u00b7 ${keys.length} ]</button>`;
+  if(!open) return `<div class="choice" style="margin:3px 0">${head}</div>`;
+  const cities=keys.map(k=>cityB(k,(CITIES[k].name||k))).join('');
+  return `<div class="choice" style="margin:3px 0">${head}</div><div class="choice" style="margin-bottom:6px">${cities}</div>`;
+}
 function openMultiplayer(){
   const cap=setupData.capital, sp=setupData.dice0, pol=setupData.police, cty=setupData.city||"NY";
-  const cityB=(k,lbl)=>`<button class="cfg${cty===k?' sel':''}" onclick="selectCity('${k}')">[ ${lbl} ]</button>`;
+
   const cB=(c,lbl)=>`<button class="cfg${cap===c?' sel':''}" onclick="selectCapital(${c})">[ ${lbl} ]</button>`;
   const sB=(n,lbl)=>`<button class="cfg${sp===n?' sel':''}" onclick="selectSpeed(${n})">[ ${lbl} ]</button>`;
   const pB=(f,lbl)=>`<button class="cfg${pol===f?' sel':''}" onclick="selectPolice(${f})">[ ${lbl} ]</button>`;
@@ -2332,7 +2351,7 @@ function openMultiplayer(){
      <div class="cfghead">1. ${L('PLAYERS','JOGADORES')} <span style="opacity:.55">${L('(you + rivals — set each seat next)','(você + rivais — defina cada lugar a seguir)')}</span></div>
      <div class="choice">${[2,3,4,5,6,7,8,9,10].map(pC).join('')}</div>
      <div class="cfghead">2. ${L('CITY','CIDADE')} <span style="opacity:.55">${L('(map · prison · local law)','(mapa · prisão · lei local)')}</span></div>
-     <div class="cfgsub">${contLabel('SA')}</div><div class="choice">${cityB('CWB','CURITIBA')}${cityB('ASU','ASUNCIÓN')}${cityB('RIO','RIO')}${cityB('SP','SÃO PAULO')}${cityB('BUE','BUENOS AIRES')}${cityB('MDE','MEDELLÍN')}${cityB('GYE','GUAYAQUIL')}</div><div class="cfgsub">${contLabel('NA')}</div><div class="choice">${cityB('SV','SAN SALVADOR')}${cityB('CDMX','CDMX')}${cityB('TIJ','TIJUANA')}${cityB('LA','LOS ANGELES')}${cityB('CHI','CHICAGO')}${cityB('MIA','MIAMI')}${cityB('NY','NEW YORK')}</div><div class="cfgsub">${contLabel('EA')}</div><div class="choice">${cityB('HK','HONG KONG')}${cityB('MAC','MACAU')}${cityB('TPE','TAIPEI')}${cityB('SHA','SHANGHAI')}${cityB('SEL','SEOUL')}${cityB('TYO','TOKYO')}</div><div class="cfgsub">${contLabel('WA')}</div><div class="choice">${cityB('IST','ISTANBUL')}${cityB('BEY','BEIRUT')}${cityB('BGD','BAGHDAD')}${cityB('THR','TEHRAN')}${cityB('KBL','KABUL')}${cityB('DXB','DUBAI')}</div><div class="cfgsub">${contLabel('AF')}</div><div class="choice">${cityB('CAS','CASABLANCA')}${cityB('LOS','LAGOS')}${cityB('NBO','NAIROBI')}${cityB('JNB','JOHANNESBURG')}${cityB('CPT','CAPE TOWN')}</div><div class="cfgsub">${contLabel('OC')}</div><div class="choice">${cityB('SYD','SYDNEY')}${cityB('MEL','MELBOURNE')}${cityB('BNE','BRISBANE')}${cityB('PER','PERTH')}${cityB('AKL','AUCKLAND')}</div><div class="cfgsub">${contLabel('EU')}</div><div class="choice">${cityB('BUC','BUCHAREST')}${cityB('NAP','NAPLES')}${cityB('PAL','PALERMO')}${cityB('MRS','MARSEILLE')}${cityB('ROT','ROTTERDAM')}${cityB('ANT','ANTWERP')}${cityB('BER','BERLIN')}${cityB('MOW','MOSCOW')}${cityB('LON','LONDON')}</div>
+     ${CONT_ORDER.map(_cRow).join('')}
      <div class="cfghead">3. ${L('YEAR','ANO')} <span style="opacity:.55">${L('(the year play begins)','(o ano em que o jogo come\u00e7a)')}</span></div>
      <div class="choice">${YEAR_PRESETS.map(yB).join('')}<button class="cfg${yCustom?' sel':''}" onclick="openYearPad()">[ ${yCustom?yr:L('OTHER \u00bb','OUTRO \u00bb')} ]</button></div>
      <div class="cfgflavor">&gt; ${L('the clock starts in ','o rel\u00f3gio come\u00e7a em ')}${yr}${L(' \u2014 each year on the street rolls it forward',' \u2014 cada ano na rua avan\u00e7a o calend\u00e1rio')}</div>
@@ -2360,11 +2379,11 @@ function openMultiplayer(){
 function renderSetupStart(){
   const sv=loadSaveMP();                       // multiplayer and career keep separate saves
   const _cc=careerLoad(); const _hasC=!!(_cc&&_cc.active);
-  const _lvl=_hasC?Math.min(_cc.level,CAREER_LEVELS.length-1):0;
+  const _ccL=CLfor(_cc); const _lvl=_hasC?Math.min(_cc.level,_ccL.length-1):0;
   const _mid=_hasC?careerMidSave(_lvl):null;
   const _freeSave=!!sv;
   const careerSub=_hasC
-    ? (L('City','Cidade')+' '+(_lvl+1)+'/'+CAREER_LEVELS.length+' · '+(_mid?(L('turn','turno')+' '+_mid.turn):(L('bankroll','grana')+' '+fmtKcity(_cc.bankroll||0,CAREER_LEVELS[_lvl].city))))
+    ? (campLabel(campOf(_cc))+' '+(_lvl+1)+'/'+_ccL.length+' · '+(_mid?(L('turn','turno')+' '+_mid.turn):(L('bankroll','grana')+' '+fmtKcity(_cc.bankroll||0,_ccL[_lvl].city))))
     : L('One city at a time, one bloodline','Uma cidade por vez, uma linhagem');
   const mpSub=_freeSave
     ? (L('Saved match — turn','Partida salva — turno')+' '+sv.turn+' \u00b7 '+sv.players.length+' '+L('bosses','chef\u00f5es'))
@@ -2391,7 +2410,7 @@ function renderSetupStart(){
          :`<div class="cfgline" style="opacity:.6">${L('NO BOSSES ON RECORD. Win any game — last boss standing, or retire with '+fmtK(retireTarget())+' at 65 — and your name gets carved here, with how many rivals you buried.','NENHUM CHEF\u00c3O REGISTRADO. Ven\u00e7a qualquer partida — \u00faltimo de p\u00e9, ou aposente com '+fmtK(retireTarget())+' aos 65 — e seu nome fica gravado aqui, com quantos rivais voc\u00ea enterrou.','NINGÚN JEFE REGISTRADO. Gana cualquier partida — último jefe en pie, o retírate con '+fmtK(retireTarget())+' a los 65 — y tu nombre queda grabado aquí, con cuántos rivales enterraste.')}</div>`}
      </div>`})()}`;
 }
-function selectCity(k){ setupData.city=k; openMultiplayer(); }
+function selectCity(k){ setupData.city=k; _contOpen=CITY_CONT[k]||null; openMultiplayer(); }
 function selectCapital(c){ setupData.capital=c; setupData.startCash=c; openMultiplayer(); }
 function selectSpeed(n){ setupData.dice0=n; setupData.dice=n; openMultiplayer(); }
 function selectPolice(f){ setupData.police=f; openMultiplayer(); }
@@ -2738,13 +2757,35 @@ const CAREER_LEVELS=[
    en:"London. Only three rivals left standing — but the game is a billion pounds now. Build the dynasty that ends untouchable.",
    pt:"Londres. Só três rivais de pé — mas o jogo é um bilhão de libras agora. Construa a dinastia que termina intocável."}
 ];
+/* ===== CAMPAIGNS =====
+   The 45 cities are one master ladder. A campaign is a slice of it: take a single continent,
+   or WORLD for the whole thing. careerState.level indexes the ACTIVE campaign's ladder, never
+   the master list, so a continent run is a short game with its own ending. ===== */
+const CAMPAIGNS=[
+  {code:"SA",   en:"SOUTH AMERICA",   pt:"AM\u00c9RICA DO SUL",    es:"AM\u00c9RICA DEL SUR"},
+  {code:"NA",   en:"NORTH AMERICA",   pt:"AM\u00c9RICA DO NORTE",  es:"AM\u00c9RICA DEL NORTE"},
+  {code:"EA",   en:"EAST ASIA",       pt:"\u00c1SIA ORIENTAL",     es:"ASIA ORIENTAL"},
+  {code:"WA",   en:"WEST ASIA",       pt:"\u00c1SIA OCIDENTAL",    es:"ASIA OCCIDENTAL"},
+  {code:"AF",   en:"AFRICA",          pt:"\u00c1FRICA",            es:"\u00c1FRICA"},
+  {code:"OC",   en:"OCEANIA",         pt:"OCEANIA",                 es:"OCEAN\u00cdA"},
+  {code:"EU",   en:"EUROPE",          pt:"EUROPA",                  es:"EUROPA"},
+  {code:"WORLD",en:"WORLD DOMINATION",pt:"DOMINA\u00c7\u00c3O MUNDIAL",es:"DOMINACI\u00d3N MUNDIAL"}
+];
+function campLabel(code){ const c=CAMPAIGNS.find(x=>x.code===code)||CAMPAIGNS[CAMPAIGNS.length-1];
+  return LANG==='PT'?c.pt:LANG==='ES'?c.es:c.en; }
+function campLevels(code){ return code==="WORLD"?CAREER_LEVELS.slice():CAREER_LEVELS.filter(l=>CITY_CONT[l.city]===code); }
+function campOf(c){ return (c&&c.camp)||"WORLD"; }
+/* the ladder the run in progress is actually playing */
+function CL(){ return campLevels(campOf(careerState)); }
+function CLfor(c){ return campLevels(campOf(c)); }
+
 let careerState=null;
 function careerLoad(){ try{ const c=JSON.parse(localStorage.getItem(CAREER_KEY)); return (c&&typeof c.level==="number")?c:null; }catch(e){ return null; } }
 function careerSave(){ try{ if(careerState) localStorage.setItem(CAREER_KEY,JSON.stringify(careerState)); }catch(e){} }
 function careerCashTargetInternal(cashK){ const sc=(typeof S!=="undefined"&&S&&S.city&&CITIES[S.city])?CITIES[S.city].scale:1; return Math.round((cashK||0)/(sc||1)); }
 function careerCheckWin(p){
   if(!careerActive()||S._careerEnded||!p||p.ai||!p.alive) return false;
-  const lv=CAREER_LEVELS[S.career.level]; const w=lv&&lv.win; if(!w) return false;
+  const lv=CL()[S.career.level]; const w=lv&&lv.win; if(!w) return false;
   if(w.lms){ const al=S.players.filter(x=>x.alive); return al.length<=1 && al[0]===p; }
   const es=empireStats(p);
   if(w.cash!=null && netWorth(p) < careerCashTargetInternal(w.cash)) return false;
@@ -2769,8 +2810,9 @@ function openCareer(){
   careerState=careerLoad();
   const stage=document.getElementById("setupStage"); if(!stage)return;
   const has=!!(careerState&&careerState.active);
-  const lvl=has?Math.min(careerState.level,CAREER_LEVELS.length-1):0;
-  const rows=CAREER_LEVELS.map((lv,i)=>{
+  const _L=CL();
+  const lvl=has?Math.min(careerState.level,_L.length-1):0;
+  const rows=_L.map((lv,i)=>{
     const done=has&&careerState.cleared>=i;
     const cur=has&&i===lvl;
     const lock=has?(i>lvl):(i>0);
@@ -2783,7 +2825,7 @@ function openCareer(){
     <div class="cfghead">${L("CAREER \u2014 ONE CITY AT A TIME","CARREIRA \u2014 UMA CIDADE POR VEZ")}</div>
     <div class="cfgline" style="opacity:.75;line-height:1.5">${L("Start with nothing. Own a city, then carry your fortune to the next \u2014 six cities, Curitiba to New York.","Comece do nada. Domine uma cidade e leve sua fortuna para a pr\u00f3xima \u2014 seis cidades, de Curitiba a Nova York.")}</div>
     ${rows}
-    ${has?`<div class="cfgline" style="margin-top:8px">${L("Bankroll","Grana")}: <b>${fmtKcity(careerState.bankroll||0,CAREER_LEVELS[lvl].city)}</b>${careerStake(lvl)>0?` · ${L("buy-in for city","entrada da cidade")} ${lvl+1}: <b style="color:${careerCanAfford(lvl)?'inherit':'var(--red)'}">${fmtKcity(careerStake(lvl),CAREER_LEVELS[lvl].city)}</b>`:""}</div>
+    ${has?`<div class="cfgline" style="margin-top:8px">${L("Bankroll","Grana")}: <b>${fmtKcity(careerState.bankroll||0,_L[lvl].city)}</b>${careerStake(lvl)>0?` · ${L("buy-in for city","entrada da cidade")} ${lvl+1}: <b style="color:${careerCanAfford(lvl)?'inherit':'var(--red)'}">${fmtKcity(careerStake(lvl),CAREER_LEVELS[lvl].city)}</b>`:""}</div>
       <div class="cfgline" style="opacity:.7;margin-top:10px">${(()=>{const m=careerMidSave(lvl);return m?(L("Saved mid-city \u2014 turn ","Salvo no meio da cidade \u2014 turno ")+m.turn):L("Ready to start this city.","Pronto pra come\u00e7ar essa cidade.");})()}</div>
       <button class="cfggo" onclick="careerContinue(${lvl})">${L("[ LOAD GAME \u2014 CITY ","[ CARREGAR \u2014 CIDADE ")}${lvl+1} \u00BB ]</button>
       <div class="cfgline" style="opacity:.6;margin-top:12px">${L("A new career wipes this run \u2014 bankroll, cities cleared, all of it.","Uma nova carreira apaga essa \u2014 grana, cidades vencidas, tudo.")}</div>
@@ -2794,7 +2836,29 @@ function openCareer(){
   </div>`;
 }
 let _careerNameBuf="";
-function careerNewStart(){ _careerNameBuf=""; setupData.year=2000; careerNew(); }
+function careerNewStart(){ _careerNameBuf=""; setupData.year=2000; _campPick="WORLD"; careerPickCamp(); }
+let _campPick="WORLD";
+/* pick the run: one continent, or the whole board */
+function careerSetCamp(c){ _campPick=c; careerPickCamp(); }
+function careerPickCamp(){
+  const stage=document.getElementById("setupStage"); if(!stage)return;
+  const rows=CAMPAIGNS.map(c=>{
+    const n=campLevels(c.code).length, sel=(_campPick===c.code);
+    const world=(c.code==="WORLD");
+    return `<button class="cfg${sel?' sel':''}" style="${world?'margin-top:6px;':''}" onclick="careerSetCamp('${c.code}')">[ ${campLabel(c.code)} \u00b7 ${n} ]</button>`;
+  }).join("");
+  const L1=campLevels(_campPick);
+  const first=careerCityName(L1[0].city).toUpperCase(), last=careerCityName(L1[L1.length-1].city).toUpperCase();
+  stage.innerHTML=`<div class="dosconfig">
+    <div class="cfgline">C:\\> NEW CAREER</div>
+    <div class="cfghead">${L("CHOOSE YOUR RUN","ESCOLHA SUA CAMPANHA")}</div>
+    <div class="cfgline" style="opacity:.72;line-height:1.5">${L("Take one continent, or every city on the board. Each run is its own career \u2014 own the last city and it is yours.","Domine um continente, ou todas as cidades do tabuleiro. Cada campanha \u00e9 uma carreira \u2014 domine a \u00faltima cidade e ela \u00e9 sua.")}</div>
+    <div class="choice" style="margin-top:8px">${rows}</div>
+    <div class="cfgline" style="opacity:.7;margin-top:10px">${L1.length} ${L("cities","cidades")} \u00b7 ${first} \u2192 ${last}</div>
+    <button class="cfggo" onclick="careerNew()">${L("[ CONTINUE \u00BB ]","[ CONTINUAR \u00BB ]")}</button>
+    <button class="cfggo" style="opacity:.65" onclick="openCareer()">${L("[ \u2039 BACK ]","[ \u2039 VOLTAR ]")}</button>
+  </div>`;
+}
 function careerNameKey(k){ if(k==='DEL')_careerNameBuf=_careerNameBuf.slice(0,-1); else if(k==='SP'){ if(_careerNameBuf.length<14)_careerNameBuf+=' '; } else if(_careerNameBuf.length<14)_careerNameBuf+=k; const inp=document.getElementById("careerName"); if(inp)inp.value=_careerNameBuf; }
 function careerSelectYear(n){ setupData.year=n; careerNew(); }
 function careerNew(){
@@ -2811,14 +2875,14 @@ function careerNew(){
     <div class="choice">${YEAR_PRESETS.map(cyB).join('')}<button class="cfg${cyCustom?' sel':''}" onclick="_ypRet=careerNew;openYearPad()">[ ${cyCustom?cyr:L('OTHER »','OUTRO »')} ]</button></div>
     <div class="cfgline" style="opacity:.6;line-height:1.5">${L("You start at 13. Reach 65 and hand the empire to the next generation. Die past 30 and your son carries on.","Você começa aos 13. Chegue aos 65 e passe o império à próxima geração. Morra depois dos 30 e seu filho continua.")}</div>
     <button class="cfggo" onclick="careerBegin()">${L("[ BEGIN \u00BB ]","[ COME\u00c7AR \u00BB ]")}</button>
-    <button class="cfggo" style="opacity:.65" onclick="openCareer()">${L("[ \u2039 BACK ]","[ \u2039 VOLTAR ]")}</button>
+    <button class="cfggo" style="opacity:.65" onclick="careerPickCamp()">${L("[ \u2039 BACK ]","[ \u2039 VOLTAR ]")}</button>
   </div>`;
 }
 function careerBegin(){
   const nm=(_careerNameBuf||"").trim().toUpperCase().slice(0,14)||L("YOU","VOC\u00ca");
   /* the START YEAR picked above is where the bloodline begins */
   const y0=(setupData.year&&setupData.year>=1000)?setupData.year:1970;
-  careerState={name:nm,level:0,cleared:-1,bankroll:0,year:y0,bornYear:y0,age:13,gens:1,active:true};
+  careerState={name:nm,camp:_campPick||"WORLD",level:0,cleared:-1,bankroll:0,year:y0,bornYear:y0,age:13,gens:1,active:true};
   careerSave();
   careerBriefing(0);
 }
@@ -2826,12 +2890,12 @@ function careerReset(){ try{localStorage.removeItem(CAREER_KEY);}catch(e){} clea
 /* NEW GAME on top of a run in progress throws it away — say so before it happens */
 function careerNewConfirm(){
   const c=careerLoad(); if(!c||!c.active){ careerNewStart(); return; }
-  const lvl=Math.min(c.level,CAREER_LEVELS.length-1);
+  const lvl=Math.min(c.level,CLfor(c).length-1);
   const stage=document.getElementById("setupStage"); if(!stage)return;
   stage.innerHTML=`<div class="dosconfig">
     <div class="cfgline">C:\\> /CAREER /NEW</div>
     <div class="cfghead" style="color:var(--red)">${L("START A NEW CAREER?","COME\u00c7AR UMA NOVA CARREIRA?")}</div>
-    <div class="cfgline" style="opacity:.85;line-height:1.5">${L("You have a run going \u2014 city ","Voc\u00ea tem uma carreira em andamento \u2014 cidade ")}${lvl+1}/${CAREER_LEVELS.length}${L(", bankroll ",", grana ")}${fmtKcity(c.bankroll||0,CAREER_LEVELS[lvl].city)}${L(". Starting a new one deletes it for good.",". Come\u00e7ar outra apaga tudo pra sempre.")}</div>
+    <div class="cfgline" style="opacity:.85;line-height:1.5">${L("You have a run going \u2014 city ","Voc\u00ea tem uma carreira em andamento \u2014 cidade ")}${lvl+1}/${CLfor(c).length}${L(", bankroll ",", grana ")}${fmtKcity(c.bankroll||0,CAREER_LEVELS[lvl].city)}${L(". Starting a new one deletes it for good.",". Come\u00e7ar outra apaga tudo pra sempre.")}</div>
     <button class="cfggo" style="color:var(--red);border-color:var(--red)" onclick="careerReset();careerNewStart()">${L("[ DELETE IT AND START OVER ]","[ APAGAR E RECOME\u00c7AR ]")}</button>
     <button class="cfggo" onclick="openCareer()">${L("[ \u2039 KEEP MY CAREER ]","[ \u2039 MANTER MINHA CARREIRA ]")}</button>
   </div>`;
@@ -2852,7 +2916,14 @@ function careerContinue(lvl){
    Take the city and your whole net worth becomes the new bankroll; lose it, or die in it,
    and the buy-in is simply gone. Can't cover the next city's buy-in and you drop back a
    city to rebuild — city 1 costs nothing, so a broke career always has somewhere to play. */
-function careerStake(i){ const lv=CAREER_LEVELS[i]; if(!lv)return 0; const sc=(CITIES[lv.city]&&CITIES[lv.city].scale)||1; return Math.max(0,Math.round((lv.stake||0)/sc)); }
+/* Buy-in is derived from the ladder you are actually playing, not a baked number: the first
+   city of any campaign is free, and every later one costs a third of what the previous city
+   paid out. That keeps a continent run affordable from its own first rung — a flat stake taken
+   from the 45-city ladder would have opened Oceania on a $2.9M bill against a $0 bankroll. */
+function careerStake(i){ const _L=CL(); const lv=_L[i]; if(!lv||i<=0)return 0;
+  const prev=_L[i-1], w=(prev&&prev.win&&prev.win.cash)||0;
+  const sc=(CITIES[lv.city]&&CITIES[lv.city].scale)||1;
+  return Math.max(0,Math.round(w*0.35/sc)); }
 function careerBank(){ careerState=careerState||careerLoad(); return Math.max(0,Math.round((careerState&&careerState.bankroll)||0)); }
 function careerCanAfford(i){ return careerBank()>=careerStake(i); }
 function careerDropBack(){
@@ -2861,14 +2932,14 @@ function careerDropBack(){
   careerShowStage(); careerBriefing(careerState.level);
 }
 function careerBriefing(i){
-  if(i<0||i>=CAREER_LEVELS.length)i=0;
+  if(i<0||i>=CL().length)i=0;
   careerState=careerState||careerLoad();
-  const lv=CAREER_LEVELS[i]; const stage=document.getElementById("setupStage"); if(!stage)return;
+  const lv=CL()[i]; const stage=document.getElementById("setupStage"); if(!stage)return;
   const nm=careerCityName(lv.city).toUpperCase();
   const prison=lv.status==="prison";
   const _stk=careerStake(i), _bank=careerBank(), _afford=_bank>=_stk;
   stage.innerHTML=`<div class="dosconfig">
-    <div class="cfgline">C:\\> CITY ${i+1} / ${CAREER_LEVELS.length}</div>
+    <div class="cfgline">C:\\> ${campLabel(campOf(careerState))} ${i+1} / ${CL().length}</div>
     <div class="cfghead">${nm}</div>
     <div class="cfgline" style="opacity:.9;line-height:1.55">${L(lv.en,lv.pt)}</div>
     <div class="cfgline" style="margin-top:10px">\u25B8 ${L("OBJECTIVE","OBJETIVO")}: <b>${careerGoalText(lv)}</b></div>
@@ -2884,7 +2955,7 @@ function careerBriefing(i){
 function careerLaunch(i){
   careerState=careerState||careerLoad();
   if(!careerState){ careerState={name:L("YOU","VOC\u00ca"),level:i,cleared:-1,bankroll:0,year:1970,bornYear:1970,age:13,gens:1,active:true}; }
-  const lv=CAREER_LEVELS[i];
+  const lv=CL()[i];
   const stakeI=careerStake(i);
   // the buy-in is bought out of the bankroll — no bankroll, no seat at this table
   if(stakeI>careerBank()){ careerShowStage(); careerBriefing(i); return; }
@@ -2910,11 +2981,12 @@ function careerCityTaken(winner){
   careerState.bankroll=carried; careerState.age=winner.age;
   try{ careerState.year=gameYear(); }catch(e){}
   try{clearSave();}catch(e){} try{SFX.win();}catch(e){}
-  const nm=careerCityName(CAREER_LEVELS[i].city).toUpperCase();
-  const last=(i+1>=CAREER_LEVELS.length);
+  const _WL=CL();
+  const nm=careerCityName(_WL[i].city).toUpperCase();
+  const last=(i+1>=_WL.length);
   if(last){ careerState.active=false; careerSave(); return careerComplete(winner); }
   careerState.level=i+1; careerSave();
-  const nextNm=careerCityName(CAREER_LEVELS[i+1].city).toUpperCase();
+  const nextNm=careerCityName(_WL[i+1].city).toUpperCase();
   const el=document.getElementById("cardEl"); if(!el)return; el.dataset.read="1"; el.dataset.deck="";
   el.innerHTML=`<div class="lbl" style="background:${winner.color}">${L("CITY TAKEN","CIDADE DOMINADA")}</div>
     <div style="text-align:center;font-size:40px;margin:8px 0">\u2605</div>
@@ -2927,10 +2999,14 @@ function careerCityTaken(winner){
 function careerComplete(winner){
   try{clearSave();}catch(e){} try{SFX.win();}catch(e){}
   const el=document.getElementById("cardEl"); if(!el)return; el.dataset.read="1"; el.dataset.deck="";
-  el.innerHTML=`<div class="lbl" style="background:${winner.color}">${L("CAREER COMPLETE","CARREIRA COMPLETA")}</div>
-    <div style="text-align:center;font-size:40px;margin:8px 0">\u265B</div>
-    <div class="ttl" style="text-align:center;color:${winner.color}">${winner.name} \u2014 ${L("KINGPIN","CHEF\u00c3O")}</div>
-    <div class="sub" style="text-align:center">${L("Curitiba to London \u2014 seven cities, every rival buried. Your bloodline owns it all.","De Curitiba a Londres \u2014 sete cidades, todos os rivais enterrados. Sua linhagem domina tudo.")}</div>
+  const _camp=campOf(careerState), _world=(_camp==="WORLD");
+  const _cities=campLevels(_camp).length;
+  el.innerHTML=`<div class="lbl" style="background:${winner.color}">${_world?L("WORLD DOMINATION","DOMINA\u00c7\u00c3O MUNDIAL"):L("CONTINENT TAKEN","CONTINENTE DOMINADO")}</div>
+    <div style="text-align:center;font-size:40px;margin:8px 0">${_world?"\u2654":"\u265B"}</div>
+    <div class="ttl" style="text-align:center;color:${winner.color}">${winner.name} \u2014 ${_world?L("KINGPIN OF THE WORLD","CHEF\u00c3O DO MUNDO"):campLabel(_camp)}</div>
+    <div class="sub" style="text-align:center">${_world
+      ? L("Every city on the board, every rival buried. Your bloodline owns the world.","Todas as cidades do tabuleiro, todos os rivais enterrados. Sua linhagem domina o mundo.")
+      : (campLabel(_camp)+" \u2014 "+_cities+" "+L("cities, every rival buried. The continent is yours.","cidades, todos os rivais enterrados. O continente \u00e9 seu."))}</div>
     <div class="out" style="text-align:center">${L("Final fortune: ","Fortuna final: ")}<b>${fmtK(netWorth(winner))}</b><br>${L("It took ","Levou ")}<b>${(careerState&&careerState.gens)||1}</b> ${L("generation(s)","geração(ões)")} ${L("and ","e ")}<b>${Math.max(0,(((careerState&&careerState.year)||gameYear())-((careerState&&careerState.bornYear)||1970)))}</b> ${L("years","anos")} (${(careerState&&careerState.bornYear)||1970}–${(careerState&&careerState.year)||gameYear()}) ${L("to reach the top.","pra chegar ao topo.")}</div>
     <div class="go"><button class="amber" onclick="toMainMenu()">${L("[ MAIN MENU ]","[ MENU ]")}</button></div>`;
   openModal();
@@ -2938,14 +3014,14 @@ function careerComplete(winner){
 function careerFail(){
   if(!careerActive()||S._careerEnded)return; S._careerEnded=true; S.over=true;
   const i=S.career.level; try{clearSave();}catch(e){}
-  const nm=careerCityName(CAREER_LEVELS[i].city).toUpperCase();
+  const nm=careerCityName(CL()[i].city).toUpperCase();
   const _rStk=careerStake(i), _rBank=careerBank(), _rAfford=_rBank>=_rStk;
   const el=document.getElementById("cardEl"); if(!el)return; el.dataset.read="1"; el.dataset.deck="death";
   el.innerHTML=`<div class="lbl" style="background:#7a0d0d">${L("THE CITY BEAT YOU","A CIDADE TE VENCEU")}</div>
     <div style="text-align:center;font-size:40px;margin:8px 0">\u2620</div>
     <div class="ttl" style="text-align:center">${nm} ${L("wasn't yours","n\u00e3o foi sua")}</div>
     <div class="sub" style="text-align:center">${_rStk>0?L("You're out, and the buy-in went with the city. The career isn't over \u2014 but another run at this place costs another stake.","Voc\u00ea caiu, e a entrada foi junto com a cidade. A carreira n\u00e3o acabou \u2014 mas outra tentativa aqui custa outra entrada."):L("You're out \u2014 but the career isn't over. This city costs nothing to walk back into.","Voc\u00ea caiu \u2014 mas a carreira n\u00e3o acabou. Voltar pra essa cidade n\u00e3o custa nada.")}</div>
-    <div class="out" style="text-align:center">${L("Bankroll","Grana")}: <b>${fmtKcity(_rBank,CAREER_LEVELS[i].city)}</b>${_rStk>0?` \u00b7 ${L("buy-in","entrada")} ${fmtKcity(_rStk,CAREER_LEVELS[i].city)}`:""}</div>
+    <div class="out" style="text-align:center">${L("Bankroll","Grana")}: <b>${fmtKcity(_rBank,CL()[i].city)}</b>${_rStk>0?` \u00b7 ${L("buy-in","entrada")} ${fmtKcity(_rStk,CL()[i].city)}`:""}</div>
     <div class="go">${_rAfford
       ?`<button class="amber" onclick="careerRetry()">${L("[ \u21BB RETRY CITY ]","[ \u21BB TENTAR DE NOVO ]")}</button>`
       :`<button class="amber" onclick="careerDropBack()">${L("[ \u2039 GO BACK A CITY ]","[ \u2039 VOLTAR UMA CIDADE ]")}</button>`}<button onclick="toMainMenu()">${L("[ MAIN MENU ]","[ MENU ]")}</button></div>`;
