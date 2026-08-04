@@ -371,6 +371,7 @@
   .dosconfig{text-align:left;max-width:480px;margin:0 auto;}
   .cfgline{font-size:14px;opacity:.85;margin:2px 0;}
   .cfghead{margin:12px 0 5px;font-size:13px;letter-spacing:1px;}
+  .cfgsub{margin:9px 0 3px;font-size:10px;letter-spacing:2.5px;opacity:.55;}
   .cfgflavor{font-size:12px;opacity:.85;line-height:1.4;margin:5px 0;border-left:2px solid var(--phos-dim);padding-left:8px;}
   .cfg.sel{background:var(--phos) !important;color:#000 !important;}
   .cfg.sel *{color:#000 !important;}
@@ -794,7 +795,7 @@ const ROLE_ES={"Crooked Sergeant":"Sargento Corrupto","Crooked Detective":"Detec
 const ES_STATIC={"NEW YORK CITY":"NUEVA YORK","PLAYERS — tap for record":"JUGADORES — toca para la ficha","DICE":"DADOS","ACTIONS":"ACCIONES","CONSOLE — this round":"CONSOLA — esta ronda","PLAYER ON TURN":"JUGADOR EN TURNO","OTHER PLAYERS — tap for record":"OTROS JUGADORES — toca para la ficha","[ MANUAL ]":"[ MANUAL ]","[reset]":"[reiniciar]","[ FOLLOW: OFF ]":"[ SEGUIR: NO ]","[ FOLLOW: ON ]":"[ SEGUIR: SÍ ]","[ AUTO: OFF ]":"[ AUTO: NO ]","[ AUTO: ON ]":"[ AUTO: SÍ ]","tap die to roll":"toca el dado para tirar","roll to move":"tira para avanzar","landed":"cayó"};
 const POLICE_LABELS_ES={0.25:"MUY BAJA",0.5:"BAJA",1:"REALISTA",3:"DIFÍCIL",4:"BRASILEÑA"};
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v31.0";
+const APP_VERSION="v31.1";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -1079,6 +1080,13 @@ const CITIES = {
    place its own wealth AND its own texture: a poor city fills up fast and forces you to spread
    across the map, a rich one lets a single business grow into a fortress.
    cap x that city's per-lap total = the ceiling in the table below. */
+/* ===== CONTINENT GROUPING =====
+   The city list is long enough now that a flat row of forty-five buttons is unreadable.
+   These group it on the picker and set the order the career ladder walks. ===== */
+const CITY_CONT={CWB:"SA",ASU:"SA",RIO:"SA",SP:"SA",BUE:"SA",MDE:"SA",GYE:"SA",SV:"NA",CDMX:"NA",TIJ:"NA",LA:"NA",CHI:"NA",MIA:"NA",NY:"NA",HK:"EA",MAC:"EA",TPE:"EA",SHA:"EA",SEL:"EA",TYO:"EA",IST:"WA",BEY:"WA",BGD:"WA",THR:"WA",KBL:"WA",DXB:"WA",CAS:"AF",LOS:"AF",NBO:"AF",JNB:"AF",CPT:"AF",SYD:"OC",MEL:"OC",BNE:"OC",PER:"OC",AKL:"OC",BUC:"EU",NAP:"EU",PAL:"EU",MRS:"EU",ROT:"EU",ANT:"EU",BER:"EU",MOW:"EU",LON:"EU"};
+const CONT_LABEL={SA:["SOUTH AMERICA","AMÉRICA DO SUL","AMÉRICA DEL SUR"],NA:["NORTH AMERICA","AMÉRICA DO NORTE","AMÉRICA DEL NORTE"],EA:["EAST ASIA","ÁSIA ORIENTAL","ASIA ORIENTAL"],WA:["WEST ASIA","ÁSIA OCIDENTAL","ASIA OCCIDENTAL"],AF:["AFRICA","ÁFRICA","ÁFRICA"],OC:["OCEANIA","OCEANIA","OCEANÍA"],EU:["EUROPE","EUROPA","EUROPA"]};
+const CONT_ORDER=["SA","NA","EA","WA","AF","OC","EU"];
+function contLabel(c){ const l=CONT_LABEL[c]||["",""]; return LANG==='PT'?l[1]:LANG==='ES'?l[2]:l[0]; }
 const CITY_CAP={
   CWB:48,     
   ASU:64,     
@@ -2324,7 +2332,7 @@ function openMultiplayer(){
      <div class="cfghead">1. ${L('PLAYERS','JOGADORES')} <span style="opacity:.55">${L('(you + rivals — set each seat next)','(você + rivais — defina cada lugar a seguir)')}</span></div>
      <div class="choice">${[2,3,4,5,6,7,8,9,10].map(pC).join('')}</div>
      <div class="cfghead">2. ${L('CITY','CIDADE')} <span style="opacity:.55">${L('(map · prison · local law)','(mapa · prisão · lei local)')}</span></div>
-     <div class="choice">${cityB('CWB','CURITIBA')}${cityB('ASU','ASUNCIÓN')}${cityB('RIO','RIO')}${cityB('SP','SÃO PAULO')}${cityB('BUE','BUENOS AIRES')}${cityB('MDE','MEDELLÍN')}${cityB('GYE','GUAYAQUIL')}${cityB('SV','SAN SALVADOR')}${cityB('CDMX','CDMX')}${cityB('TIJ','TIJUANA')}${cityB('LA','LOS ANGELES')}${cityB('CHI','CHICAGO')}${cityB('MIA','MIAMI')}${cityB('NY','NEW YORK')}${cityB('HK','HONG KONG')}${cityB('MAC','MACAU')}${cityB('TPE','TAIPEI')}${cityB('SHA','SHANGHAI')}${cityB('SEL','SEOUL')}${cityB('TYO','TOKYO')}${cityB('SYD','SYDNEY')}${cityB('MEL','MELBOURNE')}${cityB('BNE','BRISBANE')}${cityB('PER','PERTH')}${cityB('AKL','AUCKLAND')}${cityB('DXB','DUBAI')}${cityB('BEY','BEIRUT')}${cityB('BGD','BAGHDAD')}${cityB('THR','TEHRAN')}${cityB('KBL','KABUL')}${cityB('IST','ISTANBUL')}${cityB('LOS','LAGOS')}${cityB('NBO','NAIROBI')}${cityB('JNB','JOHANNESBURG')}${cityB('CPT','CAPE TOWN')}${cityB('CAS','CASABLANCA')}${cityB('BUC','BUCHAREST')}${cityB('NAP','NAPLES')}${cityB('PAL','PALERMO')}${cityB('MRS','MARSEILLE')}${cityB('ROT','ROTTERDAM')}${cityB('ANT','ANTWERP')}${cityB('BER','BERLIN')}${cityB('MOW','MOSCOW')}${cityB('LON','LONDON')}</div>
+     <div class="cfgsub">${contLabel('SA')}</div><div class="choice">${cityB('CWB','CURITIBA')}${cityB('ASU','ASUNCIÓN')}${cityB('RIO','RIO')}${cityB('SP','SÃO PAULO')}${cityB('BUE','BUENOS AIRES')}${cityB('MDE','MEDELLÍN')}${cityB('GYE','GUAYAQUIL')}</div><div class="cfgsub">${contLabel('NA')}</div><div class="choice">${cityB('SV','SAN SALVADOR')}${cityB('CDMX','CDMX')}${cityB('TIJ','TIJUANA')}${cityB('LA','LOS ANGELES')}${cityB('CHI','CHICAGO')}${cityB('MIA','MIAMI')}${cityB('NY','NEW YORK')}</div><div class="cfgsub">${contLabel('EA')}</div><div class="choice">${cityB('HK','HONG KONG')}${cityB('MAC','MACAU')}${cityB('TPE','TAIPEI')}${cityB('SHA','SHANGHAI')}${cityB('SEL','SEOUL')}${cityB('TYO','TOKYO')}</div><div class="cfgsub">${contLabel('WA')}</div><div class="choice">${cityB('IST','ISTANBUL')}${cityB('BEY','BEIRUT')}${cityB('BGD','BAGHDAD')}${cityB('THR','TEHRAN')}${cityB('KBL','KABUL')}${cityB('DXB','DUBAI')}</div><div class="cfgsub">${contLabel('AF')}</div><div class="choice">${cityB('CAS','CASABLANCA')}${cityB('LOS','LAGOS')}${cityB('NBO','NAIROBI')}${cityB('JNB','JOHANNESBURG')}${cityB('CPT','CAPE TOWN')}</div><div class="cfgsub">${contLabel('OC')}</div><div class="choice">${cityB('SYD','SYDNEY')}${cityB('MEL','MELBOURNE')}${cityB('BNE','BRISBANE')}${cityB('PER','PERTH')}${cityB('AKL','AUCKLAND')}</div><div class="cfgsub">${contLabel('EU')}</div><div class="choice">${cityB('BUC','BUCHAREST')}${cityB('NAP','NAPLES')}${cityB('PAL','PALERMO')}${cityB('MRS','MARSEILLE')}${cityB('ROT','ROTTERDAM')}${cityB('ANT','ANTWERP')}${cityB('BER','BERLIN')}${cityB('MOW','MOSCOW')}${cityB('LON','LONDON')}</div>
      <div class="cfghead">3. ${L('YEAR','ANO')} <span style="opacity:.55">${L('(the year play begins)','(o ano em que o jogo come\u00e7a)')}</span></div>
      <div class="choice">${YEAR_PRESETS.map(yB).join('')}<button class="cfg${yCustom?' sel':''}" onclick="openYearPad()">[ ${yCustom?yr:L('OTHER \u00bb','OUTRO \u00bb')} ]</button></div>
      <div class="cfgflavor">&gt; ${L('the clock starts in ','o rel\u00f3gio come\u00e7a em ')}${yr}${L(' \u2014 each year on the street rolls it forward',' \u2014 cada ano na rua avan\u00e7a o calend\u00e1rio')}</div>
@@ -2654,54 +2662,54 @@ const CAREER_LEVELS=[
   {city:"TYO",status:"free",ai:5,police:4,dice:8,stake:1330,win:{cash:39300},
    en:"Tokyo. The kumi run this city on politeness and paperwork, and there is far less room here than you are used to — a shop only holds so many bodies. Take the wards anyway.",
    pt:"Tóquio. Os kumi tocam esta cidade na base da educação e da papelada, e aqui tem muito menos espaço do que você está acostumado — uma loja só comporta tanta gente. Tome os bairros mesmo assim."},
-  {city:"SYD",status:"free",ai:6,police:3,dice:8,stake:1440,win:{cash:80400},
-   en:"Sydney. The most expensive muscle on earth and a wharf worth paying for. Six crews and a hundred and fifty thousand a head. Spend it well.",
-   pt:"Sydney. O capanga mais caro do mundo e um cais que vale o preço. Seis bandos e cento e cinquenta mil por cabeça. Gaste bem."},
-  {city:"MEL",status:"free",ai:6,police:3,dice:8,stake:1550,win:{cash:74000},
-   en:"Melbourne. The gangland war never really ended, it just changed names. The wharf, the tobacco and the doors. Take all three.",
-   pt:"Melbourne. A guerra do submundo nunca acabou de verdade, só trocou de nome. O cais, o tabaco e as portas. Tome os três."},
-  {city:"BNE",status:"free",ai:6,police:3,dice:8,stake:1670,win:{cash:50400},
-   en:"Brisbane. The chapters run the coast and the doors run the Valley. Small board, expensive men — every mistake costs you a soldier you cannot replace.",
-   pt:"Brisbane. Os capítulos mandam na costa e as portas mandam no Valley. Tabuleiro pequeno, homem caro — todo erro custa um soldado que você não repõe."},
-  {city:"PER",status:"free",ai:6,police:3,dice:8,stake:1790,win:{cash:42900},
-   en:"Perth. The most isolated city on the ladder, which is exactly why the ice lands here first. Mine sites, chapters and a very small board.",
-   pt:"Perth. A cidade mais isolada da escada, que é justamente por que o ice chega aqui primeiro. Minas, capítulos e um tabuleiro bem pequeno."},
-  {city:"AKL",status:"free",ai:6,police:3,dice:8,stake:1910,win:{cash:35100},
-   en:"Auckland. The patches hold the south and the port brings in the rest. The smallest ceiling left before Europe — do not get comfortable.",
-   pt:"Auckland. Os patches seguram o sul e o porto traz o resto. O menor teto que resta antes da Europa — não se acomode."},
+  {city:"IST",status:"free",ai:5,police:4,dice:8,stake:1440,win:{cash:72300},
+   en:"Istanbul. Everything from the east crosses here on its way west, and the haraç is collected on both sides of the water. Take the bridge.",
+   pt:"Istambul. Tudo que vem do leste cruza aqui a caminho do oeste, e o haraç é cobrado dos dois lados da água. Tome a ponte."},
+  {city:"BEY",status:"free",ai:5,police:4,dice:8,stake:1550,win:{cash:41100},
+   en:"Beirut. The captagon labs pay for the militias and the militias hold the streets. There is no state to bribe here — only the man in front of you.",
+   pt:"Beirute. Os laboratórios de captagon pagam as milícias e as milícias seguram as ruas. Não há Estado pra subornar aqui — só o homem na sua frente."},
+  {city:"BGD",status:"free",ai:5,police:4,dice:8,stake:1670,win:{cash:25200},
+   en:"Baghdad. Fuel, captagon and antiquities, and a checkpoint on every road that decides which of them passes. Take the checkpoints.",
+   pt:"Bagdá. Combustível, captagon e antiguidades, e um posto em cada estrada decidindo o que passa. Tome os postos."},
+  {city:"THR",status:"free",ai:5,police:4,dice:8,stake:1790,win:{cash:34300},
+   en:"Tehran. The oldest opium road on earth ends in this city, and the men who run it have outlasted three governments. Cheap muscle, patient enemies.",
+   pt:"Teerã. A estrada do ópio mais antiga do mundo termina nesta cidade, e quem a controla sobreviveu a três governos. Capanga barato, inimigo paciente."},
+  {city:"KBL",status:"free",ai:5,police:4,dice:8,stake:1910,win:{cash:21900},
+   en:"Kabul. The poppy comes down from the provinces and everything else comes up the same road. The cheapest men in the game — and the hardest ground.",
+   pt:"Cabul. A papoula desce das províncias e todo o resto sobe pela mesma estrada. Os homens mais baratos do jogo — e o terreno mais duro."},
   {city:"DXB",status:"free",ai:6,police:4,dice:8,stake:2040,win:{cash:111800},
    en:"Dubai. Nobody sells on this street. They settle here — the gold, the hawala and the men every other city is looking for. Own the settlement.",
    pt:"Dubai. Ninguém vende nesta rua. Aqui se acerta — o ouro, a hawala e os homens que todas as outras cidades procuram. Domine o acerto."},
-  {city:"BEY",status:"free",ai:5,police:4,dice:8,stake:2170,win:{cash:45600},
-   en:"Beirut. The captagon labs pay for the militias and the militias hold the streets. There is no state to bribe here — only the man in front of you.",
-   pt:"Beirute. Os laboratórios de captagon pagam as milícias e as milícias seguram as ruas. Não há Estado pra subornar aqui — só o homem na sua frente."},
-  {city:"BGD",status:"free",ai:5,police:4,dice:8,stake:2310,win:{cash:27900},
-   en:"Baghdad. Fuel, captagon and antiquities, and a checkpoint on every road that decides which of them passes. Take the checkpoints.",
-   pt:"Bagdá. Combustível, captagon e antiguidades, e um posto em cada estrada decidindo o que passa. Tome os postos."},
-  {city:"THR",status:"free",ai:5,police:4,dice:8,stake:2440,win:{cash:38000},
-   en:"Tehran. The oldest opium road on earth ends in this city, and the men who run it have outlasted three governments. Cheap muscle, patient enemies.",
-   pt:"Teerã. A estrada do ópio mais antiga do mundo termina nesta cidade, e quem a controla sobreviveu a três governos. Capanga barato, inimigo paciente."},
-  {city:"KBL",status:"free",ai:5,police:4,dice:8,stake:2580,win:{cash:24200},
-   en:"Kabul. The poppy comes down from the provinces and everything else comes up the same road. The cheapest men in the game — and the hardest ground.",
-   pt:"Cabul. A papoula desce das províncias e todo o resto sobe pela mesma estrada. Os homens mais baratos do jogo — e o terreno mais duro."},
-  {city:"IST",status:"free",ai:5,police:4,dice:8,stake:2720,win:{cash:88700},
-   en:"Istanbul. Everything from the east crosses here on its way west, and the haraç is collected on both sides of the water. Take the bridge.",
-   pt:"Istambul. Tudo que vem do leste cruza aqui a caminho do oeste, e o haraç é cobrado dos dois lados da água. Tome a ponte."},
-  {city:"LOS",status:"free",ai:5,police:4,dice:8,stake:2870,win:{cash:70300},
-   en:"Lagos. The pipelines are tapped, the inboxes are worked and the area boys tax the rest. Nine crews. Take what they built.",
-   pt:"Lagos. Os dutos são furados, as caixas de entrada trabalhadas e os area boys taxam o resto. Nove bandos. Tome o que construíram."},
-  {city:"NBO",status:"free",ai:5,police:4,dice:8,stake:3020,win:{cash:46000},
-   en:"Nairobi. The heroin comes off the coast and the khat goes out by the planeload. Everything in between pays somebody in Eastleigh.",
-   pt:"Nairóbi. A heroína vem da costa e o khat sai de avião. Tudo no meio paga alguém em Eastleigh."},
-  {city:"JNB",status:"free",ai:5,police:4,dice:8,stake:3170,win:{cash:93600},
-   en:"Johannesburg. The zama zamas work the old shafts, the CIT crews take the roads, and the construction mafia taxes every site. Take the reef.",
-   pt:"Joanesburgo. Os zama zamas trabalham os poços velhos, as equipes de carro-forte tomam as estradas, e a máfia da construção taxa toda obra. Tome o filão."},
-  {city:"CPT",status:"free",ai:4,police:4,dice:8,stake:3320,win:{cash:63500},
-   en:"Cape Town. The gangs on the Flats have been at war since before you were born, and the door trade downtown pays better than the tik. Take both.",
-   pt:"Cidade do Cabo. As gangues dos Flats estão em guerra desde antes de você nascer, e o esquema das portas no centro paga mais que o tik. Tome os dois."},
-  {city:"CAS",status:"free",ai:4,police:4,dice:8,stake:3480,win:{cash:53800},
+  {city:"CAS",status:"free",ai:4,police:4,dice:8,stake:2170,win:{cash:45600},
    en:"Casablanca. The kif comes down from the Rif and goes north from this port. Every crate and every crossing has a price. Set it yourself.",
    pt:"Casablanca. O kif desce do Rif e vai pro norte por este porto. Cada caixa e cada travessia tem preço. Defina você mesmo."},
+  {city:"LOS",status:"free",ai:5,police:4,dice:8,stake:2310,win:{cash:65200},
+   en:"Lagos. The pipelines are tapped, the inboxes are worked and the area boys tax the rest. Nine crews. Take what they built.",
+   pt:"Lagos. Os dutos são furados, as caixas de entrada trabalhadas e os area boys taxam o resto. Nove bandos. Tome o que construíram."},
+  {city:"NBO",status:"free",ai:5,police:4,dice:8,stake:2440,win:{cash:42700},
+   en:"Nairobi. The heroin comes off the coast and the khat goes out by the planeload. Everything in between pays somebody in Eastleigh.",
+   pt:"Nairóbi. A heroína vem da costa e o khat sai de avião. Tudo no meio paga alguém em Eastleigh."},
+  {city:"JNB",status:"free",ai:5,police:4,dice:8,stake:2580,win:{cash:87100},
+   en:"Johannesburg. The zama zamas work the old shafts, the CIT crews take the roads, and the construction mafia taxes every site. Take the reef.",
+   pt:"Joanesburgo. Os zama zamas trabalham os poços velhos, as equipes de carro-forte tomam as estradas, e a máfia da construção taxa toda obra. Tome o filão."},
+  {city:"CPT",status:"free",ai:4,police:4,dice:8,stake:2720,win:{cash:59100},
+   en:"Cape Town. The gangs on the Flats have been at war since before you were born, and the door trade downtown pays better than the tik. Take both.",
+   pt:"Cidade do Cabo. As gangues dos Flats estão em guerra desde antes de você nascer, e o esquema das portas no centro paga mais que o tik. Tome os dois."},
+  {city:"SYD",status:"free",ai:6,police:3,dice:8,stake:2870,win:{cash:100400},
+   en:"Sydney. The most expensive muscle on earth and a wharf worth paying for. Six crews and a hundred and fifty thousand a head. Spend it well.",
+   pt:"Sydney. O capanga mais caro do mundo e um cais que vale o preço. Seis bandos e cento e cinquenta mil por cabeça. Gaste bem."},
+  {city:"MEL",status:"free",ai:6,police:3,dice:8,stake:3020,win:{cash:92000},
+   en:"Melbourne. The gangland war never really ended, it just changed names. The wharf, the tobacco and the doors. Take all three.",
+   pt:"Melbourne. A guerra do submundo nunca acabou de verdade, só trocou de nome. O cais, o tabaco e as portas. Tome os três."},
+  {city:"BNE",status:"free",ai:6,police:3,dice:8,stake:3170,win:{cash:62400},
+   en:"Brisbane. The chapters run the coast and the doors run the Valley. Small board, expensive men — every mistake costs you a soldier you cannot replace.",
+   pt:"Brisbane. Os capítulos mandam na costa e as portas mandam no Valley. Tabuleiro pequeno, homem caro — todo erro custa um soldado que você não repõe."},
+  {city:"PER",status:"free",ai:6,police:3,dice:8,stake:3320,win:{cash:52900},
+   en:"Perth. The most isolated city on the ladder, which is exactly why the ice lands here first. Mine sites, chapters and a very small board.",
+   pt:"Perth. A cidade mais isolada da escada, que é justamente por que o ice chega aqui primeiro. Minas, capítulos e um tabuleiro bem pequeno."},
+  {city:"AKL",status:"free",ai:6,police:3,dice:8,stake:3480,win:{cash:43100},
+   en:"Auckland. The patches hold the south and the port brings in the rest. The smallest ceiling left before Europe — do not get comfortable.",
+   pt:"Auckland. Os patches seguram o sul e o porto traz o resto. O menor teto que resta antes da Europa — não se acomode."},
   {city:"BUC",status:"free",ai:6,police:3,dice:8,stake:3640,win:{cash:27400},
    en:"Bucharest. The card skimmers and the cămătari run the sectors, and the Balkan route ends at the ring road. Small board, cheap men — take it before the money moves west.",
    pt:"Bucareste. Os clonadores de cartão e os agiotas mandam nos setores, e a rota dos Bálcãs termina no anel viário. Tabuleiro pequeno, homem barato — tome antes do dinheiro ir pro oeste."},
