@@ -372,6 +372,9 @@
   .cfgline{font-size:14px;opacity:.85;margin:2px 0;}
   .cfghead{margin:12px 0 5px;font-size:13px;letter-spacing:1px;}
   .cfgsub{margin:9px 0 3px;font-size:10px;letter-spacing:2.5px;opacity:.55;}
+  /* one choice per line, with air between them — used by the campaign picker */
+  .choicecol{display:flex;flex-direction:column;gap:9px;align-items:stretch;margin:12px 0 4px;}
+  .choicecol button{width:100%;padding:11px 12px;}
   .cfgflavor{font-size:12px;opacity:.85;line-height:1.4;margin:5px 0;border-left:2px solid var(--phos-dim);padding-left:8px;}
   .cfg.sel{background:var(--phos) !important;color:#000 !important;}
   .cfg.sel *{color:#000 !important;}
@@ -795,7 +798,7 @@ const ROLE_ES={"Crooked Sergeant":"Sargento Corrupto","Crooked Detective":"Detec
 const ES_STATIC={"NEW YORK CITY":"NUEVA YORK","PLAYERS — tap for record":"JUGADORES — toca para la ficha","DICE":"DADOS","ACTIONS":"ACCIONES","CONSOLE — this round":"CONSOLA — esta ronda","PLAYER ON TURN":"JUGADOR EN TURNO","OTHER PLAYERS — tap for record":"OTROS JUGADORES — toca para la ficha","[ MANUAL ]":"[ MANUAL ]","[reset]":"[reiniciar]","[ FOLLOW: OFF ]":"[ SEGUIR: NO ]","[ FOLLOW: ON ]":"[ SEGUIR: SÍ ]","[ AUTO: OFF ]":"[ AUTO: NO ]","[ AUTO: ON ]":"[ AUTO: SÍ ]","tap die to roll":"toca el dado para tirar","roll to move":"tira para avanzar","landed":"cayó"};
 const POLICE_LABELS_ES={0.25:"MUY BAJA",0.5:"BAJA",1:"REALISTA",3:"DIFÍCIL",4:"BRASILEÑA"};
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v32.1";
+const APP_VERSION="v32.2";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -2302,8 +2305,12 @@ const DIFFICULTY={
   HARD:  {cash:100,  label:"HARD", flavor:L("You scraped together seed money from corner jobs and stick-ups. It's lean out here.","Voc\u00ea juntou um capital com corres e assaltos de esquina. A vida t\u00e1 dura.")},
   REALISTIC:{cash:0, label:"REALISTIC", flavor:L("You came up from nothing - no money, no connections, just the streets. Every dollar has to be earned or stolen. This is real life.","Voc\u00ea veio do nada - sem dinheiro, sem contatos, s\u00f3 a rua. Cada d\u00f3lar tem que ser ganho ou roubado. Isso \u00e9 a vida real.")},
 };
+/* the region field on every city doubles as its country code, so a city always reads
+   BR-CURITIBA / JP-TOKYO and you can tell Naples from Palermo at a glance */
+function cityTag(k){ const c=CITIES[k]; return c&&c.region?c.region+"-":""; }
+function cityLabel(k){ return cityTag(k)+((CITIES[k]&&CITIES[k].name)||k); }
 function cityB(k,lbl){ const cty=(setupData.city||"NY");
-  return `<button class="cfg${cty===k?' sel':''}" onclick="selectCity('${k}')">[ ${lbl} ]</button>`; }
+  return `<button class="cfg${cty===k?' sel':''}" onclick="selectCity('${k}')">[ ${cityTag(k)}${lbl} ]</button>`; }
 /* City picker is 45 buttons wide if you show them all, so show one region at a time:
    tap a region and it opens, tapping another closes the first. The region holding the
    currently-selected city opens by default so you can always see what you picked. */
@@ -2827,7 +2834,7 @@ function openCareer(){
     const lock=has?(i>lvl):(i>0);
     const mark=done?"\u2713":(cur?"\u25B6":(lock?"\u00B7":"\u25CB"));
     const tag=(lv.status==="prison")?L(" \u00B7 PRISON"," \u00B7 PRIS\u00c3O"):"";
-    return `<div class="cfgline" style="opacity:${(lock&&!cur)?0.45:1}">${mark} ${careerCityName(lv.city).toUpperCase()}${tag} \u00B7 ${lv.ai} ${L("rivals","rivais")}</div>`;
+    return `<div class="cfgline" style="opacity:${(lock&&!cur)?0.45:1}">${mark} ${cityTag(lv.city)}${careerCityName(lv.city).toUpperCase()}${tag} \u00B7 ${lv.ai} ${L("rivals","rivais")}</div>`;
   }).join("");
   stage.innerHTML=`<div class="dosconfig">
     <div class="cfgline">C:\\> CRIMINAL_TERMINAL.EXE /CAREER</div>
@@ -2854,15 +2861,15 @@ function careerPickCamp(){
   const rows=CAMPAIGNS.map(c=>{
     const n=campLevels(c.code).length, sel=(_campPick===c.code);
     const world=(c.code==="WORLD");
-    return `<button class="cfg${sel?' sel':''}" style="${world?'margin-top:6px;':''}" onclick="careerSetCamp('${c.code}')">[ ${campTitle(c.code)} \u00b7 ${n} ]</button>`;
+    return `<button class="cfg${sel?' sel':''}" style="${world?'margin-top:10px;':''}" onclick="careerSetCamp('${c.code}')">[ ${campTitle(c.code)} \u00b7 ${n} ]</button>`;
   }).join("");
   const L1=campLevels(_campPick);
-  const first=careerCityName(L1[0].city).toUpperCase(), last=careerCityName(L1[L1.length-1].city).toUpperCase();
+  const first=cityLabel(L1[0].city).toUpperCase(), last=cityLabel(L1[L1.length-1].city).toUpperCase();
   stage.innerHTML=`<div class="dosconfig">
     <div class="cfgline">C:\\> NEW CAREER</div>
     <div class="cfghead">${L("CHOOSE YOUR RUN","ESCOLHA SUA CAMPANHA")}</div>
     <div class="cfgline" style="opacity:.72;line-height:1.5">${L("Take one continent, or every city on the board. Each run is its own career \u2014 own the last city and it is yours.","Domine um continente, ou todas as cidades do tabuleiro. Cada campanha \u00e9 uma carreira \u2014 domine a \u00faltima cidade e ela \u00e9 sua.")}</div>
-    <div class="choice" style="margin-top:8px">${rows}</div>
+    <div class="choicecol">${rows}</div>
     <div class="cfgline" style="opacity:.7;margin-top:10px">${L1.length} ${L("cities","cidades")} \u00b7 ${first} \u2192 ${last}</div>
     <button class="cfggo" onclick="careerNew()">${L("[ CONTINUE \u00BB ]","[ CONTINUAR \u00BB ]")}</button>
     <button class="cfggo" style="opacity:.65" onclick="openCareer()">${L("[ \u2039 BACK ]","[ \u2039 VOLTAR ]")}</button>
