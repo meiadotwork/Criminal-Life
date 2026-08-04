@@ -795,7 +795,7 @@ const ROLE_ES={"Crooked Sergeant":"Sargento Corrupto","Crooked Detective":"Detec
 const ES_STATIC={"NEW YORK CITY":"NUEVA YORK","PLAYERS — tap for record":"JUGADORES — toca para la ficha","DICE":"DADOS","ACTIONS":"ACCIONES","CONSOLE — this round":"CONSOLA — esta ronda","PLAYER ON TURN":"JUGADOR EN TURNO","OTHER PLAYERS — tap for record":"OTROS JUGADORES — toca para la ficha","[ MANUAL ]":"[ MANUAL ]","[reset]":"[reiniciar]","[ FOLLOW: OFF ]":"[ SEGUIR: NO ]","[ FOLLOW: ON ]":"[ SEGUIR: SÍ ]","[ AUTO: OFF ]":"[ AUTO: NO ]","[ AUTO: ON ]":"[ AUTO: SÍ ]","tap die to roll":"toca el dado para tirar","roll to move":"tira para avanzar","landed":"cayó"};
 const POLICE_LABELS_ES={0.25:"MUY BAJA",0.5:"BAJA",1:"REALISTA",3:"DIFÍCIL",4:"BRASILEÑA"};
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v32.0";
+const APP_VERSION="v32.1";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -2383,7 +2383,7 @@ function renderSetupStart(){
   const _mid=_hasC?careerMidSave(_lvl):null;
   const _freeSave=!!sv;
   const careerSub=_hasC
-    ? (campLabel(campOf(_cc))+' '+(_lvl+1)+'/'+_ccL.length+' · '+(_mid?(L('turn','turno')+' '+_mid.turn):(L('bankroll','grana')+' '+fmtKcity(_cc.bankroll||0,_ccL[_lvl].city))))
+    ? (campTitle(campOf(_cc))+' '+(_lvl+1)+'/'+_ccL.length+' · '+(_mid?(L('turn','turno')+' '+_mid.turn):(L('bankroll','grana')+' '+fmtKcity(_cc.bankroll||0,_ccL[_lvl].city))))
     : L('One city at a time, one bloodline','Uma cidade por vez, uma linhagem');
   const mpSub=_freeSave
     ? (L('Saved match — turn','Partida salva — turno')+' '+sv.turn+' \u00b7 '+sv.players.length+' '+L('bosses','chef\u00f5es'))
@@ -2769,10 +2769,19 @@ const CAMPAIGNS=[
   {code:"AF",   en:"AFRICA",          pt:"\u00c1FRICA",            es:"\u00c1FRICA"},
   {code:"OC",   en:"OCEANIA",         pt:"OCEANIA",                 es:"OCEAN\u00cdA"},
   {code:"EU",   en:"EUROPE",          pt:"EUROPA",                  es:"EUROPA"},
-  {code:"WORLD",en:"WORLD DOMINATION",pt:"DOMINA\u00c7\u00c3O MUNDIAL",es:"DOMINACI\u00d3N MUNDIAL"}
+  {code:"WORLD",en:"WORLD",pt:"MUNDO",es:"MUNDO"}
 ];
 function campLabel(code){ const c=CAMPAIGNS.find(x=>x.code===code)||CAMPAIGNS[CAMPAIGNS.length-1];
   return LANG==='PT'?c.pt:LANG==='ES'?c.es:c.en; }
+/* what the run is called on the menu and on the trophy: "<REGION> CONTROL" */
+function campTitle(code){
+  if(code==="WORLD") return L("WORLD CONTROL","CONTROLE MUNDIAL","CONTROL MUNDIAL");
+  /* English puts the noun last, Portuguese and Spanish put it first with a preposition.
+     Every region name here is feminine in PT, so "DA" covers all seven. */
+  if(LANG==='PT') return "CONTROLE DA "+campLabel(code);
+  if(LANG==='ES') return "CONTROL DE "+campLabel(code);
+  return campLabel(code)+" CONTROL";
+}
 function campLevels(code){ return code==="WORLD"?CAREER_LEVELS.slice():CAREER_LEVELS.filter(l=>CITY_CONT[l.city]===code); }
 function campOf(c){ return (c&&c.camp)||"WORLD"; }
 /* the ladder the run in progress is actually playing */
@@ -2845,7 +2854,7 @@ function careerPickCamp(){
   const rows=CAMPAIGNS.map(c=>{
     const n=campLevels(c.code).length, sel=(_campPick===c.code);
     const world=(c.code==="WORLD");
-    return `<button class="cfg${sel?' sel':''}" style="${world?'margin-top:6px;':''}" onclick="careerSetCamp('${c.code}')">[ ${campLabel(c.code)} \u00b7 ${n} ]</button>`;
+    return `<button class="cfg${sel?' sel':''}" style="${world?'margin-top:6px;':''}" onclick="careerSetCamp('${c.code}')">[ ${campTitle(c.code)} \u00b7 ${n} ]</button>`;
   }).join("");
   const L1=campLevels(_campPick);
   const first=careerCityName(L1[0].city).toUpperCase(), last=careerCityName(L1[L1.length-1].city).toUpperCase();
@@ -2939,7 +2948,7 @@ function careerBriefing(i){
   const prison=lv.status==="prison";
   const _stk=careerStake(i), _bank=careerBank(), _afford=_bank>=_stk;
   stage.innerHTML=`<div class="dosconfig">
-    <div class="cfgline">C:\\> ${campLabel(campOf(careerState))} ${i+1} / ${CL().length}</div>
+    <div class="cfgline">C:\\> ${campTitle(campOf(careerState))} ${i+1} / ${CL().length}</div>
     <div class="cfghead">${nm}</div>
     <div class="cfgline" style="opacity:.9;line-height:1.55">${L(lv.en,lv.pt)}</div>
     <div class="cfgline" style="margin-top:10px">\u25B8 ${L("OBJECTIVE","OBJETIVO")}: <b>${careerGoalText(lv)}</b></div>
@@ -3001,9 +3010,9 @@ function careerComplete(winner){
   const el=document.getElementById("cardEl"); if(!el)return; el.dataset.read="1"; el.dataset.deck="";
   const _camp=campOf(careerState), _world=(_camp==="WORLD");
   const _cities=campLevels(_camp).length;
-  el.innerHTML=`<div class="lbl" style="background:${winner.color}">${_world?L("WORLD DOMINATION","DOMINA\u00c7\u00c3O MUNDIAL"):L("CONTINENT TAKEN","CONTINENTE DOMINADO")}</div>
+  el.innerHTML=`<div class="lbl" style="background:${winner.color}">${_world?L("WORLD CONTROL","CONTROLE MUNDIAL","CONTROL MUNDIAL"):L("CONTINENT CONTROL","CONTROLE DO CONTINENTE","CONTROL DEL CONTINENTE")}</div>
     <div style="text-align:center;font-size:40px;margin:8px 0">${_world?"\u2654":"\u265B"}</div>
-    <div class="ttl" style="text-align:center;color:${winner.color}">${winner.name} \u2014 ${_world?L("KINGPIN OF THE WORLD","CHEF\u00c3O DO MUNDO"):campLabel(_camp)}</div>
+    <div class="ttl" style="text-align:center;color:${winner.color}">${winner.name} \u2014 ${campTitle(_camp)}</div>
     <div class="sub" style="text-align:center">${_world
       ? L("Every city on the board, every rival buried. Your bloodline owns the world.","Todas as cidades do tabuleiro, todos os rivais enterrados. Sua linhagem domina o mundo.")
       : (campLabel(_camp)+" \u2014 "+_cities+" "+L("cities, every rival buried. The continent is yours.","cidades, todos os rivais enterrados. O continente \u00e9 seu."))}</div>
