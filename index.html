@@ -369,18 +369,17 @@
   .side .pane.on{display:block;}
   /* ===== ACTION GROUPS — one bordered block per kind of move, with air between them ===== */
   .acts{display:flex;flex-direction:column;gap:10px;margin-top:10px;}
-  .arow{display:flex;gap:9px;align-items:stretch;}
   .asec{border:1px solid var(--phos-dark);border-radius:2px;padding:9px;min-width:0;
         background:linear-gradient(180deg,rgba(10,61,24,.10),rgba(1,6,2,.25));}
-  .asec.grow{flex:1 1 auto;}
   .asec:empty,.asec.hide{display:none;}
   .ahd{font-size:9.5px;letter-spacing:2.5px;color:var(--phos-dim);margin-bottom:8px;}
   .acol{display:flex;flex-direction:column;gap:7px;align-items:stretch;}
   .acol button{width:100%;padding:10px 8px;font-size:12px;text-align:center;}
-  .adice{flex:0 0 auto;display:flex;flex-direction:column;gap:6px;align-items:center;justify-content:flex-start;
+  /* the dice sit on their own line above CRIME — the roll comes first, the moves follow */
+  .adice{flex:0 0 auto;display:flex;flex-direction:row;gap:12px;align-items:center;justify-content:center;
          border:1px solid var(--phos-dark);border-radius:2px;padding:9px 8px;
          background:linear-gradient(180deg,rgba(10,61,24,.10),rgba(1,6,2,.25));}
-  .adice .ctx{font-size:10px;opacity:.65;text-align:center;line-height:1.25;max-width:118px;}
+  .adice .ctx{font-size:10.5px;opacity:.65;line-height:1.25;min-width:0;}
   /* PLAYER ON TURN (full width) */
   .curplayer-panel{flex:0 0 auto;}
   #players{gap:6px;}
@@ -443,9 +442,6 @@
        the standings block — nothing lives past a clipped edge you can't reach */
     .main{overflow-y:auto;-webkit-overflow-scrolling:touch;grid-auto-rows:max-content;align-content:start;}
     .side{overflow:visible;}
-    .arow{flex-direction:column;}
-    .adice{flex-direction:row;justify-content:center;gap:12px;align-items:center;}
-    .adice .ctx{max-width:none;text-align:left;}
   }
   .agestep{display:flex;align-items:center;justify-content:center;gap:10px;margin:2px 0 4px;}
   .agestep button{font-size:20px;padding:4px 14px;line-height:1;}
@@ -809,15 +805,13 @@
       <div class="panel pane on curplayer-panel" id="pane-turn">
         <div id="players"></div>
         <div class="acts">
-          <div class="arow">
-            <div class="asec grow" id="secCrime">
-              <div class="ahd" id="ahdCrime">CRIME</div>
-              <div class="acol" id="actCrime"></div>
-            </div>
-            <div class="adice">
-              <div id="diceBox"><div id="diceRow"><div class="die roller" onclick="rollDice()" title="tap to roll"><span class="dielbl">DICE</span></div></div><div style="font-size:13px;opacity:.7;display:none" id="diceLbl">tap die to roll</div></div>
-              <div class="ctx" id="ctxHint"></div>
-            </div>
+          <div class="adice">
+            <div id="diceBox"><div id="diceRow"><div class="die roller" onclick="rollDice()" title="tap to roll"><span class="dielbl">DICE</span></div></div><div style="font-size:13px;opacity:.7;display:none" id="diceLbl">tap die to roll</div></div>
+            <div class="ctx" id="ctxHint"></div>
+          </div>
+          <div class="asec" id="secCrime">
+            <div class="ahd" id="ahdCrime">CRIME</div>
+            <div class="acol" id="actCrime"></div>
           </div>
           <div class="asec" id="secHire">
             <div class="ahd" id="ahdHire">HIRE CREW</div>
