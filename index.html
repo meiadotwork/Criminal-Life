@@ -272,7 +272,30 @@
   #players .pl{flex:1 1 160px;min-width:140px;}
 </style>
 <style id="dos73">
-  .bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  /* ===== THE HEADER MUST NEVER CHANGE HEIGHT =====
+     It used to be one wrapping row of three items, so the width of the current boss's name
+     decided where it broke: a short name fitted the banner and the buttons on one row, a long
+     one pushed the buttons onto a row of their own. The bar grew a line, everything below it
+     shifted, and the chart appeared to jump every time the turn passed to a longer name.
+     The wrap point is now fixed by the layout instead of by the text — one row on desktop,
+     two on a phone (title, then banner + buttons) — and the banner shrinks and ellipses
+     rather than shoving anything to a new line. */
+  .bar{display:flex;align-items:center;gap:10px;flex-wrap:nowrap;}
+  .bar h1{flex:0 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  #turnBanner{flex:0 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .topbtns{flex:0 0 auto;flex-wrap:nowrap;}
+  @media(max-width:900px){
+    /* On a phone the row is 350px: the title needs 183 and the buttons 224, so those two can
+       never share a line. The title and the banner can. Pinning the buttons to their own row
+       and giving the banner a zero flex-basis means the banner is measured as "whatever is
+       left" instead of as its own text — so a long name is ellipsed inside a fixed row rather
+       than wrapping and adding one. */
+    .bar{flex-wrap:wrap;}
+    .bar h1{flex:0 0 auto;}
+    #turnBanner{flex:1 1 0;}
+    .topbtns{flex:1 0 100%;justify-content:flex-end;}
+    #verTag{display:none;}           /* ~40px back, which is 5 more characters of the name */
+  }
   .main{grid-template-columns:minmax(0,1fr) 360px !important;}
   @media(max-width:900px){.main{grid-template-columns:minmax(0,1fr) !important;}}
   .side{display:flex;flex-direction:column;gap:9px;min-height:0;}
@@ -867,7 +890,7 @@ const ROLE_ES={"Crooked Sergeant":"Sargento Corrupto","Crooked Detective":"Detec
 const ES_STATIC={"NEW YORK CITY":"NUEVA YORK","PLAYERS — tap for record":"JUGADORES — toca para la ficha","DICE":"DADOS","ACTIONS":"ACCIONES","CONSOLE — this round":"CONSOLA — esta ronda","PLAYER ON TURN":"JUGADOR EN TURNO","OTHER PLAYERS — tap for record":"OTROS JUGADORES — toca para la ficha","[ MANUAL ]":"[ MANUAL ]","[reset]":"[reiniciar]","[ FOLLOW: OFF ]":"[ SEGUIR: NO ]","[ FOLLOW: ON ]":"[ SEGUIR: SÍ ]","[ AUTO: OFF ]":"[ AUTO: NO ]","[ AUTO: ON ]":"[ AUTO: SÍ ]","tap die to roll":"toca el dado para tirar","roll to move":"tira para avanzar","landed":"cayó"};
 const POLICE_LABELS_ES={0.25:"MUY BAJA",0.5:"BAJA",1:"REALISTA",3:"DIFÍCIL",4:"BRASILEÑA"};
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v32.4";
+const APP_VERSION="v32.5";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
