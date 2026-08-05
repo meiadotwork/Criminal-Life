@@ -799,7 +799,7 @@
     <h1 id="gameTitle">CRIMINAL&nbsp;TERMINAL <span id="verTag" style="font-size:10px;letter-spacing:1px;opacity:.55;font-weight:normal;text-shadow:none">v16.3</span></h1>
     <div id="turnBanner">TURN 1</div>
     <div class="topbtns">
-      <button class="amber" onclick="openSupport()" title="support the developer">[ &#9829; ]</button>
+      <button class="amber" onclick="openSupport()" title="download the game &amp; support the developer">[ &#9829; ]</button>
       <button id="fsBtn" onclick="toggleFullscreen()" title="fullscreen" style="display:none">[ &#9974; ]</button>
       <button onclick="openPause()" title="standings & net-worth chart">[ CHART ]</button>
       <button id="settingsBtn" onclick="openSettings()" title="options">[ OPT ]</button>
@@ -890,7 +890,7 @@ const ROLE_ES={"Crooked Sergeant":"Sargento Corrupto","Crooked Detective":"Detec
 const ES_STATIC={"NEW YORK CITY":"NUEVA YORK","PLAYERS — tap for record":"JUGADORES — toca para la ficha","DICE":"DADOS","ACTIONS":"ACCIONES","CONSOLE — this round":"CONSOLA — esta ronda","PLAYER ON TURN":"JUGADOR EN TURNO","OTHER PLAYERS — tap for record":"OTROS JUGADORES — toca para la ficha","[ MANUAL ]":"[ MANUAL ]","[reset]":"[reiniciar]","[ FOLLOW: OFF ]":"[ SEGUIR: NO ]","[ FOLLOW: ON ]":"[ SEGUIR: SÍ ]","[ AUTO: OFF ]":"[ AUTO: NO ]","[ AUTO: ON ]":"[ AUTO: SÍ ]","tap die to roll":"toca el dado para tirar","roll to move":"tira para avanzar","landed":"cayó"};
 const POLICE_LABELS_ES={0.25:"MUY BAJA",0.5:"BAJA",1:"REALISTA",3:"DIFÍCIL",4:"BRASILEÑA"};
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v32.5";
+const APP_VERSION="v32.6";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -4609,13 +4609,16 @@ function openSettings(){
     <div class="go"><button onclick="closeModal()">${L("[ CLOSE ]","[ FECHAR ]")}</button></div>`;
   openModal(true);
 }
-/* ===== SUPPORT / TIP THE DEVELOPER ===== */
-const SUPPORT_URL="https://meiadotwork.itch.io/criminal-terminal/donate";
-function supportGo(){
+/* ===== GET THE GAME / SUPPORT THE DEVELOPER =====
+   Two destinations on itch: the download page for an offline copy, and the tip jar. Both leave
+   the game running, so both go through the same guarded open. */
+const SUPPORT_URL ="https://meiadotwork.itch.io/criminal-terminal/donate";
+const DOWNLOAD_URL="https://meiadotwork.itch.io/criminal-terminal/purchase";
+function supportGo(target){
   try{ if(typeof saveGame==="function") saveGame(); }catch(e){}   // protect progress before leaving
-  const url=SUPPORT_URL, win=(typeof window!=="undefined");
+  const url=(target==="download")?DOWNLOAD_URL:SUPPORT_URL;
   try{
-    // an anchor with target=_blank opens the donation in EXTERNAL Safari and keeps the game
+    // an anchor with target=_blank opens the itch page in EXTERNAL Safari and keeps the game
     // running in the background (important for Add-to-Home-Screen app mode, which has no tabs)
     const a=document.createElement("a");
     a.href=url; a.target="_blank"; a.rel="noopener noreferrer";
@@ -4625,14 +4628,15 @@ function supportGo(){
   }
 }
 function openSupport(){
-  PAUSED=true;   // freeze the game while the tip prompt is up (closeModal resumes)
+  PAUSED=true;   // freeze the game while the download/tip prompt is up (closeModal resumes)
   const el=document.getElementById("cardEl"); if(!el)return; el.dataset.deck="";
-  el.innerHTML=`<div class="lbl">${L("SUPPORT","APOIAR")}</div>
+  el.innerHTML=`<div class="lbl">${L("GET THE GAME","BAIXAR O JOGO","CONSIGUE EL JUEGO")}</div>
     <div class="art">$$$</div>
     <div class="ttl">${L("Enjoying CRIMINAL TERMINAL?","Curtindo o CRIMINAL TERMINAL?")}</div>
-    <div class="bd">${L("This game is free and always will be. If it gave you a good time, a small tip keeps new cities, cards and features coming. It opens in a new tab and your game is saved, so you can come right back. Thank you.","Este jogo é grátis e sempre será. Se te rendeu bons momentos, uma pequena contribuição mantém novas cidades, cartas e recursos chegando. Abre em uma nova aba e seu jogo fica salvo, então você pode voltar na hora. Obrigado.")}</div>
+    <div class="bd">${L("Free, and always will be. Download a copy from itch.io to keep and play offline \u2014 or leave a tip, which is what keeps new cities coming. Both open in a new tab, and your game is saved. Thank you.","Gr\u00e1tis, e sempre ser\u00e1. Baixe uma c\u00f3pia no itch.io pra guardar e jogar offline \u2014 ou deixe uma contribui\u00e7\u00e3o, que \u00e9 o que mant\u00e9m novas cidades chegando. Os dois abrem em uma nova aba, e seu jogo fica salvo. Obrigado.","Gratis, y siempre lo ser\u00e1. Desc\u00e1rgalo desde itch.io para tenerlo y jugar sin conexi\u00f3n \u2014 o deja una propina, que es lo que mantiene llegando nuevas ciudades. Los dos abren en una pesta\u00f1a nueva, y tu partida queda guardada. Gracias.")}</div>
     <div class="go" style="flex-direction:column">
-      <button class="amber" onclick="supportGo()">${L("[ ♥ TIP THE DEV ]","[ ♥ APOIAR O DEV ]")}</button>
+      <button class="amber" onclick="supportGo('download')">${L("[ \u2913 DOWNLOAD ON ITCH.IO ]","[ \u2913 BAIXAR NO ITCH.IO ]","[ \u2913 DESCARGAR EN ITCH.IO ]")}</button>
+      <button onclick="supportGo('tip')">${L("[ \u2665 TIP THE DEV ]","[ \u2665 APOIAR O DEV ]","[ \u2665 APOYAR AL DEV ]")}</button>
       <button onclick="closeModal()">${L("[ MAYBE LATER ]","[ TALVEZ DEPOIS ]")}</button>
     </div>`;
   openModal(true);
