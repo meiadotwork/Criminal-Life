@@ -890,7 +890,7 @@ const ROLE_ES={"Crooked Sergeant":"Sargento Corrupto","Crooked Detective":"Detec
 const ES_STATIC={"NEW YORK CITY":"NUEVA YORK","PLAYERS — tap for record":"JUGADORES — toca para la ficha","DICE":"DADOS","ACTIONS":"ACCIONES","CONSOLE — this round":"CONSOLA — esta ronda","PLAYER ON TURN":"JUGADOR EN TURNO","OTHER PLAYERS — tap for record":"OTROS JUGADORES — toca para la ficha","[ MANUAL ]":"[ MANUAL ]","[reset]":"[reiniciar]","[ FOLLOW: OFF ]":"[ SEGUIR: NO ]","[ FOLLOW: ON ]":"[ SEGUIR: SÍ ]","[ AUTO: OFF ]":"[ AUTO: NO ]","[ AUTO: ON ]":"[ AUTO: SÍ ]","tap die to roll":"toca el dado para tirar","roll to move":"tira para avanzar","landed":"cayó"};
 const POLICE_LABELS_ES={0.25:"MUY BAJA",0.5:"BAJA",1:"REALISTA",3:"DIFÍCIL",4:"BRASILEÑA"};
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v32.7";
+const APP_VERSION="v32.8";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -5194,7 +5194,7 @@ function openBuyWorkers(){
     <div class="out" style="max-height:120px;overflow:auto"><b>${L("BODYGUARDS","GUARDA-COSTAS")}</b>${crewRow}</div>
     <div class="out" style="max-height:150px;overflow:auto"><b>${L("STREET SOLDIERS","SOLDADOS DE RUA")}</b>${stBody}</div>
     <div class="out" style="max-height:150px;overflow:auto"><b>${L("BUSINESS WORKERS","FUNCIONÁRIOS")}</b>${bizBody}</div>
-    <div class="go"><button onclick="(S.players[S.cur]._visitDay?pdayVisit:openActions)()">${L('[ ‹ BACK ]','[ ‹ VOLTAR ]')}</button><button onclick="closeModal()">${L('[ DONE ]','[ CONCLUIR ]')}</button></div>
+    <div class="go"><button onclick="(S.players[S.cur]._visitDay?pdayVisit:openActions)()">${L('[ ‹ BACK ]','[ ‹ VOLTAR ]')}</button><button onclick="hireExit()">${L('[ DONE ]','[ CONCLUIR ]')}</button></div>
     ${statusBar()}`;
   openModal();
   // restore scroll after the rebuild
@@ -5223,9 +5223,17 @@ function openHireList(kind){
     <div class="bd">${L("Pick one — the keypad hires more or sells any number back.","Escolha um — o teclado contrata mais ou vende quantos quiser.","Elige uno — el teclado contrata más o vende los que quieras.")}</div>
     <div class="out">${L('Cash on hand','Dinheiro em mãos','Efectivo en mano')}: ${fmtK(p.cash)}</div>
     <div class="out" style="max-height:230px;overflow:auto;background:#0d1510;border-left:4px solid ${p.color}">${body}</div>
-    <div class="go"><button onclick="closeModal()">${L('[ DONE ]','[ CONCLUIR ]','[ LISTO ]')}</button></div>
+    <div class="go"><button onclick="hireExit()">${L('[ DONE ]','[ CONCLUIR ]','[ LISTO ]')}</button></div>
     ${statusBar()}`;
   openModal();
+}
+/* Closing a hire/sell screen must not strand a VISIT DAY: that turn ends only when the player
+   presses END THE DAY on the visit card, so every exit has to land back there rather than on a
+   bare board with a die that has already been rolled. Anywhere else, closing just closes. */
+function hireExit(){
+  const p=(typeof S!=="undefined"&&S&&S.players)?S.players[S.cur]:null;
+  if(p&&p._visitDay){ pdayVisit(); return; }
+  closeModal();
 }
 function hireCrewN(per,n){const p=S.players[S.cur];n=Math.min(n,Math.floor(p.cash/SOLDIER_COST));if(n<1)return;p.cash-=SOLDIER_COST*n;p.crew+=n;log(p.name+L(" hires "," contrata ")+n+L(" bodyguard"," guarda-costas")+(n>1?(LANG==='PT'?"":"s"):"")+L(" (now "," (agora ")+p.crew+").","good");render();openBuyWorkers();}
 function addSoldierAnytime(idx,per,n){const p=S.players[S.cur];n=Math.min(n,Math.floor(p.cash/per),unitRoom(p,idx));if(n<1)return;p.cash-=per*n;grantUnits(p,idx,n);log(p.name+L(" posts "," coloca ")+n+L(" soldier"," soldado")+(n>1?"s":"")+L(" at "," em ")+OUTER[idx].t+L(" (now "," (agora ")+p.owns.get(idx)+").","good");render();openBuyWorkers();}
@@ -5306,12 +5314,13 @@ function qpCrew(){ const p=S.players[S.cur];
     held:p.crew, sellPer:back,
     apply:(n)=>{ p.cash-=SOLDIER_COST*n; p.crew+=n; log(p.name+L(" hires "," contrata ")+n+L(" bodyguard"," guarda-costas")+((n>1&&LANG!=='PT')?"s":"")+L(" (now "," (agora ")+p.crew+").","good"); render(); },
     sell:(n)=>{ sellCrewN(n); },
-    done:closeModal });
+    done:hireExit });
 }
 function qpCell(idx,ret){ const p=S.players[S.cur]; const c=OUTER[idx]; const per=c.incomeBase||c.price||c.income;
   const isBiz=c.k==="biz"; const unit=isBiz?L("workers","funcionários"):L("soldiers","soldados");
   const done = ret==='st'?(()=>ownStreetOptions(idx)) : ret==='bz'?(()=>ownBizOptions(idx))
-             : ret==='hs'?(()=>openHireList('street')) : ret==='hb'?(()=>openHireList('biz')) : openBuyWorkers;
+             : ret==='hs'?(()=>openHireList('street')) : ret==='hb'?(()=>openHireList('biz'))
+             : ret==='bw'?openBuyWorkers : hireExit;
   qtyPad({ title:c.t, unit, have:p.owns.get(idx)||0, per, max:Math.min(Math.floor(p.cash/per),unitRoom(p,idx)),
     held:p.owns.get(idx)||0, sellPer:per,
     apply:(n)=>{ n=Math.min(n,unitRoom(p,idx)); if(n<1)return; p.cash-=per*n; grantUnits(p,idx,n);
@@ -5558,7 +5567,7 @@ function doAttack(fromMenu){
   const menu=!!p._atkMenu;
   const targets=[];
   S.players.forEach(o=>{if(o.id!==p.id&&o.alive){o.owns.forEach((s,idx)=>targets.push({o,idx,s}));}});
-  if(p.ring==="inner"){ if(menu){atkNotice(L("You can't run an attack from inside.","Voc\u00ea n\u00e3o comanda ataque de dentro."));return;} finish(); return; }
+  if(p.ring==="inner" && !p._visitDay){ if(menu){atkNotice(L("You can't run an attack from inside \u2014 wait for VISIT DAY.","Voc\u00ea n\u00e3o comanda ataque de dentro \u2014 espere o DIA DE VISITA.","No puedes dirigir un ataque desde dentro \u2014 espera al D\u00cdA DE VISITA."));return;} finish(); return; }
   if(p.crew<1){ if(menu){atkNotice(L("You have no soldiers to attack with. Hire crew first.","Você não tem soldados para atacar. Contrate equipe primeiro."));return;} log(p.name+L(" has no soldiers to attack with."," não tem soldados para atacar.")); finish(); return;}
   if(targets.length===0){ if(menu){atkNotice(L("No rival controls any turf yet — nothing to attack.","Nenhum rival controla área ainda — nada para atacar."));return;} log(L("No rival turf to attack.","Nenhuma área rival para atacar.")); finish(); return;}
   if(p.ai){
@@ -5638,7 +5647,9 @@ function resolveAttack(p,o,idx,atk){
   openModal();
 }
 /* a committed attack (cell or ACTION menu) ends the turn — it was your move for the round */
-function atkDone(){ const p=S.players[S.cur]; if(p)p._atkMenu=false; closeModal(); finish(); }
+function atkDone(){ const p=S.players[S.cur]; if(p)p._atkMenu=false;
+  if(p&&p._visitDay){ pdayVisit(); return; }   // still the lawyer's day, more orders may follow
+  closeModal(); finish(); }
 
 /* ===== STORY CARDS ===== */
 function drawStory(deck){
@@ -6270,7 +6281,11 @@ function pdayVisit(){
     canSell?`<button class="red" onclick="openBuyWorkers()">${L("[ FIRE / SELL ]","[ DISPENSAR / VENDER ]")}</button>`:off);
   rows+=row(L("Call an execution","Mandar executar"),execUnlocked()?L("2\u00d7 the target's net worth \u2014 ordered from in here, carried out on the street","2\u00d7 o patrim\u00f4nio do alvo \u2014 encomendado daqui, feito na rua"):execLockNote(),
     canExec?`<button class="red" onclick="execMenu()">${L("[ EXECUTE ]","[ EXECUTAR ]")}</button>`:off);
-  rows+=row(L("Crimes and attacks","Crimes e ataques"),L("not from in here \u2014 you would have to be on the street","daqui n\u00e3o \u2014 voc\u00ea teria que estar na rua"),off);
+  const rivalTurf=S.players.some(o=>o.id!==p.id&&o.alive&&o.owns.size>0);
+  const canAtk=p.crew>=1&&rivalTurf;
+  rows+=row(L("Attack a rival","Atacar um rival"),L("your crew is out there \u2014 the order leaves with the lawyer","sua equipe est\u00e1 na rua \u2014 a ordem sai com o advogado","tu gente est\u00e1 en la calle \u2014 la orden sale con el abogado"),
+    canAtk?`<button class="red" onclick="doAttack(true)">${L("[ ATTACK \u00b7 ","[ ATACAR \u00b7 ")}${p.crew}${L(" sol ]"," sol ]")}</button>`:off);
+  rows+=row(L("Commit a crime","Cometer um crime"),L("not from in here \u2014 you would have to be on the street","daqui n\u00e3o \u2014 voc\u00ea teria que estar na rua"),off);
   el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('VISIT DAY','DIA DE VISITA')}</div>
     <div class="art">|:|</div><div class="ttl">${L('Your lawyer is here','Seu advogado chegou')}</div>
     <div class="sub" style="opacity:.7">${L('Visits come round once a lap — make it count.','A visita s\u00f3 vem uma vez por volta — aproveite.')}</div>
@@ -6882,6 +6897,7 @@ function finish(){render();updateControls();
   S._finishTimer=setTimeout(tick, delay);
 }
 function endTurn(){ if(S.over)return; if(!S.rolled)return;
+  { const _o=S.players[S.cur]; if(_o) _o._visitDay=false; }   // the lawyer leaves when the day does
   let g=0;
   do{ S.cur=(S.cur+1)%S.n; if(S.cur===0){S.turn++;newRound();} g++;
     const np=S.players[S.cur];
