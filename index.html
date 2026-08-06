@@ -890,7 +890,7 @@ const ROLE_ES={"Crooked Sergeant":"Sargento Corrupto","Crooked Detective":"Detec
 const ES_STATIC={"NEW YORK CITY":"NUEVA YORK","PLAYERS — tap for record":"JUGADORES — toca para la ficha","DICE":"DADOS","ACTIONS":"ACCIONES","CONSOLE — this round":"CONSOLA — esta ronda","PLAYER ON TURN":"JUGADOR EN TURNO","OTHER PLAYERS — tap for record":"OTROS JUGADORES — toca para la ficha","[ MANUAL ]":"[ MANUAL ]","[reset]":"[reiniciar]","[ FOLLOW: OFF ]":"[ SEGUIR: NO ]","[ FOLLOW: ON ]":"[ SEGUIR: SÍ ]","[ AUTO: OFF ]":"[ AUTO: NO ]","[ AUTO: ON ]":"[ AUTO: SÍ ]","tap die to roll":"toca el dado para tirar","roll to move":"tira para avanzar","landed":"cayó"};
 const POLICE_LABELS_ES={0.25:"MUY BAJA",0.5:"BAJA",1:"REALISTA",3:"DIFÍCIL",4:"BRASILEÑA"};
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v32.8";
+const APP_VERSION="v33.0";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -1515,14 +1515,39 @@ function cityScale(){ const s=(CITIES[_cityKey()]||CITIES.NY).scale; return s||1
 function cityPrison(){ return (CITIES[_cityKey()]||CITIES.NY).prison; }
 function cityLaw(){ return (typeof S!=="undefined"&&S&&S.law)||{life:true,maxYears:99}; }
 function capYears(y){ const m=cityLaw().maxYears||99; return Math.min(y,m); }
+/* ===== THE PRISON RING =====
+   Sixteen cells, drawn clockwise from the top-left of the inner square. Cell 0 is where the
+   sentence clock ticks, so the lawyer sits on it: every lap a year comes off AND the visit
+   opens, which makes the visit an annual event you cannot miss instead of a cell you might.
+   Four cells are ownable rackets — the inside gets the same economy as the street, priced in
+   cigarette packs instead of cash: an inmate costs `rate` packs, earns `rate` packs a year,
+   and charges `rate` packs to any rival who lands on the block. */
 const INNER = [
-  {t:"prison entry",ic:">",k:"pentry"},{t:"prison day",ic:".",k:"pday"},{t:"prison fight",ic:"vs",k:"pfight"},
-  {t:"prison day",ic:".",k:"pday"},{t:"prison day",ic:".",k:"pday"},{t:"riot",ic:"!!",k:"riot"},
-  {t:"prison day",ic:".",k:"pday"},{t:"visit day",ic:"|:|",k:"visit"},{t:"prison fight",ic:"vs",k:"pfight"},
-  {t:"prison day",ic:".",k:"pday"},{t:"riot",ic:"!!",k:"riot"},{t:"prison day",ic:".",k:"pday"},
-  {t:"prison day",ic:".",k:"pday"},{t:"prison fight",ic:"vs",k:"pfight"},{t:"prison day",ic:".",k:"pday"},
+  {t:"visit day",ic:"|:|",k:"visit"},
   {t:"prison day",ic:".",k:"pday"},
+  {t:"extortion",ic:"ex",k:"pbiz",rate:8},
+  {t:"prison day",ic:".",k:"pday"},
+  {t:"prison day",ic:".",k:"pday"},
+  {t:"prison day",ic:".",k:"pday"},
+  {t:"drug 2",ic:"d2",k:"pbiz",rate:10},
+  {t:"prison fight",ic:"vs",k:"pfight"},
+  {t:"riot",ic:"!!",k:"riot"},
+  {t:"prison day",ic:".",k:"pday"},
+  {t:"drug 1",ic:"d1",k:"pbiz",rate:9},
+  {t:"prison day",ic:".",k:"pday"},
+  {t:"the shop",ic:"$",k:"pshop"},
+  {t:"prison day",ic:".",k:"pday"},
+  {t:"drug 3",ic:"d3",k:"pbiz",rate:12},
+  {t:"prison fight",ic:"vs",k:"pfight"},
 ];
+const PBIZ_CAP=10;              // no block holds more than ten of your people
+function pbizRate(idx){ const c=INNER[idx]; return (c&&c.rate)||8; }
+function pbizOwner(idx){ return S.players.find(p=>p.pown&&p.pown.get(idx)>0)||null; }
+function pbizCount(p,idx){ return (p&&p.pown&&p.pown.get(idx))||0; }
+function pbizRoom(p,idx){ return Math.max(0, PBIZ_CAP-pbizCount(p,idx)); }
+/* Everything inside is left behind at the gate — the packs, the blocks, the phone, the man
+   watching your back. None of it means anything on the street. */
+function clearPrisonHoldings(p){ if(!p)return; p.packs=0; p.pown=new Map(); p.pbg=0; p.phone=false; }
 
 /* ===== ICONS per card type (ASCII/emoji low-bit) ===== */
 const ART={heist:"$$$",hitman:"(X)",drug:"Rx",party:"(?)",fate:"(!)",cop:"PD",raid:"!!!",
@@ -2418,6 +2443,7 @@ let S=null;
 function newPlayer(i,name,pattern){return{id:i,name:name||("P"+(i+1)),color:"#33ff44",pattern:pattern||"solid",ring:"outer",pos:0,
   cash:100,crew:0,packs:0,alive:true,respawns:0,hosp:0,cleanLaps:0,
   inJail:false,sentence:0,owns:new Map(),skip:0,freeArrest:0,freeRaid:0,
+  pown:new Map(),pbg:0,phone:false,          /* blocks held inside, the man on you, the phone */
   crimes:[],network:[],stayCount:0,age:15,crimeOps:1,yearsServed:0,heat:0,dirty:0,nwHist:[],soldierKills:0,bossKills:0,kills:0};}
 
 /* ===== GLOBAL PLAYER COUNTER: every person who starts a game, counted worldwide.
@@ -3237,7 +3263,7 @@ function careerSonRevive(p){
   if(careerState){ careerState.gens=(careerState.gens||1)+1; careerState.age=Math.max(13,Math.floor(prevAge/2)); careerSave(); }
   p.age=Math.max(13,Math.floor(prevAge/2));
   p.hosp=0; p.alive=true; p.skip=0; p.inJail=false; p.sentence=0;
-  if(p.ring==="inner"){ p.ring="outer"; p.pos=0; p.packs=0; }
+  if(p.ring==="inner"){ p.ring="outer"; p.pos=0; clearPrisonHoldings(p); }
   p._deathCause=undefined; p._diedInPrison=false; p._gunDeath=false; p.diedAt=undefined; p.diedTurn=undefined;
   try{SFX.card();}catch(e){}
   const el=document.getElementById("cardEl");
@@ -3317,7 +3343,7 @@ function clearSaveCareer(){ try{localStorage.removeItem(SAVE_KEY_CAREER);}catch(
 }catch(e){} })();
 function snapshot(){
   return {turn:S.turn,cur:S.cur,n:S.n,ai:S.ai,baseDice:S.baseDice,diff:S.diff,police:S.police,city:S.city,startYear:S.startYear,career:(S.career||null),
-    players:S.players.map(p=>{const o={...p};o.owns=Array.from(p.owns.entries());o._fresh=Array.from((p._fresh||new Map()).entries());delete o.auto;return o;})};
+    players:S.players.map(p=>{const o={...p};o.owns=Array.from(p.owns.entries());o.pown=Array.from((p.pown||new Map()).entries());o._fresh=Array.from((p._fresh||new Map()).entries());delete o.auto;return o;})};
 }
 function saveGame(){ if(!S||S.over)return; try{const snap=snapshot(); localStorage.setItem(saveSlotFor(snap),JSON.stringify(snap));}catch(e){} }
 function clearSave(){ try{localStorage.removeItem(saveSlotFor(typeof S!=="undefined"&&S?S:null));}catch(e){} }   // only the slot of the game in play
@@ -3326,7 +3352,7 @@ function loadFromSnapshot(sv,note){
   if(!sv||!sv.players||!sv.players.length) return false;
   const _cityKey=sv.city||"NY"; applyCity(_cityKey);
   S={turn:sv.turn||1,cur:sv.cur||0,n:sv.n||sv.players.length,rolled:false,over:false,ai:sv.ai,roundEvents:[],baseDice:({1:6,2:8,3:10}[sv.baseDice]||sv.baseDice||6),diff:sv.diff,police:(sv.police!=null?sv.police:1),city:_cityKey,law:(CITIES[_cityKey]||CITIES.NY).law,startYear:(sv.startYear||1987),career:(sv.career||null),followAnim:true};
-  S.players=sv.players.map((sp,i)=>{const pl=newPlayer(i,sp.name,sp.pattern);Object.assign(pl,sp);pl.owns=new Map(sp.owns||[]);pl._fresh=new Map(sp._fresh||[]);pl._steps=sp._steps||0;pl.auto=false;return pl;});
+  S.players=sv.players.map((sp,i)=>{const pl=newPlayer(i,sp.name,sp.pattern);Object.assign(pl,sp);pl.owns=new Map(sp.owns||[]);pl.pown=new Map(sp.pown||[]);pl._fresh=new Map(sp._fresh||[]);pl._steps=sp._steps||0;pl.auto=false;return pl;});
   if(S.cur>=S.players.length)S.cur=0;
   /* a save written before the cap existed can hold stacks above it — bring them down on load,
      otherwise an old game keeps earning on numbers the game no longer allows anyone to reach */
@@ -4431,7 +4457,10 @@ function stepMove(p,left){
   p.pos=(p.pos+1)%len;p._steps=(p._steps||0)+1;SFX.step();
   // passing OVER one of your own businesses = you've lapped it (a year) → collect its profit
   if(ring==="outer" && left>1 && p.owns.has(p.pos)) collectOne(p,p.pos);
-  if(ring==="inner"&&p.pos===0){p.sentence-=1;p.age++;p.yearsServed=(p.yearsServed||0)+1;log(p.name+L(" finishes a prison lap. 1 year done (now "," completa uma volta na prisão. 1 ano cumprido (agora ")+p.age+L(" yo). "," anos). ")+(p.sentence>0?p.sentence+L("y left","a restantes"):L("TIME SERVED","PENA CUMPRIDA")),p.sentence>0?"":"good");
+  if(ring==="inner"&&p.pos===0){p.sentence-=1;p.age++;p.yearsServed=(p.yearsServed||0)+1;
+    /* a year inside pays out the blocks you hold, at the same rate they cost to staff */
+    if(p.pown&&p.pown.size){ let _pk=0; p.pown.forEach((n,i)=>{ _pk+=pbizRate(i)*n; });
+      if(_pk>0){ p.packs+=_pk; log(p.name+L(" collects "," recolhe ")+_pk+L(" pk from the blocks."," mç dos pavilhões."),"good"); } }log(p.name+L(" finishes a prison lap. 1 year done (now "," completa uma volta na prisão. 1 ano cumprido (agora ")+p.age+L(" yo). "," anos). ")+(p.sentence>0?p.sentence+L("y left","a restantes"):L("TIME SERVED","PENA CUMPRIDA")),p.sentence>0?"":"good");
     if(isBrazil() && p.age===18 && p.sentence>0){ log(p.name+L(" turns 18 \u2014 released from juvenile detention (Brazil law)."," faz 18 anos \u2014 sai da interna\u00e7\u00e3o (lei brasileira)."),"good"); render(); setTimeout(()=>releaseFromPrison(p),300); return; }
     if(p.sentence<=0){render();setTimeout(()=>releaseFromPrison(p),300);return;}}
   if(ring==="outer"&&p.pos===0){p.age++;log(p.name+L(" makes it another year (now "," sobrevive mais um ano (agora ")+p.age+L(" yo)."," anos)."),"");
@@ -4818,7 +4847,8 @@ function resolveOuter(){
 function resolveInner(){
   const p=S.players[S.cur];const c=INNER[p.pos];
   switch(c.k){
-    case "pentry":log(L("Prison entry. Do your time.","Entrada da prisão. Cumpra sua pena."));finish();break;
+    case "pbiz": pbizStop(); break;
+    case "pshop": if(p.ai){ aiShop(p); break; } pshopMenu(); break;
     case "pday":
       if(p.ai){ aiPrisonTurn(p); break; }
       prisonDayMenu();
@@ -6077,11 +6107,24 @@ function drawCourt(){ const p=S.players[S.cur]; log(L("","Dia de tribunal de ")+
   const card=draw("court"); document.getElementById("cardEl")._card=card;document.getElementById("cardEl")._deck="court";
   renderStoryCard(card,"court",p.ai); SFX.card(); openModal(); aiAutoApply(card); }
 function sendToPrison(p){SFX.clang();p.sentence=capYears(p.sentence);p.inJail=false;p.ring="inner";p.pos=0;log(p.name+L(" enters "," entra em ")+cityPrison()+L(". Serve ",". Cumprir ")+p.sentence+L("y (1 lap = 1 year). Packs: ","a (1 volta = 1 ano). Maços: ")+p.packs,"warn");}
-function releaseFromPrison(p){p.ring="outer";p.pos=JAIL_POS;p.packs=0;log(p.name+L(" walks out of prison."," sai da prisão."),"good");render();showNotice(L("OUT OF PRISON","FORA DA PRIS\u00c3O"),"\\o/",L("Back on the street","De volta \u00e0 rua"),L("The gate rolls open and the street takes you back. Any cigarette packs stay behind — currency of a world you just left.","O port\u00e3o abre e a rua te recebe de volta. Os ma\u00e7os ficam para tr\u00e1s — moeda de um mundo que voc\u00ea acabou de deixar."),()=>finish());}
+function releaseFromPrison(p){p.ring="outer";p.pos=JAIL_POS;clearPrisonHoldings(p);log(p.name+L(" walks out of prison."," sai da prisão."),"good");render();showNotice(L("OUT OF PRISON","FORA DA PRIS\u00c3O"),"\\o/",L("Back on the street","De volta \u00e0 rua"),L("The gate rolls open and the street takes you back. Any cigarette packs stay behind — currency of a world you just left.","O port\u00e3o abre e a rua te recebe de volta. Os ma\u00e7os ficam para tr\u00e1s — moeda de um mundo que voc\u00ea acabou de deixar."),()=>finish());}
 
 /* ===== HOSPITAL (death only here) ===== */
 function toHospital(p,visits,cause){
   p._hospCause=cause||L("their injuries","ferimentos");
+  /* INSIDE: the man you put on yourself eats it — once, then he is gone. Outside, soldiers
+     already do this job; in here they cannot reach you, which is why he costs packs. */
+  if(p.ring==="inner" && p.pbg>0){
+    p.pbg=0;
+    log(p.name+L("'s man takes the beating \u2014 he goes down instead."," \u2014 o homem dele leva a surra no lugar."),"good");
+    render();
+    if(p.ai){ finish(); return; }
+    showNotice(L("HE TOOK IT","ELE LEVOU","\u00c9L LO RECIBI\u00d3"),")|(",L("Your man goes down","Seu homem cai","Tu hombre cae"),
+      L("He stepped in front of it and took the whole thing. He is out of the count and you are still standing \u2014 but nobody is watching your back now.",
+        "Ele entrou na frente e levou tudo. Saiu da contagem e voc\u00ea continua de p\u00e9 \u2014 mas agora ningu\u00e9m guarda suas costas.",
+        "Se puso delante y se lo llev\u00f3 todo. Est\u00e1 fuera y t\u00fa sigues de pie \u2014 pero ya nadie te cuida la espalda."),()=>finish());
+    return;
+  }
   // Soldiers act as bodyguards: when you're FREE (not in prison) and have a soldier,
   // one can take the beating and go to the hospital in your place.
   if(p.ring!=="inner" && p.crew>0){
@@ -6166,8 +6209,7 @@ function prisonDayMenu(){
     <div class="out">${p.packs<=0?L("⚠ NO PACKS — laying low unprotected can get you beaten or killed.","⚠ SEM MAÇOS — ficar quieto sem proteção pode acabar em surra ou morte."):L("Packs keep the block off your back.","Maços mantêm o pátio longe de você.")}</div>
     <div class="go" style="flex-direction:column">
       <button onclick="pdayLayLow()">${L('[ LAY LOW — do your time ]','[ FICAR QUIETO — cumprir a pena ]')}</button>
-      ${canPacks?`<button onclick="pdayPacks()">${L('[ COMMISSARY — 5 packs · ','[ CANTINA — 5 maços · ')+fmtK(packCost*5)+' ]'}</button>`:""}
-      ${canBribe?`<button class="amber" onclick="pdayBribe()">${L('[ BRIBE A CO — −1 YEAR · ','[ SUBORNAR AGENTE — −1 ANO · ')+fmtK(bgU(1))+' ]'}</button>`:""}
+      ${p.phone?`<button class="amber" onclick="pdayPhone()">${L('[ \u260e CELLPHONE — run the business ]','[ \u260e CELULAR — tocar o neg\u00f3cio ]','[ \u260e CELULAR — manejar el negocio ]')}</button>`:""}
       <button class="red" onclick="pdayYard()">${L('[ RUN THE YARD — hustle for packs, risk a brawl ]','[ CORRER O PÁTIO — ganhar maços, arriscar briga ]')}</button>
 
     </div>
@@ -6259,6 +6301,24 @@ function aiPrisonTurn(p){
   if(Math.random()<0.35){ aiPrisonDrugs(p); return; }                                 // otherwise deal now and then
   pdayResolve(p);
 }
+/* A Ghost on a block: staff it if it has the packs to spare, otherwise walk on. */
+function aiPbiz(p,idx){
+  const rate=pbizRate(idx), room=pbizRoom(p,idx);
+  const spare=Math.max(0,p.packs-12);                 // never spend down its own protection
+  const n=Math.min(room, Math.floor(spare/rate), aiProf(p).atkAllIn?4:2);
+  if(n>0){ p.packs-=rate*n; p.pown.set(idx,pbizCount(p,idx)+n);
+    log(p.name+L(" puts "," coloca ")+n+L(" on "," em ")+trCell(INNER[idx].t)+".","warn"); }
+  render(); finish();
+}
+/* A Ghost at the shop: protection first, then a phone, then time off the clock. */
+function aiShop(p){
+  const c=packPrice()*5;
+  if(p.packs<8 && p.cash>=c){ p.cash-=c; p.packs+=5; log(p.name+L(" buys packs at the shop."," compra maços na loja."),"warn"); render(); finish(); return; }
+  if(!p.pbg && p.packs>=pshopCost("bg")+10){ p.packs-=pshopCost("bg"); p.pbg=1; log(p.name+L(" puts a man on themselves."," põe um homem do lado."),"warn"); render(); finish(); return; }
+  if(!p.phone && p.packs>=pshopCost("phone")+15){ p.packs-=pshopCost("phone"); p.phone=true; log(p.name+L(" gets a phone inside."," arruma um celular lá dentro."),"warn"); render(); finish(); return; }
+  if(p.sentence>1 && p.packs>=pshopCost("year")+20){ p.packs-=pshopCost("year"); p.sentence--; log(p.name+L(" buys a year off."," compra um ano a menos."),"warn"); render(); finish(); return; }
+  log(p.name+L(" browses the shop and buys nothing."," olha a loja e não leva nada."),""); render(); finish();
+}
 function aiPrisonRob(p){ const rr=prisonRoll(); if(rr.win){const got=rr.r+Math.floor(Math.random()*3);p.packs+=got;log(p.name+L(' robs an inmate (',' assalta um preso (')+rr.r+'/'+rr.sides+L(') — +',') — +')+got+L(' pk.',' mç.'),'warn');}else{const lost=Math.min(p.packs,1+Math.floor(Math.random()*3));p.packs-=lost;log(p.name+L(' botches a robbery (',' erra um assalto (')+rr.r+'/'+rr.sides+L(') — -',') — -')+lost+L(' pk.',' mç.'),'warn');} render(); finish(); }
 function aiPrisonDrugs(p){ const rr=prisonRoll(); if(rr.win){const cash=prisonBg(0.2,0.8),pk=4+Math.floor(Math.random()*5);p.cash+=cash;p.packs+=pk;log(p.name+L(' deals on the block (',' vende no pavilhão (')+rr.r+'/'+rr.sides+L(') — +',') — +')+fmtK(cash)+L(', +',', +')+pk+L(' pk.',' mç.'),'warn');}else{const lost=Math.min(p.packs,2+Math.floor(Math.random()*2));p.packs-=lost;log(p.name+L(' is shaken down in a search.',' é revistado numa batida.'),'warn');} render(); finish(); }
 function aiPrisonHit(p){ const rr=prisonRoll(); const cash=prisonBg(0.3,1.2),pk=5+Math.floor(Math.random()*6); p.packs+=pk; p.cash+=cash; p.kills=(p.kills||0)+1; if(!rr.win)p.sentence+=1; const m=prisonHitMethod(); log(p.name+L(' — prison hit: ',' — serviço na cadeia: ')+m+' ('+rr.r+'/'+rr.sides+', +'+pk+L(' pk, +',' mç, +')+fmtK(cash)+(rr.win?'':L(', +1y',', +1a'))+').','warn'); render(); finish(); }
@@ -6295,6 +6355,146 @@ function pdayVisit(){
     ${statusBar()}`;
   openModal(true);
 }
+/* ===== PRISON RACKETS =====
+   The street ring's economy, in packs. An inmate on a block costs `rate` packs, pays `rate`
+   packs every lap, and takes `rate` packs off any rival who lands there — the same one-year
+   payback the whole game is built on, just in the only currency that means anything inside. */
+function pbizStop(){
+  const p=S.players[S.cur], idx=p.pos, c=INNER[idx], rate=pbizRate(idx);
+  const owner=pbizOwner(idx);
+  if(owner && owner.id!==p.id){ pbizToll(p,owner,idx); return; }
+  if(p.ai){ aiPbiz(p,idx); return; }
+  const mine=pbizCount(p,idx), room=pbizRoom(p,idx);
+  const afford=Math.floor(p.packs/rate), max=Math.min(afford,room);
+  const el=document.getElementById("cardEl"); if(!el)return; el.dataset.deck="";
+  el.innerHTML=`<div class="lbl" style="background:${p.color}">${trCell(c.t).toUpperCase()}</div>
+    <div class="art">${c.ic}</div>
+    <div class="ttl">${mine?L("Your block","Seu pavilhão","Tu bloque"):L("Nobody runs this block","Ninguém manda neste pavilhão","Nadie manda en este bloque")}</div>
+    <div class="bd">${L("Put your people on it. Each one costs "+rate+" packs, brings you "+rate+" packs every year, and takes "+rate+" packs off any rival who lands here.","Coloque sua gente nele. Cada um custa "+rate+" maços, te rende "+rate+" maços por ano, e tira "+rate+" maços de qualquer rival que cair aqui.","Pon a tu gente en él. Cada uno cuesta "+rate+" paquetes, te da "+rate+" paquetes al año, y le quita "+rate+" paquetes a cualquier rival que caiga aquí.")}</div>
+    <div class="out">${L("You hold","Você tem","Tienes")}: ${mine} \u00b7 ${L("your packs","seus maços","tus paquetes")}: ${p.packs} \u00b7 ${L("room","espaço","espacio")}: ${room}</div>
+    <div class="go" style="flex-direction:column">
+      ${max>0?`<button class="amber" onclick="pbizPad(${idx})">${L("[ PUT PEOPLE ON \u00b7 up to ","[ COLOCAR GENTE \u00b7 até ","[ PONER GENTE \u00b7 hasta ")}${max} ]</button>`:`<span style="opacity:.5;font-size:12px">${room<1?L("this block is full","este pavilhão está cheio","este bloque está lleno"):L("not enough packs","maços insuficientes","no alcanzan los paquetes")}</span>`}
+      <button onclick="closeModal();finish()">${L("[ WALK ON ]","[ SEGUIR ]","[ SEGUIR ]")}</button>
+    </div>${statusBar()}`;
+  openModal();
+}
+function pbizPad(idx){
+  const p=S.players[S.cur], rate=pbizRate(idx);
+  qtyPad({ title:trCell(INNER[idx].t).toUpperCase(), unit:L("inmates","presos","presos"),
+    have:pbizCount(p,idx), per:rate, max:Math.min(Math.floor(p.packs/rate), pbizRoom(p,idx)),
+    held:pbizCount(p,idx), sellPer:rate,
+    note:L(rate+" packs each \u00b7 earns "+rate+" packs a year \u00b7 rivals landing here pay "+rate+" each",
+           rate+" maços cada \u00b7 rende "+rate+" maços por ano \u00b7 rival que cair aqui paga "+rate+" cada",
+           rate+" paquetes cada uno \u00b7 rinde "+rate+" al año \u00b7 el rival que caiga paga "+rate+" cada uno"),
+    apply:(n)=>{ n=Math.min(n,pbizRoom(p,idx),Math.floor(p.packs/rate)); if(n<1)return;
+      p.packs-=rate*n; p.pown.set(idx,pbizCount(p,idx)+n);
+      log(p.name+L(" puts "," coloca ")+n+L(" on "," em ")+trCell(INNER[idx].t)+" (-"+(rate*n)+" pk).","good"); render(); },
+    sell:(n)=>{ n=Math.min(n,pbizCount(p,idx)); if(n<1)return;
+      const left=pbizCount(p,idx)-n; if(left>0)p.pown.set(idx,left); else p.pown.delete(idx);
+      p.packs+=rate*n;
+      log(p.name+L(" pulls "," tira ")+n+L(" off "," de ")+trCell(INNER[idx].t)+" (+"+(rate*n)+" pk).","warn"); render(); },
+    done:()=>{ closeModal(); finish(); } });
+}
+/* Landing on someone else's block. Pay what it costs, or pay what you have and take the rest
+   out in the yard — nobody walks a block they cannot afford. */
+function pbizToll(p,owner,idx){
+  const rate=pbizRate(idx), n=pbizCount(owner,idx), owed=rate*n;
+  const paid=Math.min(owed,p.packs);
+  p.packs-=paid; owner.packs+=paid;
+  const short=owed-paid;
+  log(p.name+L(" pays "," paga ")+paid+L(" pk toll to "," mç de pedágio a ")+owner.name+L(" at "," em ")+trCell(INNER[idx].t)+(short?L(" \u2014 "+short+" short."," \u2014 faltaram "+short+"."):"."),short?"bad":"warn");
+  render();
+  const body=short
+    ? L(owner.name+"'s people run this block. The toll was "+owed+" packs and you had "+paid+". They took the difference out of you.",
+        "A gente de "+owner.name+" manda neste pavilhão. O pedágio era "+owed+" maços e você tinha "+paid+". Tiraram a diferença de você.",
+        "La gente de "+owner.name+" manda en este bloque. El peaje era "+owed+" paquetes y tenías "+paid+". Te cobraron la diferencia a golpes.")
+    : L(owner.name+"'s people run this block. "+owed+" packs to walk through, and you paid it.",
+        "A gente de "+owner.name+" manda neste pavilhão. "+owed+" maços pra passar, e você pagou.",
+        "La gente de "+owner.name+" manda en este bloque. "+owed+" paquetes para pasar, y pagaste.");
+  if(short){ hitNotice(L("TOLL","PEDÁGIO"),"ex",L("You came up short","Você ficou devendo","Te quedaste corto"),body,()=>toHospital(p,1,L("beaten over a toll","surra por pedágio","golpiza por un peaje"))); return; }
+  hitNotice(L("TOLL","PEDÁGIO"),"ex",L("You pay to pass","Você paga pra passar","Pagas para pasar"),body,()=>finish());
+}
+/* ===== THE SHOP — everything inside has a price ===== */
+function pshopCost(k){
+  if(k==="tunnel") return bgU(5.5);      // priced in bodyguards so it means the same on all 53 maps
+  return ({kill:60, phone:50, year:40, bg:30})[k]||0;
+}
+function pshopMenu(){
+  const p=S.players[S.cur];
+  const el=document.getElementById("cardEl"); if(!el)return; el.dataset.deck="";
+  const packCost=packPrice();
+  const inside=S.players.filter(o=>o.alive&&o.id!==p.id&&o.ring==="inner");
+  const row=(label,desc,btn)=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 2px;border-bottom:1px solid var(--phos-dim)"><span>${label}${desc?`<br><span style="opacity:.55;font-size:11px">${desc}</span>`:""}</span><span style="white-space:nowrap">${btn}</span></div>`;
+  const off=`<span style="opacity:.4">\u2014</span>`;
+  const B=(ok,fn,lbl,cls)=>ok?`<button class="${cls||''}" onclick="${fn}">${lbl}</button>`:off;
+  let rows="";
+  rows+=row(L("Packs","Maços","Paquetes"),L("protection on the block","proteção no pavilhão","protección en el bloque"),
+    B(p.cash>=packCost*5,"pshopPacks()",L("[ 5 \u00b7 ","[ 5 \u00b7 ")+fmtK(packCost*5)+" ]"));
+  rows+=row(L("A man on you","Um homem contigo","Un hombre contigo"),L("takes the next fight or shanking in your place \u2014 one at a time","leva a próxima briga ou facada no seu lugar \u2014 um por vez","recibe la próxima pelea o puñalada por ti \u2014 uno a la vez"),
+    p.pbg>0?`<span style="opacity:.7;font-size:11px">${L("you have one","você tem um","tienes uno")}</span>`:B(p.packs>=pshopCost("bg"),"pshopBG()","[ 30 pk ]","amber"));
+  rows+=row(L("Cellphone","Celular","Celular"),L("run the business from your bunk, any day \u2014 not just visits","toque o negócio do beliche, qualquer dia \u2014 não só na visita","maneja el negocio desde la litera, cualquier día \u2014 no solo en visitas"),
+    p.phone?`<span style="opacity:.7;font-size:11px">${L("you have one","você tem um","tienes uno")}</span>`:B(p.packs>=pshopCost("phone"),"pshopPhone()","[ 50 pk ]","amber"));
+  rows+=row(L("A year off the clock","Um ano a menos","Un año menos"),L("the paperwork moves","a papelada anda","el papeleo se mueve"),
+    B(p.packs>=pshopCost("year")&&p.sentence>1,"pshopYear()","[ 40 pk ]"));
+  rows+=row(L("Kill an inmate","Matar um preso","Matar a un preso"),L("a blade finds someone else's boss","uma faca encontra o chefe de outro","un fierro encuentra al jefe de otro"),
+    B(p.packs>=pshopCost("kill")&&inside.length,"pshopKillMenu()","[ 60 pk ]","red"));
+  rows+=row(L("Tunnel access","Acesso ao túnel","Acceso al túnel"),L("out tonight \u2014 but the law keeps every year you skipped, plus five","fora hoje \u2014 mas a lei guarda cada ano que você pulou, e mais cinco","fuera esta noche \u2014 pero la ley guarda cada año que saltaste, y cinco más"),
+    B(p.cash>=pshopCost("tunnel"),"pshopTunnel()",L("[ ","[ ")+fmtK(pshopCost("tunnel"))+" ]","red"));
+  el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('THE SHOP','A LOJA','LA TIENDA')}</div>
+    <div class="art">$</div><div class="ttl">${L('Everything has a price in here','Tudo tem preço aqui dentro','Aquí dentro todo tiene precio')}</div>
+    <div class="out">${L("Packs","Maços","Paquetes")}: ${p.packs} \u00b7 ${fmtK(p.cash)} \u00b7 ${p.sentence}${L("y left","a restantes","a restantes")}</div>
+    <div class="bd" style="text-align:left">${rows}</div>
+    <div class="go"><button class="amber" onclick="closeModal();finish()">${L('[ THAT\u2019S ALL ]','[ \u00c9 S\u00d3 ISSO ]','[ ES TODO ]')}</button></div>
+    ${statusBar()}`;
+  openModal(true);
+}
+function pshopPacks(){ const p=S.players[S.cur], c=packPrice()*5; if(p.cash<c)return; p.cash-=c; p.packs+=5;
+  log(p.name+L(" buys 5 packs at the shop (-"," compra 5 maços na loja (-")+fmtK(c)+").","good"); render(); pshopMenu(); }
+function pshopBG(){ const p=S.players[S.cur]; if(p.packs<pshopCost("bg")||p.pbg>0)return; p.packs-=pshopCost("bg"); p.pbg=1;
+  log(p.name+L(" puts a man on themselves (-30 pk)."," põe um homem do lado (-30 mç)."),"good"); render(); pshopMenu(); }
+function pshopPhone(){ const p=S.players[S.cur]; if(p.packs<pshopCost("phone")||p.phone)return; p.packs-=pshopCost("phone"); p.phone=true;
+  log(p.name+L(" gets a phone smuggled in (-50 pk)."," recebe um celular por dentro (-50 mç)."),"good"); render(); pshopMenu(); }
+function pshopYear(){ const p=S.players[S.cur]; if(p.packs<pshopCost("year")||p.sentence<=1)return; p.packs-=pshopCost("year"); p.sentence--;
+  log(p.name+L(" moves the paperwork (-40 pk) \u2014 sentence now "," mexe na papelada (-40 mç) \u2014 pena agora ")+p.sentence+L("y.","a."),"good"); render(); pshopMenu(); }
+function pshopKillMenu(){
+  const p=S.players[S.cur];
+  const inside=S.players.filter(o=>o.alive&&o.id!==p.id&&o.ring==="inner");
+  const el=document.getElementById("cardEl");
+  el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('A BLADE','UMA FACA','UN FIERRO')}</div>
+    <div class="ttl">${L("Who's it for?","Pra quem é?","¿Para quién es?")}</div>
+    <div class="bd">${L("60 packs and it is done tonight. Four times out of five it lands.","60 maços e sai hoje à noite. Quatro em cinco vezes acerta.","60 paquetes y sale esta noche. Cuatro de cada cinco veces acierta.")}</div>
+    <div class="go" style="flex-direction:column">
+      ${inside.map(o=>`<button class="red" onclick="pshopKill(${o.id})">[ ${o.name} \u00b7 ${3-o.hosp}/3 hp ]</button>`).join("")}
+      <button onclick="pshopMenu()">${L('[ \u2039 BACK ]','[ \u2039 VOLTAR ]','[ \u2039 ATR\u00c1S ]')}</button>
+    </div>${statusBar()}`;
+}
+function pshopKill(oid){
+  const p=S.players[S.cur], o=S.players[oid];
+  if(!o||!o.alive||p.packs<pshopCost("kill"))return;
+  p.packs-=pshopCost("kill"); closeModal(); render();
+  if(Math.random()<0.2){
+    log(p.name+L(" pays for a blade on "," paga uma faca em ")+o.name+L(" \u2014 it never lands."," \u2014 não acerta."),"warn");
+    hitNotice(L("THE BLADE","A FACA","EL FIERRO"),"x",L("Locked down too tight","Trancado demais","Encerrado demasiado"),
+      o.name+L(" was moved before your man could reach him. Packs gone, nothing done."," foi transferido antes do seu homem chegar. Maços perdidos, nada feito."," fue trasladado antes de que tu hombre llegara. Paquetes perdidos, nada hecho."),()=>finish());
+    return;
+  }
+  o.hosp++; o.cleanLaps=0; p.kills=(p.kills||0)+1; SFX.ambulance();
+  log(p.name+L("'s blade finds "," \u2014 a faca acha ")+o.name+L(" \u2014 HOSPITAL ("," \u2014 HOSPITAL (")+o.hosp+"/3).","bad");
+  if(o.hosp>=3){ o._deathCause=L("Shanked on a paid contract inside","Esfaqueado por encomenda lá dentro","Acuchillado por encargo adentro"); render(); killPlayer(o,p); return; }
+  hitNotice(L("THE BLADE","A FACA","EL FIERRO"),"x",L("It lands","Acertou","Acertó"),
+    o.name+L(" caught it in the yard \u2014 paid for by you, carried out by someone with nothing to lose. Visit "," levou no pátio \u2014 pago por você, feito por quem não tem nada a perder. Visita "," lo agarraron en el patio \u2014 pagado por ti, hecho por alguien sin nada que perder. Visita ")+o.hosp+"/3.",()=>finish());
+}
+function pshopTunnel(){
+  const p=S.players[S.cur], c=pshopCost("tunnel");
+  if(p.cash<c)return;
+  p.cash-=c;
+  p._escapedYears=(p._escapedYears||0)+Math.max(0,p.sentence)+5; p.sentence=0;
+  log(p.name+L(" buys the tunnel (-"," compra o túnel (-")+fmtK(c)+L(") and is gone. The law still wants the ",") e some. A lei ainda quer os ")+p._escapedYears+L("y skipped.","a pulados."),"good");
+  closeModal(); render(); releaseFromPrison(p);
+}
+/* The phone is the visit day, any day. pdayVisit() already carries hire, sell, execute and
+   attack, and gates them on _visitDay — so the phone simply opens it. */
+function pdayPhone(){ pdayVisit(); }
 /* A Ghost's visit: the lawyer takes an order for bodyguards, within what it can spare. */
 function aiVisitDay(p){
   const want=Math.min(3, Math.floor(Math.max(0,p.cash-SOLDIER_COST*2)/SOLDIER_COST));
