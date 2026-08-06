@@ -890,7 +890,7 @@ const ROLE_ES={"Crooked Sergeant":"Sargento Corrupto","Crooked Detective":"Detec
 const ES_STATIC={"NEW YORK CITY":"NUEVA YORK","PLAYERS — tap for record":"JUGADORES — toca para la ficha","DICE":"DADOS","ACTIONS":"ACCIONES","CONSOLE — this round":"CONSOLA — esta ronda","PLAYER ON TURN":"JUGADOR EN TURNO","OTHER PLAYERS — tap for record":"OTROS JUGADORES — toca para la ficha","[ MANUAL ]":"[ MANUAL ]","[reset]":"[reiniciar]","[ FOLLOW: OFF ]":"[ SEGUIR: NO ]","[ FOLLOW: ON ]":"[ SEGUIR: SÍ ]","[ AUTO: OFF ]":"[ AUTO: NO ]","[ AUTO: ON ]":"[ AUTO: SÍ ]","tap die to roll":"toca el dado para tirar","roll to move":"tira para avanzar","landed":"cayó"};
 const POLICE_LABELS_ES={0.25:"MUY BAJA",0.5:"BAJA",1:"REALISTA",3:"DIFÍCIL",4:"BRASILEÑA"};
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v33.2";
+const APP_VERSION="v33.3";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -2494,6 +2494,7 @@ function newPlayer(i,name,pattern){return{id:i,name:name||("P"+(i+1)),color:"#33
   cash:100,crew:0,packs:0,alive:true,respawns:0,hosp:0,cleanLaps:0,
   inJail:false,sentence:0,owns:new Map(),skip:0,freeArrest:0,freeRaid:0,
   pown:new Map(),pbg:0,phone:false,          /* blocks held inside, the man on you, the phone */
+  crewAt:new Map(),_wagesYr:0,               /* which corner each bodyguard was hired on */
   crimes:[],network:[],stayCount:0,age:15,crimeOps:1,yearsServed:0,heat:0,dirty:0,nwHist:[],soldierKills:0,bossKills:0,kills:0};}
 
 /* ===== GLOBAL PLAYER COUNTER: every person who starts a game, counted worldwide.
@@ -3393,7 +3394,7 @@ function clearSaveCareer(){ try{localStorage.removeItem(SAVE_KEY_CAREER);}catch(
 }catch(e){} })();
 function snapshot(){
   return {turn:S.turn,cur:S.cur,n:S.n,ai:S.ai,baseDice:S.baseDice,diff:S.diff,police:S.police,city:S.city,startYear:S.startYear,career:(S.career||null),
-    players:S.players.map(p=>{const o={...p};o.owns=Array.from(p.owns.entries());o.pown=Array.from((p.pown||new Map()).entries());o._fresh=Array.from((p._fresh||new Map()).entries());delete o.auto;return o;})};
+    players:S.players.map(p=>{const o={...p};o.owns=Array.from(p.owns.entries());o.pown=Array.from((p.pown||new Map()).entries());o.crewAt=Array.from((p.crewAt||new Map()).entries());o._fresh=Array.from((p._fresh||new Map()).entries());delete o.auto;return o;})};
 }
 function saveGame(){ if(!S||S.over)return; try{const snap=snapshot(); localStorage.setItem(saveSlotFor(snap),JSON.stringify(snap));}catch(e){} }
 function clearSave(){ try{localStorage.removeItem(saveSlotFor(typeof S!=="undefined"&&S?S:null));}catch(e){} }   // only the slot of the game in play
@@ -3402,7 +3403,7 @@ function loadFromSnapshot(sv,note){
   if(!sv||!sv.players||!sv.players.length) return false;
   const _cityKey=sv.city||"NY"; applyCity(_cityKey);
   S={turn:sv.turn||1,cur:sv.cur||0,n:sv.n||sv.players.length,rolled:false,over:false,ai:sv.ai,roundEvents:[],baseDice:({1:6,2:8,3:10}[sv.baseDice]||sv.baseDice||6),diff:sv.diff,police:(sv.police!=null?sv.police:1),city:_cityKey,law:(CITIES[_cityKey]||CITIES.NY).law,startYear:(sv.startYear||1987),career:(sv.career||null),followAnim:true};
-  S.players=sv.players.map((sp,i)=>{const pl=newPlayer(i,sp.name,sp.pattern);Object.assign(pl,sp);pl.owns=new Map(sp.owns||[]);pl.pown=new Map(sp.pown||[]);pl._fresh=new Map(sp._fresh||[]);pl._steps=sp._steps||0;pl.auto=false;return pl;});
+  S.players=sv.players.map((sp,i)=>{const pl=newPlayer(i,sp.name,sp.pattern);Object.assign(pl,sp);pl.owns=new Map(sp.owns||[]);pl.pown=new Map(sp.pown||[]);pl.crewAt=new Map(sp.crewAt||[]);pl._fresh=new Map(sp._fresh||[]);pl._steps=sp._steps||0;pl.auto=false;return pl;});
   if(S.cur>=S.players.length)S.cur=0;
   /* a save written before the cap existed can hold stacks above it — bring them down on load,
      otherwise an old game keeps earning on numbers the game no longer allows anyone to reach */
@@ -4500,11 +4501,51 @@ function offerBail(){
 }
 function payBail(bail){const p=S.players[S.cur];p.cash-=bail;p.inJail=false;p._pendingYears=null;log(p.name+L(" posts bail ("," paga fiança (")+fmtK(bail)+L(") and walks free — no court.",") e sai livre — sem tribunal."),"good");closeModal();render();finish();}
 function faceCourt(){const p=S.players[S.cur];p.inJail=false;closeModal();drawCourt();}
+/* ===== BODYGUARDS ARE PAID WHERE THEY WERE HIRED =====
+   Wages used to be one lump at START for the whole crew. They are now stamped to the cell the
+   hire happened on and fall due when their boss comes back past it, a year later — and never
+   while he is inside, because the prison ring has no cells of his to pass.
+   p.crew stays the single source of truth for how many men there are; this map only records
+   where they were taken on, and crewSync() reconciles it after any loss anywhere in the game. */
+function crewSync(p){
+  if(!p) return;
+  if(!(p.crewAt instanceof Map)) p.crewAt=new Map(p.crewAt||[]);
+  let tot=0; p.crewAt.forEach(n=>tot+=n);
+  if(tot>p.crew){                       // men were lost somewhere — take them off the books
+    let over=tot-p.crew;
+    [...p.crewAt.entries()].sort((a,b)=>b[1]-a[1]).forEach(([idx,n])=>{
+      if(over<=0) return;
+      const cut=Math.min(n,over); over-=cut;
+      if(n-cut>0) p.crewAt.set(idx,n-cut); else p.crewAt.delete(idx);
+    });
+  } else if(tot<p.crew){                // newly hired — stamp them where their boss stands
+    const idx=(p.ring==="outer")?p.pos:JAIL_POS;
+    p.crewAt.set(idx,(p.crewAt.get(idx)||0)+(p.crew-tot));
+  }
+}
+function payCrewAt(p,idx){
+  const n=(p.crewAt&&p.crewAt.get(idx))||0; if(n<=0) return;
+  const due=n*SOLDIER_WAGE, at=(OUTER[idx]&&OUTER[idx].t)||"";
+  const plural=(k)=>((k>1&&LANG!=='PT')?"s":"");
+  if(p.cash>=due){
+    p.cash-=due; p._wagesYr=(p._wagesYr||0)+due;
+    log(p.name+L(" pays "," paga ")+n+L(" bodyguard"," guarda-costas")+plural(n)+L(" at "," em ")+at+": "+fmtK(due)+".","warn");
+    return;
+  }
+  const afford=Math.max(0,Math.floor(Math.max(0,p.cash)/SOLDIER_WAGE));
+  const paid=afford*SOLDIER_WAGE; p.cash-=paid; if(p.cash<0)p.cash=0; p._wagesYr=(p._wagesYr||0)+paid;
+  const lost=n-afford;
+  p.crew=Math.max(0,p.crew-lost);
+  if(afford>0) p.crewAt.set(idx,afford); else p.crewAt.delete(idx);
+  log(p.name+L(" can't pay "," não paga ")+lost+L(" bodyguard"," guarda-costas")+plural(lost)+L(" at "," em ")+at+L(" — they walk off."," — eles vão embora."),"bad");
+}
 function stepMove(p,left){
   if(PAUSED){ if(S)S._resume=()=>stepMove(p,left); return; }   // menu is open — freeze mid-move
   if(left<=0){arriveCell(p);return;}
   const ring=p.ring;const len=ring==="inner"?INNER.length:OUTER.length;
+  if(ring==="outer") crewSync(p);      // reconcile the ledger before anything falls due
   p.pos=(p.pos+1)%len;p._steps=(p._steps||0)+1;SFX.step();
+  if(ring==="outer") payCrewAt(p,p.pos);   // his men on this corner draw their year here
   // passing OVER one of your own businesses = you've lapped it (a year) → collect its profit
   if(ring==="outer" && left>1 && p.owns.has(p.pos)) collectOne(p,p.pos);
   if(ring==="inner"&&p.pos===0){p.sentence-=1;p.age++;p.yearsServed=(p.yearsServed||0)+1;
@@ -4518,15 +4559,9 @@ function stepMove(p,left){
     /* ONLY BODYGUARDS ARE ON THE PAYROLL. They fight and earn nothing, so they cost every year.
        Soldiers on a street and workers in a business are bought once and pay for themselves —
        they bring the money in, so they are square already and are never charged again. */
-    {const _payroll=p.crew;
-     if(_payroll>0){
-       const _afford=Math.max(0,Math.floor(Math.max(0,p.cash)/SOLDIER_WAGE));
-       if(_afford>=_payroll){ _wages=_payroll*SOLDIER_WAGE; p.cash-=_wages;
-         log(p.name+L(" pays bodyguard wages: "," paga salário dos guarda-costas: ")+fmtK(_wages)+" ("+_payroll+" × "+fmtK(SOLDIER_WAGE)+L("/yr).","/ano)."),"warn"); }
-       else { _wages=_afford*SOLDIER_WAGE; p.cash-=_wages; if(p.cash<0)p.cash=0;
-         const _lost=_payroll-_afford; p.crew=Math.max(0,p.crew-_lost);   // only bodyguards walk — turf and shops are untouched
-         log(p.name+L(" can't make payroll — "," não paga o salário — ")+_lost+L(" bodyguard"," guarda-costas")+((_lost>1&&LANG!=='PT')?"s":"")+L(" walk off."," vão embora."),"bad"); }
-     }}
+    /* Wages are no longer a lump taken at START. Each bodyguard is paid at the cell he was
+       hired on, as you come back past it — see payCrewAt(). This only reports the total. */
+    _wages=Math.round(p._wagesYr||0); p._wagesYr=0;
     if((p.dirty||0)>0&&p.cash>0){
       const base=Math.min(p.dirty,p.cash);
       _ownML=p.owns.has(ML_POS);const rate=_ownML?0.10:0.30;
