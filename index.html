@@ -890,7 +890,7 @@ const ROLE_ES={"Crooked Sergeant":"Sargento Corrupto","Crooked Detective":"Detec
 const ES_STATIC={"NEW YORK CITY":"NUEVA YORK","PLAYERS — tap for record":"JUGADORES — toca para la ficha","DICE":"DADOS","ACTIONS":"ACCIONES","CONSOLE — this round":"CONSOLA — esta ronda","PLAYER ON TURN":"JUGADOR EN TURNO","OTHER PLAYERS — tap for record":"OTROS JUGADORES — toca para la ficha","[ MANUAL ]":"[ MANUAL ]","[reset]":"[reiniciar]","[ FOLLOW: OFF ]":"[ SEGUIR: NO ]","[ FOLLOW: ON ]":"[ SEGUIR: SÍ ]","[ AUTO: OFF ]":"[ AUTO: NO ]","[ AUTO: ON ]":"[ AUTO: SÍ ]","tap die to roll":"toca el dado para tirar","roll to move":"tira para avanzar","landed":"cayó"};
 const POLICE_LABELS_ES={0.25:"MUY BAJA",0.5:"BAJA",1:"REALISTA",3:"DIFÍCIL",4:"BRASILEÑA"};
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v32.6";
+const APP_VERSION="v32.7";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -5439,7 +5439,8 @@ function hitNotice(lbl,art,ttl,bd,then){ const p=S.players[S.cur]; if(p&&p.ai){ 
 function hitmanStop(){
   const p=S.players[S.cur];
   const rivals=S.players.filter(o=>o.alive&&o.id!==p.id);
-  if(p.ai||!rivals.length||!rivals.some(o=>p.cash>=hitCost(o))){ drawStory("hitman"); return; }
+  if(p.ai){ if(aiHitHere(p)) return; drawStory("hitman"); return; }   // the Ghost's only way to buy one
+  if(!rivals.length||!rivals.some(o=>p.cash>=hitCost(o))){ drawStory("hitman"); return; }
   const el=document.getElementById("cardEl");
   el.dataset.deck="hitman";
   el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('HITMAN','MATADOR')}</div>
@@ -5897,7 +5898,11 @@ function fileSentence(p){
 function copStop(){
   const p=S.players[S.cur];
   const cost=copCardPrice();   // the price of a get-out-of-prison card
-  if(p.ai){ if(p.freeArrest<1 && p.cash>=cost*3){p.cash-=cost;p.freeArrest=(p.freeArrest||0)+1;log(p.name+L(" buys a card from a crooked cop — one arrest goes away."," compra uma carta de um policial corrupto — uma prisão some."),"warn");render();finish();} else drawStory("cop"); return; }
+  if(p.ai){
+    if(p.freeArrest<1 && p.cash>=cost*3){p.cash-=cost;p.freeArrest=(p.freeArrest||0)+1;log(p.name+L(" buys a card from a crooked cop — one arrest goes away."," compra uma carta de um policial corrupto — uma prisão some."),"warn");render();finish();return;}
+    if(aiHitHere(p)) return;                       // the other thing this detective sells
+    drawStory("cop"); return;
+  }
   const rivals=S.players.filter(o=>o.alive&&o.id!==p.id);
   const canPayoff = netWorth(p)>=cost;         // cash or not — he'll take it out of what you own
   const canHit    = rivals.length>0 && rivals.some(o=>p.cash>=hitCost(o));
@@ -6900,7 +6905,6 @@ function rollDiceAI(){
     if(!S||S.over||S.rolled) return;
     const pp=S.players[S.cur]; if(!pp||!pp.ai) return;
     if(aiMaybeExecute(pp)) return;                 // rich enough to buy a boss outright — that IS its turn
-    if(aiMaybeHit(pp)) return;                     // rich hostile AI puts paper on a rival — that IS its turn
     if(aiMaybeCrime(pp)) return;                   // free score before the roll — the turn resumes after the card
     const tgt=aiAttackTarget(pp);
     if(tgt){                                       // an aggressive AI hits a rival instead of moving — attacking IS its turn
@@ -7002,20 +7006,25 @@ function aiMaybeExecute(p){
   });
   return true;
 }
-/* A rich, hostile Ghost buys a contract instead of working the street. Prefers finishing a
-   boss who's already at 2/3 hospital visits; otherwise goes after the richest rival. */
-function aiMaybeHit(p){
-  if(p.ring!=="outer"||p.inJail) return false;
-  if(p.cash < HIT_COST) return false;               // too broke to even consider it
-  const pr=aiProf(p);
-  if(Math.random() >= pr.atkProb*0.35) return false;
+/* ===== A GHOST BUYS A CONTRACT — ONLY WHERE YOU CAN =====
+   This used to run at the top of every AI turn, from anywhere on the board: an AGGRESSIVE
+   Ghost rolled 0.60 x 0.35 = a 21% chance to put paper on the richest rival EVERY TURN, while
+   a player had to land on the HITMAN or CROOKED COP space to get the same option. Three
+   hostile Ghosts could therefore aim several contracts a year at whoever was ahead — usually
+   the human — and the first year could kill you before you ever saw the choice yourself.
+   It is now called from those two spaces and nowhere else, so both sides need the same square.
+   The probability is the raw temperament: given the chance, an aggressive Ghost usually takes
+   it, a passive one almost never does. Prefers finishing a boss already at 2/3 hospital
+   visits; otherwise goes after the richest rival. */
+function aiHitHere(p){
+  if(!p||!p.ai||p.ring!=="outer"||p.inJail||!p.alive||S.over) return false;
   const rivals=S.players.filter(o=>o.alive&&o.id!==p.id);
   if(!rivals.length) return false;
   const tgt=rivals.find(o=>o.hosp===2) || rivals.slice().sort((a,b)=>netWorth(b)-netWorth(a))[0];
   if(p.cash < Math.round(hitCost(tgt)*1.3)) return false;   // keep a reserve after paying
-  S.rolled=true;                                   // the hit is the move for this round
+  if(Math.random() >= aiProf(p).atkProb) return false;      // temperament decides, as before
   log(p.name+L(" puts paper on "," põe a cabeça de ")+tgt.name+L("."," a prêmio."),"warn");
-  orderHit(tgt.id);
+  orderHit(tgt.id);                                        // every branch of it ends the turn
   return true;
 }
 /* Ghosts also go looking for scores like humans do — a free crime before the roll,
