@@ -890,7 +890,7 @@ const ROLE_ES={"Crooked Sergeant":"Sargento Corrupto","Crooked Detective":"Detec
 const ES_STATIC={"NEW YORK CITY":"NUEVA YORK","PLAYERS — tap for record":"JUGADORES — toca para la ficha","DICE":"DADOS","ACTIONS":"ACCIONES","CONSOLE — this round":"CONSOLA — esta ronda","PLAYER ON TURN":"JUGADOR EN TURNO","OTHER PLAYERS — tap for record":"OTROS JUGADORES — toca para la ficha","[ MANUAL ]":"[ MANUAL ]","[reset]":"[reiniciar]","[ FOLLOW: OFF ]":"[ SEGUIR: NO ]","[ FOLLOW: ON ]":"[ SEGUIR: SÍ ]","[ AUTO: OFF ]":"[ AUTO: NO ]","[ AUTO: ON ]":"[ AUTO: SÍ ]","tap die to roll":"toca el dado para tirar","roll to move":"tira para avanzar","landed":"cayó"};
 const POLICE_LABELS_ES={0.25:"MUY BAJA",0.5:"BAJA",1:"REALISTA",3:"DIFÍCIL",4:"BRASILEÑA"};
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v33.1";
+const APP_VERSION="v33.2";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -5335,14 +5335,19 @@ function qtyPad(cfg){
   const buyMax=Math.max(0,Math.floor(cfg.max||0));
   const held=Math.max(0,Math.floor(cfg.held||0));
   const canSell=!!cfg.sell && held>0 && (cfg.sellPer||0)>0;
-  _qp={ ...cfg, val:(cfg.start?String(cfg.start):""), buyMax, held, canSell,
-        max:Math.max(buyMax, canSell?held:0) };
   const p=S.players[S.cur]; const el=document.getElementById("cardEl"); if(!el)return; el.dataset.deck="";
+  /* Inside, everything is bought in cigarette packs. Showing a dollar figure on a pack purchase
+     was simply wrong — the number was right, the currency printed beside it was not. The pad
+     now carries its own formatter and its own purse, so a pack screen never says $ anywhere. */
+  const pk=!!cfg.pk;
+  const _f = pk ? (v=>Math.round(v)+" "+L("pk","mç","pq")) : fmtK;
+  _qp={ ...cfg, val:(cfg.start?String(cfg.start):""), buyMax, held, canSell, pk, fmt:_f,
+        max:Math.max(buyMax, canSell?held:0) };
   el.innerHTML=`<div class="lbl">${cfg.title}</div>
     ${cfg.sub?`<div style="font-size:12px;opacity:.8;font-style:italic;margin:6px 2px 0;line-height:1.4">${cfg.sub}</div>`:''}
     ${cfg.note?`<div style="font-size:12px;opacity:.82;margin:8px 2px 0;line-height:1.45">${cfg.note}</div>`:''}
     <div style="font-size:14px;color:#eaffef;margin:10px 0 2px">${cfg.unit} · ${L("you have","você tem")} ${cfg.have||0}</div>
-    <div style="font-size:12px;opacity:.7;margin-bottom:8px">${fmtK(per)} ${L("each","cada")} · ${fmtK(p.cash)} ${L("cash","em caixa")} · ${L("hire up to","contrate até","contrata hasta")} ${buyMax}${canSell?` · ${L("sell up to","venda até","vende hasta")} ${held} @ ${fmtK(cfg.sellPer)}`:''}</div>
+    <div style="font-size:12px;opacity:.7;margin-bottom:8px">${_f(per)} ${L("each","cada")} · ${_f(pk?p.packs:p.cash)} ${pk?L("on you","com você","contigo"):L("cash","em caixa")} · ${L("hire up to","contrate até","contrata hasta")} ${buyMax}${canSell?` · ${L("sell up to","venda até","vende hasta")} ${held} @ ${_f(cfg.sellPer)}`:''}</div>
     <div class="out qdisp"><span id="qval">0</span></div>
     <div class="qcalc"><span class="qtot" id="qtot"></span><span id="qleft" style="opacity:.7"></span></div>
     <div class="qkrow">
@@ -5365,10 +5370,11 @@ function qpUpdate(){
   const bn=qpBuyN(), sn=qpSellN(), tot=per*bn, sval=Math.round((_qp.sellPer||0)*sn);
   const set=(id,t)=>{const e=document.getElementById(id);if(e)e.textContent=t;};
   set("qval", n);
-  set("qtot", `${bn} × ${fmtK(per)} = ${fmtK(tot)}`);
-  set("qleft", L("cash left: ","sobra: ")+fmtK(Math.max(0,p.cash-tot)));
-  set("qbuy", bn>0?`[ ${L("BUY","COMPRAR")} ${bn} · ${fmtK(tot)} ]`:L("[ BUY · none ]","[ COMPRAR · nada ]"));
-  if(_qp.canSell) set("qsell", sn>0?`[ ${L("SELL","VENDER","VENDER")} ${sn} · +${fmtK(sval)} ]`:L("[ SELL · none ]","[ VENDER · nada ]","[ VENDER · nada ]"));
+  const F=_qp.fmt||fmtK, purse=_qp.pk?p.packs:p.cash;
+  set("qtot", `${bn} × ${F(per)} = ${F(tot)}`);
+  set("qleft", (_qp.pk?L("packs left: ","maços restantes: ","paquetes: "):L("cash left: ","sobra: "))+F(Math.max(0,purse-tot)));
+  set("qbuy", bn>0?`[ ${L("BUY","COMPRAR")} ${bn} · ${F(tot)} ]`:L("[ BUY · none ]","[ COMPRAR · nada ]"));
+  if(_qp.canSell) set("qsell", sn>0?`[ ${L("SELL","VENDER","VENDER")} ${sn} · +${F(sval)} ]`:L("[ SELL · none ]","[ VENDER · nada ]","[ VENDER · nada ]"));
 }
 function qpKey(d){ if(!_qp)return; if((_qp.val+d).length<=7)_qp.val=(_qp.val==="0"?"":_qp.val)+d; qpUpdate(); }
 function qpDel(){ if(!_qp)return; _qp.val=_qp.val.slice(0,-1); qpUpdate(); }
@@ -6430,7 +6436,7 @@ function pbizStop(){
 }
 function pbizPad(idx){
   const p=S.players[S.cur], rate=pbizRate(idx);
-  qtyPad({ title:trCell(INNER[idx].t).toUpperCase(), unit:L("inmates","presos","presos"),
+  qtyPad({ pk:true, title:trCell(INNER[idx].t).toUpperCase(), unit:L("inmates","presos","presos"),
     have:pbizCount(p,idx), per:rate, max:Math.min(Math.floor(p.packs/rate), pbizRoom(p,idx)),
     held:pbizCount(p,idx), sellPer:rate,
     note:L(rate+" packs each \u00b7 earns "+rate+" packs a year \u00b7 rivals landing here pay "+rate+" each",
