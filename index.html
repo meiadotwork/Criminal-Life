@@ -890,7 +890,7 @@ const ROLE_ES={"Crooked Sergeant":"Sargento Corrupto","Crooked Detective":"Detec
 const ES_STATIC={"NEW YORK CITY":"NUEVA YORK","PLAYERS — tap for record":"JUGADORES — toca para la ficha","DICE":"DADOS","ACTIONS":"ACCIONES","CONSOLE — this round":"CONSOLA — esta ronda","PLAYER ON TURN":"JUGADOR EN TURNO","OTHER PLAYERS — tap for record":"OTROS JUGADORES — toca para la ficha","[ MANUAL ]":"[ MANUAL ]","[reset]":"[reiniciar]","[ FOLLOW: OFF ]":"[ SEGUIR: NO ]","[ FOLLOW: ON ]":"[ SEGUIR: SÍ ]","[ AUTO: OFF ]":"[ AUTO: NO ]","[ AUTO: ON ]":"[ AUTO: SÍ ]","tap die to roll":"toca el dado para tirar","roll to move":"tira para avanzar","landed":"cayó"};
 const POLICE_LABELS_ES={0.25:"MUY BAJA",0.5:"BAJA",1:"REALISTA",3:"DIFÍCIL",4:"BRASILEÑA"};
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v33.0";
+const APP_VERSION="v33.1";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -1282,6 +1282,7 @@ function capScaled(v){ return Math.max(1, Math.round((v||0)*UNIT_CAP/100)); }
    one carries a plain one-line definition — what the crime is, then what you actually do —
    in all three languages. Keyed by the same name string the board cell uses. ===== */
 const BIZ_DESC={
+ "tramadol":["Tramadol. A prescription opioid sold by the strip, far outside any pharmacy.","Tramadol. Opioide de farmácia vendido em cartela, bem longe de qualquer balcão.","Tramadol. Opioide de receta vendido por tiras, muy lejos de cualquier farmacia."],
  "defensivo agrícola":["Stolen farm chemicals. Pesticide lifted from silos and sheds, resold to growers off the books.","Defensivo agrícola roubado. Veneno levado de silos e barracões, revendido a produtores por fora.","Agroquímicos robados. Pesticida sacado de silos y galpones, revendido a productores por fuera."],
  "pasta base":["Coca paste. The unrefined stage before it becomes cocaine.","Pasta base. O estágio bruto antes de virar cocaína.","Pasta base. La etapa sin refinar antes de volverse cocaína."],
  "gado roubado":["Cattle rustling. Herds lifted off farms and sold through crooked slaughterhouses.","Gado roubado. Rebanhos levados de fazendas e vendidos por frigoríficos de fachada.","Ganado robado. Rebaños sacados de estancias y vendidos por frigoríficos de fachada."],
@@ -1506,6 +1507,7 @@ function applyCity(key){
   SOLDIER_WAGE = SOLDIER_COST;
   const _pk=OUTER.find(c=>c.k==="poker"); if(_pk)_pk.price=Math.max(1,Math.round(5*SOLDIER_COST*(city.econ||1)));   // THE WHEEL: 5 bodyguards per dealer
   TREAT_COST = Math.round(0.5*SOLDIER_COST);                                  // hospital treatment fee = 0.5 bodyguard
+  applyPrisonDrugs(city.region||"US");    // the blocks inside sell what this country sells
   // per-region card decks: R$ cities (SP/RIO/CWB) pull the Brazilian set on top of the base
   buildActiveDecks(city.region||"US");
 }
@@ -1540,6 +1542,54 @@ const INNER = [
   {t:"drug 3",ic:"d3",k:"pbiz",rate:12},
   {t:"prison fight",ic:"vs",k:"pfight"},
 ];
+/* ===== WHAT THEY SELL ON THE BLOCK =====
+   The three prison drug cells are the three most popular drugs in that country, in that
+   country's own words, ordered most common first — so the cheapest block is the one everybody
+   is on and the dearest is the one worth fighting over. Keyed by country, not city, because
+   that is what the question actually is. Every name here already carries a description in all
+   three languages, so landing on a block always explains itself. */
+const PDRUGS={
+  BR:[["maconha","wd"],["crack","ck"],["cocaína","co"]],
+  PY:[["prensado","pr"],["crack","ck"],["cocaína","co"]],
+  AR:[["marihuana","wd"],["paco","pc"],["cocaína","co"]],
+  CO:[["marihuana","wd"],["base de coca","pb"],["cocaína","co"]],
+  EC:[["marihuana","wd"],["base de coca","pb"],["cocaína","co"]],
+  SV:[["marihuana","wd"],["crack","ck"],["cocaína","co"]],
+  MX:[["mota","wd"],["cristal","mt"],["cocaína","co"]],
+  US:[["meth","mt"],["fentanyl","fn"],["cocaine","co"]],
+  UK:[["cannabis","wd"],["heroin","he"],["cocaine","co"]],
+  RU:[["cannabis","wd"],["meth","mt"],["heroin","he"]],
+  JP:[["cannabis","wd"],["cocaine","co"],["shabu","mt"]],
+  HK:[["ketamine","kt"],["heroin","he"],["ice","mt"]],
+  CN:[["ketamine","kt"],["heroin","he"],["ice","mt"]],
+  TW:[["ketamine","kt"],["heroin","he"],["ice","mt"]],
+  MO:[["ketamine","kt"],["heroin","he"],["ice","mt"]],
+  KR:[["cannabis","wd"],["ketamine","kt"],["philopon","mt"]],
+  TR:[["hashish","hs"],["meth","mt"],["eroin","he"]],
+  IR:[["opium","op"],["heroin","he"],["shisheh","mt"]],
+  IQ:[["hashish","hs"],["heroin","he"],["captagon","cp"]],
+  AF:[["hashish","hs"],["opium","op"],["heroin","he"]],
+  LB:[["hashish","hs"],["cocaine","co"],["captagon","cp"]],
+  AE:[["hashish","hs"],["cocaine","co"],["captagon","cp"]],
+  MA:[["hashish","hs"],["pills","pl"],["cocaine","co"]],
+  NG:[["cannabis","wd"],["tramadol","tr"],["cocaine","co"]],
+  KE:[["khat","kh"],["cannabis","wd"],["heroin","he"]],
+  ZA:[["nyaope","ny"],["cannabis","wd"],["tik","tk"]],
+  AU:[["cannabis","wd"],["cocaine","co"],["ice","mt"]],
+  NZ:[["cannabis","wd"],["cocaine","co"],["meth","mt"]],
+  RO:[["cannabis","wd"],["heroină","he"],["cocaină","co"]],
+  IT:[["hashish","hs"],["eroina","he"],["cocaina","co"]],
+  FR:[["shit","hs"],["crack","ck"],["cocaïne","co"]],
+  NL:[["hennep","wd"],["XTC-labs","xt"],["cocaïne","co"]],
+  BE:[["hennep","wd"],["XTC-labs","xt"],["cocaïne","co"]],
+  DE:[["Haschisch","hs"],["meth","mt"],["Kokain","co"]],
+};
+/* The three drug cells, cheapest block first. Index 2 is extortion and never changes. */
+const PDRUG_CELLS=[10,6,14];
+function applyPrisonDrugs(region){
+  const d=PDRUGS[region]||PDRUGS.US;
+  PDRUG_CELLS.forEach((idx,i)=>{ const c=INNER[idx]; if(!c||!d[i])return; c.t=d[i][0]; c.ic=d[i][1]; });
+}
 const PBIZ_CAP=10;              // no block holds more than ten of your people
 function pbizRate(idx){ const c=INNER[idx]; return (c&&c.rate)||8; }
 function pbizOwner(idx){ return S.players.find(p=>p.pown&&p.pown.get(idx)>0)||null; }
