@@ -2,7 +2,7 @@
    so updates flow normally but the game boots fully offline once visited. */
 /* Bumped on every release so a new deploy purges the old one automatically — the activate
    handler below deletes any cache whose name isn't this, so nobody is left on a stale build. */
-const CACHE = "ct-v33.7";
+const CACHE = "ct-v33.8";
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(["./", "./index.html"])).then(() => self.skipWaiting()));
 });
