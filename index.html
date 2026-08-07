@@ -890,7 +890,7 @@ const ROLE_ES={"Crooked Sergeant":"Sargento Corrupto","Crooked Detective":"Detec
 const ES_STATIC={"NEW YORK CITY":"NUEVA YORK","PLAYERS — tap for record":"JUGADORES — toca para la ficha","DICE":"DADOS","ACTIONS":"ACCIONES","CONSOLE — this round":"CONSOLA — esta ronda","PLAYER ON TURN":"JUGADOR EN TURNO","OTHER PLAYERS — tap for record":"OTROS JUGADORES — toca para la ficha","[ MANUAL ]":"[ MANUAL ]","[reset]":"[reiniciar]","[ FOLLOW: OFF ]":"[ SEGUIR: NO ]","[ FOLLOW: ON ]":"[ SEGUIR: SÍ ]","[ AUTO: OFF ]":"[ AUTO: NO ]","[ AUTO: ON ]":"[ AUTO: SÍ ]","tap die to roll":"toca el dado para tirar","roll to move":"tira para avanzar","landed":"cayó"};
 const POLICE_LABELS_ES={0.25:"MUY BAJA",0.5:"BAJA",1:"REALISTA",3:"DIFÍCIL",4:"BRASILEÑA"};
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v33.3";
+const APP_VERSION="v33.4";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -4507,6 +4507,14 @@ function faceCourt(){const p=S.players[S.cur];p.inJail=false;closeModal();drawCo
    while he is inside, because the prison ring has no cells of his to pass.
    p.crew stays the single source of truth for how many men there are; this map only records
    where they were taken on, and crewSync() reconciles it after any loss anywhere in the game. */
+function crewHire(p,n){
+  n=Math.max(0,Math.round(n||0)); if(n<1) return 0;
+  p.crew+=n;
+  if(!(p.crewAt instanceof Map)) p.crewAt=new Map(p.crewAt||[]);
+  const idx=(p.ring==="outer")?p.pos:JAIL_POS;   // hired from inside? they wait at the gate
+  p.crewAt.set(idx,(p.crewAt.get(idx)||0)+n);
+  return n;
+}
 function crewSync(p){
   if(!p) return;
   if(!(p.crewAt instanceof Map)) p.crewAt=new Map(p.crewAt||[]);
@@ -5350,7 +5358,7 @@ function hireExit(){
   if(p&&p._visitDay){ pdayVisit(); return; }
   closeModal();
 }
-function hireCrewN(per,n){const p=S.players[S.cur];n=Math.min(n,Math.floor(p.cash/SOLDIER_COST));if(n<1)return;p.cash-=SOLDIER_COST*n;p.crew+=n;log(p.name+L(" hires "," contrata ")+n+L(" bodyguard"," guarda-costas")+(n>1?(LANG==='PT'?"":"s"):"")+L(" (now "," (agora ")+p.crew+").","good");render();openBuyWorkers();}
+function hireCrewN(per,n){const p=S.players[S.cur];n=Math.min(n,Math.floor(p.cash/SOLDIER_COST));if(n<1)return;p.cash-=SOLDIER_COST*n;crewHire(p,n);log(p.name+L(" hires "," contrata ")+n+L(" bodyguard"," guarda-costas")+(n>1?(LANG==='PT'?"":"s"):"")+L(" (now "," (agora ")+p.crew+").","good");render();openBuyWorkers();}
 function addSoldierAnytime(idx,per,n){const p=S.players[S.cur];n=Math.min(n,Math.floor(p.cash/per),unitRoom(p,idx));if(n<1)return;p.cash-=per*n;grantUnits(p,idx,n);log(p.name+L(" posts "," coloca ")+n+L(" soldier"," soldado")+(n>1?"s":"")+L(" at "," em ")+OUTER[idx].t+L(" (now "," (agora ")+p.owns.get(idx)+").","good");render();openBuyWorkers();}
 function addWorkerAnytime(idx,per,n){n=n||1;const p=S.players[S.cur];n=Math.min(n,Math.floor(p.cash/per),unitRoom(p,idx));if(n<1)return;p.cash-=per*n;grantUnits(p,idx,n);log(p.name+L(" hires "," contrata ")+n+L(" worker"," funcionário")+(n>1?"s":"")+L(" at "," em ")+OUTER[idx].t+L(" (now "," (agora ")+p.owns.get(idx)+").","good");render();openBuyWorkers();}
 
@@ -5433,7 +5441,7 @@ function qpCrew(){ const p=S.players[S.cur];
   qtyPad({ title:L("HIRE SOLDIERS","CONTRATAR SOLDADOS"), unit:L("bodyguard soldiers","soldados guarda-costas"),
     have:p.crew, per:SOLDIER_COST, max:Math.floor(p.cash/SOLDIER_COST),
     held:p.crew, sellPer:back,
-    apply:(n)=>{ p.cash-=SOLDIER_COST*n; p.crew+=n; log(p.name+L(" hires "," contrata ")+n+L(" bodyguard"," guarda-costas")+((n>1&&LANG!=='PT')?"s":"")+L(" (now "," (agora ")+p.crew+").","good"); render(); },
+    apply:(n)=>{ p.cash-=SOLDIER_COST*n; crewHire(p,n); log(p.name+L(" hires "," contrata ")+n+L(" bodyguard"," guarda-costas")+((n>1&&LANG!=='PT')?"s":"")+L(" (now "," (agora ")+p.crew+").","good"); render(); },
     sell:(n)=>{ sellCrewN(n); },
     done:hireExit });
 }
@@ -5514,7 +5522,7 @@ function doCrime(job){
 }
 function offerHire(){
   const p=S.players[S.cur];
-  if(p.ai){ const pr=aiProf(p); const aiCap=capScaled(pr.recruitCap); while(p.crew<aiCap && p.cash>=SOLDIER_COST*pr.recruitReserve){p.cash-=SOLDIER_COST;p.crew++;} log(p.name+L(" recruits soldiers."," recruta soldados."),"good"); finish(); return; }
+  if(p.ai){ const pr=aiProf(p); const aiCap=capScaled(pr.recruitCap); while(p.crew<aiCap && p.cash>=SOLDIER_COST*pr.recruitReserve){p.cash-=SOLDIER_COST;crewHire(p,1);} log(p.name+L(" recruits soldiers."," recruta soldados."),"good"); finish(); return; }
   const slotsLeft=MAX_SOLDIERS-p.crew;
   const affordable=Math.floor(p.cash/SOLDIER_COST);
   const canBuy=Math.min(slotsLeft,affordable);
@@ -5555,7 +5563,7 @@ function hireConfirm(){
   const p=S.players[S.cur];const n=p._hirePick||0;
   const canBuy=Math.min(MAX_SOLDIERS-p.crew,Math.floor(p.cash/SOLDIER_COST));
   const buy=Math.min(n,canBuy);
-  if(buy>0){p.cash-=SOLDIER_COST*buy;p.crew+=buy;log(p.name+L(" hires "," contrata ")+buy+L(" soldier"+""," soldado")+(buy>1?"s":"")+L(" (now "," (agora ")+p.crew+").","good");}
+  if(buy>0){p.cash-=SOLDIER_COST*buy;crewHire(p,buy);log(p.name+L(" hires "," contrata ")+buy+L(" soldier"+""," soldado")+(buy>1?"s":"")+L(" (now "," (agora ")+p.crew+").","good");}
   p._hirePick=0;render();closeModal();
   finish();
 }
@@ -5885,7 +5893,7 @@ function applyCard(){
   if(c.packs){p.packs=Math.max(0,p.packs+c.packs);
     if(c.packs>0)log(p.name+L(" wins "," ganha ")+c.packs+L(" cigarette pack"+""," maço")+(c.packs>1?"s":"")+L(" (now "," (agora ")+p.packs+").","good");
     else log(p.name+L(" pays "," paga ")+(-c.packs)+L(" cigarette pack"+""," maço")+((-c.packs)>1?"s":"")+L(" (now "," (agora ")+p.packs+").","warn");}
-  if(c.crew){p.crew+=c.crew;log(p.name+L(" gains "," ganha ")+c.crew+L(" soldier."," soldado."),"good");}
+  if(c.crew){crewHire(p,c.crew);log(p.name+L(" gains "," ganha ")+c.crew+L(" soldier."," soldado."),"good");}
   if(c.respect)log(p.name+L(" earns respect inside."," ganha respeito lá dentro."),"good");
   if(c.freeArrest){p.freeArrest++;log(p.name+L(" AVOIDS PRISON — banks a get-out-of-jail card ("," EVITA A PRISÃO — guarda uma carta de saída (")+p.freeArrest+").","good");}
   if(c.loseCrew){SFX.soldierDown(c.loseCrew);p.crew=Math.max(0,p.crew-c.loseCrew);log(p.name+L(" loses "," perde ")+c.loseCrew+L(" soldier."," soldado."),"bad");}
@@ -6589,7 +6597,7 @@ function pdayPhone(){ pdayVisit(); }
 /* A Ghost's visit: the lawyer takes an order for bodyguards, within what it can spare. */
 function aiVisitDay(p){
   const want=Math.min(3, Math.floor(Math.max(0,p.cash-SOLDIER_COST*2)/SOLDIER_COST));
-  let got=0; while(got<want && p.cash>=SOLDIER_COST){ p.cash-=SOLDIER_COST; p.crew++; got++; }
+  let got=0; while(got<want && p.cash>=SOLDIER_COST){ p.cash-=SOLDIER_COST; crewHire(p,1); got++; }
   if(got>0) log(p.name+L(" takes a visit — sends word out for "," recebe visita — manda chamar ")+got+L(" soldier"," soldado")+((got>1&&LANG!=='PT')?"s":"")+".","good");
   else log(p.name+L(" takes a visit — nothing to send out."," recebe visita — nada a mandar."),"");
   render(); finish();
@@ -7243,7 +7251,7 @@ function aiRecruit(p){
   // reserve: a full year of the intended payroll, or a quarter of cash — never spend into insolvency
   const reserve=Math.max(cap*SOLDIER_WAGE, Math.round(p.cash*0.30));
   let added=0;
-  while(p.crew<cap && p.cash-SOLDIER_COST>=reserve){ p.cash-=SOLDIER_COST; p.crew++; added++; }
+  while(p.crew<cap && p.cash-SOLDIER_COST>=reserve){ p.cash-=SOLDIER_COST; crewHire(p,1); added++; }
   if(added>0){ render(); log(p.name+L(" recruits "," recruta ")+added+L(" soldier"," soldado")+(added>1?"s":"")+L(" (now "," (agora ")+p.crew+").","good"); }
   return added;
 }
