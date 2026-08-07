@@ -890,7 +890,7 @@ const ROLE_ES={"Crooked Sergeant":"Sargento Corrupto","Crooked Detective":"Detec
 const ES_STATIC={"NEW YORK CITY":"NUEVA YORK","PLAYERS — tap for record":"JUGADORES — toca para la ficha","DICE":"DADOS","ACTIONS":"ACCIONES","CONSOLE — this round":"CONSOLA — esta ronda","PLAYER ON TURN":"JUGADOR EN TURNO","OTHER PLAYERS — tap for record":"OTROS JUGADORES — toca para la ficha","[ MANUAL ]":"[ MANUAL ]","[reset]":"[reiniciar]","[ FOLLOW: OFF ]":"[ SEGUIR: NO ]","[ FOLLOW: ON ]":"[ SEGUIR: SÍ ]","[ AUTO: OFF ]":"[ AUTO: NO ]","[ AUTO: ON ]":"[ AUTO: SÍ ]","tap die to roll":"toca el dado para tirar","roll to move":"tira para avanzar","landed":"cayó"};
 const POLICE_LABELS_ES={0.25:"MUY BAJA",0.5:"BAJA",1:"REALISTA",3:"DIFÍCIL",4:"BRASILEÑA"};
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v33.4";
+const APP_VERSION="v33.5";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -4224,7 +4224,6 @@ function openActions(){
   }
   const canCrime=!S.rolled&&p.ring==="outer"&&!p.inJail&&p.crimeOps>0;
   const canHire=p.ring==="outer"&&!p.inJail;
-  const canSell=p.owns.size>0||p.crew>0;
   const rivalTurf=S.players.some(o=>o.id!==p.id&&o.alive&&o.owns.size>0);
   const canAttack=!S.rolled&&p.ring==="outer"&&!p.inJail&&p.crew>=1&&rivalTurf;
   const row=(label,desc,btn)=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 2px;border-bottom:1px solid var(--phos-dim)"><span>${label}${desc?`<br><span style="opacity:.55;font-size:11px">${desc}</span>`:""}</span><span style="white-space:nowrap">${btn}</span></div>`;
@@ -4232,8 +4231,9 @@ function openActions(){
   let rows="";
   rows+=row(L("Commit a crime","Cometer um crime"), L("heist, hit or drug run","assalto, morte ou tr\u00e1fico"),
     canCrime?`<button onclick="actDo('crime')">${L("[ DO IT ]","[ FAZER ]")}</button>`:off);
-  rows+=row(L("Hire crew","Contratar equipe"), L("bodyguards, street soldiers, workers","guarda-costas, soldados, funcion\u00e1rios"),
-    canHire?`<button onclick="actDo('hire')">${L("[ HIRE ]","[ CONTRATAR ]")}</button>`:off);
+  rows+=row(L("Hire or let people go","Contratar ou dispensar","Contratar o dar de baja"),
+    L("bodyguards, soldiers, workers \u2014 the same screen sells","guarda-costas, soldados, funcion\u00e1rios \u2014 a mesma tela vende","escoltas, soldados, empleados \u2014 la misma pantalla vende"),
+    canHire?`<button onclick="actDo('hire')">${L("[ HIRE / SELL ]","[ CONTRATAR / VENDER ]","[ CONTRATAR / VENDER ]")}</button>`:off);
   rows+=row(L("Attack a rival","Atacar um rival"), L("send soldiers at a rival's turf or business \u2014 this is your move (no roll)","envie soldados contra a \u00e1rea ou neg\u00f3cio de um rival \u2014 \u00e9 sua jogada (sem rolar)"),
     canAttack?`<button class="red" onclick="actDo('attack')">${L("[ ATTACK \u00b7 ","[ ATACAR \u00b7 ")}${p.crew}${L(" sol ]"," sol ]")}</button>`:off);
     const canExec=execUnlocked()&&!S.rolled&&p.ring==="outer"&&!p.inJail&&S.players.some(o=>o.id!==p.id&&o.alive&&p.cash>=execCost(o));
@@ -6430,14 +6430,12 @@ function pdayVisit(){
   const p=S.players[S.cur]; p._visitDay=true;
   const el=document.getElementById("cardEl"); el.dataset.deck="";
   const canExec=execUnlocked()&&S.players.some(o=>o.id!==p.id&&o.alive&&p.cash>=execCost(o));
-  const canSell=p.owns.size>0||p.crew>0;
   const off=`<span style="opacity:.4">\u2014</span>`;
   const row=(label,desc,btn)=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 2px;border-bottom:1px solid var(--phos-dim)"><span>${label}${desc?`<br><span style="opacity:.55;font-size:11px">${desc}</span>`:""}</span><span style="white-space:nowrap">${btn}</span></div>`;
   let rows="";
-  rows+=row(L("Hire crew","Contratar equipe"),L("bodyguards, street soldiers, workers \u2014 the word goes out with him","guarda-costas, soldados, funcion\u00e1rios \u2014 o recado sai com ele"),
-    `<button onclick="openBuyWorkers()">${L("[ HIRE ]","[ CONTRATAR ]")}</button>`);
-  rows+=row(L("Let people go","Dispensar / vender"),L("the hire screen sells too \u2014 type a number and hit SELL","a tela de contratar tamb\u00e9m vende \u2014 digite um n\u00famero e toque em VENDER","la pantalla de contratar tambi\u00e9n vende \u2014 escribe un n\u00famero y toca VENDER"),
-    canSell?`<button class="red" onclick="openBuyWorkers()">${L("[ FIRE / SELL ]","[ DISPENSAR / VENDER ]")}</button>`:off);
+  rows+=row(L("Hire or let people go","Contratar ou dispensar","Contratar o dar de baja"),
+    L("bodyguards, soldiers, workers \u2014 the same screen sells: type a number and hit SELL","guarda-costas, soldados, funcion\u00e1rios \u2014 a mesma tela vende: digite um n\u00famero e toque em VENDER","escoltas, soldados, empleados \u2014 la misma pantalla vende: escribe un n\u00famero y toca VENDER"),
+    `<button onclick="openBuyWorkers()">${L("[ HIRE / SELL ]","[ CONTRATAR / VENDER ]","[ CONTRATAR / VENDER ]")}</button>`);
   rows+=row(L("Call an execution","Mandar executar"),execUnlocked()?L("2\u00d7 the target's net worth \u2014 ordered from in here, carried out on the street","2\u00d7 o patrim\u00f4nio do alvo \u2014 encomendado daqui, feito na rua"):execLockNote(),
     canExec?`<button class="red" onclick="execMenu()">${L("[ EXECUTE ]","[ EXECUTAR ]")}</button>`:off);
   const rivalTurf=S.players.some(o=>o.id!==p.id&&o.alive&&o.owns.size>0);
