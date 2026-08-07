@@ -892,7 +892,7 @@ const ROLE_ES={"Crooked Sergeant":"Sargento Corrupto","Crooked Detective":"Detec
 const ES_STATIC={"NEW YORK CITY":"NUEVA YORK","PLAYERS — tap for record":"JUGADORES — toca para la ficha","DICE":"DADOS","ACTIONS":"ACCIONES","CONSOLE — this round":"CONSOLA — esta ronda","PLAYER ON TURN":"JUGADOR EN TURNO","OTHER PLAYERS — tap for record":"OTROS JUGADORES — toca para la ficha","[ MANUAL ]":"[ MANUAL ]","[reset]":"[reiniciar]","[ FOLLOW: OFF ]":"[ SEGUIR: NO ]","[ FOLLOW: ON ]":"[ SEGUIR: SÍ ]","[ AUTO: OFF ]":"[ AUTO: NO ]","[ AUTO: ON ]":"[ AUTO: SÍ ]","tap die to roll":"toca el dado para tirar","roll to move":"tira para avanzar","landed":"cayó"};
 const POLICE_LABELS_ES={0.25:"MUY BAJA",0.5:"BAJA",1:"REALISTA",3:"DIFÍCIL",4:"BRASILEÑA"};
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v33.9";
+const APP_VERSION="v34.0";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -2499,6 +2499,7 @@ function newPlayer(i,name,pattern){return{id:i,name:name||("P"+(i+1)),color:"#33
   cash:100,crew:0,packs:0,alive:true,respawns:0,hosp:0,cleanLaps:0,
   inJail:false,sentence:0,owns:new Map(),skip:0,freeArrest:0,freeRaid:0,
   pown:new Map(),pbg:0,phone:false,          /* blocks held inside, the man on you, the phone */
+  grudge:new Map(),                          /* who hurt this boss, and how badly — see grudgeAdd */
   crewAt:new Map(),_wagesYr:0,               /* which corner each bodyguard was hired on */
   crimes:[],network:[],stayCount:0,age:15,crimeOps:1,yearsServed:0,heat:0,dirty:0,nwHist:[],soldierKills:0,bossKills:0,kills:0};}
 
@@ -3399,7 +3400,7 @@ function clearSaveCareer(){ try{localStorage.removeItem(SAVE_KEY_CAREER);}catch(
 }catch(e){} })();
 function snapshot(){
   return {turn:S.turn,cur:S.cur,n:S.n,ai:S.ai,baseDice:S.baseDice,diff:S.diff,police:S.police,city:S.city,startYear:S.startYear,career:(S.career||null),
-    players:S.players.map(p=>{const o={...p};o.owns=Array.from(p.owns.entries());o.pown=Array.from((p.pown||new Map()).entries());o.crewAt=Array.from((p.crewAt||new Map()).entries());o._fresh=Array.from((p._fresh||new Map()).entries());delete o.auto;return o;})};
+    players:S.players.map(p=>{const o={...p};o.owns=Array.from(p.owns.entries());o.pown=Array.from((p.pown||new Map()).entries());o.crewAt=Array.from((p.crewAt||new Map()).entries());o._fresh=Array.from((p._fresh||new Map()).entries());o.grudge=Array.from((p.grudge||new Map()).entries());delete o.auto;return o;})};
 }
 function saveGame(){ if(!S||S.over)return; try{const snap=snapshot(); localStorage.setItem(saveSlotFor(snap),JSON.stringify(snap));}catch(e){} }
 function clearSave(){ try{localStorage.removeItem(saveSlotFor(typeof S!=="undefined"&&S?S:null));}catch(e){} }   // only the slot of the game in play
@@ -3408,7 +3409,7 @@ function loadFromSnapshot(sv,note){
   if(!sv||!sv.players||!sv.players.length) return false;
   const _cityKey=sv.city||"NY"; applyCity(_cityKey);
   S={turn:sv.turn||1,cur:sv.cur||0,n:sv.n||sv.players.length,rolled:false,over:false,ai:sv.ai,roundEvents:[],baseDice:({1:6,2:8,3:10}[sv.baseDice]||sv.baseDice||6),diff:sv.diff,police:(sv.police!=null?sv.police:1),city:_cityKey,law:(CITIES[_cityKey]||CITIES.NY).law,startYear:(sv.startYear||1987),career:(sv.career||null),followAnim:true};
-  S.players=sv.players.map((sp,i)=>{const pl=newPlayer(i,sp.name,sp.pattern);Object.assign(pl,sp);pl.owns=new Map(sp.owns||[]);pl.pown=new Map(sp.pown||[]);pl.crewAt=new Map(sp.crewAt||[]);pl._fresh=new Map(sp._fresh||[]);pl._steps=sp._steps||0;pl.auto=false;return pl;});
+  S.players=sv.players.map((sp,i)=>{const pl=newPlayer(i,sp.name,sp.pattern);Object.assign(pl,sp);pl.owns=new Map(sp.owns||[]);pl.pown=new Map(sp.pown||[]);pl.crewAt=new Map(sp.crewAt||[]);pl._fresh=new Map(sp._fresh||[]);pl.grudge=new Map(sp.grudge||[]);pl._steps=sp._steps||0;pl.auto=false;return pl;});
   if(S.cur>=S.players.length)S.cur=0;
   /* a save written before the cap existed can hold stacks above it — bring them down on load,
      otherwise an old game keeps earning on numbers the game no longer allows anyone to reach */
@@ -4577,6 +4578,7 @@ function stepMove(p,left){
     /* Wages are no longer a lump taken at START. Each bodyguard is paid at the cell he was
        hired on, as you come back past it — see payCrewAt(). This only reports the total. */
     _wages=Math.round(p._wagesYr||0); p._wagesYr=0;
+    grudgeDecay(p);                              // a year on, the heat comes off
     if((p.dirty||0)>0&&p.cash>0){
       const base=Math.min(p.dirty,p.cash);
       _ownML=p.owns.has(ML_POS);const rate=_ownML?0.10:0.30;
@@ -5628,6 +5630,7 @@ function orderHitMenu(){
 let _hitBackTo="hitman";
 function hitBack(){ (_hitBackTo==="cop"?copStop:hitmanStop)(); }
 function orderHit(oid,free){
+  try{ grudgeAdd(S.players[oid], S.players[S.cur], 5); }catch(e){}   // paper on you is not forgotten
   const p=S.players[S.cur];const o=S.players[oid];
   const cost=hitCost(o);
   if(!free && p.cash<cost)return;
@@ -5772,6 +5775,7 @@ function resolveAttack(p,o,idx,atk){
   const totalDown=killed*2;                   // casualties on BOTH sides — one volley per body
   SFX.soldierDown(totalDown||1);              // 3 gunshots per soldier killed in the battle (both sides)
   let title,body;
+  grudgeAdd(o,p,atk>def?4:2);                 // they came for you — that goes in the book
   if(atk>def){ p.crew-=atk; o.owns.delete(idx); clearFresh(o,idx); seedUnits(p,idx,Math.max(1,atk-def));
     title=L("TURF TAKEN","\u00c1REA TOMADA");
     body=LANG==='ES'?p.name+" mandó "+atk+" contra los "+def+" de "+o.name+" en "+OUTER[idx].t+". Perdió "+def+" en la pelea, barrió con su gente y tomó la cuadra con "+Math.max(1,atk-def)+" en pie.":LANG==='PT'?p.name+" mandou "+atk+" contra "+def+" de "+o.name+" em "+OUTER[idx].t+". Perdeu "+def+" na briga, varreu a equipe deles e tomou o quarteir\u00e3o com "+Math.max(1,atk-def)+" de p\u00e9.":p.name+" sent "+atk+" against "+o.name+"'s "+def+" at "+OUTER[idx].t+". Lost "+def+" in the fight, wiped their crew, and seized the block with "+Math.max(1,atk-def)+" left standing.";
@@ -6116,7 +6120,17 @@ function arrestFlow(p){
   const years=p._pendingYears||5;
   if(p.freeArrest>0){p.freeArrest--;log(p.name+L(" uses a get-out-of-jail card. Walks free."," usa uma carta de saída. Sai livre."),"good");p._pendingYears=null;showNotice(L("GET OUT OF JAIL","SAIU DA CADEIA"),"***",L("The favor gets called in","O favor \u00e9 cobrado"),L("The cuffs were already out — but your banked get-out-of-jail card burns instead. Charges evaporate. You walk free.","As algemas j\u00e1 estavam na m\u00e3o — mas sua carta de sa\u00edda guardada \u00e9 queimada. As acusa\u00e7\u00f5es evaporam. Voc\u00ea sai livre."),()=>finish());return;}
   if(p.ai){
-    // AI: soldier takes the fall if available, else just go in (buys a few packs if rich)
+    /* THE DEAL. Half of everything it is worth, and the charges never reach a courtroom — the
+       officer sells its holdings himself if the cash is short. A Ghost takes it when the years
+       are worth more than the money: a long stretch off a real empire is worth paying for, a
+       short one off nothing is not. Never a certainty — the more careful the boss, the more
+       often it buys its way out; the reckless would rather do the time. */
+    const bribe=policeBribeCost(p);
+    if(bribe>0 && aiTakesDeal(p,years,bribe)){
+      log(p.name+L(" cuts a deal with the arresting officer."," faz um acordo com o policial."," arregla con el policía."),"warn");
+      bribePolice(bribe); return;
+    }
+    // else: a soldier takes the fall if there is one, otherwise it walks in
     if(!p._raidBust && p.crew>0){p.crew--;log(L("","O soldado de ")+p.name+L("'s soldier takes the fall and goes to prison. "," assume a culpa e vai preso. ")+p.name+L(" stays free."," continua livre."),"good");p._pendingYears=null;finish();return;}
     const packs=Math.min(20,Math.floor(p.cash/1)); if(packs>0){p.cash-=packs;p.packs=packs;}
     doArrest(p,years);return;
@@ -6143,6 +6157,26 @@ function arrestFlow(p){
 /* Buy your way out of the cuffs before you are ever processed. The price is half of
    everything you are worth, in cash, and the charges never reach a courtroom. */
 function policeBribeCost(p){ return Math.max(0, Math.round(Math.max(0,netWorth(p))/2)); }
+/* Does this Ghost buy its way out? Half its net worth against the years it would lose. A boss
+   with an empire earning well loses more sitting inside than the bribe costs, so it pays;
+   a broke one with a two-year stretch does the time. Temperament sets the appetite, and it is
+   never automatic — sometimes it takes the cell. */
+function aiTakesDeal(p,years,bribe){
+  if(!p||!p.ai||bribe<=0) return false;
+  if(p.freeArrest>0) return false;                    // it already holds a card — that burns first
+  const nw=Math.max(0,netWorth(p));
+  const lost=aiYearIncome(p)*Math.max(1,years);       // earnings the sentence takes off the table
+  /* and the real cost of going in: prison is the deadliest place on the board, and a boss who
+     dies inside loses the lot. A long stretch puts most of the empire at risk, a short one
+     barely any. */
+  const risk=nw*Math.min(0.5, Math.max(1,years)*0.04);
+  if(lost+risk < bribe) return false;                 // the cell is genuinely cheaper — do the time
+  const pr=aiProf(p);
+  /* the calmer the temperament the more willing it is to pay rather than fight or sit:
+     PASSIVE 0.70 · CAUTIOUS 0.62 · CAREFUL 0.50 · AGGRESSIVE 0.20 */
+  const appetite=Math.max(0.2, 0.8-(pr.atkProb||0.15));
+  return Math.random()<appetite;
+}
 /* ===== THE COP TAKES IT IN KIND =====
    A bribe is never blocked for want of cash. Take the deal and he moves what you own himself —
    the smallest holdings first, so your best turf is the last thing to go, and only as many
@@ -7340,7 +7374,7 @@ function aiReinforce(p){
   };
   /* Turf and shops are both square once bought — neither draws a wage — so a Ghost stacks
      them the same way, as deep as its earnings justify. */
-  const deepTarget=(idx)=>Math.min(UNIT_CAP, capScaled(pr.garCap||1), 4+Math.floor(inc/(SOLDIER_COST*8)));
+  const deepTarget=(idx)=>aiTargetDepth(p);
   const reserveFor=(idx)=>Math.round(p.cash*0.15);
   /* PASS 1 — no free gifts: a block sitting on one body is the cheapest thing on the board to
      take, so lift everything off the floor before anything gets deep. */
@@ -7353,6 +7387,42 @@ function aiReinforce(p){
   if(added>0){ render(); log(p.name+L(" digs in — +"," reforça — +")+added+L(" staff"," reforço")+(added>1?"s":"")+L(" across its turf."," pela área."),"good"); }
   return added;
 }
+/* ===== GRUDGES — a Ghost remembers who did it to them =====
+   Every blow lands in the victim's ledger against the name that threw it. A boss carrying a
+   grudge goes after that rival first even when someone richer is on the board, and will move
+   on them when its temperament alone would have let the turn pass. It fades: half the weight
+   comes off every year, so an old score stops driving the whole game. */
+function grudgeAdd(victim,aggressor,weight){
+  if(!victim||!aggressor||victim.id===aggressor.id) return;
+  if(!(victim.grudge instanceof Map)) victim.grudge=new Map(victim.grudge||[]);
+  victim.grudge.set(aggressor.id,(victim.grudge.get(aggressor.id)||0)+(weight||1));
+}
+function grudgeOf(p,o){
+  if(!p||!o||!(p.grudge instanceof Map)) return 0;
+  return p.grudge.get(o.id)||0;
+}
+function grudgeTop(p){
+  if(!p||!(p.grudge instanceof Map)||!p.grudge.size) return null;
+  let best=null,score=0;
+  p.grudge.forEach((v,id)=>{ const o=S.players.find(x=>x.id===id);
+    if(o&&o.alive&&v>score){ best=o; score=v; } });
+  return best;
+}
+/* a year passes and the heat comes off — halved, and anything trivial forgotten */
+function grudgeDecay(p){
+  if(!p||!(p.grudge instanceof Map)) return;
+  p.grudge.forEach((v,id)=>{ const nv=v/2; if(nv<0.5) p.grudge.delete(id); else p.grudge.set(id,nv); });
+}
+/* vengeance loosens the trigger: a boss with a real score to settle acts when it otherwise
+   would not have. Caps out so a PASSIVE Ghost never turns into an AGGRESSIVE one. */
+/* Vengeance decides WHO, not how often. A bigger nudge here turned every quarrel into a war
+   that ruined both sides' earnings and left the board to whoever stayed out of it — so the
+   probability moves a little and the targeting moves a lot. */
+function grudgeUrge(p,o){ return Math.min(0.15, grudgeOf(p,o)*0.03); }
+/* How much more attractive a target is for being the one who did it. Losing a block scores 4,
+   which makes the offender's turf worth five times its face value to the boss it belongs to —
+   enough to pull a Ghost off a richer block elsewhere. Halves every year with the grudge. */
+function grudgeWeight(p,o){ return 1+Math.min(4, grudgeOf(p,o)); }
 /* pick the richest rival turf this AI can actually take; returns null if it shouldn't attack this turn */
 function aiAttackTarget(p){
   if(p.ring!=="outer"||p.inJail) return null;
@@ -7363,8 +7433,13 @@ function aiAttackTarget(p){
   const targets=[];
   S.players.forEach(o=>{ if(o.id!==p.id&&o.alive){ o.owns.forEach((s,idx)=>{ if(s+1<=cap) targets.push({o,idx,s}); }); } });
   if(!targets.length) return null;
-  if(Math.random() >= pr.atkProb) return null;    // even when able, doesn't attack every single turn
-  targets.sort((a,b)=>cellUnit(b.idx)*b.s-cellUnit(a.idx)*a.s);
+  /* vengeance pulls the trigger a boss would otherwise have kept holstered */
+  const worst=grudgeTop(p);
+  const urge=worst?grudgeUrge(p,worst):0;
+  if(Math.random() >= Math.min(0.95, pr.atkProb+urge)) return null;
+  /* and it picks the target: a score to settle outweighs a richer block elsewhere */
+  targets.sort((a,b)=>(cellUnit(b.idx)*b.s*grudgeWeight(p,b.o))
+                     -(cellUnit(a.idx)*a.s*grudgeWeight(p,a.o)));
   return targets[0];
 }
 /* THE CONTRACT THAT ENDS A BOSS. It costs double what the target is worth and hands the buyer
@@ -7378,8 +7453,11 @@ function aiMaybeExecute(p){
   const reserve=Math.max(SOLDIER_COST*4, Math.round(p.cash*0.10));   // never spend itself to nothing
   const afford=S.players.filter(o=>o.alive&&o.id!==p.id&&(p.cash-execCost(o))>=reserve);
   if(!afford.length) return false;
-  if(Math.random() >= Math.min(0.9, 0.30+pr.atkProb)) return false;   // temperament still decides
-  const tgt=afford.sort((a,b)=>netWorth(b)-netWorth(a))[0];           // the biggest empire it can buy
+  const owed=grudgeTop(p);
+  if(Math.random() >= Math.min(0.95, 0.30+pr.atkProb+(owed?grudgeUrge(p,owed):0))) return false;
+  /* the biggest empire it can buy — unless it owes somebody, and can afford to collect */
+  const tgt=(owed&&afford.some(x=>x.id===owed.id))?owed
+           :afford.sort((a,b)=>netWorth(b)-netWorth(a))[0];
   const cost=execCost(tgt);
   const body=L(`${p.name} puts ${fmtK(cost)} on the table — double what ${tgt.name} is worth — and takes everything they had.`,
                `${p.name} põe ${fmtK(cost)} na mesa — o dobro do que ${tgt.name} vale — e fica com tudo que era dele.`);
@@ -7403,9 +7481,14 @@ function aiHitHere(p){
   if(!p||!p.ai||p.ring!=="outer"||p.inJail||!p.alive||S.over) return false;
   const rivals=S.players.filter(o=>o.alive&&o.id!==p.id);
   if(!rivals.length) return false;
-  const tgt=rivals.find(o=>o.hosp===2) || rivals.slice().sort((a,b)=>netWorth(b)-netWorth(a))[0];
+  /* finish someone already at 2/3 first; otherwise settle a score if it can pay for one;
+     otherwise the richest rival on the board. */
+  const owed=grudgeTop(p);
+  const tgt=rivals.find(o=>o.hosp===2)
+         || ((owed && p.cash>=Math.round(hitCost(owed)*1.3))?owed:null)
+         || rivals.slice().sort((a,b)=>netWorth(b)-netWorth(a))[0];
   if(p.cash < Math.round(hitCost(tgt)*1.3)) return false;   // keep a reserve after paying
-  if(Math.random() >= aiProf(p).atkProb) return false;      // temperament decides, as before
+  if(Math.random() >= Math.min(0.95, aiProf(p).atkProb+grudgeUrge(p,tgt))) return false;
   log(p.name+L(" puts paper on "," põe a cabeça de ")+tgt.name+L("."," a prêmio."),"warn");
   orderHit(tgt.id);                                        // every branch of it ends the turn
   return true;
@@ -7458,25 +7541,53 @@ function aiSceneCard(p,ttl,body,cls){ return `<div class="lbl" style="background
 /* Spreading thin loses games: ten blocks on one body each earn a trickle and hand a rival ten
    cheap conquests. Before a Ghost claims anything new, what it already holds has to carry some
    real weight — and the bar rises as it gets richer, so late-game money deepens instead of sprawls. */
-function aiSpreadOK(p){
+/* How many bodies a holding is meant to carry, given what the empire earns. One definition,
+   used by the garrison pass, by the decision to widen, and by the size of a new purchase. */
+function aiTargetDepth(p){
+  const pr=aiProf(p), inc=aiYearIncome(p);
+  return Math.max(2, Math.min(UNIT_CAP, capScaled(pr.garCap||8), 4+Math.floor(inc/(SOLDIER_COST*8))));
+}
+/* WIDEN ONLY ONCE WHAT YOU HOLD IS AT LEAST HALF STAFFED.
+   A Ghost used to open a second shop while the first sat on one body, so its whole map was
+   cheap to take and earned almost nothing. Now the existing holdings have to be at least
+   half-filled toward their target before another one is worth opening at all. */
+function aiFillRatio(p){
   const held=Array.from(p.owns.keys()).filter(i=>cellUnit(i)>0);
-  if(!held.length) return true;                       // nothing yet — the first holding is always fine
-  const pr=aiProf(p);
-  const depth=held.reduce((a,i)=>a+(p.owns.get(i)||0),0)/held.length;
-  const need=Math.min(capScaled(pr.garCap||8), Math.max(3, Math.round(Math.max(0,netWorth(p))/(SOLDIER_COST*40))));
-  return depth>=need;
+  if(!held.length) return 1;                          // nothing yet — the first holding is always fine
+  const want=aiTargetDepth(p)*held.length;
+  const have=held.reduce((a,i)=>a+(p.owns.get(i)||0),0);
+  return want>0?Math.min(1,have/want):1;
+}
+function aiSpreadOK(p){ return aiFillRatio(p)>=0.5; }
+/* Opening a holding one body at a time is what made them so slow. Buy the deed and staff it
+   in the same move, as deep as the cash allows, keeping a reserve. */
+function aiStaffNew(p,idx,per){
+  const target=aiTargetDepth(p);
+  const reserve=Math.round(p.cash*0.20);
+  let extra=0;
+  while((p.owns.get(idx)||0)<target && p.cash-per>=reserve){ p.cash-=per; grantUnits(p,idx,1); extra++; }
+  return extra;
 }
 function aiBuyStreet(idx,c){const p=S.players[S.cur];const mult=aiProf(p).buyMult;
-  const thr=c.price*mult*(aiSpreadOK(p)?1:4);   // holdings still thin? only a bargain is worth widening for
+  /* Under half-staffed? Only a real bargain justifies widening — otherwise put the money into
+     what it already holds. */
+  const thr=c.price*mult*(aiSpreadOK(p)?1:4);
   let ttl,body;
-  if(p.cash>=thr){p.cash-=c.price;seedUnits(p,idx,1);log(p.name+L(" claims "," toma ")+c.t+".","good");
-    ttl=L("CLAIMS TURF","TOMA A ÁREA");body=p.name+L(" buys "," compra ")+c.t+L(" for "," por ")+fmtK(c.price)+".";}
+  if(p.cash>=thr){p.cash-=c.price;seedUnits(p,idx,1);
+    const extra=aiStaffNew(p,idx,c.price); const men=p.owns.get(idx)||1;
+    log(p.name+L(" claims "," toma ")+c.t+(extra?L(" with "," com ")+men+L(" soldiers."," soldados."):"."),"good");
+    ttl=L("CLAIMS TURF","TOMA A ÁREA");body=p.name+L(" buys "," compra ")+c.t+L(" for "," por ")+fmtK(c.price*(1+extra))+(extra?L(" and puts "," e coloca ")+men+L(" soldiers on it."," soldados nela."):".");}
   else {log(p.name+L(" passes on "," dispensa ")+c.t+".");ttl=L("WALKS PAST","PASSA DIRETO");body=p.name+L(" eyes "," olha ")+c.t+L(" but keeps the cash."," mas guarda o dinheiro.");}
   render();aiScene(aiSceneCard(p,ttl,body),finish);}
 function aiBuyBiz(idx,c){const p=S.players[S.cur];let ttl,body;
-  const thr=c.income*1.5*(aiSpreadOK(p)?1:4);   // deepen what it runs before opening another shop
-  if(p.cash>=thr){p.cash-=c.income;seedUnits(p,idx,1);log(p.name+L(" opens "," abre ")+c.t+".","good");
-    ttl=L("OPENS SHOP","ABRE NEGÓCIO");body=p.name+L(" opens "," abre ")+c.t+L(" for "," por ")+fmtK(c.income)+".";}
+  /* Enough to open it fully staffed? Then open it fully staffed. Otherwise deepen what it
+     already runs before opening another shop. */
+  const target=aiTargetDepth(p);
+  const thr=(aiSpreadOK(p)?c.income*1.5:c.income*1.5*4);
+  if(p.cash>=thr){p.cash-=c.income;seedUnits(p,idx,1);
+    const extra=aiStaffNew(p,idx,c.income); const men=p.owns.get(idx)||1;
+    log(p.name+L(" opens "," abre ")+c.t+(extra?L(" with "," com ")+men+L(" workers."," funcionários."):"."),"good");
+    ttl=L("OPENS SHOP","ABRE NEGÓCIO");body=p.name+L(" opens "," abre ")+c.t+L(" for "," por ")+fmtK(c.income*(1+extra))+(extra?L(" and staffs it with "," e coloca ")+men+L(" workers."," funcionários."):".");}
   else {log(p.name+L(" passes on "," dispensa ")+c.t+".");ttl=L("WALKS PAST","PASSA DIRETO");body=p.name+L(" passes on "," dispensa ")+c.t+".";}
   render();aiScene(aiSceneCard(p,ttl,body),finish);}
 
