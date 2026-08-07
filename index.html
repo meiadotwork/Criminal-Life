@@ -892,7 +892,7 @@ const ROLE_ES={"Crooked Sergeant":"Sargento Corrupto","Crooked Detective":"Detec
 const ES_STATIC={"NEW YORK CITY":"NUEVA YORK","PLAYERS — tap for record":"JUGADORES — toca para la ficha","DICE":"DADOS","ACTIONS":"ACCIONES","CONSOLE — this round":"CONSOLA — esta ronda","PLAYER ON TURN":"JUGADOR EN TURNO","OTHER PLAYERS — tap for record":"OTROS JUGADORES — toca para la ficha","[ MANUAL ]":"[ MANUAL ]","[reset]":"[reiniciar]","[ FOLLOW: OFF ]":"[ SEGUIR: NO ]","[ FOLLOW: ON ]":"[ SEGUIR: SÍ ]","[ AUTO: OFF ]":"[ AUTO: NO ]","[ AUTO: ON ]":"[ AUTO: SÍ ]","tap die to roll":"toca el dado para tirar","roll to move":"tira para avanzar","landed":"cayó"};
 const POLICE_LABELS_ES={0.25:"MUY BAJA",0.5:"BAJA",1:"REALISTA",3:"DIFÍCIL",4:"BRASILEÑA"};
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v33.8";
+const APP_VERSION="v33.9";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -4167,10 +4167,12 @@ function renderActions(){
   g("ahdHire").textContent=L("HIRE CREW","CONTRATAR EQUIPE","CONTRATAR EQUIPO");
   const nSt=Array.from(p.owns.keys()).filter(i=>OUTER[i]&&OUTER[i].k==="street").length;
   const nBz=Array.from(p.owns.keys()).filter(i=>OUTER[i]&&OUTER[i].k==="biz").length;
+  const nPk=Array.from(p.owns.keys()).filter(i=>OUTER[i]&&OUTER[i].k==="poker").length;
   hire.innerHTML=
     actBtn(canHire,"amber","qpCrew()",L("[ BODYGUARDS \u00b7 ","[ GUARDA-COSTAS \u00b7 ","[ ESCOLTAS \u00b7 ")+p.crew+" ]")+
     actBtn(canHire&&nSt>0,"","openHireList('street')",L("[ STREET SOLDIERS \u00b7 ","[ SOLDADOS DE RUA \u00b7 ","[ SOLDADOS DE CALLE \u00b7 ")+nSt+" ]",nSt?"":L("claim a street first","tome uma rua primeiro"))+
-    actBtn(canHire&&nBz>0,"","openHireList('biz')",L("[ BUSINESS WORKERS \u00b7 ","[ FUNCION\u00c1RIOS \u00b7 ","[ EMPLEADOS \u00b7 ")+nBz+" ]",nBz?"":L("open a business first","abra um neg\u00f3cio primeiro"));
+    actBtn(canHire&&nBz>0,"","openHireList('biz')",L("[ BUSINESS WORKERS \u00b7 ","[ FUNCION\u00c1RIOS \u00b7 ","[ EMPLEADOS \u00b7 ")+nBz+" ]",nBz?"":L("open a business first","abra um neg\u00f3cio primeiro"))+
+    actBtn(canHire&&nPk>0,"","openHireList('poker')",L("[ DEALERS \u00b7 ","[ CRUPI\u00caS \u00b7 ","[ CRUPIERS \u00b7 ")+nPk+" ]",nPk?"":L("open the wheel first","abra a roleta primeiro","abre la ruleta primero"));
   const rivalTurf=S.players.some(o=>o.id!==p.id&&o.alive&&o.owns.size>0);
   const canAttack=!S.rolled&&!p.inJail&&p.crew>=1&&rivalTurf;
   const canExec=execUnlocked()&&!S.rolled&&!p.inJail&&S.players.some(o=>o.id!==p.id&&o.alive&&p.cash>=execCost(o));
@@ -5317,12 +5319,21 @@ function openBuyWorkers(){
       <span>${c.t} · ${cnt} ${L("worker","funcionário")}${cnt>1?"s":""}<br><span style="opacity:.6;font-size:11px">${fmtK(per)} ${L("each · earns","cada · rende")} ${fmtK(per*cnt)}/${L("yr","ano")}</span></span>
       ${can?`<button style="padding:6px 12px;font-size:12px" class="amber" onclick="qpCell(${idx},'bw')">${L("[ HIRE / SELL ]","[ CONTRATAR / VENDER ]","[ CONTRATAR / VENDER ]")}</button>`:`<span style="opacity:.5;font-size:11px">${L("need ","precisa de ")}${fmtK(per)}</span>`}</div>`;
   }).join(""):"<div style='opacity:.6'>"+L("No businesses yet — land on a BUSINESS space to open one.","Nenhum negócio ainda — caia numa casa de NEGÓCIO para abrir um.")+"</div>";
+  // THE WHEEL — a house you staff, so it belongs on the same screen as the rest
+  const pk=Array.from(p.owns.entries()).filter(([idx])=>OUTER[idx].k==="poker");
+  const pkBody=pk.length?pk.map(([idx,cnt])=>{
+    const c=OUTER[idx];const per=c.incomeBase||c.price;const can=p.cash>=per||cnt>0;
+    return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin:3px 0;border-bottom:1px solid #1a2a1a;padding-bottom:4px">
+      <span>${c.t} · ${cnt} ${L("dealer","crupiê","crupier")}${(cnt>1&&LANG!=='PT')?"s":""}<br><span style="opacity:.6;font-size:11px">${fmtK(per)} ${L("each · earns","cada · rende","cada · rinde")} ${fmtK(per*cnt)}/${L("yr","ano","año")}</span></span>
+      ${can?`<button style="padding:6px 12px;font-size:12px" class="amber" onclick="qpCell(${idx},'bw')">${L("[ HIRE / SELL ]","[ CONTRATAR / VENDER ]","[ CONTRATAR / VENDER ]")}</button>`:`<span style="opacity:.5;font-size:11px">${L("need ","precisa de ","necesita ")}${fmtK(per)}</span>`}</div>`;
+  }).join(""):"";
   el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('HIRE','CONTRATAR')}</div>
     <div class="ttl">${L('Staff your empire','Monte seu império')}</div>
     <div class="bd">${L('Any time on your turn: hire bodyguard soldiers, post soldiers on your streets, and staff your businesses.','A qualquer momento no seu turno: contrate guarda-costas, coloque soldados nas suas ruas e equipe seus negócios.')}</div>
     <div class="out" style="max-height:120px;overflow:auto"><b>${L("BODYGUARDS","GUARDA-COSTAS")}</b>${crewRow}</div>
     <div class="out" style="max-height:150px;overflow:auto"><b>${L("STREET SOLDIERS","SOLDADOS DE RUA")}</b>${stBody}</div>
     <div class="out" style="max-height:150px;overflow:auto"><b>${L("BUSINESS WORKERS","FUNCIONÁRIOS")}</b>${bizBody}</div>
+    ${pkBody?`<div class="out" style="max-height:150px;overflow:auto"><b>${L("DEALERS","CRUPIÊS","CRUPIERS")}</b>${pkBody}</div>`:""}
     <div class="go"><button onclick="(S.players[S.cur]._visitDay?pdayVisit:openActions)()">${L('[ ‹ BACK ]','[ ‹ VOLTAR ]')}</button><button onclick="hireExit()">${L('[ DONE ]','[ CONCLUIR ]')}</button></div>
     ${statusBar()}`;
   openModal();
@@ -5338,17 +5349,18 @@ function openHireList(kind){
   const p=S.players[S.cur];
   if(p.ai||!p.alive||S.over)return;
   if(!p._visitDay && (p.ring!=="outer"||p.inJail))return;
-  const isBiz=kind==="biz";
+  const isBiz=kind==="biz", isPk=kind==="poker";
   const el=document.getElementById("cardEl"); if(!el)return; el.dataset.deck="";
   const rows=Array.from(p.owns.entries()).filter(([idx])=>OUTER[idx]&&OUTER[idx].k===kind);
   const body=rows.length?rows.map(([idx,cnt])=>{
     const c=OUTER[idx], per=c.incomeBase||(isBiz?c.income:c.price)||0;
+    const one=isPk?L("dealer","crupi\u00ea","crupier"):isBiz?L("worker","funcion\u00e1rio","empleado"):L("soldier","soldado","soldado");
     return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin:3px 0;border-bottom:1px solid #1a2a1a;padding-bottom:5px">
-      <span>${c.t} · ${cnt} ${isBiz?L("worker","funcionário","empleado"):L("soldier","soldado","soldado")}${(cnt>1&&LANG!=='PT')?"s":""}<br><span style="opacity:.6;font-size:11px">${fmtK(per)} ${L("each · earns","cada · rende","cada · rinde")} ${fmtK(per*cnt)}/${L("yr","ano","año")}</span></span>
-      <button style="padding:6px 12px;font-size:12px" class="amber" onclick="qpCell(${idx},'${isBiz?'hb':'hs'}')">${L("[ HIRE / SELL ]","[ CONTRATAR / VENDER ]","[ CONTRATAR / VENDER ]")}</button></div>`;
-  }).join(""):"<div style='opacity:.6'>"+(isBiz?L("No businesses yet — land on a BUSINESS space to open one.","Nenhum negócio ainda — caia numa casa de NEGÓCIO para abrir um."):L("No streets yet — land on a STREET space to claim one.","Nenhuma rua ainda — caia numa casa de RUA para tomar uma."))+"</div>";
-  el.innerHTML=`<div class="lbl" style="background:${p.color}">${isBiz?L("BUSINESS WORKERS","FUNCIONÁRIOS","EMPLEADOS"):L("STREET SOLDIERS","SOLDADOS DE RUA","SOLDADOS DE CALLE")}</div>
-    <div class="ttl">${isBiz?L("Staff your businesses","Equipe seus negócios","Dota tus negocios"):L("Post soldiers on your turf","Coloque soldados nas suas áreas","Coloca soldados en tu territorio")}</div>
+      <span>${c.t} · ${cnt} ${one}${(cnt>1&&LANG!=='PT')?"s":""}<br><span style="opacity:.6;font-size:11px">${fmtK(per)} ${L("each · earns","cada · rende","cada · rinde")} ${fmtK(per*cnt)}/${L("yr","ano","año")}</span></span>
+      <button style="padding:6px 12px;font-size:12px" class="amber" onclick="qpCell(${idx},'${isPk?'hp':isBiz?'hb':'hs'}')">${L("[ HIRE / SELL ]","[ CONTRATAR / VENDER ]","[ CONTRATAR / VENDER ]")}</button></div>`;
+  }).join(""):"<div style='opacity:.6'>"+(isPk?L("You don't hold the wheel — land on THE WHEEL to open it.","Você não tem a roleta — caia em A ROLETA para abrir.","No tienes la ruleta — cae en LA RULETA para abrirla."):isBiz?L("No businesses yet — land on a BUSINESS space to open one.","Nenhum negócio ainda — caia numa casa de NEGÓCIO para abrir um."):L("No streets yet — land on a STREET space to claim one.","Nenhuma rua ainda — caia numa casa de RUA para tomar uma."))+"</div>";
+  el.innerHTML=`<div class="lbl" style="background:${p.color}">${isPk?L("DEALERS","CRUPIÊS","CRUPIERS"):isBiz?L("BUSINESS WORKERS","FUNCIONÁRIOS","EMPLEADOS"):L("STREET SOLDIERS","SOLDADOS DE RUA","SOLDADOS DE CALLE")}</div>
+    <div class="ttl">${isPk?L("Work the table","Monte a mesa","Monta la mesa"):isBiz?L("Staff your businesses","Equipe seus negócios","Dota tus negocios"):L("Post soldiers on your turf","Coloque soldados nas suas áreas","Coloca soldados en tu territorio")}</div>
     <div class="bd">${L("Pick one — the keypad hires more or sells any number back.","Escolha um — o teclado contrata mais ou vende quantos quiser.","Elige uno — el teclado contrata más o vende los que quieras.")}</div>
     <div class="out">${L('Cash on hand','Dinheiro em mãos','Efectivo en mano')}: ${fmtK(p.cash)}</div>
     <div class="out" style="max-height:230px;overflow:auto;background:#0d1510;border-left:4px solid ${p.color}">${body}</div>
@@ -5452,14 +5464,16 @@ function qpCrew(){ const p=S.players[S.cur];
     done:hireExit });
 }
 function qpCell(idx,ret){ const p=S.players[S.cur]; const c=OUTER[idx]; const per=c.incomeBase||c.price||c.income;
-  const isBiz=c.k==="biz"; const unit=isBiz?L("workers","funcionários"):L("soldiers","soldados");
+  const isBiz=c.k==="biz", isPk=c.k==="poker";
+  const unit=isPk?L("dealers","crupiês","crupiers"):isBiz?L("workers","funcionários"):L("soldiers","soldados");
   const done = ret==='st'?(()=>ownStreetOptions(idx)) : ret==='bz'?(()=>ownBizOptions(idx))
              : ret==='hs'?(()=>openHireList('street')) : ret==='hb'?(()=>openHireList('biz'))
+             : ret==='hp'?(()=>openHireList('poker'))
              : ret==='bw'?openBuyWorkers : hireExit;
   qtyPad({ title:c.t, unit, have:p.owns.get(idx)||0, per, max:Math.min(Math.floor(p.cash/per),unitRoom(p,idx)),
     held:p.owns.get(idx)||0, sellPer:per,
     apply:(n)=>{ n=Math.min(n,unitRoom(p,idx)); if(n<1)return; p.cash-=per*n; grantUnits(p,idx,n);
-      log(p.name+L(" adds "," adiciona ")+n+" "+(isBiz?L("worker","funcionário"):L("soldier","soldado"))+((n>1&&LANG!=='PT')?"s":"")+L(" to "," a ")+c.t+L(" (now "," (agora ")+p.owns.get(idx)+").","good"); render(); },
+      log(p.name+L(" adds "," adiciona ")+n+" "+(isPk?L("dealer","crupiê","crupier"):isBiz?L("worker","funcionário"):L("soldier","soldado"))+((n>1&&LANG!=='PT')?"s":"")+L(" to "," a ")+c.t+L(" (now "," (agora ")+p.owns.get(idx)+").","good"); render(); },
     sell:(n)=>{ sellUnitsAt(idx,n); },
     done });
 }
@@ -5478,8 +5492,8 @@ function sellUnitsAt(idx,n){
   const per=c.incomeBase||c.price||c.income||0, val=Math.round(per*n), left=have-n;
   if(left>0) p.owns.set(idx,left); else { p.owns.delete(idx); clearFresh(p,idx); }
   p.cash+=val;
-  const isBiz=c.k==="biz";
-  log(p.name+L(" lets "," dispensa ")+n+" "+(isBiz?L("worker","funcionário"):L("soldier","soldado"))+((n>1&&LANG!=='PT')?"s":"")+L(" go at "," em ")+c.t+" (+"+fmtK(val)+")"+(left>0?"":L(" — the holding is gone."," — a posse foi embora.")),"warn");
+  const isBiz=c.k==="biz", isPk=c.k==="poker";
+  log(p.name+L(" lets "," dispensa ")+n+" "+(isPk?L("dealer","crupiê","crupier"):isBiz?L("worker","funcionário"):L("soldier","soldado"))+((n>1&&LANG!=='PT')?"s":"")+L(" go at "," em ")+c.t+" (+"+fmtK(val)+")"+(left>0?"":L(" — the holding is gone."," — a posse foi embora.")),"warn");
   render();
 }
 /* OPEN a new business / CLAIM new turf — one screen: pick how many workers/soldiers, buy, done */
