@@ -892,7 +892,7 @@ const ROLE_ES={"Crooked Sergeant":"Sargento Corrupto","Crooked Detective":"Detec
 const ES_STATIC={"NEW YORK CITY":"NUEVA YORK","PLAYERS — tap for record":"JUGADORES — toca para la ficha","DICE":"DADOS","ACTIONS":"ACCIONES","CONSOLE — this round":"CONSOLA — esta ronda","PLAYER ON TURN":"JUGADOR EN TURNO","OTHER PLAYERS — tap for record":"OTROS JUGADORES — toca para la ficha","[ MANUAL ]":"[ MANUAL ]","[reset]":"[reiniciar]","[ FOLLOW: OFF ]":"[ SEGUIR: NO ]","[ FOLLOW: ON ]":"[ SEGUIR: SÍ ]","[ AUTO: OFF ]":"[ AUTO: NO ]","[ AUTO: ON ]":"[ AUTO: SÍ ]","tap die to roll":"toca el dado para tirar","roll to move":"tira para avanzar","landed":"cayó"};
 const POLICE_LABELS_ES={0.25:"MUY BAJA",0.5:"BAJA",1:"REALISTA",3:"DIFÍCIL",4:"BRASILEÑA"};
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v34.1";
+const APP_VERSION="v34.2";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -7447,15 +7447,21 @@ function grudgeCanAfford(p,cost,reserve){ return (p.cash-cost)>=Math.max(reserve
 function aiAttackTarget(p){
   if(p.ring!=="outer"||p.inJail) return null;
   const pr=aiProf(p);
-  const minCrew=pr.atkMinCrew;
+  /* A WRONGED BOSS MOVES SOONER. The calm temperaments need a big crew before they will
+     attack at all — CAUTIOUS wants 6, PASSIVE wants 9 — which is more than they ever recruit,
+     so the ones actually being robbed could never hit back and vengeance never reached the
+     table. A real score halves what they need to get off the bench. It does not raise what
+     they may spend: the 60% cap still applies, and the wave is still only what the block needs. */
+  const owed=grudgeTop(p);
+  const avenging=owed&&grudgeOf(p,owed)>=2;
+  const minCrew=avenging?Math.max(2,Math.ceil(pr.atkMinCrew/2)):pr.atkMinCrew;
   if(p.crew<minCrew) return null;
   const cap=Math.min(UNIT_CAP, pr.atkAllIn?p.crew:p.crew-1);   // only the most aggressive goes all-in; others keep one back
   const targets=[];
   S.players.forEach(o=>{ if(o.id!==p.id&&o.alive){ o.owns.forEach((s,idx)=>{ if(s+1<=cap) targets.push({o,idx,s}); }); } });
   if(!targets.length) return null;
   /* vengeance pulls the trigger a boss would otherwise have kept holstered */
-  const worst=grudgeTop(p);
-  const urge=worst?grudgeUrge(p,worst):0;
+  const urge=owed?grudgeUrge(p,owed):0;
   if(Math.random() >= Math.min(0.95, pr.atkProb+urge)) return null;
   /* A score to settle outweighs a richer block elsewhere — but only a block it can take with
      men to spare. Anything that would need more than 60% of the crew is not avenged today;
