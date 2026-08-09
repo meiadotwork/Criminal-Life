@@ -194,6 +194,9 @@ const SEQ = {
 let mode="idle", loop=true, speed=1;
 let seq=SEQ.idle, step=0, stepT=0, cur=0, shots=0;
 let flash=0, shake=0;
+/* recoil kick is the one gratuitous bit of motion — hold the camera still for
+   anyone who asked the OS for less of it */
+const CALM = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 function setMode(m){
   if(!SEQ[m]) return;
@@ -217,7 +220,7 @@ function setSpeed(v){
 function fire(cue){
   if(!cue) return;
   SFX[cue] && SFX[cue]();
-  if(cue==="shot"){ flash=1; shake=1; shots++; document.getElementById("rShots").textContent=shots; }
+  if(cue==="shot"){ flash=1; shake=CALM?0:1; shots++; document.getElementById("rShots").textContent=shots; }
 }
 
 /* ---------- the alley --------------------------------------------------- */
