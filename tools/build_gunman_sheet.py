@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
-"""Cut assets/gunman.png out of the original 6-pose shooter render.
+"""Cut assets/gunman.png out of the original 11-pose shooter render.
 
-The source art is a flat RGB image with the "transparency" checkerboard baked in
-as real pixels, and with the poses laid out in 256px cells whose rifle barrels
-and muzzle flash spill over into the neighbouring cell. This script keys the
-checkerboard out, separates the poses by connected component rather than by a
-straight slice, un-composites the ground shadow back to semi-transparent black,
-and re-lays the poses on a uniform grid that keeps the original alignment.
+The source lays the poses out in two rows on a free layout — no grid, and the
+rifles, muzzle flashes and ejected shells spill past each pose's bounding box —
+so the poses are separated by connected component and then re-laid on a uniform
+grid aligned to each one's own ground line and foot centre. That alignment is
+what keeps the character from jittering as the animation cycles.
 
     python3 tools/build_gunman_sheet.py <source.png> [assets/gunman.png]
+
+Also prints the leg-rig table gunman.html needs: for each pose, the column that
+separates the two legs and the row where they part. The page cuts each cel along
+those two lines and squashes the legs independently to build the walk cycle.
 
 Needs pillow, numpy and scipy. Only has to be re-run if the source art changes.
 """
@@ -21,88 +24,82 @@ from scipy import ndimage
 SRC = sys.argv[1] if len(sys.argv) > 1 else 'gunman-source.png'
 OUT = sys.argv[2] if len(sys.argv) > 2 else 'assets/gunman.png'
 
-CELL = 256                # cell pitch in the source layout
-NFRAMES = 6
-PAD = 6                   # breathing room around the tightest common box
-SHADOW_TOP = 718          # first row of the flat ground shadow
-FLASH_X = (1050, 1082)    # pose 4's muzzle flash overlaps pose 5's arm
+PAD = 6            # breathing room around the tightest common box
+BODY_PX = 5000     # a pose's own area; anything smaller is brass or smoke
 
-rgb = np.asarray(Image.open(SRC).convert('RGB')).astype(np.int16)
-h, w, _ = rgb.shape
-mx, mn = rgb.max(2), rgb.min(2)
-grey = rgb.mean(2)
+rgba = np.asarray(Image.open(SRC).convert('RGBA')).astype(np.uint8)
+solid = rgba[:, :, 3] > 40
 
-# --- 1. key out the checkerboard -------------------------------------------
-# Flood the "paper white" colour in from the borders so bright *interior*
-# pixels (cap logo, belt buckle, muzzle flash core) survive the key.
-paper = (mn > 236) & ((mx - mn) < 16)
-lab, n_paper = ndimage.label(paper)
-outside = set(lab[0, :]) | set(lab[-1, :]) | set(lab[:, 0]) | set(lab[:, -1])
-outside.discard(0)
-# The ground shadow bridges the gap between the legs, so the background trapped
-# in there never reaches a border. Such a pocket is still background if it
-# carries both checkerboard tones; a flat white patch is artwork.
-light = grey > 249
-for i in range(1, n_paper + 1):
-    if i in outside:
+# --- 1. one component per pose ----------------------------------------------
+lab, _ = ndimage.label(solid, structure=np.ones((3, 3)))
+parts = []
+for i, sl in enumerate(ndimage.find_objects(lab), 1):
+    area = int((lab[sl] == i).sum())
+    if area < 25:                       # keying noise
         continue
-    m = lab == i
-    if int(m.sum()) < 200:
-        continue
-    if 0.12 < float(light[m].mean()) < 0.88:
-        outside.add(i)
-fg = ~np.isin(lab, list(outside))
+    parts.append({'m': lab == i, 'x0': sl[1].start, 'x1': sl[1].stop,
+                  'y0': sl[0].start, 'y1': sl[0].stop, 'a': area})
+poses = [p for p in parts if p['a'] > BODY_PX]
+poses.sort(key=lambda p: (p['y0'] // 500, p['x0']))   # reading order, row by row
 
-# Shave the anti-aliased rim. Those pixels are the artwork half-blended with the
-# checkerboard, and left in they read as a white halo once the sheet is
-# quantised. Only near-white boundary pixels go, so dark outlines, the ground
-# shadow and the muzzle smoke all keep their shape.
-for _ in range(2):
-    rim = fg & ~ndimage.binary_erosion(fg, np.ones((3, 3)))
-    fg &= ~(rim & (mn > 200))
+# Ejected brass and powder smoke float free of the body. Each belongs to the
+# pose it sits over — matched on x, and on y so a shell in the lower row can't
+# attach itself to the pose standing above it.
+for bit in (p for p in parts if p['a'] <= BODY_PX):
+    cx, cy = (bit['x0'] + bit['x1']) / 2, (bit['y0'] + bit['y1']) / 2
+    near = [p for p in poses if p['x0'] - 30 <= cx <= p['x1'] + 30
+            and p['y0'] - 90 <= cy <= p['y1'] + 30]
+    host = min(near, key=lambda p: abs(cx - (p['x0'] + p['x1']) / 2))
+    host['m'] |= bit['m']
 
-# --- 2. split the poses -----------------------------------------------------
-xs = np.arange(w)[None, :].repeat(h, 0)
-flash = (rgb[:, :, 0] >= 225) & (rgb[:, :, 1] >= 140) & (rgb[:, :, 2] <= 175) \
-        & (xs >= FLASH_X[0]) & (xs < FLASH_X[1]) & fg
+# --- 2. anchor every pose to its own stance ---------------------------------
+# Ground line is the lowest body pixel; the horizontal anchor is the centre of
+# the feet, which holds steady even as the stance widens from idle to a straddle.
+for p in poses:
+    ys, xs = np.nonzero(p['m'])
+    bot, top = int(ys.max()), int(ys.min())
+    feet = ys > bot - 0.10 * (bot - top)
+    p['ax'], p['ay'] = float(xs[feet].mean()), bot
 
-lab2, _ = ndimage.label(fg & ~flash, structure=np.ones((3, 3)))
-frames = [np.zeros((h, w), bool) for _ in range(NFRAMES)]
-for i in range(1, lab2.max() + 1):
-    blob = lab2 == i
-    if int(blob.sum()) < 12:            # stray keying noise
-        continue
-    cx = float(np.nonzero(blob.any(0))[0].mean())
-    frames[min(int(cx) // CELL, NFRAMES - 1)] |= blob
-frames[3] |= flash                      # hand the flash back to the firing pose
+left = right = up = 0.0
+for p in poses:
+    ys, xs = np.nonzero(p['m'])
+    left, right = min(left, xs.min() - p['ax']), max(right, xs.max() - p['ax'])
+    up = min(up, ys.min() - p['ay'])
+fw = int(round(right - left)) + 1 + 2 * PAD
+fh = int(round(-up)) + 1 + 2 * PAD
 
-# --- 3. un-composite the ground shadow --------------------------------------
-shadow = fg & (mx - mn <= 20) & (mn >= 95) & (mn <= 245)
-shadow[:SHADOW_TOP, :] = False
+sheet = np.zeros((fh, fw * len(poses), 4), np.uint8)
+for k, p in enumerate(poses):
+    ys, xs = np.nonzero(p['m'])
+    sheet[np.round(ys - p['ay'] - up).astype(int) + PAD,
+          np.round(xs - p['ax'] - left).astype(int) + PAD + k * fw] = rgba[ys, xs]
 
-# --- 4. lay the poses out on a uniform grid ---------------------------------
-# Each pose keeps its original y and its original x relative to the centre of
-# its cell, so the character never jitters from frame to frame.
-lo, hi, top, bot = 10 ** 6, -10 ** 6, 10 ** 6, -10 ** 6
-for i, m in enumerate(frames):
-    ys, xx = np.nonzero(m)
-    c = CELL * i + CELL // 2
-    lo, hi = min(lo, xx.min() - c), max(hi, xx.max() - c)
-    top, bot = min(top, ys.min()), max(bot, ys.max())
-fw, fh = int(hi - lo) + 1 + 2 * PAD, int(bot - top) + 1 + 2 * PAD
-
-sheet = np.zeros((fh, fw * NFRAMES, 4), np.uint8)
-for i, m in enumerate(frames):
-    ys, xx = np.nonzero(m)
-    c = CELL * i + CELL // 2
-    dx = (xx - c - lo + PAD) + i * fw
-    dy = ys - top + PAD
-    sh = shadow[ys, xx]
-    sheet[dy, dx, :3] = np.where(sh[:, None], 0, rgb[ys, xx]).astype(np.uint8)
-    sheet[dy, dx, 3] = np.where(sh, np.clip(255 - grey[ys, xx], 0, 255), 255)
-
-# 64 colours is indistinguishable from the 60k-colour original here and cuts the
-# file from ~600 KB to ~100 KB.
 img = Image.fromarray(sheet, 'RGBA').quantize(colors=64, method=Image.FASTOCTREE)
 img.save(OUT, optimize=True)
-print('wrote %s — %d cels of %dx%d' % (OUT, NFRAMES, fw, fh))
+print('wrote %s — %d cels of %dx%d' % (OUT, len(poses), fw, fh))
+
+# --- 3. leg-rig table -------------------------------------------------------
+# Read the split from an ankle row, where the two feet are unambiguously apart,
+# then walk up that column to find where the legs meet.
+print('\nRIG = [   // splitX, crotchY per cel')
+cels = sheet[:, :, 3] > 60
+for k in range(len(poses)):
+    m = cels[:, k * fw:(k + 1) * fw]
+    ys, xs = np.nonzero(m)
+    top, bot = int(ys.min()), int(ys.max())
+    ankle = int(bot - 0.04 * (bot - top))
+    runs, run = [], None
+    for x in range(fw):
+        if m[ankle, x] and run is None:
+            run = x
+        elif not m[ankle, x] and run is not None:
+            runs.append((run, x - 1)); run = None
+    runs = [r for r in runs if r[1] - r[0] > 3]
+    split = max(((runs[i + 1][0] - runs[i][1], (runs[i][1] + runs[i + 1][0]) // 2)
+                 for i in range(len(runs) - 1)))[1]
+    y = ankle
+    while y > top and not m[y, max(0, split - 2):split + 3].any():
+        y -= 1
+    print('  [%3d,%4d],' % (split, y + 1))
+print('];')
