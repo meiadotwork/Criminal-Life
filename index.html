@@ -5329,7 +5329,7 @@ function openBuyWorkers(){
       <span>${c.t} · ${cnt} ${L("worker","funcionário")}${cnt>1?"s":""}<br><span style="opacity:.6;font-size:11px">${fmtK(per)} ${L("each · earns","cada · rende")} ${fmtK(per*cnt)}/${L("yr","ano")}</span></span>
       ${can?`<button style="padding:6px 12px;font-size:12px" class="amber" onclick="qpCell(${idx},'bw')">${L("[ HIRE / SELL ]","[ CONTRATAR / VENDER ]","[ CONTRATAR / VENDER ]")}</button>`:`<span style="opacity:.5;font-size:11px">${L("need ","precisa de ")}${fmtK(per)}</span>`}</div>`;
   }).join(""):"<div style='opacity:.6'>"+L("No businesses yet — land on a BUSINESS space to open one.","Nenhum negócio ainda — caia numa casa de NEGÓCIO para abrir um.")+"</div>";
-  // THE WHEEL — a house you staff, so it belongs on the same screen as the rest
+  // THE ILLEGAL CASINO — a house you staff, so it belongs on the same screen as the rest
   const pk=Array.from(p.owns.entries()).filter(([idx])=>OUTER[idx].k==="poker");
   const pkBody=pk.length?pk.map(([idx,cnt])=>{
     const c=OUTER[idx];const per=c.incomeBase||c.price;const can=p.cash>=per||cnt>0;
