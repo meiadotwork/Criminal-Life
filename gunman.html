@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="description" content="CRIMINAL TERMINAL — shooter sprite rig: walks the street and shoots, with synthesised gunfire.">
+<meta name="description" content="CRIMINAL TERMINAL — shooter sprite rig walking the favela at night, at street scale, with synthesised gunfire.">
 <meta name="theme-color" content="#010602">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -25,7 +25,7 @@
     background:repeating-linear-gradient(0deg,rgba(0,0,0,.28) 0 1px,transparent 1px 3px);opacity:.55}
   body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:51;
     background:radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,.6) 100%)}
-  .wrap{width:100%;max-width:840px;display:flex;flex-direction:column;gap:8px}
+  .wrap{width:100%;max-width:940px;display:flex;flex-direction:column;gap:8px}
   .bar{border:1px solid var(--phos-dim);border-radius:2px;padding:6px 12px;display:flex;justify-content:space-between;
     align-items:center;gap:8px;flex-wrap:wrap;
     background:linear-gradient(180deg,rgba(28,156,60,.10),transparent);box-shadow:inset 0 0 12px rgba(57,255,116,.06)}
@@ -69,7 +69,7 @@
   </div>
 
   <div class="panel" id="stageBox">
-    <canvas id="stage" width="800" height="520"></canvas>
+    <canvas id="stage" width="855" height="450"></canvas>
   </div>
 
   <div class="panel">
@@ -84,6 +84,12 @@
       <button id="bBurst" onclick="setMode('burst')">[ BURST x3 ]</button>
       <button id="bAuto" onclick="setMode('auto')">[ FULL AUTO ]</button>
     </div>
+    <div class="row" style="margin-bottom:7px">
+      <button id="bClose" onclick="setView(0)">[ CLOSE ]</button>
+      <button id="bStreet" onclick="setView(1)">[ STREET ]</button>
+      <button id="bWide" onclick="setView(2)">[ WIDE ]</button>
+      <span class="note">the camera moves in; he does not grow</span>
+    </div>
     <div class="row">
       <button id="bLoop" onclick="toggleLoop()">[ LOOP: ON ]</button>
       <button id="bSnd" onclick="toggleSnd()">[ SND ]</button>
@@ -93,7 +99,8 @@
       <div class="readout">
         <span>CEL <b id="rFrame">0</b>/11</span>
         <span>POSE <b id="rPose">IDLE</b></span>
-        <span>PACED <b id="rDist">0</b>m</span>
+        <span>HEIGHT <b id="rTall">—</b></span>
+        <span>WALKED <b id="rDist">0</b>m</span>
         <span>ROUNDS <b id="rShots">0</b></span>
         <span class="note">W=WALK · F=WALK+SHOOT · SPACE=SHOOT · B=BURST · A=AUTO · I=IDLE</span>
       </div>
@@ -103,60 +110,126 @@
   <div class="panel">
     <h2>SHEET · 11 CELS</h2>
     <div class="strip" id="strip"></div>
-    <div class="note" style="margin-top:6px">assets/gunman.png — 11 × <span id="dims">?</span>px. The walk is rigged live: each cel is cut at the crotch and the two legs are driven separately.</div>
+    <div class="note" style="margin-top:6px">assets/gunman.png over assets/street.webp. Cels are shown here at full size — on the street they are drawn at <span id="rScale">?</span> of that, so he stands about a head shorter than a doorway.</div>
   </div>
 
 </div>
 
 <script>
 /* ============================================================================
-   SHOOTER — eleven-cel sprite rig for the CRIMINAL TERMINAL gunman.
+   SHOOTER — eleven-cel sprite rig for the CRIMINAL TERMINAL gunman, walking
+   the favela at night.
 
    Cel order on the sheet:
      0 idle · 1 ready · 2 raise · 3 aim · 4 set
      5 FIRE · 6 FIRE · 7 vent (brass + smoke) · 8-9 lower · 10 idle
 
-   The art is a firing sequence shot front-on — there is no walk cycle in it.
-   So the walk is rigged at runtime instead: each cel is sliced at the crotch,
-   and the two legs are drawn as separate pieces that squash and slide out of
-   phase with each other. A squash rather than a lift keeps the thigh welded to
-   the shorts — translating the piece would open a notch in the silhouette.
-   Because the rig works off the cut lines alone it applies to any cel, so he
-   can walk with the rifle down and walk while firing off the same six poses.
+   SCALE. The sprite is drawn at one fixed size in background pixels, worked out
+   from the art itself. The parked car is the soundest reference — 43px from
+   wheels to roof, and a small hatchback stands about 1.45m — which puts the
+   scene at roughly 29 pixels to the metre, so a man is MAN_PX tall. The
+   doorways come out short against that; the art is not perfectly consistent
+   with itself, and the car wins because its real size varies least. Zoom moves the camera, never the man, so the proportion holds at
+   every framing. Shrinking a 386px figure to 44px by nearest neighbour would
+   shred it, so the sheet is resampled once at load by repeated halving.
+
+   WALK. The art is a firing sequence shot front-on with no walk cycle in it, so
+   the walk is rigged at runtime: each cel is sliced at the crotch and the two
+   legs are drawn as separate pieces that squash and slide out of phase. A
+   squash rather than a lift keeps the thigh welded to the shorts — translating
+   the piece opened a notch in the silhouette. The rig needs nothing but the two
+   cut lines, so it applies to any cel: he walks with the rifle down and fires on
+   the move off the same poses.
+
+   GROUND. The street is a hillside and climbs about 46px from end to end, so
+   his feet follow a ground curve rather than a flat line. He paces the length
+   of it and turns at each end, which keeps the background seamless — it does
+   not tile, and mirroring it would run the wall slogans backwards.
 
    All audio is synthesised at runtime with the same square-wave / filtered-noise
    primitives the game uses, so the page ships without a single sound file.
    ========================================================================== */
 
 const POSE = ["IDLE","READY","RAISE","AIM","SET","FIRE","FIRE","VENT","LOWER","LOWER","IDLE"];
-/* splitX, crotchY per cel — the two cuts the leg rig works from.
-   Printed by tools/build_gunman_sheet.py; re-paste it if the art changes. */
+/* splitX, crotchY per cel — the two cuts the leg rig works from, in sheet
+   pixels. Printed by tools/build_gunman_sheet.py; re-paste it if the art
+   changes. */
 const RIG = [
   [123,310],[122,296],[122,299],[117,311],[118,310],[117,290],
   [116,279],[118,289],[123,312],[126,293],[128,307]
 ];
 const FRAMES = RIG.length;
-/* barrel tip as a fraction of the cel — drives the bloom that lights the street */
-const MUZZLE = {x:0.80, y:0.25};
 
-const sheet = new Image();
-let art = sheet;                       // sheet, lifted out of the source art's dusk
-let SW=0, SH=0;                        // one cel's size in sheet pixels
+/* --- the figure, measured off the sheet ---------------------------------- */
+const ANCHOR_X  = 135;   // centre of his feet inside a cel
+const GROUND_ROW = 407;  // the row his soles sit on
+const STAND_PX  = 386;   // head to sole, cel 0
+const MAN_PX    = 50;    // how tall he is on this street: 1.7m at 29px/m
+const S = MAN_PX / STAND_PX;
 
-/* The poses were rendered against a dark ground and read as murk once they are
-   standing under a street lamp. Bake the lift in once at load rather than
-   filtering every frame; where canvas filters are unsupported this is a
-   straight copy and the art simply stays as drawn. */
-function liftArt(){
-  try{
-    const c=document.createElement("canvas");
-    c.width=sheet.width; c.height=sheet.height;
-    const g=c.getContext("2d");
-    g.imageSmoothingEnabled=false;
-    g.filter="brightness(1.12)";
-    g.drawImage(sheet,0,0);
-    art=c;
-  }catch(e){ art=sheet; }
+/* --- the street ----------------------------------------------------------- */
+const BG_W = 2172, BG_H = 724;
+const PX_PER_M = 29;
+/* the pavement climbs the hill in terraces; these are read off the art and
+   interpolated, so he walks up rather than stepping */
+const GROUND = [
+  [0,615],[560,615],[620,612],[900,611],[1010,606],[1120,606],[1170,596],
+  [1300,594],[1330,590],[1360,584],[1540,582],[1570,578],[1600,574],
+  [1820,569],[BG_W,569]
+];
+const EDGE = 70;         // he turns this far from either end of the street
+const VIEWS = [
+  {w:530, h:280, name:"CLOSE"},
+  {w:855, h:450, name:"STREET"},
+  {w:1376,h:BG_H,name:"WIDE"}
+];
+
+function groundAt(x){
+  for(let i=1;i<GROUND.length;i++){
+    if(x<=GROUND[i][0]){
+      const [x0,y0]=GROUND[i-1], [x1,y1]=GROUND[i];
+      return y0+(y1-y0)*(x-x0)/(x1-x0||1);
+    }
+  }
+  return GROUND[GROUND.length-1][1];
+}
+
+const sheet = new Image(), street = new Image();
+let art=null, SW=0, SH=0;              // resampled sheet + one cel's size on it
+let RIGs=[];                           // the cut lines, on the resampled sheet
+
+/* Shrinking by repeated halving keeps the figure readable at a tenth of the
+   size; one big nearest-neighbour step would drop most of his pixels on the
+   floor. The brightness lift rides along in the first draw — the poses were
+   rendered against a dark ground and read as murk under a street lamp. */
+function shrinkCel(sx,sw,sh,dw,dh){
+  let c=document.createElement("canvas"); c.width=sw; c.height=sh;
+  let g=c.getContext("2d");
+  g.imageSmoothingEnabled=true; g.imageSmoothingQuality="high";
+  try{ g.filter="brightness(1.12)"; }catch(e){}
+  g.drawImage(sheet, sx,0,sw,sh, 0,0,sw,sh);
+  while(c.width>dw*2){
+    const n=document.createElement("canvas");
+    n.width=Math.max(dw,c.width>>1); n.height=Math.max(dh,c.height>>1);
+    const ng=n.getContext("2d");
+    ng.imageSmoothingEnabled=true; ng.imageSmoothingQuality="high";
+    ng.drawImage(c,0,0,n.width,n.height);
+    c=n;
+  }
+  const out=document.createElement("canvas"); out.width=dw; out.height=dh;
+  const og=out.getContext("2d");
+  og.imageSmoothingEnabled=true; og.imageSmoothingQuality="high";
+  og.drawImage(c,0,0,dw,dh);
+  return out;
+}
+function buildArt(celW,celH){
+  SW=Math.max(1,Math.round(celW*S)); SH=Math.max(1,Math.round(celH*S));
+  const c=document.createElement("canvas");
+  c.width=SW*FRAMES; c.height=SH;
+  const g=c.getContext("2d");
+  for(let i=0;i<FRAMES;i++) g.drawImage(shrinkCel(i*celW,celW,celH,SW,SH), i*SW, 0);
+  art=c;
+  RIGs=RIG.map(([sx,cy])=>[Math.round(sx*S), Math.round(cy*S)]);
 }
 
 /* ---------- sound: square beeper + filtered noise, mirroring the game ------ */
@@ -194,14 +267,14 @@ function noise(dur,vol,when,cutoff){
   }catch(e){}
 }
 const SFX = {
-  /* rifle: bright crack, body thump, and a tail bouncing off the buildings */
+  /* rifle: bright crack, body thump, and a tail bouncing off the hillside */
   shot(){ noise(.055,.34,0,2600); noise(.20,.17,.004,760); tone(96,.11,.11,0,"sine"); noise(.42,.05,.06,300); },
   /* brass hitting the pavement a beat after the round leaves */
   shell(){ tone(2550,.028,.030,.06); tone(3150,.020,.020,.15); tone(2250,.018,.014,.23); },
   /* stock coming up to the shoulder / rifle going back down */
   handle(){ noise(.05,.09,0,1300); tone(190,.03,.030,.01); },
-  /* bare foot on wet asphalt */
-  step(){ noise(.055,.075,0,420); tone(78,.045,.035,0,"sine"); },
+  /* bare foot on the slabs */
+  step(){ noise(.05,.06,0,420); tone(78,.04,.028,0,"sine"); },
   /* dry click when the mag runs out at the end of an auto dump */
   click(){ tone(1500,.012,.05); tone(700,.03,.04,.02); }
 };
@@ -231,16 +304,16 @@ const SEQ = {
   burst   : [].concat(RAISE,volley(3,115),[{f:7,ms:190,sfx:"shell"}],LOWER),
   auto    : [].concat(RAISE,volley(18,96),[{f:7,ms:200,sfx:"click"}],LOWER),
   /* walking cels hold still — the legs are driven by the walk phase, not the
-     timeline, so a single cel is all these two modes need from it */
+     timeline, so a single cel is all the plain walk needs from it */
   walk    : [{f:0,ms:1e9}],
   walkfire: [].concat([{f:3,ms:180},{f:4,ms:170}],volley(6,150),[{f:7,ms:260,sfx:"shell"},{f:4,ms:220},{f:3,ms:200}])
 };
 const WALKING = {walk:1, walkfire:1};
 
-let mode="idle", loop=true, speed=1;
+let mode="idle", loop=true, speed=1, view=1;
 let seq=SEQ.idle, step=0, stepT=0, cur=0, shots=0;
 let flash=0, shake=0;
-let walkPh=0, scrollX=0, metres=0, lastFoot=-1;
+let walkPh=0, worldX=260, dir=1, metres=0, lastFoot=-1;
 /* recoil kick is the one gratuitous bit of motion — hold the camera still for
    anyone who asked the OS for less of it */
 const CALM = matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -255,6 +328,14 @@ function setMode(m){
    ["single","bSingle"],["burst","bBurst"],["auto","bAuto"]].forEach(([k,id])=>{
     document.getElementById(id).classList.toggle("sel",k===m);
   });
+}
+function setView(v){
+  view=v;
+  const V=VIEWS[v];
+  cv.width=V.w; cv.height=V.h;
+  cx.imageSmoothingEnabled=false;
+  ["bClose","bStreet","bWide"].forEach((id,i)=>
+    document.getElementById(id).classList.toggle("sel",i===v));
 }
 function toggleLoop(){
   loop=!loop;
@@ -275,91 +356,42 @@ function fire(cue){
    the cycle, which lifts the foot without detaching the thigh, and slides
    forward as it goes. The body rides up on whichever leg is mid-swing.        */
 function gait(){
-  const a=Math.sin(walkPh*Math.PI*2), b=-a;
-  const lift=v=>Math.max(0,v);
+  const a=Math.sin(walkPh*Math.PI*2), lift=v=>Math.max(0,v);
   return {
-    sL:1-0.13*lift(a), dxL:9*lift(a),
-    sR:1-0.13*lift(b), dxR:9*lift(b),
-    bob:-3.6*Math.abs(a)
+    sL:1-0.13*lift(a),  dxL:9*S*lift(a),
+    sR:1-0.13*lift(-a), dxR:9*S*lift(-a),
+    bob:-3.6*S*Math.abs(a)
   };
 }
-
-/* ---------- the street ------------------------------------------------------
-   Layers scroll at their own rate against the walk. Everything is placed off a
-   hash of the tile index so the city stays put as it slides by.               */
-function hash(n){ n=(n<<13)^n; return ((n*(n*n*15731+789221)+1376312589)&0x7fffffff)/0x7fffffff; }
 
 const cv=document.getElementById("stage"), cx=cv.getContext("2d");
 cx.imageSmoothingEnabled=false;
 
-function band(y0,h,tile,rate,paint){
-  const W=cv.width, off=scrollX*rate, first=Math.floor(off/tile)-1;
-  for(let i=first;i*tile-off<W+tile;i++) paint(i, Math.round(i*tile-off), y0, h);
-}
-
-function drawStreet(ground){
-  const W=cv.width, H=cv.height;
-  const base=ground-58;                  // where the buildings meet the pavement
-  const sky=cx.createLinearGradient(0,0,0,base);
-  sky.addColorStop(0,"#050a11"); sky.addColorStop(.62,"#0b1621"); sky.addColorStop(1,"#16222b");
-  cx.fillStyle=sky; cx.fillRect(0,0,W,base);
-
-  /* far skyline */
-  band(0,0,96,0.22,(i,x)=>{
-    const h=100+hash(i*7+1)*140;
-    cx.fillStyle="#080f18"; cx.fillRect(x,base-h,94,h);
-  });
-  /* tenement row, close enough for lit windows */
-  band(0,0,148,0.5,(i,x)=>{
-    const h=190+hash(i*13+5)*150;
-    cx.fillStyle="#040910"; cx.fillRect(x,base-h,144,h);
-    for(let r=0;r<7;r++) for(let c=0;c<4;c++){
-      const s=hash(i*97+r*11+c);
-      if(s<0.44) continue;
-      cx.fillStyle= s>0.87 ? "rgba(255,196,110,.34)" : "rgba(255,182,66,.13)";
-      cx.fillRect(x+16+c*32, base-h+18+r*26, 12, 15);
-    }
-  });
-
-  /* pavement he walks on: a lit far edge, then slabs sliding past underfoot */
-  cx.fillStyle="#10171b"; cx.fillRect(0,base,W,H-base);
-  cx.fillStyle="#1b262b"; cx.fillRect(0,base,W,5);
-  band(0,0,78,1,(i,x)=>{
-    cx.fillStyle="rgba(150,175,190,.055)"; cx.fillRect(x,base+5,2,H-base);
-  });
-  cx.fillStyle="rgba(0,0,0,.30)"; cx.fillRect(0,ground+20,W,H-ground-20);
-
-  /* street lamps, and the pool each one throws down onto the slabs */
-  band(0,0,300,0.8,(i,x)=>{
-    const pool=cx.createRadialGradient(x,base+12,6,x,base+12,235);
-    pool.addColorStop(0,"rgba(255,214,140,.20)"); pool.addColorStop(1,"rgba(255,214,140,0)");
-    cx.fillStyle=pool; cx.fillRect(x-235,base-190,470,H-base+190);
-    cx.fillStyle="#0c141a"; cx.fillRect(x-3,base-186,6,186);
-    cx.fillStyle="#0c141a"; cx.fillRect(x-3,base-190,26,5);
-    cx.fillStyle="rgba(255,222,155,.75)"; cx.fillRect(x+14,base-186,12,7);
-  });
-}
-
 function render(){
-  if(!SW) return;
-  const W=cv.width, H=cv.height, ground=H-34;
-  cx.clearRect(0,0,W,H);
-  drawStreet(ground);
+  if(!art) return;
+  const W=cv.width, H=cv.height;
+  const camX=Math.max(0,Math.min(BG_W-W, Math.round(worldX-W*0.42)));
+  const camY=BG_H-H;                       // the street sits low in the art
 
-  const g=WALKING[mode] ? gait() : {sL:1,dxL:0,sR:1,dxR:0,bob:0};
-  const kick = shake ? (Math.random()*2-1)*4*shake : 0;
-  const dx=Math.round(W*0.30 + kick), dy=Math.round(ground-SH+g.bob+(shake?(Math.random()*2-1)*2*shake:0));
+  cx.drawImage(street, camX,camY,W,H, 0,0,W,H);
 
-  if(flash>0){                            /* wide wash across the asphalt */
-    const mx=dx+SW*MUZZLE.x, my=dy+SH*MUZZLE.y;
-    const wash=cx.createRadialGradient(mx,my,2,mx,my,300);
-    wash.addColorStop(0,"rgba(255,226,150,"+(.5*flash)+")");
-    wash.addColorStop(.35,"rgba(255,150,40,"+(.18*flash)+")");
+  const g=WALKING[mode]?gait():{sL:1,dxL:0,sR:1,dxR:0,bob:0};
+  const jolt=shake?(Math.random()*2-1)*4*S*shake:0;
+  const dx=Math.round(worldX-camX-ANCHOR_X*S+jolt);
+  const dy=Math.round(groundAt(worldX)-camY-GROUND_ROW*S+g.bob+(shake?(Math.random()*2-1)*2*S*shake:0));
+  const mx=dx+(dir>0?SW*0.80:SW*0.20), my=dy+SH*0.25;   // barrel tip
+
+  if(flash>0){                             /* wash across the pavement */
+    const wash=cx.createRadialGradient(mx,my,1,mx,my,90);
+    wash.addColorStop(0,"rgba(255,226,150,"+(.42*flash)+")");
+    wash.addColorStop(.35,"rgba(255,150,40,"+(.16*flash)+")");
     wash.addColorStop(1,"rgba(255,120,0,0)");
     cx.fillStyle=wash; cx.fillRect(0,0,W,H);
   }
 
-  const sx=RIG[cur][0], cy=RIG[cur][1], legH=SH-cy;
+  cx.save();
+  if(dir<0){ cx.translate(2*dx+2*ANCHOR_X*S,0); cx.scale(-1,1); }   // mirror about his feet
+  const sx=RIGs[cur][0], cy=RIGs[cur][1], legH=SH-cy;
   if(WALKING[mode]){
     cx.drawImage(art, cur*SW,0, SW,cy, dx,dy, SW,cy);
     cx.drawImage(art, cur*SW,cy, sx,legH,
@@ -369,13 +401,13 @@ function render(){
   }else{
     cx.drawImage(art, cur*SW,0,SW,SH, dx,dy,SW,SH);
   }
+  cx.restore();
 
-  if(flash>0){                            /* tighter flash core on top */
-    const mx=dx+SW*MUZZLE.x, my=dy+SH*MUZZLE.y;
-    const core=cx.createRadialGradient(mx,my,1,mx,my,58);
+  if(flash>0){                             /* tighter flash core on top */
+    const core=cx.createRadialGradient(mx,my,0.5,mx,my,18);
     core.addColorStop(0,"rgba(255,255,225,"+(.7*flash)+")");
     core.addColorStop(1,"rgba(255,190,60,0)");
-    cx.fillStyle=core; cx.fillRect(mx-76,my-76,152,152);
+    cx.fillStyle=core; cx.fillRect(mx-24,my-24,48,48);
   }
 }
 
@@ -386,9 +418,12 @@ function tick(now){
 
   if(WALKING[mode]){
     walkPh=(walkPh+dt*speed/840)%1;
-    scrollX+=dt*speed*0.115;
-    metres+=dt*speed*0.00115;
-    const foot=walkPh<0.5?0:1;           // a step lands as each half begins
+    const travel=dt*speed*0.039;           // 1.35 m/s at 29px/m
+    worldX+=travel*dir;
+    metres+=travel/PX_PER_M;
+    if(worldX>BG_W-EDGE){ worldX=BG_W-EDGE; dir=-1; }
+    if(worldX<EDGE){ worldX=EDGE; dir=1; }
+    const foot=walkPh<0.5?0:1;             // a step lands as each half begins
     if(foot!==lastFoot){ lastFoot=foot; SFX.step(); }
     document.getElementById("rDist").textContent=metres.toFixed(0);
   }
@@ -418,14 +453,14 @@ function tick(now){
 }
 
 /* ---------- cel strip ----------------------------------------------------- */
-function buildStrip(){
+function buildStrip(celW,celH){
   const strip=document.getElementById("strip");
   for(let i=0;i<FRAMES;i++){
     const d=document.createElement("div"); d.className="cel"; d.title=POSE[i];
     const c=document.createElement("canvas");
-    c.width=SW; c.height=SH;
+    c.width=celW; c.height=celH;
     const g=c.getContext("2d"); g.imageSmoothingEnabled=false;
-    g.drawImage(art,i*SW,0,SW,SH,0,0,SW,SH);
+    g.drawImage(sheet,i*celW,0,celW,celH,0,0,celW,celH);
     const tag=document.createElement("span"); tag.textContent=i;
     d.appendChild(c); d.appendChild(tag);
     d.onclick=()=>{ mode="idle"; seq=[{f:i,ms:1e9}]; step=0; stepT=0; cur=i; };
@@ -444,18 +479,25 @@ addEventListener("keydown",e=>{
 });
 cv.addEventListener("click",()=>setMode(mode==="walk"?"walkfire":mode==="idle"?"walk":mode));
 
-sheet.onload=()=>{
-  SW=Math.round(sheet.width/FRAMES); SH=sheet.height;
-  liftArt();
-  document.getElementById("dims").textContent=SW+"×"+SH;
-  document.getElementById("status").textContent="READY — 11 CELS";
-  buildStrip();
-  setMode("walkfire");
+let pending=2;
+function ready(){
+  if(--pending) return;
+  const celW=Math.round(sheet.width/FRAMES), celH=sheet.height;
+  buildArt(celW,celH);
+  buildStrip(celW,celH);
+  document.getElementById("status").textContent="READY — 11 CELS ON THE HILL";
+  document.getElementById("rTall").textContent=MAN_PX+"px · "+(MAN_PX/PX_PER_M).toFixed(2)+"m";
+  document.getElementById("rScale").textContent=(S*100).toFixed(0)+"%";
   document.getElementById("bSnd").textContent=SND?"[ SND ]":"[ MUTE ]";
+  setView(1);
+  setMode("walkfire");
   requestAnimationFrame(t=>{ last=t; tick(t); });
-};
+}
+sheet.onload=ready; street.onload=ready;
 sheet.onerror=()=>{ document.getElementById("status").textContent="ASSET MISSING: assets/gunman.png"; };
+street.onerror=()=>{ document.getElementById("status").textContent="ASSET MISSING: assets/street.webp"; };
 sheet.src="assets/gunman.png";
+street.src="assets/street.webp";
 </script>
 </body>
 </html>
