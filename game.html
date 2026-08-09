@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="description" content="BECO — hold the street. A wave shooter set in the CRIMINAL TERMINAL favela, built on the gunman sprite rig.">
+<meta name="theme-color" content="#010602">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="BECO">
+<title>CRIMINAL TERMINAL — BECO</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' fill='%23000'/><text x='8' y='12.5' font-size='12' text-anchor='middle' fill='%2333ff44' font-family='monospace'>$</text></svg>">
+<style>
+  :root{--phos:#39ff74;--phos-dim:#1c9c3c;--phos-dark:#0a3d18;--amber:#ffb642;--red:#ff5a52;--bg:#010602}
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{min-height:100%}
+  body{
+    background:
+      radial-gradient(ellipse 100% 70% at 50% 42%, rgba(20,90,40,.10) 0%, transparent 70%),
+      radial-gradient(ellipse at center, #041206 0%, #010602 78%);
+    color:var(--phos);font-family:"Courier New",Courier,monospace;font-size:15px;line-height:1.45;
+    text-shadow:0 0 2px rgba(57,255,116,.5),0 0 6px rgba(57,255,116,.18);
+    min-height:100dvh;display:flex;flex-direction:column;align-items:center;padding:8px;gap:7px;
+    -webkit-user-select:none;user-select:none;overscroll-behavior:none}
+  body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:50;
+    background:repeating-linear-gradient(0deg,rgba(0,0,0,.28) 0 1px,transparent 1px 3px);opacity:.5}
+  body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:51;
+    background:radial-gradient(ellipse at center,transparent 58%,rgba(0,0,0,.6) 100%)}
+  .wrap{width:100%;max-width:940px;display:flex;flex-direction:column;gap:7px}
+  .panel{border:1px solid var(--phos-dim);border-radius:2px;
+    background:linear-gradient(180deg,rgba(10,61,24,.12),rgba(1,6,2,.4));box-shadow:inset 0 0 18px rgba(0,0,0,.5)}
+
+  /* ---- HUD ---- */
+  #hud{padding:6px 10px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;font-size:12px;letter-spacing:2px}
+  #hud .grp{display:flex;align-items:center;gap:6px}
+  #hud b{color:var(--amber);font-weight:normal;font-variant-numeric:tabular-nums}
+  .meter{width:132px;height:11px;border:1px solid var(--phos-dark);background:rgba(0,0,0,.6);position:relative;overflow:hidden}
+  .meter i{display:block;height:100%;background:var(--phos);box-shadow:0 0 8px rgba(57,255,116,.5);transition:width .12s linear}
+  .meter.hurt i{background:var(--red);box-shadow:0 0 8px rgba(255,90,82,.55)}
+  #magRow{display:flex;gap:1.5px}
+  #magRow s{width:3px;height:11px;background:var(--amber);text-decoration:none;box-shadow:0 0 4px rgba(255,182,66,.5)}
+  #magRow s.out{background:rgba(255,182,66,.16);box-shadow:none}
+
+  /* ---- stage ---- */
+  #stageBox{padding:0;overflow:hidden;position:relative;background:#000;line-height:0}
+  canvas{display:block;width:100%;height:auto;image-rendering:pixelated;image-rendering:crisp-edges;touch-action:none}
+
+  /* ---- pads ---- */
+  #pads{display:flex;gap:7px;align-items:stretch}
+  #pads .side{display:flex;gap:7px;flex:1}
+  .pad{flex:1;min-height:62px;border:1px solid var(--phos-dim);border-radius:2px;background:rgba(10,61,24,.2);
+    color:var(--phos);font-family:inherit;font-size:15px;letter-spacing:2px;cursor:pointer;text-shadow:inherit;
+    display:flex;align-items:center;justify-content:center;touch-action:none}
+  .pad:active,.pad.on{background:var(--phos);color:#020a04;text-shadow:none}
+  .pad.fire{border-color:var(--amber);color:var(--amber)}
+  .pad.fire:active,.pad.fire.on{background:var(--amber);color:#140b00}
+  .pad:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+  @media(min-width:720px){ #pads{display:none} }
+
+  .foot{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:6px 10px;font-size:11px;
+    letter-spacing:1px;color:var(--phos-dim)}
+  .foot a{color:var(--phos-dim)}
+  .foot button{font-family:inherit;font-size:11px;letter-spacing:1px;color:var(--phos-dim);background:none;
+    border:1px solid var(--phos-dark);border-radius:2px;padding:2px 8px;cursor:pointer}
+  .foot button:hover{color:var(--phos);border-color:var(--phos-dim)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="panel" id="hud">
+    <span class="grp">VIDA <span class="meter" id="hpMeter"><i id="hpBar" style="width:100%"></i></span></span>
+    <span class="grp">PENTE <span id="magRow"></span> <b id="ammo">30</b></span>
+    <span class="grp">ONDA <b id="wave">1</b></span>
+    <span class="grp">MORTOS <b id="kills">0</b></span>
+    <span class="grp">GRANA <b id="score">0</b></span>
+  </div>
+
+  <div class="panel" id="stageBox">
+    <canvas id="stage" width="640" height="340"></canvas>
+  </div>
+
+  <div id="pads">
+    <div class="side">
+      <button class="pad" id="padL" aria-label="move left">◀</button>
+      <button class="pad" id="padR" aria-label="move right">▶</button>
+    </div>
+    <div class="side">
+      <button class="pad" id="padRe" aria-label="recarregar">RECARGA</button>
+      <button class="pad fire" id="padF" aria-label="fire">FOGO</button>
+    </div>
+  </div>
+
+  <div class="panel foot">
+    <span>← → ANDAR · ESPAÇO ATIRAR · R RECARREGAR · P PAUSA</span>
+    <span><button id="sndBtn" type="button">[ SND ]</button> <a href="gunman.html">visor do rig</a></span>
+  </div>
+
+</div>
+
+<script>
+/* ============================================================================
+   BECO — hold the street.
+
+   A wave shooter built on the same eleven-cel gunman sheet and favela plate the
+   rig viewer uses (gunman.html), so everything here inherits that work: the
+   figure is drawn at one fixed size in background pixels (50px, about 29 pixels
+   to the metre off the parked car), his feet follow the ground curve up the
+   hill, and the walk is rigged live by slicing each cel at the crotch and
+   driving the two legs out of phase.
+
+   Rivals are the same sheet with the cap and shorts hue-shifted — skin is left
+   exactly as drawn; only the clothing changes, which is the read you want at
+   50px anyway, since the cap is the one bit of solid colour up top.
+
+   All audio is synthesised at runtime from square waves and filtered noise, the
+   same primitives the board game uses. No sound files.
+   ========================================================================== */
+
+/* ---------- the sheet, and the figure measured off it --------------------- */
+const RIG = [
+  [123,310],[122,296],[122,299],[117,311],[118,310],[117,290],
+  [116,279],[118,289],[123,312],[126,293],[128,307]
+];
+const FRAMES = RIG.length;
+const CEL = {IDLE:0, READY:1, RAISE:2, AIM:3, SET:4, FIRE_A:5, FIRE_B:6, VENT:7, LOW_A:8, LOW_B:9, STAND:10};
+const ANCHOR_X=135, GROUND_ROW=407, STAND_PX=386, MAN_PX=50;
+const S = MAN_PX/STAND_PX;
+
+/* ---------- the street ---------------------------------------------------- */
+const BG_W=2172, BG_H=724, PX_PER_M=29;
+const GROUND = [
+  [0,615],[560,615],[620,612],[900,611],[1010,606],[1120,606],[1170,596],
+  [1300,594],[1330,590],[1360,584],[1540,582],[1570,578],[1600,574],
+  [1820,569],[BG_W,569]
+];
+const WALL = 46;                       // he cannot walk past the ends of the plate
+function groundAt(x){
+  for(let i=1;i<GROUND.length;i++){
+    if(x<=GROUND[i][0]){
+      const [x0,y0]=GROUND[i-1],[x1,y1]=GROUND[i];
+      return y0+(y1-y0)*(x-x0)/(x1-x0||1);
+    }
+  }
+  return GROUND[GROUND.length-1][1];
+}
+/* where a round leaves the barrel / passes through a chest, relative to the feet */
+const MUZZLE_UP = (GROUND_ROW-0.25*414)*S;
+const MUZZLE_FWD = (0.80*381-ANCHOR_X)*S;
+const HALF_W = 9;                      // half a shoulder, in street pixels
+
+/* ---------- balance ------------------------------------------------------- */
+const P_SPEED=46, E_SPEED=31;
+const P_HP=100, E_HP=34;
+const P_DMG=17,  E_DMG=7;
+const MAG=30, RELOAD_MS=1250, P_FIRE_MS=115;
+const BULLET_V=1150, DROP_CHANCE=0.34;
+
+const sheet=new Image(), street=new Image();
+let art=null, foe=null, SW=0, SH=0, RIGs=[];
+
+/* Shrinking by repeated halving keeps the figure readable at an eighth of the
+   size; one nearest-neighbour step would drop most of his pixels on the floor.
+   The brightness lift rides along — the poses were rendered against a dark
+   ground and read as murk under a street lamp. */
+function shrinkCel(sx,sw,sh,dw,dh){
+  let c=document.createElement("canvas"); c.width=sw; c.height=sh;
+  let g=c.getContext("2d");
+  g.imageSmoothingEnabled=true; g.imageSmoothingQuality="high";
+  try{ g.filter="brightness(1.12)"; }catch(e){}
+  g.drawImage(sheet,sx,0,sw,sh,0,0,sw,sh);
+  while(c.width>dw*2){
+    const n=document.createElement("canvas");
+    n.width=Math.max(dw,c.width>>1); n.height=Math.max(dh,c.height>>1);
+    const ng=n.getContext("2d");
+    ng.imageSmoothingEnabled=true; ng.imageSmoothingQuality="high";
+    ng.drawImage(c,0,0,n.width,n.height); c=n;
+  }
+  const out=document.createElement("canvas"); out.width=dw; out.height=dh;
+  const og=out.getContext("2d");
+  og.imageSmoothingEnabled=true; og.imageSmoothingQuality="high";
+  og.drawImage(c,0,0,dw,dh);
+  return out;
+}
+/* Rival colours: the cap is a strong blue and the shorts a desaturated violet,
+   and nothing else on the sheet lives in that half of the wheel — skin sits at
+   20-40°, the rifle has no chroma at all. So a hue window recolours the clothes
+   and leaves the man himself alone. */
+function recolour(src){
+  const c=document.createElement("canvas"); c.width=src.width; c.height=src.height;
+  const g=c.getContext("2d"); g.drawImage(src,0,0);
+  const im=g.getImageData(0,0,c.width,c.height), d=im.data;
+  for(let i=0;i<d.length;i+=4){
+    if(d[i+3]<8) continue;
+    const r=d[i]/255, gg=d[i+1]/255, b=d[i+2]/255;
+    const mx=Math.max(r,gg,b), mn=Math.min(r,gg,b), df=mx-mn;
+    if(df<0.045) continue;                              // greys: rifle, outlines
+    let h;
+    if(mx===r) h=60*(((gg-b)/df)%6);
+    else if(mx===gg) h=60*((b-r)/df+2);
+    else h=60*((r-gg)/df+4);
+    if(h<0) h+=360;
+    const s=mx===0?0:df/mx, v=mx;
+    let nh=null, ns=s, nv=v;
+    if(h>=190&&h<=260&&s>0.45){ nh=354; ns=Math.min(1,s*1.05); }        // cap → red
+    else if(h>=290&&h<=350&&s>0.13){ nh=44; ns=s*0.85; nv=v*0.92; }     // shorts → khaki
+    if(nh===null) continue;
+    const cc=nv*ns, hh=nh/60, xx=cc*(1-Math.abs(hh%2-1)), m=nv-cc;
+    let R,G,B;
+    if(hh<1){R=cc;G=xx;B=0;} else if(hh<2){R=xx;G=cc;B=0;}
+    else if(hh<3){R=0;G=cc;B=xx;} else if(hh<4){R=0;G=xx;B=cc;}
+    else if(hh<5){R=xx;G=0;B=cc;} else {R=cc;G=0;B=xx;}
+    d[i]=(R+m)*255; d[i+1]=(G+m)*255; d[i+2]=(B+m)*255;
+  }
+  g.putImageData(im,0,0);
+  return c;
+}
+function buildArt(){
+  const celW=Math.round(sheet.width/FRAMES), celH=sheet.height;
+  SW=Math.round(celW*S); SH=Math.round(celH*S);
+  const c=document.createElement("canvas"); c.width=SW*FRAMES; c.height=SH;
+  const g=c.getContext("2d");
+  for(let i=0;i<FRAMES;i++) g.drawImage(shrinkCel(i*celW,celW,celH,SW,SH),i*SW,0);
+  art=c; foe=recolour(c);
+  RIGs=RIG.map(([a,b])=>[Math.round(a*S),Math.round(b*S)]);
+}
+
+/* ---------- sound --------------------------------------------------------- */
+let SND=(function(){try{return localStorage.getItem("ct_snd")!=="off";}catch(e){return true;}})();
+let _ac=null;
+function ac(){
+  if(!_ac) _ac=new (window.AudioContext||window.webkitAudioContext)();
+  if(_ac.state==="suspended") _ac.resume();
+  return _ac;
+}
+function tone(f,dur,vol,when,type){
+  if(!SND) return;
+  try{
+    const c=ac(), t=c.currentTime+(when||0);
+    const o=c.createOscillator(), g=c.createGain();
+    o.type=type||"square"; o.frequency.value=f;
+    g.gain.setValueAtTime(vol||.04,t);
+    g.gain.exponentialRampToValueAtTime(.0001,t+(dur||.06));
+    o.connect(g); g.connect(c.destination); o.start(t); o.stop(t+(dur||.06)+.02);
+  }catch(e){}
+}
+function noise(dur,vol,when,cut){
+  if(!SND) return;
+  try{
+    const c=ac(), t=c.currentTime+(when||0);
+    const n=Math.max(1,Math.floor(c.sampleRate*(dur||.15)));
+    const buf=c.createBuffer(1,n,c.sampleRate), d=buf.getChannelData(0);
+    for(let i=0;i<n;i++) d[i]=(Math.random()*2-1)*(1-i/n);
+    const s=c.createBufferSource(); s.buffer=buf;
+    const f=c.createBiquadFilter(); f.type="lowpass"; f.frequency.value=cut||900;
+    const g=c.createGain();
+    g.gain.setValueAtTime(vol||.15,t);
+    g.gain.exponentialRampToValueAtTime(.0001,t+(dur||.15));
+    s.connect(f); f.connect(g); g.connect(c.destination); s.start(t); s.stop(t+(dur||.15)+.02);
+  }catch(e){}
+}
+const SFX={
+  shot(far){ const a=far?0.42:1;
+    noise(.055,.34*a,0,2600); noise(.20,.17*a,.004,760);
+    tone(96,.11,.11*a,0,"sine"); noise(.42,.05*a,.06,300); },
+  shell(){ tone(2550,.028,.030,.06); tone(3150,.020,.020,.15); },
+  step(){ noise(.05,.05,0,420); tone(78,.04,.024,0,"sine"); },
+  hit(){ noise(.07,.20,0,520); tone(140,.06,.07,0,"sine"); },
+  hurt(){ noise(.10,.26,0,380); tone(110,.14,.09,0,"sine"); tone(78,.22,.06,.06,"sine"); },
+  down(){ noise(.16,.22,0,300); tone(150,.12,.06,.02,"sine"); tone(96,.26,.06,.12,"sine"); },
+  dry(){ tone(1500,.012,.05); tone(700,.03,.04,.02); },
+  reload(){ noise(.05,.10,0,1200); tone(190,.03,.04,.02); noise(.05,.10,.42,1500); tone(240,.04,.05,.46); },
+  pickup(){ tone(1245,.05,.045); tone(1568,.10,.05,.06); },
+  wave(){ [392,523,659].forEach((f,i)=>tone(f,.13,.05,i*.14)); },
+  over(){ [330,262,196,147].forEach((f,i)=>tone(f,.34,.06,i*.3,"sine")); }
+};
+function toggleSnd(){
+  SND=!SND;
+  try{ localStorage.setItem("ct_snd",SND?"on":"off"); }catch(e){}
+  document.getElementById("sndBtn").textContent=SND?"[ SND ]":"[ MUTE ]";
+}
+
+/* ---------- entities ------------------------------------------------------ */
+const CALM=matchMedia("(prefers-reduced-motion: reduce)").matches;
+const rnd=(a,b)=>a+Math.random()*(b-a);
+
+function makeMan(x,dir,hp){
+  return {x, dir, hp, maxHp:hp, walkPh:0, moving:false, aimT:0, muzzle:0,
+          cel:CEL.IDLE, dead:false, fall:0, fade:1, lastFoot:-1, hurtT:0};
+}
+let P=null, foes=[], shots=[], drops=[], puffs=[];
+let wave=1, kills=0, score=0, toSpawn=0, spawnT=0, maxAlive=2;
+let state="title", shake=0, flash=0, banner="", bannerT=0;
+let firing=false, reloadT=0, fireCd=0, ammo=MAG, moveL=false, moveR=false;
+
+function resetGame(){
+  P=makeMan(300,1,P_HP);
+  foes=[]; shots=[]; drops=[]; puffs=[];
+  wave=1; kills=0; score=0; ammo=MAG; reloadT=0; fireCd=0;
+  toSpawn=0; spawnT=0;
+  startWave();
+}
+function startWave(){
+  /* How many come at once matters far more than how many come in total — a
+     standing player has to be able to win the opening wave. */
+  toSpawn  = 2+Math.floor(wave*0.9);
+  maxAlive = Math.min(2+Math.floor(wave/2), 5);
+  spawnT   = 1000;
+  banner="ONDA "+wave; bannerT=1900;
+  SFX.wave();
+}
+const living = ()=>foes.reduce((n,f)=>n+(f.dead?0:1),0);
+function spawnFoe(){
+  /* they come in off whichever side has room, just past the edge of the view */
+  const W=cv.width, camX=camera();
+  const left = Math.random()<0.5;
+  let x = left ? camX-40 : camX+W+40;
+  x = Math.max(WALL+10, Math.min(BG_W-WALL-10, x));
+  const f=makeMan(x, left?1:-1, E_HP+Math.min(26,wave*2));
+  f.range=rnd(150,300); f.burst=0; f.speed=E_SPEED*rnd(.85,1.2);
+  f.fireT=rnd(900,1600);              // a beat to be seen before he opens up
+  foes.push(f);
+}
+
+function fireFrom(m,dmg,spread,far){
+  shots.push({x:m.x+m.dir*MUZZLE_FWD, y:groundAt(m.x)-MUZZLE_UP+(spread?rnd(-spread,spread):0),
+              vx:m.dir*BULLET_V, dmg, foe:m!==P, life:1.6});
+  m.muzzle=1; m.aimT=700;
+  SFX.shot(far);
+  if(m===P){ flash=1; if(!CALM) shake=Math.max(shake,.8); }
+}
+function damage(m,dmg,dir){
+  if(m.dead) return;
+  m.hp-=dmg; m.hurtT=140;
+  puffs.push({x:m.x+rnd(-4,4), y:groundAt(m.x)-MUZZLE_UP+rnd(-6,6), t:1, vx:dir*18});
+  if(m.hp<=0){
+    m.dead=true; m.fade=1; m.fall=0;
+    if(m===P){ state="over"; SFX.over(); banner="VOCÊ CAIU"; bannerT=1e9; }
+    else{
+      kills++; score+=100+wave*10; SFX.down();
+      if(Math.random()<DROP_CHANCE)
+        drops.push({x:m.x, kind:Math.random()<.5?"hp":"ammo", t:0});
+    }
+  }else{
+    SFX.hit();
+    if(m===P){ SFX.hurt(); if(!CALM) shake=Math.max(shake,1); }
+  }
+}
+
+/* ---------- the walk rig -------------------------------------------------- */
+function gait(ph){
+  const a=Math.sin(ph*Math.PI*2), lift=v=>Math.max(0,v);
+  return {sL:1-0.13*lift(a), dxL:9*S*lift(a),
+          sR:1-0.13*lift(-a), dxR:9*S*lift(-a),
+          bob:-3.6*S*Math.abs(a)};
+}
+function celFor(m){
+  if(m.dead) return CEL.VENT;
+  if(m===P && reloadT>0){
+    const k=1-reloadT/RELOAD_MS;
+    return k<.2?CEL.LOW_A : k<.4?CEL.LOW_B : k<.7?CEL.STAND : k<.85?CEL.LOW_B : CEL.RAISE;
+  }
+  if(m.muzzle>0.55) return (Math.random()<.5?CEL.FIRE_A:CEL.FIRE_B);
+  if(m.aimT>0) return CEL.SET;
+  return m.moving?CEL.IDLE:CEL.STAND;
+}
+
+/* ---------- render -------------------------------------------------------- */
+const cv=document.getElementById("stage"), cx=cv.getContext("2d");
+cx.imageSmoothingEnabled=false;
+function camera(){
+  return Math.max(0,Math.min(BG_W-cv.width, Math.round((P?P.x:300)-cv.width*0.5)));
+}
+function drawMan(m,camX,camY,pal){
+  const g = m.moving && !m.dead ? gait(m.walkPh) : {sL:1,dxL:0,sR:1,dxR:0,bob:0};
+  const feet=groundAt(m.x);
+  const dx=Math.round(m.x-camX-ANCHOR_X*S);
+  const dy=Math.round(feet-camY-GROUND_ROW*S+g.bob);
+  const cel=m.cel, sx=RIGs[cel][0], cy=RIGs[cel][1], legH=SH-cy;
+
+  cx.save();
+  cx.globalAlpha=m.fade;
+  if(m.dead){                                  /* tip him over onto the slabs */
+    cx.translate(m.x-camX, feet-camY);
+    cx.rotate(m.dir*m.fall*Math.PI*0.44);
+    cx.translate(-(m.x-camX), -(feet-camY));
+  }
+  if(m.dir<0){ cx.translate(2*dx+2*ANCHOR_X*S,0); cx.scale(-1,1); }
+  if(m.hurtT>0){ try{ cx.filter="brightness(2.2) saturate(.4)"; }catch(e){} }
+  if(m.moving && !m.dead){
+    cx.drawImage(pal, cel*SW,0, SW,cy, dx,dy, SW,cy);
+    cx.drawImage(pal, cel*SW,cy, sx,legH, dx+g.dxL, dy+cy, sx, Math.max(1,Math.round(legH*g.sL)));
+    cx.drawImage(pal, cel*SW+sx,cy, SW-sx,legH, dx+sx+g.dxR, dy+cy, SW-sx, Math.max(1,Math.round(legH*g.sR)));
+  }else{
+    cx.drawImage(pal, cel*SW,0,SW,SH, dx,dy,SW,SH);
+  }
+  cx.restore();
+
+  if(m.muzzle>0){                              /* flash, and the light it throws */
+    const mx=m.x-camX+m.dir*MUZZLE_FWD, my=feet-camY-MUZZLE_UP;
+    const wash=cx.createRadialGradient(mx,my,1,mx,my,86);
+    wash.addColorStop(0,"rgba(255,226,150,"+(.34*m.muzzle)+")");
+    wash.addColorStop(.4,"rgba(255,150,40,"+(.13*m.muzzle)+")");
+    wash.addColorStop(1,"rgba(255,120,0,0)");
+    cx.fillStyle=wash; cx.fillRect(mx-90,my-90,180,180);
+    const core=cx.createRadialGradient(mx,my,.5,mx,my,15);
+    core.addColorStop(0,"rgba(255,255,225,"+(.75*m.muzzle)+")");
+    core.addColorStop(1,"rgba(255,190,60,0)");
+    cx.fillStyle=core; cx.fillRect(mx-18,my-18,36,36);
+  }
+}
+function drawHealthPip(m,camX,camY){
+  if(m.dead||m.hp>=m.maxHp) return;
+  const x=Math.round(m.x-camX-11), y=Math.round(groundAt(m.x)-camY-MAN_PX-9);
+  cx.fillStyle="rgba(0,0,0,.6)"; cx.fillRect(x,y,22,3);
+  cx.fillStyle="#ff5a52"; cx.fillRect(x,y,Math.round(22*Math.max(0,m.hp/m.maxHp)),3);
+}
+function render(){
+  const W=cv.width,H=cv.height;
+  const camX=camera(), camY=BG_H-H;
+  const jx=shake?Math.round(rnd(-2.5,2.5)*shake):0, jy=shake?Math.round(rnd(-1.5,1.5)*shake):0;
+
+  cx.save();
+  cx.translate(jx,jy);
+  cx.drawImage(street,camX,camY,W,H,0,0,W,H);
+
+  drops.forEach(d=>{                            /* crates left on the slabs */
+    const x=Math.round(d.x-camX-4), y=Math.round(groundAt(d.x)-camY-8+Math.sin(d.t*4)*1.2);
+    cx.fillStyle="rgba(0,0,0,.5)"; cx.fillRect(x-1,y+8,10,2);
+    cx.fillStyle=d.kind==="hp"?"#2f7d43":"#7a6428"; cx.fillRect(x,y,8,8);
+    cx.fillStyle=d.kind==="hp"?"#7dffa1":"#ffb642";
+    if(d.kind==="hp"){ cx.fillRect(x+3,y+1,2,6); cx.fillRect(x+1,y+3,6,2); }
+    else cx.fillRect(x+1,y+5,6,2);
+  });
+
+  foes.forEach(f=>{ drawMan(f,camX,camY,foe); drawHealthPip(f,camX,camY); });
+  if(P) drawMan(P,camX,camY,art);
+
+  cx.strokeStyle="rgba(255,226,160,.85)"; cx.lineWidth=1;
+  shots.forEach(s=>{                            /* tracers */
+    cx.beginPath();
+    cx.moveTo(s.x-camX, s.y-camY);
+    cx.lineTo(s.x-camX-Math.sign(s.vx)*7, s.y-camY);
+    cx.stroke();
+  });
+  cx.fillStyle="rgba(255,120,90,.75)";
+  puffs.forEach(p=>{ const r=1+3*(1-p.t);
+    cx.globalAlpha=p.t; cx.fillRect(p.x-camX-r,p.y-camY-r,r*2,r*2); });
+  cx.globalAlpha=1;
+  cx.restore();
+
+  if(flash>0){ cx.fillStyle="rgba(255,220,160,"+(0.05*flash)+")"; cx.fillRect(0,0,W,H); }
+  if(P&&P.hurtT>0){ cx.fillStyle="rgba(255,40,30,"+(0.30*P.hurtT/140)+")"; cx.fillRect(0,0,W,H); }
+
+  /* off-screen rivals get an arrow, so nothing shoots you from nowhere */
+  foes.forEach(f=>{
+    if(f.dead) return;
+    const sx=f.x-camX;
+    if(sx>-6&&sx<W+6) return;
+    const x=sx<0?7:W-7, y=Math.round(groundAt(f.x)-camY-MAN_PX*0.6);
+    cx.fillStyle="rgba(255,90,82,.9)";
+    cx.beginPath();
+    cx.moveTo(sx<0?x-5:x+5,y); cx.lineTo(x+(sx<0?4:-4),y-5); cx.lineTo(x+(sx<0?4:-4),y+5);
+    cx.closePath(); cx.fill();
+  });
+
+  if(bannerT>0||state!=="play"){
+    const big = state==="title"?"BECO":state==="over"?"VOCÊ CAIU":state==="paused"?"PAUSA":banner;
+    const sub = state==="title" ? "segure a rua · toque ou ESPAÇO"
+              : state==="over"  ? "GRANA "+score+" · onda "+wave+" · ESPAÇO p/ recomeçar"
+              : state==="paused"? "P para voltar" : "";
+    cx.fillStyle="rgba(0,0,0,"+(state==="play"?0.30:0.62)+")";
+    cx.fillRect(0,H/2-34,W,state==="play"?32:62);
+    cx.textAlign="center";
+    cx.fillStyle="#39ff74"; cx.font="bold 20px 'Courier New',monospace";
+    cx.fillText(big,W/2,H/2-12);
+    if(sub){ cx.fillStyle="#1c9c3c"; cx.font="11px 'Courier New',monospace"; cx.fillText(sub,W/2,H/2+8); }
+  }
+}
+
+/* ---------- HUD ----------------------------------------------------------- */
+const magRow=document.getElementById("magRow");
+for(let i=0;i<MAG;i++) magRow.appendChild(document.createElement("s"));
+let hudCache={};
+function hud(){
+  const set=(id,v)=>{ if(hudCache[id]!==v){ hudCache[id]=v; document.getElementById(id).textContent=v; } };
+  const hp=P?Math.max(0,P.hp/P_HP):0;
+  const bar=document.getElementById("hpBar");
+  if(hudCache.hp!==hp){ hudCache.hp=hp; bar.style.width=(hp*100).toFixed(0)+"%"; }
+  document.getElementById("hpMeter").classList.toggle("hurt",hp<.34);
+  if(hudCache.ammo!==ammo){
+    hudCache.ammo=ammo;
+    for(let i=0;i<MAG;i++) magRow.children[i].classList.toggle("out",i>=ammo);
+  }
+  set("ammo",reloadT>0?"··":ammo);
+  set("wave",wave); set("kills",kills); set("score",score);
+}
+
+/* ---------- input --------------------------------------------------------- */
+function startFire(){ if(state==="title"||state==="over"){ begin(); return; } firing=true; }
+function beginReload(){
+  if(state!=="play"||reloadT>0||ammo===MAG) return;
+  reloadT=RELOAD_MS; SFX.reload();
+}
+addEventListener("keydown",e=>{
+  const k=e.key.toLowerCase();
+  if(k==="arrowleft"||k==="a"){ moveL=true; e.preventDefault(); }
+  else if(k==="arrowright"||k==="d"){ moveR=true; e.preventDefault(); }
+  else if(k===" "){ e.preventDefault(); ac(); startFire(); }
+  else if(k==="r") beginReload();
+  else if(k==="p"&&(state==="play"||state==="paused")) state=state==="play"?"paused":"play";
+});
+addEventListener("keyup",e=>{
+  const k=e.key.toLowerCase();
+  if(k==="arrowleft"||k==="a") moveL=false;
+  else if(k==="arrowright"||k==="d") moveR=false;
+  else if(k===" ") firing=false;
+});
+function hold(el,down,up){
+  const on=e=>{ e.preventDefault(); ac(); el.classList.add("on"); down(); };
+  const off=e=>{ e.preventDefault(); el.classList.remove("on"); up&&up(); };
+  el.addEventListener("pointerdown",on);
+  el.addEventListener("pointerup",off);
+  el.addEventListener("pointercancel",off);
+  el.addEventListener("pointerleave",off);
+}
+hold(document.getElementById("padL"),()=>moveL=true,()=>moveL=false);
+hold(document.getElementById("padR"),()=>moveR=true,()=>moveR=false);
+hold(document.getElementById("padF"),startFire,()=>firing=false);
+document.getElementById("padRe").addEventListener("pointerdown",e=>{e.preventDefault();ac();beginReload();});
+cv.addEventListener("pointerdown",e=>{ e.preventDefault(); ac(); startFire(); });
+addEventListener("pointerup",()=>firing=false);   // release anywhere lets go of the trigger
+addEventListener("blur",()=>{ firing=moveL=moveR=false; });
+document.getElementById("sndBtn").onclick=toggleSnd;
+function begin(){ resetGame(); state="play"; }
+
+/* ---------- the loop ------------------------------------------------------ */
+let last=performance.now();
+function tick(now){
+  const dt=Math.min(50,now-last); last=now; const t=dt/1000;
+  if(state==="play") step(t,dt);
+  else if(P){ P.muzzle=Math.max(0,P.muzzle-t*6); foes.forEach(f=>f.muzzle=Math.max(0,f.muzzle-t*6)); }
+  flash=Math.max(0,flash-t*14);
+  shake=Math.max(0,shake-t*4);
+  if(bannerT>0&&state==="play") bannerT-=dt;
+  if(P) P.hurtT=Math.max(0,P.hurtT-dt);
+  foes.forEach(f=>f.hurtT=Math.max(0,f.hurtT-dt));
+  if(art) render();
+  hud();
+  requestAnimationFrame(tick);
+}
+
+function step(t,dt){
+  /* ---- player ---- */
+  const dirIn=(moveR?1:0)-(moveL?1:0);
+  P.moving = dirIn!==0 && !P.dead;
+  if(P.moving){
+    P.dir=dirIn;
+    P.x=Math.max(WALL,Math.min(BG_W-WALL,P.x+dirIn*P_SPEED*t));
+    P.walkPh=(P.walkPh+dt/700)%1;
+    const foot=P.walkPh<0.5?0:1;
+    if(foot!==P.lastFoot){ P.lastFoot=foot; SFX.step(); }
+  }
+  if(reloadT>0){
+    reloadT-=dt;
+    if(reloadT<=0){ ammo=MAG; reloadT=0; }
+  }
+  fireCd-=dt;
+  if(firing&&fireCd<=0&&reloadT<=0&&!P.dead){
+    if(ammo>0){ ammo--; fireFrom(P,P_DMG,0,false); fireCd=P_FIRE_MS; if(ammo%3===0) SFX.shell(); }
+    else{ SFX.dry(); fireCd=420; beginReload(); }
+  }
+  P.aimT=Math.max(0,P.aimT-dt);
+  P.muzzle=Math.max(0,P.muzzle-t*7);
+  P.cel=celFor(P);
+
+  /* ---- rivals ---- */
+  spawnT-=dt;
+  if(toSpawn>0&&spawnT<=0&&living()<maxAlive){ spawnFoe(); toSpawn--; spawnT=rnd(750,1500); }
+  foes.forEach(f=>{
+    if(f.dead){ f.fall=Math.min(1,f.fall+t*3.6); f.fade=Math.max(0,f.fade-t*0.16); return; }
+    const gap=P.x-f.x, d=Math.abs(gap);
+    f.dir=Math.sign(gap)||1;
+    f.moving=false;
+    if(!P.dead&&d>f.range){
+      f.moving=true;
+      f.x=Math.max(WALL,Math.min(BG_W-WALL,f.x+f.dir*f.speed*t));
+      f.walkPh=(f.walkPh+dt/760)%1;
+    }else if(!P.dead&&d<f.range*0.55){        /* too close — back off a little */
+      f.moving=true;
+      f.x=Math.max(WALL,Math.min(BG_W-WALL,f.x-f.dir*f.speed*0.7*t));
+      f.walkPh=(f.walkPh+dt/760)%1;
+    }
+    f.fireT-=dt;
+    if(!P.dead&&f.fireT<=0&&d<520){
+      /* aim is loose and gets tighter with the wave; a wide shot sails past */
+      fireFrom(f,E_DMG,Math.max(9,34-wave*1.4),d>340);
+      f.burst++;
+      f.fireT = f.burst>=2+((Math.random()*3)|0) ? (f.burst=0, rnd(1100,2100)/(1+wave*0.05)) : rnd(120,190);
+    }
+    f.aimT=Math.max(0,f.aimT-dt);
+    f.muzzle=Math.max(0,f.muzzle-t*7);
+    f.cel=celFor(f);
+  });
+  foes=foes.filter(f=>!(f.dead&&f.fade<=0));
+
+  /* ---- rounds in the air ---- */
+  shots.forEach(s=>{
+    const nx=s.x+s.vx*t;
+    const lo=Math.min(s.x,nx), hi=Math.max(s.x,nx);
+    const check=t2=>{
+      if(t2.dead||s.hit) return;
+      if(t2.x+HALF_W<lo||t2.x-HALF_W>hi) return;
+      const feet=groundAt(t2.x);
+      if(s.y<feet-MAN_PX-2||s.y>feet-6) return;
+      s.hit=true; damage(t2,s.dmg,Math.sign(s.vx));
+    };
+    if(s.foe) check(P); else foes.forEach(check);
+    s.x=nx; s.life-=t;
+    if(s.x<WALL-30||s.x>BG_W-WALL+30) s.hit=true;
+  });
+  shots=shots.filter(s=>!s.hit&&s.life>0);
+
+  puffs.forEach(p=>{ p.t-=t*2.6; p.x+=p.vx*t; });
+  puffs=puffs.filter(p=>p.t>0);
+
+  /* ---- crates ---- */
+  drops.forEach(d=>{
+    d.t+=t;
+    if(!P.dead&&Math.abs(d.x-P.x)<13){
+      d.gone=true; SFX.pickup();
+      if(d.kind==="hp") P.hp=Math.min(P_HP,P.hp+28); else ammo=MAG;
+      score+=25;
+    }
+    if(d.t>26) d.gone=true;
+  });
+  drops=drops.filter(d=>!d.gone);
+
+  /* ---- wave over ---- */
+  if(toSpawn===0&&foes.every(f=>f.dead)&&state==="play"){
+    score+=250*wave; wave++; startWave();
+  }
+}
+
+/* ---------- boot ---------------------------------------------------------- */
+let pending=2;
+function ready(){
+  if(--pending) return;
+  buildArt();
+  resetGame(); state="title";
+  document.getElementById("sndBtn").textContent=SND?"[ SND ]":"[ MUTE ]";
+  requestAnimationFrame(n=>{ last=n; tick(n); });
+}
+sheet.onload=ready; street.onload=ready;
+sheet.src="assets/gunman.png";
+street.src="assets/street.webp";
+</script>
+</body>
+</html>

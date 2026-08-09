@@ -3,7 +3,13 @@ Crime game
 
 ## Pages
 
-- `index.html` — CRIMINAL TERMINAL, the game.
+- `index.html` — CRIMINAL TERMINAL, the board game.
+- `game.html` — **BECO**, a wave shooter on the favela street. Rival crews walk
+  in from both ends; you move, fire, reload and hold the line. Standing still
+  gets you killed around wave 4, so the street is the mechanic. Rivals are the
+  same sheet with only the cap and shorts hue-shifted — skin is left exactly as
+  drawn — which reads at 50px because the cap is the one bit of solid colour up
+  top. Keyboard on desktop, thumb pads on a phone.
 - `gunman.html` — shooter sprite animation. An eleven-cel rig walking the
   favela: he paces the street, fires on the move, and runs single / 3-round
   burst / full-auto timelines standing still. He is drawn at one fixed size in
