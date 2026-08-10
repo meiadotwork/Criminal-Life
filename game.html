@@ -153,36 +153,55 @@
 /* ============================================================================
    BECO — hold the street.
 
-   A wave shooter built on the same eleven-cel gunman sheet and favela plate the
-   rig viewer uses (gunman.html), so everything here inherits that work: the
-   figure is drawn at one fixed size in background pixels (50px, about 29 pixels
-   to the metre off the parked car), his feet follow the ground curve up the
-   hill, and the walk is rigged live by slicing each cel at the crotch and
-   driving the two legs out of phase.
+   A wave shooter over the favela plate. The figure is drawn at one fixed size in
+   background pixels — 50px, about 29 pixels to the metre worked out off the
+   parked car — and his feet follow the ground curve as the street climbs.
 
-   Rivals are the same sheet with the cap and shorts hue-shifted — skin is left
-   exactly as drawn; only the clothing changes, which is the read you want at
-   50px anyway, since the cap is the one bit of solid colour up top.
+   Two atlases carry the cast. The opposition is a police raid rather than a
+   recoloured copy of the player, and the police art is drawn about a fifth
+   taller, so they arrive on the street bigger than him without anyone forcing
+   it — which is what boots and body armour should look like.
 
    All audio is synthesised at runtime from square waves and filtered noise, the
    same primitives the board game uses. No sound files.
    ========================================================================== */
 
-/* ---------- the sheets, and the figure measured off them ------------------
-   Three cycles cut onto one grid by tools/build_gunman_sheets.py: eleven
-   planted firing poses, a seven-frame walk and a six-frame crouch-walk. They
-   share a cel size, a ground row and an anchor column, so one can replace
-   another mid-stride without the character stepping sideways. */
-const N_FIRE=11, N_WALK=7, N_CROUCH=6;
-const CEL = {IDLE:0, READY:1, RAISE:2, AIM:3, SET:4, FIRE_A:5, FIRE_B:6, VENT:7, LOW_A:8, LOW_B:9, STAND:10};
-const ANCHOR_X=192, GROUND_ROW=410, STAND_PX=387, MAN_PX=50;
-const S = MAN_PX/STAND_PX;
-/* measured off the firing cels: where the flash sits relative to his feet */
-const MUZZLE_UP=304*S, MUZZLE_FWD=170*S;
-/* how tall he is to a bullet, standing and folded down — this is the whole
-   point of the crouch, since a round aimed at a standing chest sails over */
-const TALL_STAND=50, TALL_CROUCH=31;
-const SOLE=6;                          // rounds this low go into the slabs
+/* ---------- the cast ------------------------------------------------------
+   Two atlases, cut and indexed by tools/cut_atlas.py. Every pose in each one
+   sits on a common ground row with its feet on it, so any cel can replace any
+   other. Which cels form which animation is inference — the sheets did not
+   arrive one cycle per row — so it lives here as data and can be re-read off
+   assets/atlas/*.json without touching the art. */
+const ATLAS = {
+  gunman: {file:"assets/atlas/gunman-atlas.png", cw:201, ch:165, ax:91,  gr:158, idleH:133},
+  police: {file:"assets/atlas/police-atlas.png", cw:278, ch:197, ax:128, gr:190, idleH:158}
+};
+const ANIM = {
+  gunman:{
+    idle:[0,1,2,3,4,5], aim:[6,7,8,9,10,11],
+    walk:[12,13,14,15,16,17,18,19,20,21,22],
+    crouch:[23,24,25,26,27,28,29], crouchIdle:[49,50,51],
+    fire:[35,36,37,38,39,40,41,42,43], crouchFire:[44,45,46,47,48],
+    reload:[58,59,60,61,62,63,64,65], death:[80,81,82,84,96]
+  },
+  police:{
+    idle:[0,1,2,3,4,5], aim:[6,7,8,9,10,11],
+    walk:[12,13,14,15,16,17,18,19,20,21,22],
+    crouch:[23,24,25,26,27,28,29], crouchIdle:[23,24,25],
+    fire:[35,36,37,38,39,40], crouchFire:[31,32,33],
+    reload:[41,42,43,44,45], death:[61,62,63,70]
+  }
+};
+/* One scale for both, taken off the gunman. The police art is already drawn
+   about a fifth taller, so they arrive on the street bigger than him without
+   anyone forcing it — which is what boots and body armour should look like. */
+const MAN_PX = 50;
+const S = MAN_PX / ATLAS.gunman.idleH;
+/* where a round leaves the barrel and passes through a chest, as fractions of
+   the standing figure, so they hold for either character */
+const MUZZLE_UP_F = 0.76, MUZZLE_FWD_F = 0.44;
+const TALL_F = 1.0, CROUCH_F = 0.62;
+const SOLE = 6;                        // rounds this low go into the slabs
 
 /* ---------- the street ---------------------------------------------------- */
 const BG_W=2172, BG_H=724, PX_PER_M=29;
@@ -211,14 +230,14 @@ const MAG=30, RELOAD_MS=1250, P_FIRE_MS=115;
 const BULLET_V=1150, DROP_CHANCE=0.34;
 const STRIDE=46;      // ground covered per two-step cycle — keeps feet off the ice
 
-const SRC={fire:new Image(), walk:new Image(), crouch:new Image()};
 const street=new Image();
-let art={}, foe={}, SW=0, SH=0, CEL_W=0, CEL_H=0;
+const SRC={}, art={};
+for(const k in ATLAS){ SRC[k]=new Image(); }
 
-/* Shrinking by repeated halving keeps the figure readable at an eighth of the
-   size; one nearest-neighbour step would drop most of his pixels on the floor.
-   The brightness lift rides along — the poses were rendered against a dark
-   ground and read as murk under a street lamp. */
+/* Shrinking by repeated halving keeps a figure readable at a third of the size;
+   one nearest-neighbour step would drop most of its pixels on the floor. The
+   brightness lift rides along — the art was rendered dark and reads as murk
+   under a street lamp. */
 function shrinkCel(img,sx,sw,sh,dw,dh){
   let c=document.createElement("canvas"); c.width=sw; c.height=sh;
   let g=c.getContext("2d");
@@ -238,53 +257,22 @@ function shrinkCel(img,sx,sw,sh,dw,dh){
   og.drawImage(c,0,0,dw,dh);
   return out;
 }
-function shrinkSheet(img,n){
-  const c=document.createElement("canvas"); c.width=SW*n; c.height=SH;
-  const g=c.getContext("2d");
-  for(let i=0;i<n;i++) g.drawImage(shrinkCel(img,i*CEL_W,CEL_W,CEL_H,SW,SH),i*SW,0);
-  return c;
-}
-/* Rival colours: the cap is a strong blue and the shorts a desaturated violet,
-   and nothing else on the sheets lives in that half of the wheel — skin sits at
-   20-40 degrees, the rifle has no chroma at all. So a hue window recolours the
-   clothes and leaves the man himself exactly as drawn. */
-function recolour(src){
-  const c=document.createElement("canvas"); c.width=src.width; c.height=src.height;
-  const g=c.getContext("2d"); g.drawImage(src,0,0);
-  const im=g.getImageData(0,0,c.width,c.height), d=im.data;
-  for(let i=0;i<d.length;i+=4){
-    if(d[i+3]<8) continue;
-    const r=d[i]/255, gg=d[i+1]/255, b=d[i+2]/255;
-    const mx=Math.max(r,gg,b), mn=Math.min(r,gg,b), df=mx-mn;
-    if(df<0.045) continue;                              // greys: rifle, outlines
-    let h;
-    if(mx===r) h=60*(((gg-b)/df)%6);
-    else if(mx===gg) h=60*((b-r)/df+2);
-    else h=60*((r-gg)/df+4);
-    if(h<0) h+=360;
-    const sat=mx===0?0:df/mx, v=mx;
-    let nh=null, ns=sat, nv=v;
-    if(h>=190&&h<=260&&sat>0.45){ nh=354; ns=Math.min(1,sat*1.05); }     // cap → red
-    else if(h>=290&&h<=350&&sat>0.13){ nh=44; ns=sat*0.85; nv=v*0.92; }  // shorts → khaki
-    if(nh===null) continue;
-    const cc=nv*ns, hh=nh/60, xx=cc*(1-Math.abs(hh%2-1)), m=nv-cc;
-    let R,G,B;
-    if(hh<1){R=cc;G=xx;B=0;} else if(hh<2){R=xx;G=cc;B=0;}
-    else if(hh<3){R=0;G=cc;B=xx;} else if(hh<4){R=0;G=xx;B=cc;}
-    else if(hh<5){R=xx;G=0;B=cc;} else {R=cc;G=0;B=xx;}
-    d[i]=(R+m)*255; d[i+1]=(G+m)*255; d[i+2]=(B+m)*255;
-  }
-  g.putImageData(im,0,0);
-  return c;
-}
 function buildArt(){
-  CEL_W=Math.round(SRC.fire.width/N_FIRE); CEL_H=SRC.fire.height;
-  SW=Math.round(CEL_W*S); SH=Math.round(CEL_H*S);
-  art={fire:shrinkSheet(SRC.fire,N_FIRE), walk:shrinkSheet(SRC.walk,N_WALK),
-       crouch:shrinkSheet(SRC.crouch,N_CROUCH)};
-  /* rivals never crouch — they have no crouched firing pose to pop up from,
-     and a target you cannot shoot back at is not a rival, it is a wall */
-  foe={fire:recolour(art.fire), walk:recolour(art.walk), crouch:recolour(art.crouch)};
+  for(const k in ATLAS){
+    const A=ATLAS[k], img=SRC[k];
+    const n=Math.round(img.width/A.cw);
+    A.sw=Math.max(1,Math.round(A.cw*S)); A.sh=Math.max(1,Math.round(A.ch*S));
+    A.sax=A.ax*S; A.sgr=A.gr*S;
+    const c=document.createElement("canvas"); c.width=A.sw*n; c.height=A.sh;
+    const g=c.getContext("2d");
+    for(let i=0;i<n;i++) g.drawImage(shrinkCel(img,i*A.cw,A.cw,A.ch,A.sw,A.sh),i*A.sw,0);
+    art[k]=c; A.cels=n;
+  }
+  /* how tall each cast member stands, and how tall they are folded down —
+     the crouch is what lets a round aimed at a chest sail over */
+  for(const k in ATLAS){ const A=ATLAS[k];
+    A.tall=Math.round(A.idleH*S*TALL_F); A.low=Math.round(A.idleH*S*CROUCH_F);
+    A.up=A.idleH*S*MUZZLE_UP_F; A.fwd=A.idleH*S*MUZZLE_FWD_F; }
 }
 
 /* ---------- sound --------------------------------------------------------- */
@@ -347,7 +335,8 @@ const CALM=matchMedia("(prefers-reduced-motion: reduce)").matches;
 const rnd=(a,b)=>a+Math.random()*(b-a);
 
 function makeMan(x,dir,hp){
-  return {x, dir, hp, maxHp:hp, ph:0, moving:false, crouch:false, aimT:0, muzzle:0,
+  return {x, dir, hp, maxHp:hp, cast:"gunman", ph:0, breath:Math.random(), shot:0,
+          moving:false, crouch:false, aimT:0, muzzle:0,
           dead:false, fall:0, fade:1, lastFoot:-1, hurtT:0};
 }
 let P=null, foes=[], shots=[], drops=[], puffs=[];
@@ -379,13 +368,23 @@ function spawnFoe(){
   let x = left ? camX-40 : camX+W+40;
   x = Math.max(WALL+10, Math.min(BG_W-WALL-10, x));
   const f=makeMan(x, left?1:-1, E_HP+Math.min(26,wave*2));
+  f.cast="police";                    // the opposition is a raid, not a recolour
   f.range=rnd(150,300); f.burst=0; f.speed=E_SPEED*rnd(.85,1.2);
   f.fireT=rnd(900,1600);              // a beat to be seen before he opens up
   foes.push(f);
 }
 
-function fireFrom(m,dmg,spread,far){
-  shots.push({x:m.x+m.dir*MUZZLE_FWD, y:groundAt(m.x)-MUZZLE_UP+(spread?rnd(-spread,spread):0),
+function fireFrom(m,dmg,spread,far,at){
+  m.shot=(m.shot|0)+1;
+  /* A round is laid on where the shooter thinks the target's chest is, not
+     fired flat off his own shoulder. The police stand a head taller than the
+     gunman, so shoulder-height fire sailed clean over him — they killed nobody.
+     Aim is always taken on a STANDING chest, which is what makes ducking work:
+     drop below the line they are shooting at and most of it goes past. */
+  let y = groundAt(m.x)-cast(m).up;
+  if(at) y = groundAt(at.x)-cast(at).tall*0.86;
+  if(spread) y += rnd(-spread,spread);
+  shots.push({x:m.x+m.dir*cast(m).fwd, y,
               vx:m.dir*BULLET_V, dmg, foe:m!==P, life:1.6});
   m.muzzle=1; m.aimT=700;
   SFX.shot(far);
@@ -394,7 +393,7 @@ function fireFrom(m,dmg,spread,far){
 function damage(m,dmg,dir){
   if(m.dead) return;
   m.hp-=dmg; m.hurtT=140;
-  puffs.push({x:m.x+rnd(-4,4), y:groundAt(m.x)-MUZZLE_UP+rnd(-6,6), t:1, vx:dir*18});
+  puffs.push({x:m.x+rnd(-4,4), y:groundAt(m.x)-cast(m).up+rnd(-6,6), t:1, vx:dir*18});
   if(m.hp<=0){
     m.dead=true; m.fade=1; m.fall=0;
     if(m===P){ state="over"; SFX.over(); banner="VOCÊ CAIU"; bannerT=1e9; }
@@ -409,24 +408,26 @@ function damage(m,dmg,dir){
   }
 }
 
-/* ---------- which cel is he on -------------------------------------------
-   The walk used to be faked by slicing each cel at the crotch and squashing the
-   legs out of phase, because the art had no walk in it. It does now, so the rig
-   is gone and the cycles are just played. */
+/* ---------- which cel is he on -------------------------------------------- */
+function clip(m,key){ const a=ANIM[m.cast][key]; return a&&a.length?a:ANIM[m.cast].idle; }
 function pose(m){
-  if(m.dead) return {s:"fire", c:CEL.VENT};
-  if(m.crouch) return {s:"crouch", c:m.moving?Math.floor(m.ph*N_CROUCH)%N_CROUCH:0};
-  if(m===P && reloadT>0){
-    const k=1-reloadT/RELOAD_MS;
-    return {s:"fire", c: k<.2?CEL.LOW_A : k<.4?CEL.LOW_B : k<.7?CEL.STAND : k<.85?CEL.LOW_B : CEL.RAISE};
+  const A=ANIM[m.cast];
+  if(m.dead){ const d=clip(m,"death"); return d[Math.min(d.length-1,Math.floor(m.fall*d.length))]; }
+  if(m.crouch){
+    const c=m.moving?clip(m,"crouch"):clip(m,"crouchIdle");
+    return c[Math.floor(m.ph*c.length)%c.length];
   }
-  if(m.muzzle>0.55) return {s:"fire", c:(Math.random()<.5?CEL.FIRE_A:CEL.FIRE_B)};
-  if(m.aimT>0)      return {s:"fire", c:CEL.SET};
-  if(m.moving)      return {s:"walk", c:Math.floor(m.ph*N_WALK)%N_WALK};
-  return {s:"fire", c:CEL.STAND};
+  if(m===P && reloadT>0){
+    const r=clip(m,"reload");
+    return r[Math.min(r.length-1,Math.floor((1-reloadT/RELOAD_MS)*r.length))];
+  }
+  if(m.muzzle>0.5){ const f=clip(m,"fire"); return f[(m.shot|0)%f.length]; }
+  if(m.aimT>0){ const a=clip(m,"aim"); return a[Math.floor(m.ph*a.length)%a.length]; }
+  if(m.moving){ const w=clip(m,"walk"); return w[Math.floor(m.ph*w.length)%w.length]; }
+  const i=clip(m,"idle"); return i[Math.floor(m.breath*i.length)%i.length];
 }
-/* how tall he is to an incoming round */
-const tallOf = m => m.crouch&&!m.dead ? TALL_CROUCH : TALL_STAND;
+const cast = m => ATLAS[m.cast];
+const tallOf = m => m.crouch&&!m.dead ? cast(m).low : cast(m).tall;
 
 /* ---------- render -------------------------------------------------------- */
 const cv=document.getElementById("stage"), cx=cv.getContext("2d");
@@ -434,35 +435,26 @@ cx.imageSmoothingEnabled=false;
 function camera(){
   return Math.max(0,Math.min(BG_W-cv.width, Math.round((P?P.x:300)-cv.width*0.5)));
 }
-function drawMan(m,camX,camY,pal){
-  const p=pose(m), src=pal[p.s];
+function drawMan(m,camX,camY){
+  const A=cast(m), src=art[m.cast], cel=pose(m);
   const feet=groundAt(m.x);
-  const dx=Math.round(m.x-camX-ANCHOR_X*S);
-  const dy=Math.round(feet-camY-GROUND_ROW*S);
+  const dx=Math.round(m.x-camX-A.sax);
+  const dy=Math.round(feet-camY-A.sgr);
 
   cx.save();
   cx.globalAlpha=m.fade;
-  if(m.dead){                                  /* tip him over onto the slabs */
-    cx.translate(m.x-camX, feet-camY);
-    cx.rotate(m.dir*m.fall*Math.PI*0.44);
-    cx.translate(-(m.x-camX), -(feet-camY));
-  }
-  if(m.dir<0){ cx.translate(2*dx+2*ANCHOR_X*S,0); cx.scale(-1,1); }
+  if(m.dir<0){ cx.translate(2*dx+2*A.sax,0); cx.scale(-1,1); }
   if(m.hurtT>0){ try{ cx.filter="brightness(2.2) saturate(.4)"; }catch(e){} }
-  cx.drawImage(src, p.c*SW,0,SW,SH, dx,dy,SW,SH);
+  cx.drawImage(src, cel*A.sw,0,A.sw,A.sh, dx,dy,A.sw,A.sh);
   cx.restore();
 
   if(m.muzzle>0){                              /* flash, and the light it throws */
-    const mx=m.x-camX+m.dir*MUZZLE_FWD, my=feet-camY-MUZZLE_UP;
+    const mx=m.x-camX+m.dir*A.fwd, my=feet-camY-A.up;
     const wash=cx.createRadialGradient(mx,my,1,mx,my,86);
-    wash.addColorStop(0,"rgba(255,226,150,"+(.34*m.muzzle)+")");
-    wash.addColorStop(.4,"rgba(255,150,40,"+(.13*m.muzzle)+")");
+    wash.addColorStop(0,"rgba(255,226,150,"+(.30*m.muzzle)+")");
+    wash.addColorStop(.4,"rgba(255,150,40,"+(.12*m.muzzle)+")");
     wash.addColorStop(1,"rgba(255,120,0,0)");
     cx.fillStyle=wash; cx.fillRect(mx-90,my-90,180,180);
-    const core=cx.createRadialGradient(mx,my,.5,mx,my,15);
-    core.addColorStop(0,"rgba(255,255,225,"+(.75*m.muzzle)+")");
-    core.addColorStop(1,"rgba(255,190,60,0)");
-    cx.fillStyle=core; cx.fillRect(mx-18,my-18,36,36);
   }
 }
 function drawHealthPip(m,camX,camY){
@@ -489,8 +481,8 @@ function render(){
     else cx.fillRect(x+1,y+5,6,2);
   });
 
-  foes.forEach(f=>{ drawMan(f,camX,camY,foe); drawHealthPip(f,camX,camY); });
-  if(P) drawMan(P,camX,camY,art);
+  foes.forEach(f=>{ drawMan(f,camX,camY); drawHealthPip(f,camX,camY); });
+  if(P) drawMan(P,camX,camY);
 
   cx.strokeStyle="rgba(255,226,160,.85)"; cx.lineWidth=1;
   shots.forEach(s=>{                            /* tracers */
@@ -637,12 +629,13 @@ function step(t,dt){
   }
   P.aimT=Math.max(0,P.aimT-dt);
   P.muzzle=Math.max(0,P.muzzle-t*7);
+  P.breath=(P.breath+t*0.55)%1;
 
   /* ---- rivals ---- */
   spawnT-=dt;
   if(toSpawn>0&&spawnT<=0&&living()<maxAlive){ spawnFoe(); toSpawn--; spawnT=rnd(750,1500); }
   foes.forEach(f=>{
-    if(f.dead){ f.fall=Math.min(1,f.fall+t*3.6); f.fade=Math.max(0,f.fade-t*0.16); return; }
+    if(f.dead){ f.fall=Math.min(1,f.fall+t*2.2); f.fade=Math.max(0,f.fade-t*0.13); return; }
     const gap=P.x-f.x, d=Math.abs(gap);
     f.dir=Math.sign(gap)||1;
     f.moving=false;
@@ -659,12 +652,13 @@ function step(t,dt){
     f.fireT-=dt;
     if(!P.dead&&f.fireT<=0&&d<520){
       /* aim is loose and gets tighter with the wave; a wide shot sails past */
-      fireFrom(f,E_DMG,Math.max(9,34-wave*1.4),d>340);
+      fireFrom(f,E_DMG,Math.max(10,30-wave*1.2),d>340,P);
       f.burst++;
       f.fireT = f.burst>=2+((Math.random()*3)|0) ? (f.burst=0, rnd(1100,2100)/(1+wave*0.05)) : rnd(120,190);
     }
     f.aimT=Math.max(0,f.aimT-dt);
     f.muzzle=Math.max(0,f.muzzle-t*7);
+    f.breath=(f.breath+t*0.5)%1;
   });
   foes=foes.filter(f=>!(f.dead&&f.fade<=0));
 
@@ -763,7 +757,7 @@ document.getElementById("fsBtn").addEventListener("click",async()=>{
 });
 
 /* ---------- boot ---------------------------------------------------------- */
-let pending=4;
+let pending=3;
 function ready(){
   if(--pending) return;
   buildArt(); fit();
@@ -773,9 +767,7 @@ function ready(){
 }
 for(const k in SRC) SRC[k].onload=ready;
 street.onload=ready;
-SRC.fire.src="assets/gunman.png";
-SRC.walk.src="assets/gunman-walk.png";
-SRC.crouch.src="assets/gunman-crouch.png";
+for(const k in ATLAS) SRC[k].src=ATLAS[k].file;
 street.src="assets/street.webp";
 </script>
 </body>

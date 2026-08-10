@@ -15,16 +15,16 @@ Crime game
   thumb pads riding over it, and a phone held upright gets a rotate card.
   Keyboard on desktop, thumb pads on a phone.
 
-The three sprite sheets — eleven planted firing poses, a seven-frame walk and a
-six-frame crouch-walk — are cut onto one shared grid by
-`tools/build_gunman_sheets.py` (needs pillow, numpy, scipy), so a cel from any
-cycle can replace a cel from another mid-stride without the character stepping
-sideways. Planted poses are anchored on their own feet; a cycle is anchored on
-the cap instead, since feet swing through a stride, and the cycle is then slid
-so its average footfall matches the planted poses. Only re-run it if the art
-changes:
+Two character atlases drive the game: the gunman and a police officer, each
+delivered as one free-layout render and cut by `tools/cut_atlas.py` (needs
+pillow, numpy, scipy). Nothing is sliced — every pose is found as a connected
+component, classified as figure, prop or effect, aligned on a common ground row
+and written to one indexed sheet with a JSON manifest. Which cels form which
+animation lives in `game.html` as data keyed on those indices, because the
+sheets did not arrive one cycle per row and that mapping wants to be revisable
+without re-cutting the art:
 
-    python3 tools/build_gunman_sheets.py fire.png walk.png crouch.png assets/
+    python3 tools/cut_atlas.py <atlas.png> <name> assets/atlas
 
 `assets/street.webp` is the night favela backdrop, WebP q90 (300 KB, down from a
 2.2 MB PNG with no visible loss).
