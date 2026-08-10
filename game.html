@@ -176,8 +176,17 @@
 const ATLAS = {
   gunman: {file:"assets/atlas/gunman-atlas.png", cw:201, ch:165, ax:91,  gr:158, idleH:133},
   police: {file:"assets/atlas/police-atlas.png", cw:278, ch:197, ax:128, gr:190, idleH:158},
-  ally:   {file:"assets/atlas/ally-atlas.png",   cw:250, ch:180, ax:85,  gr:173, idleH:152}
+  ally:   {file:"assets/atlas/ally-atlas.png",   cw:250, ch:180, ax:85,  gr:173, idleH:152},
+  white:  {file:"assets/atlas/white-atlas.png",  cw:408, ch:163, ax:214, gr:156, idleH:151}
 };
+/* Who you can be. The other two turn out as your crew, so the street is always
+   three of you regardless of which one you take. */
+const CHARS = [
+  {key:"gunman", name:"BONÉ AZUL"},
+  {key:"ally",   name:"LISTRADO"},
+  {key:"white",  name:"CAMISA BRANCA"}
+];
+let pick = 0;
 const ANIM = {
   gunman:{
     idle:[0,1,2,3,4,5], aim:[6,7,8,9,10,11],
@@ -201,6 +210,17 @@ const ANIM = {
     crouch:[29,30,31,32,33], crouchIdle:[29,30],
     fire:[20,21,22,23,24,25,26,27,28], crouchFire:[24,25,26,27,28],
     reload:[36,37,38,39,40], death:[49,57,69,71]
+  },
+  /* This sheet arrived captioned, one animation per labelled row with its frame
+     count written on it, so the mapping is read off the sheet rather than
+     inferred: 4 idle, 8 walk, 8 run, 4 crouch idle, 6 crouch walk, 6 crouch
+     fire, 8 fire, and so on. */
+  white:{
+    idle:[0,1,2,3], walk:[4,5,6,7,8,9,10,11],
+    aim:[36,37,38], crouchIdle:[20,21,22,23],
+    crouch:[24,25,26,27,28,29], crouchFire:[30,31,32,33,34,35],
+    fire:[36,37,38,39,40,41,42,43],
+    reload:[56,57,58,59,60,61,62,63], death:[74,75,76,77,78,79]
   }
 };
 /* One scale for both, taken off the gunman. The police art is already drawn
@@ -371,13 +391,15 @@ let firing=false, reloadT=0, fireCd=0, ammo=MAG, moveL=false, moveR=false, crouc
 
 function resetGame(){
   P=makeMan(300,1,P_HP);
+  P.cast=CHARS[pick].key;
   /* Three of your own turn out with you. They are spawned once, at the start —
      never per wave — so when one goes down the street is thinner for the rest
      of the run. That permanence is the point of them. */
   crew=[];
+  const others=CHARS.filter((_,i)=>i!==pick).map(c=>c.key);
   for(let i=0;i<3;i++){
     const c=makeMan(300-70-i*55, 1, 42);
-    c.cast="ally"; c.side="crew";
+    c.cast=others[i%others.length]; c.side="crew";
     c.range=rnd(150,260); c.burst=0; c.fireT=rnd(900,2000); c.speed=E_SPEED*rnd(.95,1.25);
     crew.push(c);
   }
@@ -504,7 +526,8 @@ function drawHealthPip(m,camX,camY){
   cx.fillStyle="rgba(0,0,0,.6)"; cx.fillRect(x,y,22,3);
   cx.fillStyle="#ff5a52"; cx.fillRect(x,y,Math.round(22*Math.max(0,m.hp/m.maxHp)),3);
 }
-function render(){
+function render(now){
+  now = now || 0;
   const W=cv.width,H=cv.height;
   const camX=camera(), camY=BG_H-H;
   const jx=shake?Math.round(rnd(-2.5,2.5)*shake):0, jy=shake?Math.round(rnd(-1.5,1.5)*shake):0;
@@ -522,9 +545,12 @@ function render(){
     else cx.fillRect(x+1,y+5,6,2);
   });
 
-  crew.forEach(c=>{ drawMan(c,camX,camY); drawHealthPip(c,camX,camY); });
-  foes.forEach(f=>{ drawMan(f,camX,camY); drawHealthPip(f,camX,camY); });
-  if(P) drawMan(P,camX,camY);
+  /* the title card has its own line-up; the live street would crowd it */
+  if(state!=="title"){
+    crew.forEach(c=>{ drawMan(c,camX,camY); drawHealthPip(c,camX,camY); });
+    foes.forEach(f=>{ drawMan(f,camX,camY); drawHealthPip(f,camX,camY); });
+    if(P) drawMan(P,camX,camY);
+  }
 
   cx.strokeStyle="rgba(255,226,160,.85)"; cx.lineWidth=1;
   shots.forEach(s=>{                            /* tracers */
@@ -554,9 +580,31 @@ function render(){
     cx.closePath(); cx.fill();
   });
 
+  if(state==="title"&&art.gunman){
+    /* the three of them lined up on the pavement, waiting to be chosen */
+    const g=groundAt(camX+W/2)-camY;
+    CHARS.forEach((ch,i)=>{
+      const A=ATLAS[ch.key], on=i===pick;
+      const cx0=Math.round(W*(0.28+i*0.22));
+      const cel=(ANIM[ch.key].idle||[0])[Math.floor(now/420+i)%(ANIM[ch.key].idle||[0]).length];
+      if(on){                              /* a pool of light under the pick */
+        const pool=cx.createRadialGradient(cx0,g,3,cx0,g,58);
+        pool.addColorStop(0,"rgba(57,255,116,.22)"); pool.addColorStop(1,"rgba(57,255,116,0)");
+        cx.fillStyle=pool; cx.fillRect(cx0-60,g-70,120,80);
+      }
+      cx.save(); cx.globalAlpha=on?1:0.45;
+      cx.drawImage(art[ch.key], cel*A.sw,0,A.sw,A.sh,
+                   Math.round(cx0-A.sax), Math.round(g-A.sgr), A.sw,A.sh);
+      cx.restore();
+      cx.textAlign="center";
+      cx.font=(on?"bold ":"")+"9px 'Courier New',monospace";
+      cx.fillStyle=on?"#39ff74":"#1c9c3c";
+      cx.fillText(ch.name, cx0, g+13);
+    });
+  }
   if(bannerT>0||state!=="play"){
     const big = state==="title"?"BECO":state==="over"?"VOCÊ CAIU":state==="paused"?"PAUSA":banner;
-    const sub = state==="title" ? "segure a rua · toque ou ESPAÇO"
+    const sub = state==="title" ? "← → ESCOLHE · ESPAÇO COMEÇA · os outros dois vêm contigo"
               : state==="over"  ? "GRANA "+score+" · onda "+wave+" · ESPAÇO p/ recomeçar"
               : state==="paused"? "P para voltar" : "";
     cx.fillStyle="rgba(0,0,0,"+(state==="play"?0.30:0.62)+")";
@@ -589,6 +637,10 @@ function hud(){
 
 /* ---------- input --------------------------------------------------------- */
 function startFire(){ if(state==="title"||state==="over"){ begin(); return; } firing=true; }
+function choose(d){
+  if(state!=="title") return;
+  pick=(pick+d+CHARS.length)%CHARS.length; SFX.step();
+}
 function beginReload(){
   if(state!=="play"||reloadT>0||ammo===MAG) return;
   reloadT=RELOAD_MS; SFX.reload();
@@ -596,7 +648,7 @@ function beginReload(){
 addEventListener("keydown",e=>{
   const k=e.key.toLowerCase();
   if(k==="arrowleft"||k==="a"){ moveL=true; e.preventDefault(); }
-  else if(k==="arrowright"||k==="d"){ moveR=true; e.preventDefault(); }
+  else if(k==="arrowright"||k==="d"){ if(state==="title") choose(1); moveR=true; e.preventDefault(); }
   else if(k==="arrowdown"||k==="s"){ crouchIn=!crouchIn; e.preventDefault(); }
   else if(k===" "){ e.preventDefault(); ac(); startFire(); }
   else if(k==="r") beginReload();
@@ -616,8 +668,8 @@ function hold(el,down,up){
   el.addEventListener("pointercancel",off);
   el.addEventListener("pointerleave",off);
 }
-hold(document.getElementById("padL"),()=>moveL=true,()=>moveL=false);
-hold(document.getElementById("padR"),()=>moveR=true,()=>moveR=false);
+hold(document.getElementById("padL"),()=>{ if(state==="title") choose(-1); moveL=true; },()=>moveL=false);
+hold(document.getElementById("padR"),()=>{ if(state==="title") choose(1); moveR=true; },()=>moveR=false);
 hold(document.getElementById("padF"),startFire,()=>firing=false);
 (function(){
   const b=document.getElementById("padC");
@@ -642,7 +694,7 @@ function tick(now){
   if(bannerT>0&&state==="play") bannerT-=dt;
   if(P) P.hurtT=Math.max(0,P.hurtT-dt);
   foes.forEach(f=>f.hurtT=Math.max(0,f.hurtT-dt));
-  if(art) render();
+  if(art&&art.gunman) render(now);
   hud();
   requestAnimationFrame(tick);
 }

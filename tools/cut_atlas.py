@@ -37,14 +37,51 @@ src, name = sys.argv[1], sys.argv[2]
 out_dir = sys.argv[3] if len(sys.argv) > 3 else 'assets'
 
 rgba = np.asarray(Image.open(src).convert('RGBA')).astype(np.uint8)
+
+if rgba[:, :, 3].min() == 255:
+    # No alpha channel at all — this one arrived as flat RGB on opaque black.
+    # Key it by flooding near-black in from the borders rather than testing
+    # every dark pixel, so the character's own black cap and outlines survive:
+    # they are enclosed by the figure and never reach an edge.
+    # The ground is pure black — 58% of the sheet sits at exactly 0 — while
+    # the character's own black cap and outlines read 15-40. Keying at 26 ate
+    # straight through them and broke figures into pieces; 6 keys the ground
+    # and leaves the man whole.
+    dark = rgba[:, :, :3].max(2) <= 6
+    lab0, _ = ndimage.label(dark)
+    edge = set(lab0[0, :]) | set(lab0[-1, :]) | set(lab0[:, 0]) | set(lab0[:, -1])
+    edge.discard(0)
+    rgba[:, :, 3] = np.where(np.isin(lab0, list(edge)), 0, 255).astype(np.uint8)
+    print('  (no alpha in source — keyed the black ground out)')
+
 lab, _ = ndimage.label(rgba[:, :, 3] > ALPHA, structure=np.ones((3, 3)))
+
+def is_label(mask, sl):
+    """Annotation text written onto the sheet is not art.
+
+    One atlas came back helpfully labelled — "A1 IDLE (4)", "A7 FIRE STAND (8)" —
+    in phosphor green above each row. Useful to read, but it would otherwise be
+    cut and indexed as though it were a pose.
+    """
+    h = sl[0].stop - sl[0].start
+    w = sl[1].stop - sl[1].start
+    if h > 42 or w < h * 1.8:
+        return False           # a caption is a short wide strip, a pose is not
+    px = rgba[:, :, :3][mask].astype(int)
+    g = px[:, 1]
+    green = ((g > 110) & (g > px[:, 0] * 1.5) & (g > px[:, 2] * 1.5)).mean()
+    # one sheet set the captions on a dark plate, which dilutes the green a
+    # long way — the shape test above is what carries it
+    return green > 0.10
+
 
 pieces = []
 for i, sl in enumerate(ndimage.find_objects(lab), 1):
-    area = int((lab[sl] == i).sum())
-    if area < MIN_AREA:
+    m = lab == i
+    area = int(m.sum())
+    if area < MIN_AREA or is_label(m, sl):
         continue
-    pieces.append({'m': lab == i, 'x0': sl[1].start, 'x1': sl[1].stop,
+    pieces.append({'m': m, 'x0': sl[1].start, 'x1': sl[1].stop,
                    'y0': sl[0].start, 'y1': sl[0].stop, 'a': area})
 # reading order across the sheet: band by band, then left to right
 pieces.sort(key=lambda p: (p['y0'] // 80, p['x0']))

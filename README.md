@@ -15,7 +15,7 @@ Crime game
   thumb pads riding over it, and a phone held upright gets a rotate card.
   Keyboard on desktop, thumb pads on a phone.
 
-Three character atlases drive the game — the gunman, your crew and the police — each
+Four character atlases drive the game — three you can play and the police — each
 delivered as one free-layout render and cut by `tools/cut_atlas.py` (needs
 pillow, numpy, scipy). Nothing is sliced — every pose is found as a connected
 component, classified as figure, prop or effect, aligned on a common ground row
