@@ -64,8 +64,10 @@
   .pad.on,.pad:active{background:rgba(57,255,116,.85);color:#031007}
   .pad#padL{left:calc(var(--u)*2.2)}
   .pad#padR{left:calc(var(--u)*14.4)}
-  .pad#padRe{right:calc(var(--u)*15.2);width:calc(var(--u)*9);height:calc(var(--u)*9);
-    bottom:calc(var(--u)*3.2);font-size:calc(var(--u)*1.7);border-color:rgba(57,255,116,.4)}
+  .pad#padRe{right:calc(var(--u)*16);width:calc(var(--u)*8.5);height:calc(var(--u)*8.5);
+    bottom:calc(var(--u)*1.6);font-size:calc(var(--u)*1.6);border-color:rgba(57,255,116,.4)}
+  .pad#padC{right:calc(var(--u)*16);width:calc(var(--u)*8.5);height:calc(var(--u)*8.5);
+    bottom:calc(var(--u)*11);font-size:calc(var(--u)*1.6);border-color:rgba(57,255,116,.55)}
   .pad#padF{right:calc(var(--u)*2.2);width:calc(var(--u)*13);height:calc(var(--u)*13);
     bottom:calc(var(--u)*1.8);border-color:rgba(255,182,66,.75);color:var(--amber);
     font-size:calc(var(--u)*2.4)}
@@ -126,10 +128,11 @@
       <button class="pad" id="padL" aria-label="andar para a esquerda">◀</button>
       <button class="pad" id="padR" aria-label="andar para a direita">▶</button>
       <button class="pad" id="padRe" aria-label="recarregar">RECAR</button>
+      <button class="pad" id="padC" aria-label="agachar">AGACHA</button>
       <button class="pad" id="padF" aria-label="atirar">FOGO</button>
     </div>
 
-    <div id="keys">← → ANDAR · ESPAÇO ATIRAR · R RECARREGAR · P PAUSA</div>
+    <div id="keys">← → ANDAR · ↓ AGACHAR · ESPAÇO ATIRAR · R RECARREGAR · P PAUSA</div>
     <div id="sys">
       <button id="sndBtn" type="button">[ SND ]</button>
       <button id="fsBtn" type="button" aria-label="tela cheia">[ ⛶ ]</button>
@@ -162,15 +165,21 @@
    same primitives the board game uses. No sound files.
    ========================================================================== */
 
-/* ---------- the sheet, and the figure measured off it --------------------- */
-const RIG = [
-  [123,310],[122,296],[122,299],[117,311],[118,310],[117,290],
-  [116,279],[118,289],[123,312],[126,293],[128,307]
-];
-const FRAMES = RIG.length;
+/* ---------- the sheets, and the figure measured off them ------------------
+   Three cycles cut onto one grid by tools/build_gunman_sheets.py: eleven
+   planted firing poses, a seven-frame walk and a six-frame crouch-walk. They
+   share a cel size, a ground row and an anchor column, so one can replace
+   another mid-stride without the character stepping sideways. */
+const N_FIRE=11, N_WALK=7, N_CROUCH=6;
 const CEL = {IDLE:0, READY:1, RAISE:2, AIM:3, SET:4, FIRE_A:5, FIRE_B:6, VENT:7, LOW_A:8, LOW_B:9, STAND:10};
-const ANCHOR_X=135, GROUND_ROW=407, STAND_PX=386, MAN_PX=50;
+const ANCHOR_X=192, GROUND_ROW=410, STAND_PX=387, MAN_PX=50;
 const S = MAN_PX/STAND_PX;
+/* measured off the firing cels: where the flash sits relative to his feet */
+const MUZZLE_UP=304*S, MUZZLE_FWD=170*S;
+/* how tall he is to a bullet, standing and folded down — this is the whole
+   point of the crouch, since a round aimed at a standing chest sails over */
+const TALL_STAND=50, TALL_CROUCH=31;
+const SOLE=6;                          // rounds this low go into the slabs
 
 /* ---------- the street ---------------------------------------------------- */
 const BG_W=2172, BG_H=724, PX_PER_M=29;
@@ -189,9 +198,6 @@ function groundAt(x){
   }
   return GROUND[GROUND.length-1][1];
 }
-/* where a round leaves the barrel / passes through a chest, relative to the feet */
-const MUZZLE_UP = (GROUND_ROW-0.25*414)*S;
-const MUZZLE_FWD = (0.80*381-ANCHOR_X)*S;
 const HALF_W = 9;                      // half a shoulder, in street pixels
 
 /* ---------- balance ------------------------------------------------------- */
@@ -200,20 +206,22 @@ const P_HP=100, E_HP=34;
 const P_DMG=17,  E_DMG=7;
 const MAG=30, RELOAD_MS=1250, P_FIRE_MS=115;
 const BULLET_V=1150, DROP_CHANCE=0.34;
+const STRIDE=46;      // ground covered per two-step cycle — keeps feet off the ice
 
-const sheet=new Image(), street=new Image();
-let art=null, foe=null, SW=0, SH=0, RIGs=[];
+const SRC={fire:new Image(), walk:new Image(), crouch:new Image()};
+const street=new Image();
+let art={}, foe={}, SW=0, SH=0, CEL_W=0, CEL_H=0;
 
 /* Shrinking by repeated halving keeps the figure readable at an eighth of the
    size; one nearest-neighbour step would drop most of his pixels on the floor.
    The brightness lift rides along — the poses were rendered against a dark
    ground and read as murk under a street lamp. */
-function shrinkCel(sx,sw,sh,dw,dh){
+function shrinkCel(img,sx,sw,sh,dw,dh){
   let c=document.createElement("canvas"); c.width=sw; c.height=sh;
   let g=c.getContext("2d");
   g.imageSmoothingEnabled=true; g.imageSmoothingQuality="high";
   try{ g.filter="brightness(1.12)"; }catch(e){}
-  g.drawImage(sheet,sx,0,sw,sh,0,0,sw,sh);
+  g.drawImage(img,sx,0,sw,sh,0,0,sw,sh);
   while(c.width>dw*2){
     const n=document.createElement("canvas");
     n.width=Math.max(dw,c.width>>1); n.height=Math.max(dh,c.height>>1);
@@ -227,10 +235,16 @@ function shrinkCel(sx,sw,sh,dw,dh){
   og.drawImage(c,0,0,dw,dh);
   return out;
 }
+function shrinkSheet(img,n){
+  const c=document.createElement("canvas"); c.width=SW*n; c.height=SH;
+  const g=c.getContext("2d");
+  for(let i=0;i<n;i++) g.drawImage(shrinkCel(img,i*CEL_W,CEL_W,CEL_H,SW,SH),i*SW,0);
+  return c;
+}
 /* Rival colours: the cap is a strong blue and the shorts a desaturated violet,
-   and nothing else on the sheet lives in that half of the wheel — skin sits at
-   20-40°, the rifle has no chroma at all. So a hue window recolours the clothes
-   and leaves the man himself alone. */
+   and nothing else on the sheets lives in that half of the wheel — skin sits at
+   20-40 degrees, the rifle has no chroma at all. So a hue window recolours the
+   clothes and leaves the man himself exactly as drawn. */
 function recolour(src){
   const c=document.createElement("canvas"); c.width=src.width; c.height=src.height;
   const g=c.getContext("2d"); g.drawImage(src,0,0);
@@ -245,10 +259,10 @@ function recolour(src){
     else if(mx===gg) h=60*((b-r)/df+2);
     else h=60*((r-gg)/df+4);
     if(h<0) h+=360;
-    const s=mx===0?0:df/mx, v=mx;
-    let nh=null, ns=s, nv=v;
-    if(h>=190&&h<=260&&s>0.45){ nh=354; ns=Math.min(1,s*1.05); }        // cap → red
-    else if(h>=290&&h<=350&&s>0.13){ nh=44; ns=s*0.85; nv=v*0.92; }     // shorts → khaki
+    const sat=mx===0?0:df/mx, v=mx;
+    let nh=null, ns=sat, nv=v;
+    if(h>=190&&h<=260&&sat>0.45){ nh=354; ns=Math.min(1,sat*1.05); }     // cap → red
+    else if(h>=290&&h<=350&&sat>0.13){ nh=44; ns=sat*0.85; nv=v*0.92; }  // shorts → khaki
     if(nh===null) continue;
     const cc=nv*ns, hh=nh/60, xx=cc*(1-Math.abs(hh%2-1)), m=nv-cc;
     let R,G,B;
@@ -261,13 +275,13 @@ function recolour(src){
   return c;
 }
 function buildArt(){
-  const celW=Math.round(sheet.width/FRAMES), celH=sheet.height;
-  SW=Math.round(celW*S); SH=Math.round(celH*S);
-  const c=document.createElement("canvas"); c.width=SW*FRAMES; c.height=SH;
-  const g=c.getContext("2d");
-  for(let i=0;i<FRAMES;i++) g.drawImage(shrinkCel(i*celW,celW,celH,SW,SH),i*SW,0);
-  art=c; foe=recolour(c);
-  RIGs=RIG.map(([a,b])=>[Math.round(a*S),Math.round(b*S)]);
+  CEL_W=Math.round(SRC.fire.width/N_FIRE); CEL_H=SRC.fire.height;
+  SW=Math.round(CEL_W*S); SH=Math.round(CEL_H*S);
+  art={fire:shrinkSheet(SRC.fire,N_FIRE), walk:shrinkSheet(SRC.walk,N_WALK),
+       crouch:shrinkSheet(SRC.crouch,N_CROUCH)};
+  /* rivals never crouch — they have no crouched firing pose to pop up from,
+     and a target you cannot shoot back at is not a rival, it is a wall */
+  foe={fire:recolour(art.fire), walk:recolour(art.walk), crouch:recolour(art.crouch)};
 }
 
 /* ---------- sound --------------------------------------------------------- */
@@ -330,19 +344,19 @@ const CALM=matchMedia("(prefers-reduced-motion: reduce)").matches;
 const rnd=(a,b)=>a+Math.random()*(b-a);
 
 function makeMan(x,dir,hp){
-  return {x, dir, hp, maxHp:hp, walkPh:0, moving:false, aimT:0, muzzle:0,
-          cel:CEL.IDLE, dead:false, fall:0, fade:1, lastFoot:-1, hurtT:0};
+  return {x, dir, hp, maxHp:hp, ph:0, moving:false, crouch:false, aimT:0, muzzle:0,
+          dead:false, fall:0, fade:1, lastFoot:-1, hurtT:0};
 }
 let P=null, foes=[], shots=[], drops=[], puffs=[];
 let wave=1, kills=0, score=0, toSpawn=0, spawnT=0, maxAlive=2;
 let state="title", shake=0, flash=0, banner="", bannerT=0;
-let firing=false, reloadT=0, fireCd=0, ammo=MAG, moveL=false, moveR=false;
+let firing=false, reloadT=0, fireCd=0, ammo=MAG, moveL=false, moveR=false, crouchIn=false;
 
 function resetGame(){
   P=makeMan(300,1,P_HP);
   foes=[]; shots=[]; drops=[]; puffs=[];
   wave=1; kills=0; score=0; ammo=MAG; reloadT=0; fireCd=0;
-  toSpawn=0; spawnT=0;
+  toSpawn=0; spawnT=0; crouchIn=false;
   startWave();
 }
 function startWave(){
@@ -392,23 +406,24 @@ function damage(m,dmg,dir){
   }
 }
 
-/* ---------- the walk rig -------------------------------------------------- */
-function gait(ph){
-  const a=Math.sin(ph*Math.PI*2), lift=v=>Math.max(0,v);
-  return {sL:1-0.13*lift(a), dxL:9*S*lift(a),
-          sR:1-0.13*lift(-a), dxR:9*S*lift(-a),
-          bob:-3.6*S*Math.abs(a)};
-}
-function celFor(m){
-  if(m.dead) return CEL.VENT;
+/* ---------- which cel is he on -------------------------------------------
+   The walk used to be faked by slicing each cel at the crotch and squashing the
+   legs out of phase, because the art had no walk in it. It does now, so the rig
+   is gone and the cycles are just played. */
+function pose(m){
+  if(m.dead) return {s:"fire", c:CEL.VENT};
+  if(m.crouch) return {s:"crouch", c:m.moving?Math.floor(m.ph*N_CROUCH)%N_CROUCH:0};
   if(m===P && reloadT>0){
     const k=1-reloadT/RELOAD_MS;
-    return k<.2?CEL.LOW_A : k<.4?CEL.LOW_B : k<.7?CEL.STAND : k<.85?CEL.LOW_B : CEL.RAISE;
+    return {s:"fire", c: k<.2?CEL.LOW_A : k<.4?CEL.LOW_B : k<.7?CEL.STAND : k<.85?CEL.LOW_B : CEL.RAISE};
   }
-  if(m.muzzle>0.55) return (Math.random()<.5?CEL.FIRE_A:CEL.FIRE_B);
-  if(m.aimT>0) return CEL.SET;
-  return m.moving?CEL.IDLE:CEL.STAND;
+  if(m.muzzle>0.55) return {s:"fire", c:(Math.random()<.5?CEL.FIRE_A:CEL.FIRE_B)};
+  if(m.aimT>0)      return {s:"fire", c:CEL.SET};
+  if(m.moving)      return {s:"walk", c:Math.floor(m.ph*N_WALK)%N_WALK};
+  return {s:"fire", c:CEL.STAND};
 }
+/* how tall he is to an incoming round */
+const tallOf = m => m.crouch&&!m.dead ? TALL_CROUCH : TALL_STAND;
 
 /* ---------- render -------------------------------------------------------- */
 const cv=document.getElementById("stage"), cx=cv.getContext("2d");
@@ -417,11 +432,10 @@ function camera(){
   return Math.max(0,Math.min(BG_W-cv.width, Math.round((P?P.x:300)-cv.width*0.5)));
 }
 function drawMan(m,camX,camY,pal){
-  const g = m.moving && !m.dead ? gait(m.walkPh) : {sL:1,dxL:0,sR:1,dxR:0,bob:0};
+  const p=pose(m), src=pal[p.s];
   const feet=groundAt(m.x);
   const dx=Math.round(m.x-camX-ANCHOR_X*S);
-  const dy=Math.round(feet-camY-GROUND_ROW*S+g.bob);
-  const cel=m.cel, sx=RIGs[cel][0], cy=RIGs[cel][1], legH=SH-cy;
+  const dy=Math.round(feet-camY-GROUND_ROW*S);
 
   cx.save();
   cx.globalAlpha=m.fade;
@@ -432,13 +446,7 @@ function drawMan(m,camX,camY,pal){
   }
   if(m.dir<0){ cx.translate(2*dx+2*ANCHOR_X*S,0); cx.scale(-1,1); }
   if(m.hurtT>0){ try{ cx.filter="brightness(2.2) saturate(.4)"; }catch(e){} }
-  if(m.moving && !m.dead){
-    cx.drawImage(pal, cel*SW,0, SW,cy, dx,dy, SW,cy);
-    cx.drawImage(pal, cel*SW,cy, sx,legH, dx+g.dxL, dy+cy, sx, Math.max(1,Math.round(legH*g.sL)));
-    cx.drawImage(pal, cel*SW+sx,cy, SW-sx,legH, dx+sx+g.dxR, dy+cy, SW-sx, Math.max(1,Math.round(legH*g.sR)));
-  }else{
-    cx.drawImage(pal, cel*SW,0,SW,SH, dx,dy,SW,SH);
-  }
+  cx.drawImage(src, p.c*SW,0,SW,SH, dx,dy,SW,SH);
   cx.restore();
 
   if(m.muzzle>0){                              /* flash, and the light it throws */
@@ -456,7 +464,7 @@ function drawMan(m,camX,camY,pal){
 }
 function drawHealthPip(m,camX,camY){
   if(m.dead||m.hp>=m.maxHp) return;
-  const x=Math.round(m.x-camX-11), y=Math.round(groundAt(m.x)-camY-MAN_PX-9);
+  const x=Math.round(m.x-camX-11), y=Math.round(groundAt(m.x)-camY-tallOf(m)-9);
   cx.fillStyle="rgba(0,0,0,.6)"; cx.fillRect(x,y,22,3);
   cx.fillStyle="#ff5a52"; cx.fillRect(x,y,Math.round(22*Math.max(0,m.hp/m.maxHp)),3);
 }
@@ -551,6 +559,7 @@ addEventListener("keydown",e=>{
   const k=e.key.toLowerCase();
   if(k==="arrowleft"||k==="a"){ moveL=true; e.preventDefault(); }
   else if(k==="arrowright"||k==="d"){ moveR=true; e.preventDefault(); }
+  else if(k==="arrowdown"||k==="s"){ crouchIn=true; e.preventDefault(); }
   else if(k===" "){ e.preventDefault(); ac(); startFire(); }
   else if(k==="r") beginReload();
   else if(k==="p"&&(state==="play"||state==="paused")) state=state==="play"?"paused":"play";
@@ -559,6 +568,7 @@ addEventListener("keyup",e=>{
   const k=e.key.toLowerCase();
   if(k==="arrowleft"||k==="a") moveL=false;
   else if(k==="arrowright"||k==="d") moveR=false;
+  else if(k==="arrowdown"||k==="s") crouchIn=false;
   else if(k===" ") firing=false;
 });
 function hold(el,down,up){
@@ -572,10 +582,11 @@ function hold(el,down,up){
 hold(document.getElementById("padL"),()=>moveL=true,()=>moveL=false);
 hold(document.getElementById("padR"),()=>moveR=true,()=>moveR=false);
 hold(document.getElementById("padF"),startFire,()=>firing=false);
+hold(document.getElementById("padC"),()=>crouchIn=true,()=>crouchIn=false);
 document.getElementById("padRe").addEventListener("pointerdown",e=>{e.preventDefault();ac();beginReload();});
 cv.addEventListener("pointerdown",e=>{ e.preventDefault(); ac(); startFire(); });
 addEventListener("pointerup",()=>firing=false);   // release anywhere lets go of the trigger
-addEventListener("blur",()=>{ firing=moveL=moveR=false; });
+addEventListener("blur",()=>{ firing=moveL=moveR=crouchIn=false; });
 document.getElementById("sndBtn").onclick=toggleSnd;
 function begin(){ resetGame(); state="play"; setTimeout(()=>keysHint.style.opacity=0,9000); }
 
@@ -597,13 +608,19 @@ function tick(now){
 
 function step(t,dt){
   /* ---- player ---- */
+  /* squeezing the trigger stands him up — there is no crouched firing pose,
+     and popping up to shoot is the trade the crouch is there to make */
+  if(firing) P.crouch=false; else P.crouch=crouchIn&&!P.dead;
   const dirIn=(moveR?1:0)-(moveL?1:0);
   P.moving = dirIn!==0 && !P.dead;
   if(P.moving){
     P.dir=dirIn;
-    P.x=Math.max(WALL,Math.min(BG_W-WALL,P.x+dirIn*P_SPEED*t));
-    P.walkPh=(P.walkPh+dt/700)%1;
-    const foot=P.walkPh<0.5?0:1;
+    const v=P_SPEED*(P.crouch?0.55:1);
+    P.x=Math.max(WALL,Math.min(BG_W-WALL,P.x+dirIn*v*t));
+    /* the cycle is driven by ground covered, not by the clock, so his feet
+       never skate — slow him down and he takes slower steps */
+    P.ph=(P.ph+v*t/STRIDE)%1;
+    const foot=P.ph<0.5?0:1;
     if(foot!==P.lastFoot){ P.lastFoot=foot; SFX.step(); }
   }
   if(reloadT>0){
@@ -617,7 +634,6 @@ function step(t,dt){
   }
   P.aimT=Math.max(0,P.aimT-dt);
   P.muzzle=Math.max(0,P.muzzle-t*7);
-  P.cel=celFor(P);
 
   /* ---- rivals ---- */
   spawnT-=dt;
@@ -630,11 +646,12 @@ function step(t,dt){
     if(!P.dead&&d>f.range){
       f.moving=true;
       f.x=Math.max(WALL,Math.min(BG_W-WALL,f.x+f.dir*f.speed*t));
-      f.walkPh=(f.walkPh+dt/760)%1;
+      f.ph=(f.ph+f.speed*t/STRIDE)%1;
     }else if(!P.dead&&d<f.range*0.55){        /* too close — back off a little */
       f.moving=true;
-      f.x=Math.max(WALL,Math.min(BG_W-WALL,f.x-f.dir*f.speed*0.7*t));
-      f.walkPh=(f.walkPh+dt/760)%1;
+      const v=f.speed*0.7;
+      f.x=Math.max(WALL,Math.min(BG_W-WALL,f.x-f.dir*v*t));
+      f.ph=(f.ph+v*t/STRIDE)%1;
     }
     f.fireT-=dt;
     if(!P.dead&&f.fireT<=0&&d<520){
@@ -645,7 +662,6 @@ function step(t,dt){
     }
     f.aimT=Math.max(0,f.aimT-dt);
     f.muzzle=Math.max(0,f.muzzle-t*7);
-    f.cel=celFor(f);
   });
   foes=foes.filter(f=>!(f.dead&&f.fade<=0));
 
@@ -657,7 +673,7 @@ function step(t,dt){
       if(t2.dead||s.hit) return;
       if(t2.x+HALF_W<lo||t2.x-HALF_W>hi) return;
       const feet=groundAt(t2.x);
-      if(s.y<feet-MAN_PX-2||s.y>feet-6) return;
+      if(s.y<feet-tallOf(t2)-2||s.y>feet-SOLE) return;
       s.hit=true; damage(t2,s.dmg,Math.sign(s.vx));
     };
     if(s.foe) check(P); else foes.forEach(check);
@@ -744,7 +760,7 @@ document.getElementById("fsBtn").addEventListener("click",async()=>{
 });
 
 /* ---------- boot ---------------------------------------------------------- */
-let pending=2;
+let pending=4;
 function ready(){
   if(--pending) return;
   buildArt(); fit();
@@ -752,8 +768,11 @@ function ready(){
   document.getElementById("sndBtn").textContent=SND?"[ SND ]":"[ MUTE ]";
   requestAnimationFrame(n=>{ last=n; tick(n); });
 }
-sheet.onload=ready; street.onload=ready;
-sheet.src="assets/gunman.png";
+for(const k in SRC) SRC[k].onload=ready;
+street.onload=ready;
+SRC.fire.src="assets/gunman.png";
+SRC.walk.src="assets/gunman-walk.png";
+SRC.crouch.src="assets/gunman-crouch.png";
 street.src="assets/street.webp";
 </script>
 </body>
