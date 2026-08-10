@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="description" content="BECO — hold the street. A wave shooter set in the CRIMINAL TERMINAL favela, built on the gunman sprite rig.">
-<meta name="theme-color" content="#010602">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="description" content="BECO — segure a rua. Wave shooter na favela do CRIMINAL TERMINAL.">
+<meta name="theme-color" content="#000000">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -12,91 +12,135 @@
 <title>CRIMINAL TERMINAL — BECO</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' fill='%23000'/><text x='8' y='12.5' font-size='12' text-anchor='middle' fill='%2333ff44' font-family='monospace'>$</text></svg>">
 <style>
-  :root{--phos:#39ff74;--phos-dim:#1c9c3c;--phos-dark:#0a3d18;--amber:#ffb642;--red:#ff5a52;--bg:#010602}
+  :root{--phos:#39ff74;--phos-dim:#1c9c3c;--phos-dark:#0a3d18;--amber:#ffb642;--red:#ff5a52}
   *{box-sizing:border-box;margin:0;padding:0}
-  html,body{min-height:100%}
-  body{
-    background:
-      radial-gradient(ellipse 100% 70% at 50% 42%, rgba(20,90,40,.10) 0%, transparent 70%),
-      radial-gradient(ellipse at center, #041206 0%, #010602 78%);
-    color:var(--phos);font-family:"Courier New",Courier,monospace;font-size:15px;line-height:1.45;
-    text-shadow:0 0 2px rgba(57,255,116,.5),0 0 6px rgba(57,255,116,.18);
-    min-height:100dvh;display:flex;flex-direction:column;align-items:center;padding:8px;gap:7px;
-    -webkit-user-select:none;user-select:none;overscroll-behavior:none}
-  body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:50;
-    background:repeating-linear-gradient(0deg,rgba(0,0,0,.28) 0 1px,transparent 1px 3px);opacity:.5}
-  body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:51;
-    background:radial-gradient(ellipse at center,transparent 58%,rgba(0,0,0,.6) 100%)}
-  .wrap{width:100%;max-width:940px;display:flex;flex-direction:column;gap:7px}
-  .panel{border:1px solid var(--phos-dim);border-radius:2px;
-    background:linear-gradient(180deg,rgba(10,61,24,.12),rgba(1,6,2,.4));box-shadow:inset 0 0 18px rgba(0,0,0,.5)}
+  html,body{height:100%;overflow:hidden;background:#000;
+    -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
+    overscroll-behavior:none;touch-action:none}
+  body{font-family:"Courier New",Courier,monospace;color:var(--phos)}
 
-  /* ---- HUD ---- */
-  #hud{padding:6px 10px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;font-size:12px;letter-spacing:2px}
-  #hud .grp{display:flex;align-items:center;gap:6px}
+  /* The play area is one box, sized in JS to the viewport. Everything else —
+     readouts, thumb pads — rides on top of it, so the picture never has to give
+     up height to a stacked bar. */
+  #app{position:fixed;inset:0;background:#000}
+  #frame{position:absolute;overflow:hidden;background:#000;
+    box-shadow:0 0 0 1px rgba(28,156,60,.35), 0 0 40px rgba(0,0,0,.9)}
+  #stage{position:absolute;inset:0;width:100%;height:100%;display:block;
+    image-rendering:pixelated;image-rendering:crisp-edges}
+  /* CRT dressing, clipped to the picture rather than the page */
+  #frame::before{content:"";position:absolute;inset:0;pointer-events:none;z-index:3;
+    background:repeating-linear-gradient(0deg,rgba(0,0,0,.26) 0 1px,transparent 1px 3px);opacity:.5}
+  #frame::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:3;
+    background:radial-gradient(ellipse at center,transparent 60%,rgba(0,0,0,.55) 100%)}
+
+  /* ---- readouts, over the picture ---- */
+  #hud{position:absolute;z-index:4;left:0;right:0;top:0;pointer-events:none;
+    display:flex;justify-content:space-between;align-items:flex-start;
+    gap:calc(var(--u)*2);padding:calc(var(--u)*1.4) calc(var(--u)*1.8);
+    font-size:calc(var(--u)*2.05);letter-spacing:.12em;line-height:1.1;
+    text-shadow:0 0 3px rgba(0,0,0,.95),0 0 8px rgba(0,0,0,.8)}
+  #hud .side{display:flex;flex-direction:column;gap:calc(var(--u)*.9)}
+  #hud .side.r{align-items:flex-end;text-align:right}
+  #hud .grp{display:flex;align-items:center;gap:calc(var(--u)*.9);white-space:nowrap}
   #hud b{color:var(--amber);font-weight:normal;font-variant-numeric:tabular-nums}
-  .meter{width:132px;height:11px;border:1px solid var(--phos-dark);background:rgba(0,0,0,.6);position:relative;overflow:hidden}
-  .meter i{display:block;height:100%;background:var(--phos);box-shadow:0 0 8px rgba(57,255,116,.5);transition:width .12s linear}
-  .meter.hurt i{background:var(--red);box-shadow:0 0 8px rgba(255,90,82,.55)}
-  #magRow{display:flex;gap:1.5px}
-  #magRow s{width:3px;height:11px;background:var(--amber);text-decoration:none;box-shadow:0 0 4px rgba(255,182,66,.5)}
-  #magRow s.out{background:rgba(255,182,66,.16);box-shadow:none}
+  #hud .lbl{color:var(--phos-dim)}
+  .meter{width:calc(var(--u)*20);height:calc(var(--u)*1.7);border:1px solid rgba(57,255,116,.55);
+    background:rgba(0,0,0,.55);overflow:hidden}
+  .meter i{display:block;height:100%;width:100%;background:var(--phos);transition:width .12s linear}
+  .meter.hurt i{background:var(--red)}
+  #magRow{display:flex;gap:1px;height:calc(var(--u)*1.7);align-items:stretch}
+  #magRow s{width:calc(var(--u)*.42);min-width:1px;background:var(--amber);text-decoration:none}
+  #magRow s.out{background:rgba(255,182,66,.18)}
 
-  /* ---- stage ---- */
-  #stageBox{padding:0;overflow:hidden;position:relative;background:#000;line-height:0}
-  canvas{display:block;width:100%;height:auto;image-rendering:pixelated;image-rendering:crisp-edges;touch-action:none}
+  /* ---- thumb pads, only where there is a thumb ---- */
+  #pads{position:absolute;z-index:5;inset:0;pointer-events:none;display:none}
+  .pad{position:absolute;bottom:calc(var(--u)*2.2);pointer-events:auto;
+    display:flex;align-items:center;justify-content:center;
+    border:1px solid rgba(57,255,116,.5);border-radius:50%;
+    background:rgba(4,20,10,.42);color:var(--phos);
+    font-family:inherit;font-size:calc(var(--u)*3.2);letter-spacing:.06em;
+    width:calc(var(--u)*11);height:calc(var(--u)*11);touch-action:none;
+    -webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}
+  .pad.on,.pad:active{background:rgba(57,255,116,.85);color:#031007}
+  .pad#padL{left:calc(var(--u)*2.2)}
+  .pad#padR{left:calc(var(--u)*14.4)}
+  .pad#padRe{right:calc(var(--u)*15.2);width:calc(var(--u)*9);height:calc(var(--u)*9);
+    bottom:calc(var(--u)*3.2);font-size:calc(var(--u)*1.7);border-color:rgba(57,255,116,.4)}
+  .pad#padF{right:calc(var(--u)*2.2);width:calc(var(--u)*13);height:calc(var(--u)*13);
+    bottom:calc(var(--u)*1.8);border-color:rgba(255,182,66,.75);color:var(--amber);
+    font-size:calc(var(--u)*2.4)}
+  .pad#padF.on,.pad#padF:active{background:rgba(255,182,66,.88);color:#140b00}
+  body.touch #pads{display:block}
 
-  /* ---- pads ---- */
-  #pads{display:flex;gap:7px;align-items:stretch}
-  #pads .side{display:flex;gap:7px;flex:1}
-  .pad{flex:1;min-height:62px;border:1px solid var(--phos-dim);border-radius:2px;background:rgba(10,61,24,.2);
-    color:var(--phos);font-family:inherit;font-size:15px;letter-spacing:2px;cursor:pointer;text-shadow:inherit;
-    display:flex;align-items:center;justify-content:center;touch-action:none}
-  .pad:active,.pad.on{background:var(--phos);color:#020a04;text-shadow:none}
-  .pad.fire{border-color:var(--amber);color:var(--amber)}
-  .pad.fire:active,.pad.fire.on{background:var(--amber);color:#140b00}
-  .pad:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
-  @media(min-width:720px){ #pads{display:none} }
+  /* ---- corner system buttons ---- */
+  #sys{position:absolute;z-index:6;right:calc(var(--u)*1.6);bottom:calc(var(--u)*1.4);
+    display:flex;gap:calc(var(--u)*1);pointer-events:none}
+  /* with thumbs on the bottom corners there is no room down there — go up top,
+     in the gap between the two readout stacks */
+  body.touch #sys{right:auto;bottom:auto;top:calc(var(--u)*1.2);
+    left:50%;transform:translateX(-50%)}
+  #sys button{pointer-events:auto;font-family:inherit;font-size:calc(var(--u)*1.9);
+    color:var(--phos-dim);background:rgba(0,0,0,.45);border:1px solid rgba(28,156,60,.5);
+    border-radius:2px;padding:calc(var(--u)*.5) calc(var(--u)*1.2);cursor:pointer;line-height:1}
+  #sys button:hover{color:var(--phos);border-color:var(--phos-dim)}
+  #sys button:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
 
-  .foot{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:6px 10px;font-size:11px;
-    letter-spacing:1px;color:var(--phos-dim)}
-  .foot a{color:var(--phos-dim)}
-  .foot button{font-family:inherit;font-size:11px;letter-spacing:1px;color:var(--phos-dim);background:none;
-    border:1px solid var(--phos-dark);border-radius:2px;padding:2px 8px;cursor:pointer}
-  .foot button:hover{color:var(--phos);border-color:var(--phos-dim)}
+  #keys{position:absolute;z-index:4;left:calc(var(--u)*1.8);bottom:calc(var(--u)*1.6);
+    font-size:calc(var(--u)*1.6);letter-spacing:.1em;color:var(--phos-dim);pointer-events:none;
+    text-shadow:0 0 4px rgba(0,0,0,.95);transition:opacity .6s}
+  body.touch #keys{display:none}
+
+  /* ---- portrait: this one is landscape only ---- */
+  #rotate{position:fixed;inset:0;z-index:20;display:none;flex-direction:column;
+    align-items:center;justify-content:center;gap:18px;background:#000;text-align:center;padding:24px}
+  #rotate .glyph{font-size:64px;line-height:1;animation:tip 2.4s ease-in-out infinite;color:var(--phos)}
+  #rotate h1{font-size:17px;letter-spacing:5px;font-weight:bold}
+  #rotate p{font-size:12px;letter-spacing:2px;color:var(--phos-dim);max-width:22em}
+  @keyframes tip{0%,42%{transform:rotate(0)}58%,100%{transform:rotate(-90deg)}}
+  @media (prefers-reduced-motion: reduce){ #rotate .glyph{animation:none;transform:rotate(-90deg)} }
+  body.portrait #rotate{display:flex}
+  body.portrait #app{visibility:hidden}
 </style>
 </head>
 <body>
-<div class="wrap">
 
-  <div class="panel" id="hud">
-    <span class="grp">VIDA <span class="meter" id="hpMeter"><i id="hpBar" style="width:100%"></i></span></span>
-    <span class="grp">PENTE <span id="magRow"></span> <b id="ammo">30</b></span>
-    <span class="grp">ONDA <b id="wave">1</b></span>
-    <span class="grp">MORTOS <b id="kills">0</b></span>
-    <span class="grp">GRANA <b id="score">0</b></span>
-  </div>
-
-  <div class="panel" id="stageBox">
+<div id="app">
+  <div id="frame">
     <canvas id="stage" width="640" height="340"></canvas>
-  </div>
 
-  <div id="pads">
-    <div class="side">
-      <button class="pad" id="padL" aria-label="move left">◀</button>
-      <button class="pad" id="padR" aria-label="move right">▶</button>
+    <div id="hud">
+      <div class="side">
+        <span class="grp"><span class="lbl">VIDA</span>
+          <span class="meter" id="hpMeter"><i id="hpBar"></i></span></span>
+        <span class="grp"><span class="lbl">PENTE</span>
+          <span id="magRow"></span> <b id="ammo">30</b></span>
+      </div>
+      <div class="side r">
+        <span class="grp"><span class="lbl">ONDA</span> <b id="wave">1</b></span>
+        <span class="grp"><span class="lbl">MORTOS</span> <b id="kills">0</b></span>
+        <span class="grp"><span class="lbl">GRANA</span> <b id="score">0</b></span>
+      </div>
     </div>
-    <div class="side">
-      <button class="pad" id="padRe" aria-label="recarregar">RECARGA</button>
-      <button class="pad fire" id="padF" aria-label="fire">FOGO</button>
+
+    <div id="pads">
+      <button class="pad" id="padL" aria-label="andar para a esquerda">◀</button>
+      <button class="pad" id="padR" aria-label="andar para a direita">▶</button>
+      <button class="pad" id="padRe" aria-label="recarregar">RECAR</button>
+      <button class="pad" id="padF" aria-label="atirar">FOGO</button>
+    </div>
+
+    <div id="keys">← → ANDAR · ESPAÇO ATIRAR · R RECARREGAR · P PAUSA</div>
+    <div id="sys">
+      <button id="sndBtn" type="button">[ SND ]</button>
+      <button id="fsBtn" type="button" aria-label="tela cheia">[ ⛶ ]</button>
     </div>
   </div>
+</div>
 
-  <div class="panel foot">
-    <span>← → ANDAR · ESPAÇO ATIRAR · R RECARREGAR · P PAUSA</span>
-    <span><button id="sndBtn" type="button">[ SND ]</button> <a href="gunman.html">visor do rig</a></span>
-  </div>
-
+<div id="rotate">
+  <div class="glyph">▯</div>
+  <h1>GIRE O APARELHO</h1>
+  <p>BECO é jogado deitado. Vire o aparelho para a horizontal.</p>
 </div>
 
 <script>
@@ -533,7 +577,7 @@ cv.addEventListener("pointerdown",e=>{ e.preventDefault(); ac(); startFire(); })
 addEventListener("pointerup",()=>firing=false);   // release anywhere lets go of the trigger
 addEventListener("blur",()=>{ firing=moveL=moveR=false; });
 document.getElementById("sndBtn").onclick=toggleSnd;
-function begin(){ resetGame(); state="play"; }
+function begin(){ resetGame(); state="play"; setTimeout(()=>keysHint.style.opacity=0,9000); }
 
 /* ---------- the loop ------------------------------------------------------ */
 let last=performance.now();
@@ -643,11 +687,67 @@ function step(t,dt){
   }
 }
 
+/* ---------- fitting the picture to the screen -----------------------------
+   The canvas resolution is derived from the window rather than fixed, so the
+   picture fills the frame instead of leaving a band down the side. Two rules
+   decide it. The scale is a whole number, because a fractional upscale with
+   pixelated rendering draws some pixels two screen-dots wide and others three,
+   which crawls horribly once the street starts scrolling. And the canvas is
+   then whatever fits at that scale, so a bigger window earns more street and
+   more sky rather than bigger pixels. What is left over is at most two dots per
+   axis — invisible against a black surround, and a fair price for clean art. */
+const app=document.getElementById("app"), frame=document.getElementById("frame");
+const keysHint=document.getElementById("keys");
+const TOUCH=matchMedia("(pointer: coarse)").matches;
+let pausedByRotate=false;
+if(TOUCH) document.body.classList.add("touch");
+
+function fit(){
+  const vw=Math.max(1,innerWidth), vh=Math.max(1,innerHeight);
+  /* BECO is landscape only; on a phone held upright, ask rather than squash */
+  const upright = TOUCH && vh>vw*1.02;
+  document.body.classList.toggle("portrait",upright);
+  /* a phone has no P key, so whatever the rotate card paused, the rotate card
+     has to start again */
+  if(upright){ if(state==="play"){ state="paused"; pausedByRotate=true; } }
+  else if(pausedByRotate){ if(state==="paused") state="play"; pausedByRotate=false; }
+
+  const k=Math.max(1,Math.min(3,Math.round(vh/360)));   // whole-number zoom
+  const w=Math.min(BG_W,Math.floor(vw/k)), h=Math.min(BG_H,Math.floor(vh/k));
+  if(cv.width!==w||cv.height!==h){
+    cv.width=w; cv.height=h;
+    cx.imageSmoothingEnabled=false;      // resizing a canvas resets its context
+  }
+  const bw=w*k, bh=h*k;
+  frame.style.width=bw+"px"; frame.style.height=bh+"px";
+  frame.style.left=Math.floor((vw-bw)/2)+"px";
+  frame.style.top=Math.floor((vh-bh)/2)+"px";
+  frame.style.setProperty("--u",(bw/100)+"px");   // one unit = 1% of the picture
+}
+addEventListener("resize",fit);
+addEventListener("orientationchange",()=>setTimeout(fit,120));
+if(window.visualViewport) visualViewport.addEventListener("resize",fit);
+
+document.getElementById("fsBtn").addEventListener("click",async()=>{
+  try{
+    if(document.fullscreenElement||document.webkitFullscreenElement){
+      await (document.exitFullscreen?document.exitFullscreen():document.webkitExitFullscreen());
+    }else{
+      const el=document.documentElement;
+      await (el.requestFullscreen?el.requestFullscreen():el.webkitRequestFullscreen());
+      /* only Android honours this, and only in fullscreen — the rotate card
+         covers everyone else */
+      if(screen.orientation&&screen.orientation.lock) screen.orientation.lock("landscape").catch(()=>{});
+    }
+  }catch(e){}
+  setTimeout(fit,120);
+});
+
 /* ---------- boot ---------------------------------------------------------- */
 let pending=2;
 function ready(){
   if(--pending) return;
-  buildArt();
+  buildArt(); fit();
   resetGame(); state="title";
   document.getElementById("sndBtn").textContent=SND?"[ SND ]":"[ MUTE ]";
   requestAnimationFrame(n=>{ last=n; tick(n); });

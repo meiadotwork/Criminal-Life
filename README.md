@@ -9,7 +9,10 @@ Crime game
   gets you killed around wave 4, so the street is the mechanic. Rivals are the
   same sheet with only the cap and shorts hue-shifted — skin is left exactly as
   drawn — which reads at 50px because the cap is the one bit of solid colour up
-  top. Keyboard on desktop, thumb pads on a phone.
+  top. Landscape only: the picture fills the window at a whole-number pixel
+  scale, with the readouts and thumb pads riding over it rather than stacked
+  around it, and a phone held upright gets a rotate card instead of a squashed
+  game. Keyboard on desktop, thumb pads on a phone.
 - `gunman.html` — shooter sprite animation. An eleven-cel rig walking the
   favela: he paces the street, fires on the move, and runs single / 3-round
   burst / full-auto timelines standing still. He is drawn at one fixed size in
