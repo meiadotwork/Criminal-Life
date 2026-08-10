@@ -152,7 +152,10 @@ both hands close to the chest, body leaning forward about 15 degrees.
 2. Down — deepest compression, body lowest.
 3. Push — driving off the back leg.
 4. Flight — both feet off the ground, body highest, legs scissored.
-5-8. The same four beats with the legs swapped.
+5. Contact — mirrored, other foot striking.
+6. Down — mirrored.
+7. Push — mirrored.
+8. Flight — mirrored.
 Longer stride and more knee lift than the walk. Arms pump tighter. Loops.
 ```
 
@@ -222,9 +225,16 @@ Frames 3 and 4 must differ clearly — they alternate during sustained fire.
 Sheet: AIM AND FIRE UPWARD AT 45 DEGREES, 6 frames, standing, firing up and to
 the right at 45 degrees. Rifle angled up 45 degrees, head tilted back, chest
 opened, back arched slightly, front knee braced.
-Same six beats as the forward sheet: 1 raise, 2 steady aim, 3 flash A, 4 flash
-B with brass, 5 recoil and smoke, 6 back to steady.
-The muzzle flash points up-right along the barrel line. Keep it inside the cell.
+1. Rifle swinging up toward the 45 degree line, eyes following it.
+2. Shouldered and steady at 45 degrees, sighting along the barrel, held.
+3. FIRING — bright yellow-white muzzle flash, four-pointed star with a hot
+   white core, about 110 px long, pointing up-right along the barrel line,
+   inside the cell.
+4. FIRING — a differently shaped flash, wider and shorter; brass ejecting up
+   and to the right; recoil driving the shoulders down and back.
+5. Recoil settling, no flash, thin grey smoke at the muzzle, brass falling.
+6. Back to a steady 45 degree aim, ready to repeat.
+Frames 3 and 4 must differ clearly — they alternate during sustained fire.
 ```
 
 ## C3 · AIM AND FIRE, DOWN 45° — 6 frames · 2304 × 448
@@ -234,8 +244,17 @@ Sheet: AIM AND FIRE DOWNWARD AT 45 DEGREES, 6 frames, standing, firing down and
 to the right at 45 degrees — shooting at something below, over a ledge. Rifle
 angled down 45 degrees, head tipped down, shoulders rolled forward, knees
 slightly bent.
-Same six beats as the forward sheet. The muzzle flash points down-right along
-the barrel line. Brass still ejects upward and to the right.
+1. Rifle swinging down toward the 45 degree line, head tipping to follow.
+2. Shouldered and steady at minus 45 degrees, sighting along the barrel, held.
+3. FIRING — bright yellow-white muzzle flash, four-pointed star with a hot
+   white core, about 110 px long, pointing down-right along the barrel line,
+   inside the cell.
+4. FIRING — a differently shaped flash, wider and shorter; brass ejecting UP
+   and to the right regardless of the barrel angle; recoil pushing the muzzle
+   up a few degrees.
+5. Recoil settling, no flash, thin grey smoke at the muzzle, brass falling.
+6. Back to a steady downward aim, ready to repeat.
+Frames 3 and 4 must differ clearly — they alternate during sustained fire.
 ```
 
 ## C4 · RELOAD — 8 frames · 3072 × 448
@@ -312,10 +331,16 @@ the game leaves on screen, so make frame 6 read clearly as a body.
 
 ```text
 Sheet: WALK BACKWARD, 6 frames, still FACING RIGHT but stepping backward to the
-left, rifle kept shouldered and pointed right — a fighting retreat.
-Steps are shorter and more cautious than the forward walk, the head stays
-level, weight stays back. Six beats: three per leg, contact / weight transfer /
-swing through. Loops.
+left, rifle kept shouldered and pointed right — a fighting retreat. Steps are
+shorter and more cautious than the forward walk, the head stays level, the
+weight stays back.
+1. Left foot reaching back, toes touching down behind, weight still forward.
+2. Weight shifting back over the rear foot, front foot going light.
+3. Front foot lifting and sliding back beneath the body.
+4. Right foot reaching back, toes touching down behind.
+5. Weight shifting back over it.
+6. Front foot lifting and sliding back beneath the body.
+Loops cleanly from 6 back to 1.
 ```
 
 ## C5 · AIM AND FIRE, STRAIGHT UP — 5 frames · 1920 × 448
@@ -378,8 +403,15 @@ Sheet: CLIMB, 6 frames, climbing a steep favela staircase or ladder, seen from
 the side, moving up and to the right. Rifle slung across the back and out of
 the hands so both hands are free.
 Body angled about 60 degrees, one hand and the opposite foot reaching up
-together, alternating. Six beats: three per side. Loops.
-Draw only the character — no ladder, no steps, no handrail.
+together, alternating.
+1. Right hand high and gripping, left knee driving up.
+2. Pulling up on the right arm, left foot planting.
+3. Left hand releasing and reaching up past the right.
+4. Left hand high and gripping, right knee driving up.
+5. Pulling up on the left arm, right foot planting.
+6. Right hand releasing and reaching up past the left.
+Loops cleanly from 6 back to 1.
+Draw only the character — no ladder, no steps, no handrail, nothing to hold.
 ```
 
 ## F2 · THROW — 5 frames · 1920 × 448
