@@ -66,8 +66,11 @@
   .pad#padR{left:calc(var(--u)*14.4)}
   .pad#padRe{right:calc(var(--u)*16);width:calc(var(--u)*8.5);height:calc(var(--u)*8.5);
     bottom:calc(var(--u)*1.6);font-size:calc(var(--u)*1.6);border-color:rgba(57,255,116,.4)}
-  .pad#padC{right:calc(var(--u)*16);width:calc(var(--u)*8.5);height:calc(var(--u)*8.5);
-    bottom:calc(var(--u)*11);font-size:calc(var(--u)*1.6);border-color:rgba(57,255,116,.55)}
+  /* crouch belongs with the feet, not the trigger — it sits above the walk
+     pair, centred on them, so the left thumb arcs up to it */
+  .pad#padC{left:calc(var(--u)*9.5);bottom:calc(var(--u)*14);
+    width:calc(var(--u)*8.5);height:calc(var(--u)*8.5);
+    font-size:calc(var(--u)*1.6);border-color:rgba(57,255,116,.55)}
   .pad#padF{right:calc(var(--u)*2.2);width:calc(var(--u)*13);height:calc(var(--u)*13);
     bottom:calc(var(--u)*1.8);border-color:rgba(255,182,66,.75);color:var(--amber);
     font-size:calc(var(--u)*2.4)}
@@ -127,8 +130,8 @@
     <div id="pads">
       <button class="pad" id="padL" aria-label="andar para a esquerda">◀</button>
       <button class="pad" id="padR" aria-label="andar para a direita">▶</button>
-      <button class="pad" id="padRe" aria-label="recarregar">RECAR</button>
       <button class="pad" id="padC" aria-label="agachar">AGACHA</button>
+      <button class="pad" id="padRe" aria-label="recarregar">RECAR</button>
       <button class="pad" id="padF" aria-label="atirar">FOGO</button>
     </div>
 
