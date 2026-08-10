@@ -67,6 +67,12 @@ def classify(p):
     grey = float((sat < 0.18).mean())
     w, h = p['x1'] - p['x0'], p['y1'] - p['y0']
     fill = p['a'] / float(max(1, w * h))
+    # Shape is tested before colour, and that ordering matters. One character
+    # wears red-white-blue striped shorts, so 44% of his body is red-dominant
+    # and a colour-first test called whole figures blood pools. Nothing that
+    # stands a head high with a person's fill ratio is a splatter.
+    if h >= 60 and fill < 0.72:
+        return 'figure'
     if blood > 0.40:
         return 'blood'
     if fire > 0.30:

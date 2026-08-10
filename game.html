@@ -122,6 +122,7 @@
       </div>
       <div class="side r">
         <span class="grp"><span class="lbl">ONDA</span> <b id="wave">1</b></span>
+        <span class="grp"><span class="lbl">PARCEIROS</span> <b id="crew">3</b></span>
         <span class="grp"><span class="lbl">MORTOS</span> <b id="kills">0</b></span>
         <span class="grp"><span class="lbl">GRANA</span> <b id="score">0</b></span>
       </div>
@@ -135,7 +136,7 @@
       <button class="pad" id="padF" aria-label="atirar">FOGO</button>
     </div>
 
-    <div id="keys">← → ANDAR · ↓ AGACHAR · ESPAÇO ATIRAR · R RECARREGAR · P PAUSA</div>
+    <div id="keys">← → ANDAR · ↓ AGACHA/LEVANTA · ESPAÇO ATIRAR · R RECARREGAR · P PAUSA</div>
     <div id="sys">
       <button id="sndBtn" type="button">[ SND ]</button>
       <button id="fsBtn" type="button" aria-label="tela cheia">[ ⛶ ]</button>
@@ -174,7 +175,8 @@
    assets/atlas/*.json without touching the art. */
 const ATLAS = {
   gunman: {file:"assets/atlas/gunman-atlas.png", cw:201, ch:165, ax:91,  gr:158, idleH:133},
-  police: {file:"assets/atlas/police-atlas.png", cw:278, ch:197, ax:128, gr:190, idleH:158}
+  police: {file:"assets/atlas/police-atlas.png", cw:278, ch:197, ax:128, gr:190, idleH:158},
+  ally:   {file:"assets/atlas/ally-atlas.png",   cw:250, ch:180, ax:85,  gr:173, idleH:152}
 };
 const ANIM = {
   gunman:{
@@ -190,6 +192,15 @@ const ANIM = {
     crouch:[23,24,25,26,27,28,29], crouchIdle:[23,24,25],
     fire:[35,36,37,38,39,40], crouchFire:[31,32,33],
     reload:[41,42,43,44,45], death:[61,62,63,70]
+  },
+  /* the crew who turn out with you — a pistol rather than a rifle, so at 50px
+     you can tell your own people from the raid at a glance */
+  ally:{
+    idle:[0,1,2,3,4], aim:[5,6,7,8,9,10,11],
+    walk:[12,13,14,15,16],
+    crouch:[29,30,31,32,33], crouchIdle:[29,30],
+    fire:[20,21,22,23,24,25,26,27,28], crouchFire:[24,25,26,27,28],
+    reload:[36,37,38,39,40], death:[49,57,69,71]
   }
 };
 /* One scale for both, taken off the gunman. The police art is already drawn
@@ -200,6 +211,8 @@ const S = MAN_PX / ATLAS.gunman.idleH;
 /* where a round leaves the barrel and passes through a chest, as fractions of
    the standing figure, so they hold for either character */
 const MUZZLE_UP_F = 0.76, MUZZLE_FWD_F = 0.44;
+/* folded down, the barrel comes with him — a crouched shot leaves lower */
+const CROUCH_UP_F = 0.50, CROUCH_FWD_F = 0.40;
 const TALL_F = 1.0, CROUCH_F = 0.62;
 const SOLE = 6;                        // rounds this low go into the slabs
 
@@ -272,7 +285,8 @@ function buildArt(){
      the crouch is what lets a round aimed at a chest sail over */
   for(const k in ATLAS){ const A=ATLAS[k];
     A.tall=Math.round(A.idleH*S*TALL_F); A.low=Math.round(A.idleH*S*CROUCH_F);
-    A.up=A.idleH*S*MUZZLE_UP_F; A.fwd=A.idleH*S*MUZZLE_FWD_F; }
+    A.up=A.idleH*S*MUZZLE_UP_F; A.fwd=A.idleH*S*MUZZLE_FWD_F;
+    A.upLow=A.idleH*S*CROUCH_UP_F; A.fwdLow=A.idleH*S*CROUCH_FWD_F; }
 }
 
 /* ---------- sound --------------------------------------------------------- */
@@ -335,27 +349,49 @@ const CALM=matchMedia("(prefers-reduced-motion: reduce)").matches;
 const rnd=(a,b)=>a+Math.random()*(b-a);
 
 function makeMan(x,dir,hp){
-  return {x, dir, hp, maxHp:hp, cast:"gunman", ph:0, breath:Math.random(), shot:0,
+  return {x, dir, hp, maxHp:hp, cast:"gunman", side:"crew", ph:0, breath:Math.random(), shot:0,
           moving:false, crouch:false, aimT:0, muzzle:0,
           dead:false, fall:0, fade:1, lastFoot:-1, hurtT:0};
 }
-let P=null, foes=[], shots=[], drops=[], puffs=[];
+let P=null, foes=[], crew=[], shots=[], drops=[], puffs=[];
+/* Everyone on your side, player included — enemies pick a target from this and
+   rounds from the raid check against all of it. */
+const hostilesOf = m => m.side==="law" ? [P].concat(crew) : foes;
+function nearest(m,list){
+  let best=null,bd=1e9;
+  for(const t of list){ if(!t||t.dead) continue;
+    /* the raid came for you: your crew draw fire, but never all of it */
+    const d=Math.abs(t.x-m.x)*(t===P?0.62:1);
+    if(d<bd){ bd=d; best=t; } }
+  return best;
+}
 let wave=1, kills=0, score=0, toSpawn=0, spawnT=0, maxAlive=2;
 let state="title", shake=0, flash=0, banner="", bannerT=0;
 let firing=false, reloadT=0, fireCd=0, ammo=MAG, moveL=false, moveR=false, crouchIn=false;
 
 function resetGame(){
   P=makeMan(300,1,P_HP);
+  /* Three of your own turn out with you. They are spawned once, at the start —
+     never per wave — so when one goes down the street is thinner for the rest
+     of the run. That permanence is the point of them. */
+  crew=[];
+  for(let i=0;i<3;i++){
+    const c=makeMan(300-70-i*55, 1, 42);
+    c.cast="ally"; c.side="crew";
+    c.range=rnd(150,260); c.burst=0; c.fireT=rnd(900,2000); c.speed=E_SPEED*rnd(.95,1.25);
+    crew.push(c);
+  }
   foes=[]; shots=[]; drops=[]; puffs=[];
   wave=1; kills=0; score=0; ammo=MAG; reloadT=0; fireCd=0;
   toSpawn=0; spawnT=0; crouchIn=false;
+  document.getElementById("padC").classList.remove("on");
   startWave();
 }
 function startWave(){
   /* How many come at once matters far more than how many come in total — a
      standing player has to be able to win the opening wave. */
-  toSpawn  = 2+Math.floor(wave*0.9);
-  maxAlive = Math.min(2+Math.floor(wave/2), 5);
+  toSpawn  = 3+Math.floor(wave*1.1);
+  maxAlive = Math.min(3+Math.floor(wave/2), 7);
   spawnT   = 1000;
   banner="ONDA "+wave; bannerT=1900;
   SFX.wave();
@@ -368,7 +404,7 @@ function spawnFoe(){
   let x = left ? camX-40 : camX+W+40;
   x = Math.max(WALL+10, Math.min(BG_W-WALL-10, x));
   const f=makeMan(x, left?1:-1, E_HP+Math.min(26,wave*2));
-  f.cast="police";                    // the opposition is a raid, not a recolour
+  f.cast="police"; f.side="law";      // the opposition is a raid, not a recolour
   f.range=rnd(150,300); f.burst=0; f.speed=E_SPEED*rnd(.85,1.2);
   f.fireT=rnd(900,1600);              // a beat to be seen before he opens up
   foes.push(f);
@@ -381,11 +417,11 @@ function fireFrom(m,dmg,spread,far,at){
      gunman, so shoulder-height fire sailed clean over him — they killed nobody.
      Aim is always taken on a STANDING chest, which is what makes ducking work:
      drop below the line they are shooting at and most of it goes past. */
-  let y = groundAt(m.x)-cast(m).up;
+  let y = groundAt(m.x)-upOf(m);
   if(at) y = groundAt(at.x)-cast(at).tall*0.86;
   if(spread) y += rnd(-spread,spread);
-  shots.push({x:m.x+m.dir*cast(m).fwd, y,
-              vx:m.dir*BULLET_V, dmg, foe:m!==P, life:1.6});
+  shots.push({x:m.x+m.dir*fwdOf(m), y,
+              vx:m.dir*BULLET_V, dmg, side:m.side, life:1.6});
   m.muzzle=1; m.aimT=700;
   SFX.shot(far);
   if(m===P){ flash=1; if(!CALM) shake=Math.max(shake,.8); }
@@ -393,10 +429,11 @@ function fireFrom(m,dmg,spread,far,at){
 function damage(m,dmg,dir){
   if(m.dead) return;
   m.hp-=dmg; m.hurtT=140;
-  puffs.push({x:m.x+rnd(-4,4), y:groundAt(m.x)-cast(m).up+rnd(-6,6), t:1, vx:dir*18});
+  puffs.push({x:m.x+rnd(-4,4), y:groundAt(m.x)-upOf(m)+rnd(-6,6), t:1, vx:dir*18});
   if(m.hp<=0){
     m.dead=true; m.fade=1; m.fall=0;
     if(m===P){ state="over"; SFX.over(); banner="VOCÊ CAIU"; bannerT=1e9; }
+    else if(m.side==="crew"){ SFX.down(); }   /* one of yours — no bounty, no drop */
     else{
       kills++; score+=100+wave*10; SFX.down();
       if(Math.random()<DROP_CHANCE)
@@ -414,6 +451,7 @@ function pose(m){
   const A=ANIM[m.cast];
   if(m.dead){ const d=clip(m,"death"); return d[Math.min(d.length-1,Math.floor(m.fall*d.length))]; }
   if(m.crouch){
+    if(m.muzzle>0.5){ const cf=clip(m,"crouchFire"); return cf[(m.shot|0)%cf.length]; }
     const c=m.moving?clip(m,"crouch"):clip(m,"crouchIdle");
     return c[Math.floor(m.ph*c.length)%c.length];
   }
@@ -427,6 +465,9 @@ function pose(m){
   const i=clip(m,"idle"); return i[Math.floor(m.breath*i.length)%i.length];
 }
 const cast = m => ATLAS[m.cast];
+/* where his barrel is right now, standing or folded down */
+const upOf  = m => m.crouch&&!m.dead ? cast(m).upLow  : cast(m).up;
+const fwdOf = m => m.crouch&&!m.dead ? cast(m).fwdLow : cast(m).fwd;
 const tallOf = m => m.crouch&&!m.dead ? cast(m).low : cast(m).tall;
 
 /* ---------- render -------------------------------------------------------- */
@@ -449,7 +490,7 @@ function drawMan(m,camX,camY){
   cx.restore();
 
   if(m.muzzle>0){                              /* flash, and the light it throws */
-    const mx=m.x-camX+m.dir*A.fwd, my=feet-camY-A.up;
+    const mx=m.x-camX+m.dir*fwdOf(m), my=feet-camY-upOf(m);
     const wash=cx.createRadialGradient(mx,my,1,mx,my,86);
     wash.addColorStop(0,"rgba(255,226,150,"+(.30*m.muzzle)+")");
     wash.addColorStop(.4,"rgba(255,150,40,"+(.12*m.muzzle)+")");
@@ -481,6 +522,7 @@ function render(){
     else cx.fillRect(x+1,y+5,6,2);
   });
 
+  crew.forEach(c=>{ drawMan(c,camX,camY); drawHealthPip(c,camX,camY); });
   foes.forEach(f=>{ drawMan(f,camX,camY); drawHealthPip(f,camX,camY); });
   if(P) drawMan(P,camX,camY);
 
@@ -542,6 +584,7 @@ function hud(){
   }
   set("ammo",reloadT>0?"··":ammo);
   set("wave",wave); set("kills",kills); set("score",score);
+  set("crew",crew.reduce((n,c)=>n+(c.dead?0:1),0));
 }
 
 /* ---------- input --------------------------------------------------------- */
@@ -554,7 +597,7 @@ addEventListener("keydown",e=>{
   const k=e.key.toLowerCase();
   if(k==="arrowleft"||k==="a"){ moveL=true; e.preventDefault(); }
   else if(k==="arrowright"||k==="d"){ moveR=true; e.preventDefault(); }
-  else if(k==="arrowdown"||k==="s"){ crouchIn=true; e.preventDefault(); }
+  else if(k==="arrowdown"||k==="s"){ crouchIn=!crouchIn; e.preventDefault(); }
   else if(k===" "){ e.preventDefault(); ac(); startFire(); }
   else if(k==="r") beginReload();
   else if(k==="p"&&(state==="play"||state==="paused")) state=state==="play"?"paused":"play";
@@ -563,7 +606,6 @@ addEventListener("keyup",e=>{
   const k=e.key.toLowerCase();
   if(k==="arrowleft"||k==="a") moveL=false;
   else if(k==="arrowright"||k==="d") moveR=false;
-  else if(k==="arrowdown"||k==="s") crouchIn=false;
   else if(k===" ") firing=false;
 });
 function hold(el,down,up){
@@ -577,11 +619,15 @@ function hold(el,down,up){
 hold(document.getElementById("padL"),()=>moveL=true,()=>moveL=false);
 hold(document.getElementById("padR"),()=>moveR=true,()=>moveR=false);
 hold(document.getElementById("padF"),startFire,()=>firing=false);
-hold(document.getElementById("padC"),()=>crouchIn=true,()=>crouchIn=false);
+(function(){
+  const b=document.getElementById("padC");
+  b.addEventListener("pointerdown",e=>{ e.preventDefault(); ac();
+    crouchIn=!crouchIn; b.classList.toggle("on",crouchIn); });
+})();
 document.getElementById("padRe").addEventListener("pointerdown",e=>{e.preventDefault();ac();beginReload();});
 cv.addEventListener("pointerdown",e=>{ e.preventDefault(); ac(); startFire(); });
 addEventListener("pointerup",()=>firing=false);   // release anywhere lets go of the trigger
-addEventListener("blur",()=>{ firing=moveL=moveR=crouchIn=false; });
+addEventListener("blur",()=>{ firing=moveL=moveR=false; });   // the crouch is a stance, it survives a blur
 document.getElementById("sndBtn").onclick=toggleSnd;
 function begin(){ resetGame(); state="play"; setTimeout(()=>keysHint.style.opacity=0,9000); }
 
@@ -603,9 +649,10 @@ function tick(now){
 
 function step(t,dt){
   /* ---- player ---- */
-  /* squeezing the trigger stands him up — there is no crouched firing pose,
-     and popping up to shoot is the trade the crouch is there to make */
-  if(firing) P.crouch=false; else P.crouch=crouchIn&&!P.dead;
+  /* Crouch is a toggle: tap once and he stays down until you tap again. He can
+     fire from there too, now that the art has crouched firing poses — the trade
+     is a shorter barrel line and half the pace, not a ban on shooting. */
+  P.crouch = crouchIn && !P.dead;
   const dirIn=(moveR?1:0)-(moveL?1:0);
   P.moving = dirIn!==0 && !P.dead;
   if(P.moving){
@@ -634,8 +681,14 @@ function step(t,dt){
   /* ---- rivals ---- */
   spawnT-=dt;
   if(toSpawn>0&&spawnT<=0&&living()<maxAlive){ spawnFoe(); toSpawn--; spawnT=rnd(750,1500); }
-  foes.forEach(f=>{
-    if(f.dead){ f.fall=Math.min(1,f.fall+t*2.2); f.fade=Math.max(0,f.fade-t*0.13); return; }
+  const fight=(f,t,dt)=>{
+    if(f.dead){ f.fall=Math.min(1,f.fall+t*2.2);
+      /* the crew stay where they fell for the rest of the run; the raid fades */
+      if(f.side==="law") f.fade=Math.max(0,f.fade-t*0.13);
+      return; }
+    const foe0=nearest(f,hostilesOf(f));
+    if(!foe0){ f.moving=false; f.muzzle=Math.max(0,f.muzzle-t*7); f.cel=0; return; }
+    const P=foe0;                        // "the one he is shooting at"
     const gap=P.x-f.x, d=Math.abs(gap);
     f.dir=Math.sign(gap)||1;
     f.moving=false;
@@ -652,14 +705,20 @@ function step(t,dt){
     f.fireT-=dt;
     if(!P.dead&&f.fireT<=0&&d<520){
       /* aim is loose and gets tighter with the wave; a wide shot sails past */
-      fireFrom(f,E_DMG,Math.max(10,30-wave*1.2),d>340,P);
+      /* Your crew shoot a pistol, badly. They thin the raid and draw fire; they
+         do not win it for you — an early build had them clearing wave 8 while
+         the player stood untouched at full health. */
+      const mine=f.side==="crew";
+      fireFrom(f, mine?6:E_DMG, mine?34:Math.max(10,30-wave*1.2), d>340, P);
       f.burst++;
       f.fireT = f.burst>=2+((Math.random()*3)|0) ? (f.burst=0, rnd(1100,2100)/(1+wave*0.05)) : rnd(120,190);
     }
     f.aimT=Math.max(0,f.aimT-dt);
     f.muzzle=Math.max(0,f.muzzle-t*7);
     f.breath=(f.breath+t*0.5)%1;
-  });
+  };
+  foes.forEach(f=>fight(f,t,dt));
+  crew.forEach(c=>fight(c,t,dt));
   foes=foes.filter(f=>!(f.dead&&f.fade<=0));
 
   /* ---- rounds in the air ---- */
@@ -673,7 +732,7 @@ function step(t,dt){
       if(s.y<feet-tallOf(t2)-2||s.y>feet-SOLE) return;
       s.hit=true; damage(t2,s.dmg,Math.sign(s.vx));
     };
-    if(s.foe) check(P); else foes.forEach(check);
+    if(s.side==="law"){ check(P); crew.forEach(check); } else foes.forEach(check);
     s.x=nx; s.life-=t;
     if(s.x<WALL-30||s.x>BG_W-WALL+30) s.hit=true;
   });
