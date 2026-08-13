@@ -36,6 +36,15 @@ const TAU = Math.PI * 2;
 
 // ------------------------------------------------------------------- helpers
 
+/* localStorage throws outright in a sandboxed iframe rather than returning
+ * null, and this runs at module scope — so it has to be guarded, or the whole
+ * game fails to boot somewhere it would otherwise have run fine. */
+const Store = {
+  get(k, dflt) { try { const v = localStorage.getItem(k); return v === null ? dflt : v; }
+                 catch (e) { return dflt; } },
+  set(k, v)    { try { localStorage.setItem(k, v); } catch (e) { /* not fatal */ } },
+};
+
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 const lerp = (a, b, t) => a + (b - a) * t;
 const sign = (v) => (v < 0 ? -1 : v > 0 ? 1 : 0);
@@ -1335,7 +1344,7 @@ const Game = {
   msgT: 0,
   anyPress: false,
   debug: false,
-  best: Number(localStorage.getItem('beco.best') || 0),
+  best: Number(Store.get('beco.best', 0)),
 };
 
 function newWorld(levelIndex) {
@@ -1408,7 +1417,7 @@ function updatePlay(dt) {
     Game.state = 'dead';
     if (p.score > Game.best) {
       Game.best = p.score;
-      localStorage.setItem('beco.best', String(Game.best));
+      Store.set('beco.best', String(Game.best));
     }
   }
 
@@ -1610,7 +1619,7 @@ function frame(now) {
       if (Game.levelIndex + 1 >= 4) {
         Game.state = 'won';
         const s = Game.world.player.score;
-        if (s > Game.best) { Game.best = s; localStorage.setItem('beco.best', String(s)); }
+        if (s > Game.best) { Game.best = s; Store.set('beco.best', String(s)); }
       } else {
         startLevel(Game.levelIndex + 1, true);
       }
@@ -1681,7 +1690,8 @@ addEventListener('resize', resize);
     setTimeout(() => boot.remove(), 500);
     requestAnimationFrame((t) => { last = t; frame(t); });
 
-    if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+    if (!window.BECO_INLINE && 'serviceWorker' in navigator
+        && location.protocol.startsWith('http')) {
       navigator.serviceWorker.register('sw.js').catch(() => {});
     }
   } catch (err) {
