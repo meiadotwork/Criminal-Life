@@ -2,3 +2,6 @@
 criminal-terminal.zip
 CriminalTerminal-offline.zip
 CriminalTerminal-StarterKit*.zip
+
+# asset pipeline scratch (source art lives outside the repo)
+beco/tools/__pycache__/
