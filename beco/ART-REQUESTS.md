@@ -9,6 +9,35 @@ animations are in the game and working. What is missing is almost entirely
 
 ---
 
+## Revision 2 — what the design brief changed
+
+The first version of this list was written against a game that advanced
+rightward and cleared a street. The design is a **defence**: you hold the slum
+against rival gangs and the police, using the corner of a house as cover.
+
+That moves the ground under about half of this list. Request IDs are stable —
+anything already in progress still matters — but four things changed status:
+
+- **Cover is now a mechanic, not scenery.** Houses stand on the player's own
+  plane and stop bullets; you step to the corner to shoot and back behind it to
+  be safe. Nothing in the delivered pack can do that job — the 41 facades are
+  backdrop, with soft edges and no defined solid volume. **P18** is new and is
+  now the single most important request on the list.
+- **Prone is a stance.** Stand / crouch / prone, each slower than the last.
+  The labelled player atlas has no prone at all. The purple-shorts atlas does,
+  which is why **P19** asks for it as a proper sheet across every character
+  rather than a lucky find on one.
+- **Cars are cover with a rule** — solid below the beltline, bullets through
+  the glass. That makes **P9** a spec with a hard requirement in it, not a
+  decorative vehicle.
+- **Levels vary by time of day and weather.** Night is not a tint: unlit
+  windows have to become lit ones, which is an art layer (**P21**), not a
+  filter.
+
+Newly added: **P18** cover houses · **P19** prone · **P20** rival gangs ·
+**P21** night windows · **P22** rain and wet · **P23** the firework signal ·
+**P24** empty lots · **P25** character select.
+
 ## Why this list looks like this
 
 Everything below is something the game currently fakes, drops, or does without.
@@ -113,7 +142,87 @@ afterwards.
 
 ---
 
-# Tier 1 — fixes something visibly broken
+# Tier 1 — the design does not work without these
+
+## P18 · COVER HOUSES — 6 pieces
+
+The signature mechanic. These stand on the player's plane, stop bullets, and
+give you a corner to lean out of. The 41 delivered facades cannot do this job:
+they are backdrop, drawn with soft irregular edges and no defined solid volume.
+
+```text
+Six separate images, one per file: single-storey and two-storey favela houses
+seen in flat side elevation, as a solid block standing on the street.
+
+  cover_a  4.0 x 3.0 m  ( 720 x  540 px )  one storey, flat roof
+  cover_b  5.0 x 3.2 m  ( 900 x  576 px )  one storey with a tiled lean-to roof
+  cover_c  6.0 x 4.8 m  (1080 x  864 px )  two storeys, external stair on one
+                                           side
+  cover_d  4.5 x 5.5 m  ( 810 x  990 px )  narrow and tall, two storeys
+  cover_e  8.0 x 3.4 m  (1440 x  612 px )  a long low row of two joined houses
+  cover_f  3.0 x 2.6 m  ( 540 x  468 px )  a small barraco, timber and board
+
+Same painted, weathered treatment as the delivered facades — brick, render,
+faded paint, damp staining, a blue water tank on the roof.
+
+FOUR THINGS THESE NEED THAT THE BACKDROP FACADES DO NOT:
+
+1. HARD VERTICAL EDGES. The left and right sides must be straight, clean
+   vertical cuts from the roofline to the ground. No overhang, no plant, no
+   pipe, no awning crossing the edge. That edge is the cover corner the player
+   presses against — the silhouette has to state exactly where the wall ends.
+
+2. A FLAT, LEVEL ROOFLINE. The player climbs on top. The roof surface must be
+   one continuous horizontal line across the full width. Water tanks, aerials
+   and chimneys are welcome but they must sit clearly ABOVE the roofline as
+   small separate details, never break it.
+
+3. A DOORWAY at ground level, in the middle third of the width, 1.0 x 2.1 m,
+   opening into darkness. The player can stand in it.
+
+4. NO TRANSPARENT HOLES through the body. Windows are painted on, not cut out.
+   The solid mass has to be genuinely solid from roofline to ground.
+
+Deliver each one a second time as a NIGHT variant: same house, windows and
+doorway lit warm from inside, everything else in blue moonlight. Same pixel
+dimensions, same alignment, so the two can be swapped.
+```
+
+## P19 · PRONE — 3 sheets per character
+
+Stand, crouch, prone — each slower than the last. The labelled player atlas has
+no prone at all.
+
+```text
+Three sheets, following Block 0 of sprite-prompts.md exactly: 384 x 448 cells,
+ground line y = 416, anchor column x = 160, facing right, never mirrored.
+
+Prone height is about 60 px from the ground to the top of the shoulders, so
+almost all of the cell is empty above him. That is correct — do not scale him
+up to fill it.
+
+  PRONE IDLE   4 frames · 1536 x 448
+  Lying flat on his front, weight on both elbows, rifle shouldered and pointed
+  forward, legs splayed slightly, one knee bent out. A slow breathing loop:
+  the back rises 2-3 px and settles. Loops.
+
+  PRONE CRAWL  6 frames · 2304 x 448
+  Low crawl, dragging forward on the elbows, rifle kept in both hands and
+  clear of the ground. Opposite elbow and knee reach together. The head stays
+  at a constant height throughout — that is the whole point of moving this way.
+  Loops cleanly from 6 back to 1.
+
+  PRONE FIRE   4 frames · 1536 x 448
+  1. Settled, rifle shouldered and level, sighting forward.
+  2. FIRING — muzzle flash at the barrel tip, a four-pointed star with a hot
+     white core, about 90 px long. Keep it inside the cell.
+  3. FIRING — a differently shaped flash, wider and shorter; brass ejecting up
+     and to the right; the shoulder absorbing recoil.
+  4. Recovery — no flash, a thin grey smoke wisp at the muzzle, brass falling.
+
+Deliver all three for: the player, the police officer, and each rival gang
+character from P20.
+```
 
 ## P1 · LAJE MODULES — 5 pieces
 
@@ -306,19 +415,36 @@ Deliver a second version of the same vehicle: doors open, one tyre flat,
 scorched along one flank, smoke damage — the wrecked state.
 ```
 
-## P9 · VEHICLES — 3 props
+## P9 · VEHICLES — 4 props
+
+Cars are cover with a rule: solid below the beltline, bullets straight through
+the glass. That makes the beltline a spec, not a styling choice.
 
 ```text
-Three separate images, one per file. Flat side elevation, left side of the
+Four separate images, one per file. Flat side elevation, left side of the
 vehicle, base on the bottom row.
 
-  moto        2.0 x 1.2 m  (360 x 216)  a battered 125cc commuter motorbike,
-                                        the workhorse of the morro, with a
-                                        milk-crate strapped over the tail
-  carro       4.2 x 1.5 m  (756 x 270)  a 1990s hatchback, sun-bleached, one
-                                        door a different colour, no hubcaps
-  carro_wreck 4.2 x 1.5 m  (756 x 270)  the same car burnt out: black shell,
-                                        no glass, wheels gone, roof buckled
+  carro        4.2 x 1.5 m  (756 x 270)  a 1990s hatchback, sun-bleached, one
+                                         door a different colour, no hubcaps
+  carro_wreck  4.2 x 1.5 m  (756 x 270)  the same car burnt out: black shell,
+                                         no glass, wheels gone, roof buckled
+  kombi        4.5 x 2.0 m  (810 x 360)  a VW Kombi van, high roof, curtains
+  moto         2.0 x 1.2 m  (360 x 216)  a battered 125cc commuter motorbike,
+                                         with a milk-crate strapped on the tail
+
+THE BELTLINE — hard requirement on carro and kombi:
+- The bottom edge of the side glass must be ONE STRAIGHT HORIZONTAL LINE all
+  the way across the vehicle, from windscreen to tailgate. Do not slope it,
+  step it, or kick it up over the rear wheel.
+- Everything below that line is solid body. Everything above it is glass and
+  pillars.
+- State the beltline height in pixels from the base of the image. The game
+  splits the sprite there: below stops bullets, above lets them through.
+- Keep the pillars narrow. A thick B-pillar reads as a place to hide behind and
+  then does not stop anything, which feels like a bug.
+
+carro_wreck has no glass at all — it is solid to the roofline. Say so and give
+its full height instead of a beltline.
 ```
 
 ## P10 · POLES AND WIRING — 5 props
@@ -389,6 +515,128 @@ Each needs three sheets:
          whatever they were carrying dropped
 
 They carry no weapons and never take a firing pose.
+```
+
+## P20 · RIVAL GANGS — 3 characters
+
+Each level fields different enemies, and half of them are not police. The drop
+already contains four player skins (white shirt, purple shorts, black shorts,
+tricolour shorts) — but they are the same body in different clothes, so a gang
+built from them reads as the player wearing a different outfit rather than as
+somebody else.
+
+```text
+Three rival gang members, each following Block 0 of sprite-prompts.md exactly.
+They must be distinguishable from the player and from each other IN SILHOUETTE
+ALONE, at 110 px tall, in a dark alley. Clothing colour is not enough — change
+the build, the headwear and the weapon outline.
+
+  gang_magro   Tall and very thin, long shorts to below the knee, a bucket hat,
+               a long slim rifle held one-handed at the hip. Bare feet.
+  gang_gordo   Short and heavy, no shirt, a bum-bag across the chest, a
+               backwards cap, a stubby compact SMG held in two hands high on
+               the chest.
+  gang_capuz   Medium build but hooded — the hood up and forward is the whole
+               silhouette read — tracksuit bottoms, trainers, a pistol held
+               low, and a second pistol tucked in the waistband.
+
+Sheets needed for each, following the delivered conventions:
+  IDLE 4 · WALK 8 · RUN 8 · CROUCH 4 · CROUCH FIRE 6 · FIRE 6
+  HIT 3 · DEATH 6 · plus the three PRONE sheets from P19
+
+Keep them recognisably from the same world as the player — same palette family,
+same weathering, same street. They are rivals from the next hill, not soldiers.
+```
+
+## P21 · NIGHT WINDOWS — 1 set
+
+Levels run at different times of day. Night is not a tint: a darkened facade
+with dead windows reads as an abandoned building, not as a favela at night —
+the hill at night is thousands of lit windows.
+
+```text
+One set of window-light overlays, each in its own file, on transparent
+background. These are composited over the existing facades in ADDITIVE blend,
+so paint the LIGHT only — never the window frame, never the wall.
+
+  win_warm_a   0.9 x 1.1 m  (162 x 198)  warm tungsten glow, curtain shadow
+  win_warm_b   0.9 x 1.1 m  (162 x 198)  warmer and dimmer, a single bulb
+  win_tv       0.9 x 1.1 m  (162 x 198)  cold blue-white television flicker
+  win_fluoro   1.2 x 1.1 m  (216 x 198)  hard green-white strip light
+  win_door     1.0 x 2.1 m  (180 x 378)  light spilling from an open doorway
+  win_shutter  2.5 x 2.4 m  (450 x 432)  light through a shop shutter's slats
+
+Plus three light cones, for lamps and headlights:
+  cone_lamp    3.0 x 4.0 m  (540 x 720)  a sodium street lamp's cone, orange,
+                                         fading to nothing at the bottom
+  cone_head    4.0 x 1.5 m  (720 x 270)  a car headlight beam, cast sideways
+  glow_bulb    1.5 x 1.5 m  (270 x 270)  a bare bulb's soft round falloff
+
+Pure light on black is what additive blending wants: no alpha edges to speak
+of, just the light falling off to nothing. Do not draw a hard boundary.
+```
+
+## P22 · RAIN AND WET — 5 pieces
+
+```text
+Five pieces for the wet-weather levels.
+
+  rain_near    A tileable rain overlay, 1920 x 1080, drawn as pale grey-white
+               streaks at about 15 degrees off vertical. MUST TILE SEAMLESSLY
+               on all four edges — it scrolls continuously in both axes.
+               Heavy, close to camera, slightly blurred.
+  rain_far     The same but finer, sparser and softer, for the far layer.
+  puddle_a     1.8 x 0.5 m  (324 x  90)  a puddle on concrete, seen as the game
+  puddle_b     3.0 x 0.6 m  (540 x 108)  sees the ground; still, with a dull
+  puddle_c     1.2 x 0.4 m  (216 x  72)  sky reflection painted into it
+  splash       6 frames, one row, ~0.5 m — a footfall splash, plays once
+
+The puddles are drawn over the ground strips from P3, so keep their edges soft
+and irregular and let the ground read through the shallow parts.
+```
+
+## P23 · THE FIREWORK SIGNAL — 2 sheets
+
+When the police come into the slum, the lookouts let off fireworks: three pops,
+no colour, just the bang. It is the alarm, and it is how a police level opens.
+
+```text
+Two sheets, one horizontal row each, transparent background.
+
+  fw_rocket   8 frames · a small rocket climbing: a bright point with a thin
+              smoke trail behind it, rising and slowing. The trail should
+              persist and drift. Cell about 1.5 m wide x 6 m tall.
+  fw_pop      6 frames · the burst at the top: a hard white-grey concussion
+              flash, almost colourless — this is a signal firework, not a
+              display — expanding into a ragged puff of smoke that thins and
+              drifts. About 3 m across at the widest.
+
+Both are drawn against the night sky in additive blend, so keep them bright and
+let them fall off to nothing. No stars, no coloured sparks, no trails of
+falling embers. This is a bang, not a celebration.
+```
+
+## P24 · EMPTY LOTS — 5 pieces
+
+Levels are a row of houses, or houses with gaps in them. The gaps need to look
+like somewhere, not like a hole in the level.
+
+```text
+Five separate images, one per file. Flat side elevation, base on the bottom row.
+
+  lot_rubble    6.0 x 1.4 m  (1080 x 252)  a demolished house: broken block,
+                                           bent rebar, a surviving stub of wall
+  lot_fence     6.0 x 2.0 m  (1080 x 360)  corrugated steel hoarding, rusted,
+                                           leaning, gaps between the sheets
+  lot_wall      6.0 x 2.6 m  (1080 x 468)  a block boundary wall, half rendered,
+                                           bottle glass set into the top
+  lot_scrub     5.0 x 1.8 m  ( 900 x 324)  waste ground gone to weeds, with
+                                           fly-tipped rubbish
+  wall_stub     2.0 x 1.6 m  ( 360 x 288)  a lone standing wall, both edges
+                                           broken — usable as cover
+
+wall_stub follows the P18 cover rules: hard vertical edges, level top, solid
+body. The others are dressing and do not stop bullets.
 ```
 
 ## P13 · A SECOND ENEMY — 1 character
@@ -465,6 +713,27 @@ Four separate images, one per file. Flat side elevation, base on the bottom row.
   pot_plants     0.6 x 0.7 m  (108 x 126)  plants in cut-down paint tins
 ```
 
+## P25 · CHARACTER SELECT — 1 set
+
+Every character is playable from a select screen, so each one needs to be
+presented rather than just animated.
+
+```text
+For each playable character — the four existing skins plus any added later:
+
+  portrait   600 x 800, chest up, facing the camera three-quarters, neutral
+             expression, lit from the upper left, on transparent background.
+             Same painted treatment as the sprites. This is the only art in
+             the game seen close up, so it carries the character.
+
+  full_pose  400 x 900, standing full-length, weight on one leg, rifle held
+             loosely, facing the camera three-quarters rather than in profile.
+             Transparent background, no shadow.
+
+Both on transparent. No frame, no card, no name plate, no background panel —
+the screen draws its own.
+```
+
 ## P17 · IDENTITY AND HUD — 5 pieces
 
 The game currently sets its own title in a system monospace font.
@@ -489,13 +758,47 @@ The game currently sets its own title in a system monospace font.
 
 ## Delivery order, if you only do some of it
 
-1. **P1 lajes** and **P3 ground** — the two things that currently look drawn
-   rather than painted, and they are on screen every second of play.
-2. **P4 police hit and death** — the most-repeated moment in the game is
-   currently its cheapest.
-3. **P7 alley clutter** — cheap per item, and it is what makes the beco feel
-   inhabited rather than empty.
-4. **P2 stairs** — unlocks vertical level design, which the setting is asking
-   for and the game does not yet do.
+Reordered for the defence design. The split is between art the mechanics cannot
+run without, and art that makes the game look finished.
 
-Everything after that is genuinely optional.
+**Blocks a mechanic — nothing else matters until these land**
+
+1. **P18 cover houses.** Corner cover is the game. There is currently no asset
+   in the pack that can stop a bullet and give you an edge to lean past.
+2. **P19 prone.** One of three stances, and the player has no frames for it.
+3. **P9 cars, with the beltline.** The only other cover with a rule in it.
+
+**Makes the game read as intended**
+
+4. **P1 lajes** and **P2 stairs** — climbing the first row of buildings is in
+   the design, and the things you climb are currently hand-drawn rectangles.
+5. **P4 police hit and death.** The most-repeated moment in the game is still
+   its cheapest — they snap to a body frame.
+6. **P20 rival gangs.** Half the enemies are not police, and right now every
+   enemy in the game is the same officer.
+7. **P23 the firework signal.** Three pops and the level changes character.
+   Two small sheets for the most distinctive thing in the whole brief.
+
+**Atmosphere, which is where levels get their identity**
+
+8. **P21 night windows** and **P22 rain** — time of day and weather are per
+   level, and these are what make one differ from the next.
+9. **P3 ground** and **P24 empty lots** — the street itself, and the gaps
+   between houses.
+10. **P7 alley clutter** — cheap per item, and it is what makes the slum feel
+    inhabited rather than empty.
+
+Everything after that — P6, P8, P10 through P17, P25 — is polish, in whatever
+order suits you.
+
+## Still unspecified
+
+Three things in the design brief have no art request attached, because they are
+engine work rather than art, and I would rather say so than pad the list:
+
+- **Auto-aim** needs no art.
+- **Bullets passing at a house's edge** is collision, driven by the hard
+  vertical edges P18 asks for.
+- **Police arriving by car noise** is audio, and there is no audio in this
+  pack at all — every sound in the game is currently synthesised at runtime.
+  If sound is wanted, that is a separate brief.
