@@ -892,7 +892,7 @@ const ROLE_ES={"Crooked Sergeant":"Sargento Corrupto","Crooked Detective":"Detec
 const ES_STATIC={"NEW YORK CITY":"NUEVA YORK","PLAYERS — tap for record":"JUGADORES — toca para la ficha","DICE":"DADOS","ACTIONS":"ACCIONES","CONSOLE — this round":"CONSOLA — esta ronda","PLAYER ON TURN":"JUGADOR EN TURNO","OTHER PLAYERS — tap for record":"OTROS JUGADORES — toca para la ficha","[ MANUAL ]":"[ MANUAL ]","[reset]":"[reiniciar]","[ FOLLOW: OFF ]":"[ SEGUIR: NO ]","[ FOLLOW: ON ]":"[ SEGUIR: SÍ ]","[ AUTO: OFF ]":"[ AUTO: NO ]","[ AUTO: ON ]":"[ AUTO: SÍ ]","tap die to roll":"toca el dado para tirar","roll to move":"tira para avanzar","landed":"cayó"};
 const POLICE_LABELS_ES={0.25:"MUY BAJA",0.5:"BAJA",1:"REALISTA",3:"DIFÍCIL",4:"BRASILEÑA"};
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v34.5";
+const APP_VERSION="v34.6";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -6137,7 +6137,7 @@ function arrestFlow(p){
     /* THE DEAL costs the whole organisation, so a Ghost only signs when the years would cost it
        more than the empire is worth — a long stretch off a thin operation. A boss with a real
        empire does the time and comes back to it. */
-    if(pleaOffered(p) && aiTakesDeal(p,years)){
+    if(dealOffered(p) && aiTakesDeal(p,years)){
       log(p.name+L(" signs the deal with the prosecutor."," assina o acordo com o promotor."," firma el trato con el fiscal."),"warn");
       takeTheDeal(); return;
     }
@@ -6147,19 +6147,19 @@ function arrestFlow(p){
   const el=document.getElementById("cardEl");
   el.dataset.deck="law";
   const hasSoldier=p.crew>0 && !p._raidBust;
-  const canDeal=pleaOffered(p);
-  const fee=pleaFee(p), staff=pleaStaff(p), holds=p.owns?p.owns.size:0;
+  const canDeal=dealOffered(p);
+  const fee=dealFee(p), staff=dealStaff(p), holds=p.owns?p.owns.size:0;
   el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('BUSTED','PRESO EM FLAGRANTE')}</div>
     <div class="art">PD</div><div class="ttl">${L("You're going down","Voc\u00ea vai cair")}</div>
     <div class="bd">${L("The cuffs are out — ","As algemas j\u00e1 sa\u00edram — ")}${years==30?L("they're calling it LIFE","est\u00e3o chamando de PERP\u00c9TUA"):years+L(" years"," anos")}${L(" hanging over you."," pesando sobre voc\u00ea.")}${hasSoldier?L(" One of your soldiers can take the fall and do the time in your place."," Um dos seus soldados pode assumir a culpa e cumprir a pena no seu lugar."):L(" No soldiers to cover you."," Sem soldados para te cobrir.")}</div>
     <div class="out">${hasSoldier?L("Send a soldier, or face it yourself.","Mande um soldado, ou encare voc\u00ea mesmo."):L("A crooked CO offers cigarette packs cheap by the pack — packs keep you safe inside.","Um agente corrupto oferece ma\u00e7os de cigarro baratos no maço — ma\u00e7os te mant\u00eam vivo l\u00e1 dentro.")}</div>
     <div class="out" style="border-color:#ffb642;color:#ffb642">${canDeal
-      ? L("The prosecutor slides a page across: give up the organisation and you walk today. Every name on the payroll and every deed — <b>"+staff+" people</b>, <b>"+holds+" holdings</b> — plus <b>"+fmtK(fee)+"</b> in fees and fines. The cash left in your pocket stays yours. No money buys this away any more.",
-          "O promotor empurra uma folha: entregue a organização e você sai hoje. Cada nome da folha e cada escritura — <b>"+staff+" pessoas</b>, <b>"+holds+" negócios</b> — mais <b>"+fmtK(fee)+"</b> de taxas e multas. O dinheiro que sobrar no bolso é seu. Não existe mais propina que resolva isso.",
-          "El fiscal desliza un papel: entrega la organización y sales hoy. Cada nombre de la nómina y cada escritura — <b>"+staff+" personas</b>, <b>"+holds+" negocios</b> — más <b>"+fmtK(fee)+"</b> en tasas y multas. El efectivo que te quede es tuyo. Ya no hay dinero que arregle esto.")
+      ? L("The prosecutor slides a page across: give up the organisation and you walk today. Every name on the payroll and every deed — <b>"+dealPeople(staff)+"</b>, <b>"+dealHoldings(holds)+"</b> — plus <b>"+fmtK(fee)+"</b> in fees and fines. The cash left in your pocket stays yours. No money buys this away any more.",
+          "O promotor empurra uma folha: entregue a organização e você sai hoje. Cada nome da folha e cada escritura — <b>"+dealPeople(staff)+"</b>, <b>"+dealHoldings(holds)+"</b> — mais <b>"+fmtK(fee)+"</b> de taxas e multas. O dinheiro que sobrar no bolso é seu. Não existe mais propina que resolva isso.",
+          "El fiscal desliza un papel: entrega la organización y sales hoy. Cada nombre de la nómina y cada escritura — <b>"+dealPeople(staff)+"</b>, <b>"+dealHoldings(holds)+"</b> — más <b>"+fmtK(fee)+"</b> en tasas y multas. El efectivo que te quede es tuyo. Ya no hay dinero que arregle esto.")
       : L("A federal raid — no bail, no deal, no patsy. The years are yours.","Batida federal — sem fiança, sem acordo, sem laranja. Os anos são seus.","Redada federal — sin fianza, sin trato, sin chivo expiatorio. Los años son tuyos.")}</div>
     <div class="go" style="flex-wrap:wrap">
-      ${canDeal?`<button class="amber" onclick="takeTheDeal()">${L('[ TAKE THE DEAL \u00b7 ','[ ACEITAR O ACORDO \u00b7 ','[ ACEPTAR EL TRATO \u00b7 ')}${staff}${L(' people + ',' pessoas + ',' personas + ')}${fmtK(fee)} ]</button>`:''}
+      ${canDeal?`<button class="amber" onclick="takeTheDeal()">${L('[ TAKE THE DEAL \u00b7 ','[ ACEITAR O ACORDO \u00b7 ','[ ACEPTAR EL TRATO \u00b7 ')}${staff}${L(staff===1?' person + ':' people + ', staff===1?' pessoa + ':' pessoas + ', staff===1?' persona + ':' personas + ')}${fmtK(fee)} ]</button>`:''}
       ${hasSoldier?`<button class="amber" onclick="soldierTakesFall()">${L('[ SOLDIER TAKES FALL ]','[ SOLDADO ASSUME A CULPA ]')}</button>`:''}
       <button onclick="goToJailWithCigs(${years})">[ ${hasSoldier?L("FACE IT","ENCARAR"):L("GO IN","ENTRAR")} ]</button>
     </div>
@@ -6173,29 +6173,31 @@ function arrestFlow(p){
    instead: every name on your payroll — bodyguards, street soldiers, shop workers, dealers —
    and the deeds with them, plus 15% of the cash in your hand for fees and fines. What is left
    in your pocket is yours, and you walk out of the building the same day. */
-const PLEA_CUT=0.15;
-function pleaFee(p){ return Math.max(0, Math.round(Math.max(0,p.cash)*PLEA_CUT)); }
-function pleaStaff(p){ let n=0; if(p&&p.owns) p.owns.forEach(c=>{n+=c;}); return n+(p.crew||0); }
+const DEAL_CUT=0.15;
+function dealPeople(n){ return n+" "+(n===1?L("person","pessoa","persona"):L("people","pessoas","personas")); }
+function dealHoldings(n){ return n+" "+(n===1?L("holding","negócio","negocio"):L("holdings","negócios","negocios")); }
+function dealFee(p){ return Math.max(0, Math.round(Math.max(0,p.cash)*DEAL_CUT)); }
+function dealStaff(p){ let n=0; if(p&&p.owns) p.owns.forEach(c=>{n+=c;}); return n+(p.crew||0); }
 /* A federal raid is airtight — the card says no bail, no deal, no patsy — so the deal is off
    the table there, exactly like the fall guy. */
-function pleaOffered(p){ return !!p && !p._raidBust; }
+function dealOffered(p){ return !!p && !p._raidBust; }
 function takeTheDeal(){
-  const p=S.players[S.cur]; if(!pleaOffered(p)) return;
-  const fee=pleaFee(p), staff=pleaStaff(p), lost=p.owns?p.owns.size:0;
+  const p=S.players[S.cur]; if(!dealOffered(p)) return;
+  const fee=dealFee(p), staff=dealStaff(p), lost=p.owns?p.owns.size:0;
   p.cash-=fee;
   p.crew=0; p.crewAt=new Map();
   p.owns=new Map();                       // the deeds go with the people — back on the board
   if(p._fresh instanceof Map) p._fresh=new Map();
   p._pendingYears=null; p.inJail=false; p._raidBust=false;
-  log(p.name+L(" signs the deal — hands over "," assina o acordo — entrega "," firma el trato — entrega ")+staff+
-      L(" people and "," pessoas e "," personas y ")+lost+L(" holdings, and "," negócios, e "," negocios, y ")+fmtK(fee)+
+  log(p.name+L(" signs the deal — hands over "," assina o acordo — entrega "," firma el trato — entrega ")+dealPeople(staff)+
+      L(" and "," e "," y ")+dealHoldings(lost)+L(", and "," , e "," , y ")+fmtK(fee)+
       L(" in fees. Walks out the same day."," em taxas. Sai no mesmo dia."," en tasas. Sale el mismo día."),"warn");
   closeModal(); render();
   showNotice(L("THE DEAL","O ACORDO","EL TRATO"),"PD",
     L("You give up the organisation","Você entrega a organização","Entregas la organización"),
-    L("Every name on your payroll goes into the file and every deed with them — "+staff+" people, "+lost+" holdings — and "+fmtK(fee)+" on top for fees and fines. You keep what is in your pocket and you walk out of the building the same day, with nothing to run and no one to run it.",
-      "Cada nome da sua folha entra no processo e cada escritura vai junto — "+staff+" pessoas, "+lost+" negócios — e mais "+fmtK(fee)+" de taxas e multas. Você fica com o que tem no bolso e sai do prédio no mesmo dia, sem nada pra tocar e sem ninguém pra tocar.",
-      "Cada nombre de tu nómina entra en el expediente y cada escritura se va con ellos — "+staff+" personas, "+lost+" negocios — y "+fmtK(fee)+" más de tasas y multas. Te quedas con lo que llevas encima y sales del edificio el mismo día, sin nada que dirigir y sin nadie que lo dirija."),
+    L("Every name on your payroll goes into the file and every deed with them — "+dealPeople(staff)+", "+dealHoldings(lost)+" — and "+fmtK(fee)+" on top for fees and fines. You keep what is in your pocket and you walk out of the building the same day, with nothing to run and no one to run it.",
+      "Cada nome da sua folha entra no processo e cada escritura vai junto — "+dealPeople(staff)+", "+dealHoldings(lost)+" — e mais "+fmtK(fee)+" de taxas e multas. Você fica com o que tem no bolso e sai do prédio no mesmo dia, sem nada pra tocar e sem ninguém pra tocar.",
+      "Cada nombre de tu nómina entra en el expediente y cada escritura se va con ellos — "+dealPeople(staff)+", "+dealHoldings(lost)+" — y "+fmtK(fee)+" más de tasas y multas. Te quedas con lo que llevas encima y sales del edificio el mismo día, sin nada que dirigir y sin nadie que lo dirija."),
     ()=>finish());
 }
 /* Does this Ghost sign? Net worth is how this game is won, so the question is simply which
@@ -6209,9 +6211,9 @@ function takeTheDeal(){
 function aiTakesDeal(p,years){
   if(!p||!p.ai) return false;
   if(p.freeArrest>0) return false;                    // it already holds a card — that burns first
-  if(!pleaOffered(p)) return false;                   // a federal raid offers nothing
+  if(!dealOffered(p)) return false;                   // a federal raid offers nothing
   const nw=Math.max(0,netWorth(p));
-  const keepIfSign=Math.max(0,p.cash)*(1-PLEA_CUT);   // all it would have left
+  const keepIfSign=Math.max(0,p.cash)*(1-DEAL_CUT);   // all it would have left
   const dieInside=Math.min(0.5, Math.max(1,years)*0.04);
   const keepIfTime=nw*(1-dieInside);                  // the empire survives; it might not
   if(keepIfSign<=keepIfTime) return false;            // the empire is worth more than walking
