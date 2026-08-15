@@ -892,7 +892,7 @@ const ROLE_ES={"Crooked Sergeant":"Sargento Corrupto","Crooked Detective":"Detec
 const ES_STATIC={"NEW YORK CITY":"NUEVA YORK","PLAYERS — tap for record":"JUGADORES — toca para la ficha","DICE":"DADOS","ACTIONS":"ACCIONES","CONSOLE — this round":"CONSOLA — esta ronda","PLAYER ON TURN":"JUGADOR EN TURNO","OTHER PLAYERS — tap for record":"OTROS JUGADORES — toca para la ficha","[ MANUAL ]":"[ MANUAL ]","[reset]":"[reiniciar]","[ FOLLOW: OFF ]":"[ SEGUIR: NO ]","[ FOLLOW: ON ]":"[ SEGUIR: SÍ ]","[ AUTO: OFF ]":"[ AUTO: NO ]","[ AUTO: ON ]":"[ AUTO: SÍ ]","tap die to roll":"toca el dado para tirar","roll to move":"tira para avanzar","landed":"cayó"};
 const POLICE_LABELS_ES={0.25:"MUY BAJA",0.5:"BAJA",1:"REALISTA",3:"DIFÍCIL",4:"BRASILEÑA"};
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v34.7";
+const APP_VERSION="v34.8";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -4389,7 +4389,7 @@ function openManual(){ window.speechSynthesis&&window.speechSynthesis.cancel(); 
   Cada crime que voc\u00ea comete entra na sua FICHA com os anos daquela acusa\u00e7\u00e3o. A ficha n\u00e3o te prende sozinha \u2014 mas no dia em que uma BATIDA POLICIAL te pega, voc\u00ea \u00e9 condenado por TUDO que est\u00e1 nela de uma vez. Um chef\u00e3o antigo com ficha longa cai por muitos anos; quem tem ficha limpa pega pouco. Nada esfria a ficha: o que voc\u00ea fez, fez.
 
   ${H("A LEI")}
-  Crimes e neg\u00f3cios n\u00e3o te prendem \u2014 a \u00daNICA forma de cair \u00e9 parar numa BATIDA POLICIAL. O n\u00edvel de POL\u00cdCIA da partida diz quantas de cada dez cartas da batida acabam em algemas: BAIX\u00cdSSIMA 1/10 \u00b7 BAIXA 3/10 \u00b7 REALISTA 6/10 \u00b7 DIF\u00cdCIL 10/10 \u00b7 BRASILEIRA \u00e9 pior ainda (tortura, tiro, execu\u00e7\u00e3o). As cartas que n\u00e3o prendem cobram MULTA. Cartas de pris\u00e3o tamb\u00e9m levam guarda-costas \u2014 presos ou mortos. Quando as algemas saem n\u00e3o existe mais propina: um SOLDADO pode assumir a culpa e cumprir por voc\u00ea, ou voc\u00ea ACEITA O ACORDO \u2014 entrega ao promotor cada pessoa da sua folha e cada escritura que tem, mais 15% do seu dinheiro em taxas e multas, e sai no mesmo dia s\u00f3 com o que est\u00e1 no bolso \u2014 ou CUMPRE A PENA e o imp\u00e9rio fica te esperando.
+  Crimes e neg\u00f3cios n\u00e3o te prendem \u2014 a \u00daNICA forma de cair \u00e9 parar numa BATIDA POLICIAL. O n\u00edvel de POL\u00cdCIA da partida diz quantas de cada dez cartas da batida acabam em algemas: BAIX\u00cdSSIMA 1/10 \u00b7 BAIXA 3/10 \u00b7 REALISTA 6/10 \u00b7 DIF\u00cdCIL 10/10 \u00b7 BRASILEIRA \u00e9 pior ainda (tortura, tiro, execu\u00e7\u00e3o). As cartas que n\u00e3o prendem cobram MULTA. Cartas de pris\u00e3o tamb\u00e9m levam guarda-costas \u2014 presos ou mortos. Quando as algemas saem n\u00e3o existe mais propina: um SOLDADO pode assumir a culpa e cumprir por voc\u00ea, ou voc\u00ea ACEITA O ACORDO \u2014 entrega ao promotor cada pessoa da sua folha e cada escritura que tem, mais 15% do seu dinheiro em taxas e multas, e sai no mesmo dia s\u00f3 com o que est\u00e1 no bolso \u2014 ou ENCARA \u2014 e encarar \u00e9 a CADEIA, n\u00e3o a pris\u00e3o. Da cela, sua pr\u00f3xima rolagem oferece FIAN\u00c7A, calculada pela acusa\u00e7\u00e3o e pelo que voc\u00ea vale e paga s\u00f3 em dinheiro, que derruba a acusa\u00e7\u00e3o e te solta; recuse ou n\u00e3o tenha o valor e vem o DIA DE TRIBUNAL, onde o juiz pode diminuir a pena, aumentar, multar ou dar perp\u00e9tua. Pris\u00e3o \u00e9 o que o tribunal d\u00e1, n\u00e3o a rua.
 
   ${H("PRIS\u00c3O (anel interno)")}
   Uma volta interna = um ano cumprido. MA\u00c7OS DE CIGARRO s\u00e3o prote\u00e7\u00e3o: sem ma\u00e7os num dia de pris\u00e3o o p\u00e1tio te espanca at\u00e9 o hospital \u2014 ou pior, h\u00e1 1 chance em 4 de te matarem na hora. Brigas e rebeli\u00f5es podem te hospitalizar, e as piores viram fatais. A MAIORIA DAS MORTES ACONTECE NA PRIS\u00c3O \u2014 h\u00e1 50 formas diferentes de morrer l\u00e1 dentro. Em cada DIA DE PRIS\u00c3O voc\u00ea escolhe: FICAR QUIETO (tira a carta do dia \u2014 perigoso sem ma\u00e7os), CANTINA (5 ma\u00e7os por ${fmtK(packPrice()*5)}), SUBORNAR UM AGENTE (\u22121 ano por ${fmtK(bgU(1))}), ou CORRER O P\u00c1TIO \u2014 um corre que costuma render 5\u201320 ma\u00e7os mas pode acabar em briga e cama de hospital. FUGIR te liberta agora, mas os anos pulados (+5) voltam se voc\u00ea for preso de novo.
@@ -4455,7 +4455,7 @@ function openManual(){ window.speechSynthesis&&window.speechSynthesis.cancel(); 
   Every crime you pull is written onto your FILE with that charge's years. The file never arrests you by itself \u2014 but the day a POLICE RAID takes you, you are sentenced on ALL of it at once. An old boss with a long file goes down for decades; a clean sheet does a short stretch. Nothing cools a file: what you did, you did.
 
   ${H("THE LAW")}
-  Crimes and businesses never arrest you \u2014 the ONLY way down is landing on a POLICE RAID. The match's POLICE setting is simply how many of every ten raid cards end in handcuffs: LOWEST 1/10 \u00b7 LOW 3/10 \u00b7 REALISTIC 6/10 \u00b7 HARD 10/10 \u00b7 BRAZILIAN is worse again (tortured, shot, executed). Cards that don\u2019t arrest you FINE you. Arrest cards take bodyguards too \u2014 booked or shot. When the cuffs come out there is no bribe any more: a SOLDIER can take the fall and serve it for you, or you TAKE THE DEAL \u2014 hand the prosecutor every body on your payroll and every deed you hold, plus 15% of your cash in fees and fines, and walk out the same day with only what is in your pocket \u2014 or you DO THE TIME and keep the empire waiting for you.
+  Crimes and businesses never arrest you \u2014 the ONLY way down is landing on a POLICE RAID. The match's POLICE setting is simply how many of every ten raid cards end in handcuffs: LOWEST 1/10 \u00b7 LOW 3/10 \u00b7 REALISTIC 6/10 \u00b7 HARD 10/10 \u00b7 BRAZILIAN is worse again (tortured, shot, executed). Cards that don\u2019t arrest you FINE you. Arrest cards take bodyguards too \u2014 booked or shot. When the cuffs come out there is no bribe any more: a SOLDIER can take the fall and serve it for you, or you TAKE THE DEAL \u2014 hand the prosecutor every body on your payroll and every deed you hold, plus 15% of your cash in fees and fines, and walk out the same day with only what is in your pocket \u2014 or you FACE IT \u2014 and facing it means the JAIL cell, not prison. From the cell your next roll offers BAIL, priced off the charge and what you are worth and payable in cash only, which drops the charge and walks you out; refuse it or fall short and you get COURT DAY, where the judge can cut your sentence, add to it, fine you, or hand down life. Prison is what the court gives you, not the street.
 
   ${H("PRISON (inner ring)")}
   One inner lap = one year served. CIGARETTE PACKS are the only currency inside: with no packs on an ANOTHER DAY cell the block beats you into the hospital \u2014 or worse, there's a 1-in-4 chance they just kill you. Prison fights and riots can hospitalize you, and the worst ones turn fatal. MOST DEATHS HAPPEN IN PRISON \u2014 there are 50 different ways to die inside. On an ANOTHER DAY cell you choose how to spend it: LAY LOW and draw the day's card (dangerous with no packs), or RUN THE YARD \u2014 a hustle that usually earns 5\u201320 packs but can end in a brawl and a hospital bed. The BLOCKS (extortion and the country's three biggest drugs) work like streets do outside: put inmates on one and it pays you every year and tolls every rival who lands there. THE SHOP sells a man on you (30pk), a cellphone (50pk), a year off the clock (40pk), a blade for another inmate (60pk) and tunnel access. The INFIRMARY is the only place inside that gives a life back \u2014 30 packs clears one hospital visit, one per stop. Land on VISIT DAY and your lawyer comes in: hire, sell off holdings or order an execution from inside \u2014 everything but crimes. ESCAPE frees you now, but the skipped years (+5) come back if you're busted again.
@@ -4487,20 +4487,23 @@ function afterRoll(r){
   if(p.inJail){ offerBail(); return; }
   stepMove(p,r);
 }
+/* Bail is set from the severity of the charge and the defendant's means — a judge asks more of
+   a man with more to lose. It has no ceiling: the bigger the file and the bigger the empire, the
+   bigger the number. And it is CASH ONLY — nobody liquidates your holdings to make bail, which
+   is what separates it from the deal. Short of cash, you face the judge. */
 function bailAmount(p){
   const years=p._pendingYears||fileSentence(p)||5;
   const nw=Math.max(0,netWorth(p));
-  // like real life: bail is set from the severity of the charge (years) plus the defendant's means
-  // (a judge sets higher bail for someone with more to lose / more of a flight risk)
-  const sev=Math.min(1,(years||5)/40), base=SOLDIER_COST*(0.5+4.5*sev), means=nw*0.05;
-  return Math.min(Math.round(5*SOLDIER_COST), Math.max(Math.round(0.5*SOLDIER_COST), Math.round(base+means)));
+  const base=SOLDIER_COST*(0.5+0.5*Math.max(1,years));
+  const means=nw*0.10;
+  return Math.max(Math.round(0.5*SOLDIER_COST), Math.round(base+means));
 }
 function offerBail(){
   const p=S.players[S.cur];
   const years=p._pendingYears||5;
   const bail=bailAmount(p);
   if(p.ai){
-    if(p.cash>=bail*2 && years>=4){ p.cash-=bail; p.inJail=false; p._pendingYears=null; log(p.name+L(" posts bail ("," paga fiança (")+fmtK(bail)+L(") and walks.",") e sai andando."),"warn"); render(); finish(); return; }
+    if(p.cash>=bail*2 && years>=4){ p.cash-=bail; leaveCellFree(p); log(p.name+L(" posts bail ("," paga fiança (")+fmtK(bail)+L(") and walks.",") e sai andando."),"warn"); render(); finish(); return; }
     p.inJail=false; drawCourt(); return;
   }
   const el=document.getElementById("cardEl");
@@ -4515,7 +4518,15 @@ function offerBail(){
     ${statusBar()}`;
   openModal();
 }
-function payBail(bail){const p=S.players[S.cur];p.cash-=bail;p.inJail=false;p._pendingYears=null;log(p.name+L(" posts bail ("," paga fiança (")+fmtK(bail)+L(") and walks free — no court.",") e sai livre — sem tribunal."),"good");closeModal();render();finish();}
+/* Walking out of the cell without ever going inside: the charge is dropped and anything the
+   crooked CO sold you on the way in is confiscated at the desk. Prison packs have no life on
+   the street, and leaving them on a free player is exactly the sort of stray state that the
+   invariant checks exist to catch. */
+function leaveCellFree(p){
+  p.inJail=false; p._pendingYears=null;
+  if(p.packs>0){ log(p.name+L(" — the packs are confiscated at the desk ("," — os maços são confiscados na recepção ("," — los paquetes son confiscados en recepción (")+p.packs+").","warn"); p.packs=0; }
+}
+function payBail(bail){const p=S.players[S.cur];p.cash-=bail;leaveCellFree(p);log(p.name+L(" posts bail ("," paga fiança (")+fmtK(bail)+L(") and walks free — no court.",") e sai livre — sem tribunal."),"good");closeModal();render();finish();}
 function faceCourt(){const p=S.players[S.cur];p.inJail=false;closeModal();drawCourt();}
 /* ===== BODYGUARDS ARE PAID WHERE THEY WERE HIRED =====
    Wages used to be one lump at START for the whole crew. They are now stamped to the cell the
@@ -5942,7 +5953,7 @@ function applyCard(){
     const lifeMsg=cityLaw().life?L(" is convicted of MURDER — LIFE SENTENCE ("," é condenado por HOMICÍDIO — PENA PERPÉTUA ("):L(" is convicted of MURDER — MAX SENTENCE ("," é condenado por HOMICÍDIO — PENA MÁXIMA (");
     log(p.name+lifeMsg+p.sentence+L("y).","a)."),"bad"); sendToPrison(p); render(); finish(); return; }
   if(c.dyears!==undefined){p.sentence=Math.max(0,p.sentence+c.dyears);
-    if(p.sentence<=0){log(p.name+L(" walks free from court!"," sai livre do tribunal!"),"good");render();finish();return;}
+    if(p.sentence<=0){leaveCellFree(p);log(p.name+L(" walks free from court!"," sai livre do tribunal!"),"good");render();finish();return;}
     log(p.name+L(" sentenced: "," sentenciado: ")+p.sentence+L("y. To prison.","a. Para a prisão."),"warn");sendToPrison(p);render();finish();return;}
   // RIOT sentence changes
   if(c.ryears!==undefined){p.sentence=Math.max(0,p.sentence+c.ryears);log(L("","A pena de ")+p.name+L("'s sentence now "," agora é ")+p.sentence+L("y.","a."),c.ryears>0?"bad":"good");
@@ -5964,7 +5975,6 @@ function applyCard(){
     return; }
   // HEIST/drug/hitman arrest chance: 10% base + your HEAT (every job makes you hotter)
   if(c.arr!==undefined){
-    p._raidBust=false;
     // no heat any more: the job goes on your FILE, and the file is what sentences you when a raid lands
     const _fy=totalChargeYears(p);
     log(p.name+L(" pulls the job — the file grows (","  faz o serviço — a ficha cresce (")+_fy+L("y on paper).","a no papel)."),"warn");
@@ -6007,7 +6017,7 @@ function applyCard(){
           +(c._sLoss==="all"?L(" — the whole crew"," — a equipe inteira"):"")+". "+p.crew+L(" left."," restando."),"bad");
     }
     // the sentence is your FILE — every charge you ever picked up, capped by local law
-    p._raidBust=true; p._pendingYears=fileSentence(p); arrestFlow(p); return;
+    p._pendingYears=fileSentence(p); arrestFlow(p); return;
   }
   if(c._fine){
     /* not an arrest — but almost nothing on this deck is free. A fine is what walking costs. */
@@ -6178,10 +6188,8 @@ function dealPeople(n){ return n+" "+(n===1?L("person","pessoa","persona"):L("pe
 function dealHoldings(n){ return n+" "+(n===1?L("holding","negócio","negocio"):L("holdings","negócios","negocios")); }
 function dealFee(p){ return Math.max(0, Math.round(Math.max(0,p.cash)*DEAL_CUT)); }
 function dealStaff(p){ let n=0; if(p&&p.owns) p.owns.forEach(c=>{n+=c;}); return n+(p.crew||0); }
-/* Offered on every arrest. It was briefly gated on _raidBust, on the strength of the raid
-   card's "no bail, no deal, no patsy" line — but arrestFlow has exactly one caller and it sets
-   _raidBust on every single arrest, so that gate hid the deal from the game completely. The
-   same flag had been hiding the fall guy since long before. */
+/* Offered on every arrest. Never gate this on a flag the arrest path always sets — that is
+   exactly how the deal, and the fall guy before it, spent whole versions invisible. */
 function dealOffered(p){ return !!p && p.alive!==false; }
 function takeTheDeal(){
   const p=S.players[S.cur]; if(!dealOffered(p)) return;
@@ -6190,7 +6198,7 @@ function takeTheDeal(){
   p.crew=0; p.crewAt=new Map();
   p.owns=new Map();                       // the deeds go with the people — back on the board
   if(p._fresh instanceof Map) p._fresh=new Map();
-  p._pendingYears=null; p.inJail=false; p._raidBust=false;
+  p._pendingYears=null; p.inJail=false;
   log(p.name+L(" signs the deal — hands over "," assina o acordo — entrega "," firma el trato — entrega ")+dealPeople(staff)+
       L(" and "," e "," y ")+dealHoldings(lost)+L(", and "," , e "," , y ")+fmtK(fee)+
       L(" in fees. Walks out the same day."," em taxas. Sai no mesmo dia."," en tasas. Sale el mismo día."),"warn");
@@ -6277,9 +6285,10 @@ function doArrest(p,years){
   S.rolled=true;   // an arrest ends your turn, even before rolling
   years=capYears(years);   // local law cap (Brazil: 40y max, no life)
   SFX.siren();
-  if(p._raidBust){ p._raidBust=false; p.inJail=false; p.sentence=years; p.ring="inner"; p.pos=0; SFX.clang();
-    log(p.name+L(" is convicted in the raid → PRISON, "," é condenado na batida → PRISÃO, ")+years+L("y to serve.","a a cumprir."),"bad"); render();
-    showNotice(L("CONVICTED","CONDENADO"),"[=]",L("Straight to PRISON","Direto pra PRISÃO"),L("You turned down the deal and nobody is taking your place. No bail, no court date — straight to prison to serve "+years+" years. Now survive it.","Uma batida federal é à prova de tudo — sem fiança, sem acordo, sem laranja no seu lugar. Você vai direto pra prisão cumprir "+years+" anos. Agora sobreviva.","Una redada federal no tiene fisuras — sin fianza, sin trato, sin nadie que cargue por ti. Vas directo a prisión a cumplir "+years+" años. Ahora sobrevive."),()=>finish(),true); return; }
+  /* You are booked, not convicted. The cuffs put you in the JAIL cell awaiting a court date;
+     what happens next is bail or the judge. Nothing sends a player straight to prison from the
+     street any more — prison is what the court hands down. */
+
   p.inJail=true;p.ring="outer";p.pos=JAIL_POS;p.sentence=0;p._pendingYears=years;
   log(p.name+L(" ARRESTED → JAIL. Awaiting court."," PRESO → CADEIA. Aguardando tribunal."),"bad");
   render();
