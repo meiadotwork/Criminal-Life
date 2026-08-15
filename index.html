@@ -831,7 +831,7 @@
         <div id="players"></div>
         <div class="acts">
           <div class="adice">
-            <div id="diceBox"><div id="diceRow"><div class="die roller" onclick="rollDice()" title="tap to roll"><span class="dielbl">DICE</span></div></div><div style="font-size:13px;opacity:.7;display:none" id="diceLbl">tap die to roll</div></div>
+            <div id="diceBox"><div id="diceRow"><div class="die roller" onclick="rollDice()" title="tap to roll"><span class="dielbl">DICE</span></div></div><div style="font-size:13px;opacity:.7;display:none" id="diceLbl">tap die to roll</div><div id="fakeBox" style="margin-top:4px"><button id="fakeBtn" onclick="fakeRoll()" style="font-size:10px;padding:2px 7px;opacity:.75">[ FAKE ]</button><span id="fakeOut" style="font-size:10px;opacity:.6;margin-left:6px;cursor:pointer" onclick="fakeReset()"></span></div></div>
             <div class="ctx" id="ctxHint"></div>
           </div>
           <div class="asec" id="secCrime">
@@ -892,7 +892,7 @@ const ROLE_ES={"Crooked Sergeant":"Sargento Corrupto","Crooked Detective":"Detec
 const ES_STATIC={"NEW YORK CITY":"NUEVA YORK","PLAYERS — tap for record":"JUGADORES — toca para la ficha","DICE":"DADOS","ACTIONS":"ACCIONES","CONSOLE — this round":"CONSOLA — esta ronda","PLAYER ON TURN":"JUGADOR EN TURNO","OTHER PLAYERS — tap for record":"OTROS JUGADORES — toca para la ficha","[ MANUAL ]":"[ MANUAL ]","[reset]":"[reiniciar]","[ FOLLOW: OFF ]":"[ SEGUIR: NO ]","[ FOLLOW: ON ]":"[ SEGUIR: SÍ ]","[ AUTO: OFF ]":"[ AUTO: NO ]","[ AUTO: ON ]":"[ AUTO: SÍ ]","tap die to roll":"toca el dado para tirar","roll to move":"tira para avanzar","landed":"cayó"};
 const POLICE_LABELS_ES={0.25:"MUY BAJA",0.5:"BAJA",1:"REALISTA",3:"DIFÍCIL",4:"BRASILEÑA"};
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v34.8";
+const APP_VERSION="v34.9";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -4344,6 +4344,49 @@ function rollDice(){
   },rollTick);
   S.rolled=true;
   document.getElementById("diceLbl").textContent=L("rolled ","tirou ")+(n>1?total+" ("+rolls.join("+")+")":""+total)+" · D"+sides+(bonus?L(" · +1 die (10+ soldiers)"," · +1 dado (10+ soldados)"):"");
+}
+/* ===== FAKE ROLL — the same dice, for nothing =====
+   Rolls exactly what a real roll would roll: the same die size for the match, the same extra
+   die at 10+ soldiers, the same Math.random(). It moves nobody, spends no turn, resolves no
+   square and touches no state — it is here so anyone who suspects the dice can sit and test
+   them, and keep a tally while they do. */
+let _fakeTally=null;
+function fakeDiceSpec(){
+  const p=(S&&S.players)?S.players[S.cur]:null;
+  const sides={1:6,2:8,3:10}[S&&S.baseDice]||(S&&S.baseDice)||6;
+  const bonus=(p&&p.crew>=10)?1:0;
+  return {sides, n:1+bonus};
+}
+function fakeReset(){ _fakeTally=null; fakeShow(""); }
+function fakeShow(txt){ const el=document.getElementById("fakeOut"); if(el) el.innerHTML=txt; }
+let _fakeIv=null;
+function fakeRoll(){
+  if(typeof S==="undefined"||!S||S.over) return;
+  const {sides,n}=fakeDiceSpec();
+  const rolls=[]; for(let i=0;i<n;i++) rolls.push(1+Math.floor(Math.random()*sides));
+  const total=rolls.reduce((a,b)=>a+b,0);
+  if(!_fakeTally||_fakeTally.sides!==sides||_fakeTally.n!==n) _fakeTally={sides,n,count:0,faces:{}};
+  rolls.forEach(r=>{ _fakeTally.faces[r]=(_fakeTally.faces[r]||0)+1; });
+  _fakeTally.count++;
+  const row=document.getElementById("diceRow"); if(!row) return;
+  if(_fakeIv){ clearInterval(_fakeIv); _fakeIv=null; }
+  row.innerHTML="";
+  const dice=[]; for(let i=0;i<n;i++){ const d=document.createElement("div"); d.className="die rolling"; row.appendChild(d); dice.push(d); }
+  let t=0;
+  _fakeIv=setInterval(()=>{
+    SFX.tick();
+    dice.forEach(d=>drawDieEl(d,1+Math.floor(Math.random()*sides)));
+    if(++t>3){
+      clearInterval(_fakeIv); _fakeIv=null;
+      dice.forEach((d,i)=>{ drawDieEl(d,rolls[i]); d.classList.remove("rolling"); });
+      /* put the tappable die back so the real roll is never blocked by a test roll */
+      setTimeout(()=>{ try{ if(!_fakeIv && !S.rolled) updateControls(); }catch(e){} }, 900);
+    }
+  },60);
+  const tot=_fakeTally.faces, per=[];
+  for(let f=1; f<=sides; f++) per.push(f+":"+(tot[f]||0));
+  fakeShow(L("means nothing","não vale nada","no vale nada")+" · <b>"+(n>1?total+" ("+rolls.join("+")+")":total)+
+           "</b> · D"+sides+" · "+_fakeTally.count+L(" rolls"," rolagens"," tiradas")+"<br>"+per.join(" "));
 }
 function speakCard(){ try{ const raw=document.getElementById("cardEl").innerText||""; const t=raw.replace(/\[[^\]]*\]/g," ").replace(/\s+/g," ").trim(); if(!t)return; window.speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(t); u.rate=1; window.speechSynthesis.speak(u); }catch(e){} }
 function openManual(){ window.speechSynthesis&&window.speechSynthesis.cancel(); const el=document.getElementById("cardEl"); el.dataset.read="1";   // manual → show READ
