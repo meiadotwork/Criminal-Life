@@ -892,7 +892,7 @@ const ROLE_ES={"Crooked Sergeant":"Sargento Corrupto","Crooked Detective":"Detec
 const ES_STATIC={"NEW YORK CITY":"NUEVA YORK","PLAYERS — tap for record":"JUGADORES — toca para la ficha","DICE":"DADOS","ACTIONS":"ACCIONES","CONSOLE — this round":"CONSOLA — esta ronda","PLAYER ON TURN":"JUGADOR EN TURNO","OTHER PLAYERS — tap for record":"OTROS JUGADORES — toca para la ficha","[ MANUAL ]":"[ MANUAL ]","[reset]":"[reiniciar]","[ FOLLOW: OFF ]":"[ SEGUIR: NO ]","[ FOLLOW: ON ]":"[ SEGUIR: SÍ ]","[ AUTO: OFF ]":"[ AUTO: NO ]","[ AUTO: ON ]":"[ AUTO: SÍ ]","tap die to roll":"toca el dado para tirar","roll to move":"tira para avanzar","landed":"cayó"};
 const POLICE_LABELS_ES={0.25:"MUY BAJA",0.5:"BAJA",1:"REALISTA",3:"DIFÍCIL",4:"BRASILEÑA"};
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v35.0";
+const APP_VERSION="v35.1";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -4488,8 +4488,9 @@ function openManual(){ window.speechSynthesis&&window.speechSynthesis.cancel(); 
   Cada crime que voc\u00ea comete entra na sua FICHA com os anos daquela acusa\u00e7\u00e3o. A ficha n\u00e3o te prende sozinha \u2014 mas no dia em que uma BATIDA POLICIAL te pega, voc\u00ea \u00e9 condenado por TUDO que est\u00e1 nela de uma vez. Um chef\u00e3o antigo com ficha longa cai por muitos anos; quem tem ficha limpa pega pouco. Nada esfria a ficha: o que voc\u00ea fez, fez.
 
   ${H("A LEI")}
-  Crimes e neg\u00f3cios n\u00e3o te prendem \u2014 a \u00daNICA forma de cair \u00e9 parar numa BATIDA POLICIAL. O n\u00edvel de POL\u00cdCIA da partida diz quantas de cada dez cartas da batida acabam em algemas: BAIX\u00cdSSIMA 1/10 \u00b7 BAIXA 3/10 \u00b7 REALISTA 6/10 \u00b7 DIF\u00cdCIL 10/10 \u00b7 BRASILEIRA \u00e9 pior ainda (tortura, tiro, execu\u00e7\u00e3o). As cartas que n\u00e3o prendem cobram MULTA. Cartas de pris\u00e3o tamb\u00e9m levam guarda-costas \u2014 presos ou mortos. Quando as algemas saem n\u00e3o existe mais propina e n\u00e3o tem ningu\u00e9m pra mandar no seu lugar: voc\u00ea ACEITA O ACORDO \u2014 entrega ao promotor cada pessoa da sua folha e cada escritura que tem, mais 15% do seu dinheiro em taxas e multas, e sai no mesmo dia s\u00f3 com o que est\u00e1 no bolso \u2014 ou ENCARA \u2014 e encarar \u00e9 a CADEIA, n\u00e3o a pris\u00e3o. Da cela, sua pr\u00f3xima rolagem oferece FIAN\u00c7A, calculada pela acusa\u00e7\u00e3o e pelo que voc\u00ea vale e paga s\u00f3 em dinheiro, que derruba a acusa\u00e7\u00e3o e te solta; recuse ou n\u00e3o tenha o valor e vem o DIA DE TRIBUNAL.<br>
-  \u25B8 O DIA DE TRIBUNAL s\u00e3o cinquenta cartas e s\u00f3 SETE te devolvem pra rua \u2014 quatro em que o caso desaba, e tr\u00eas em que um soldado seu levanta e cumpre a sua pena, o que exige um homem na folha pra queimar. As outras quarenta e tr\u00eas acabam todas numa cela: o juiz REDUZ o que voc\u00ea enfrenta (at\u00e9 um quarto), mant\u00e9m COMO ACUSADO, ou AUMENTA (at\u00e9 o dobro), e ainda pode multar de passagem. Redu\u00e7\u00e3o \u00e9 sempre uma fra\u00e7\u00e3o da sua ficha, nunca um n\u00famero fixo de anos \u2014 uma acusa\u00e7\u00e3o de quarenta anos cortada at\u00e9 o osso ainda \u00e9 dez. Pris\u00e3o \u00e9 o que o tribunal d\u00e1, n\u00e3o a rua.
+  Crimes e neg\u00f3cios n\u00e3o te prendem \u2014 a \u00daNICA forma de cair \u00e9 parar numa BATIDA POLICIAL. O n\u00edvel de POL\u00cdCIA da partida diz quantas de cada dez cartas da batida acabam em algemas: BAIX\u00cdSSIMA 1/10 \u00b7 BAIXA 3/10 \u00b7 REALISTA 6/10 \u00b7 DIF\u00cdCIL 10/10 \u00b7 BRASILEIRA \u00e9 pior ainda (tortura, tiro, execu\u00e7\u00e3o). As cartas que n\u00e3o prendem cobram MULTA. Cartas de pris\u00e3o tamb\u00e9m levam guarda-costas \u2014 presos ou mortos. Quando as algemas saem nada est\u00e1 \u00e0 venda: sem propina, sem ningu\u00e9m pra mandar no seu lugar, e sem acordo \u2014 voc\u00ea ENCARA, e encarar \u00e9 a CADEIA, n\u00e3o a pris\u00e3o. Da cela, sua pr\u00f3xima rolagem oferece FIAN\u00c7A, calculada pela acusa\u00e7\u00e3o e pelo que voc\u00ea vale e paga s\u00f3 em dinheiro, que derruba a acusa\u00e7\u00e3o e te solta; recuse ou n\u00e3o tenha o valor e vem o DIA DE TRIBUNAL.<br>
+  \u25B8 O DIA DE TRIBUNAL s\u00e3o cinquenta cartas e s\u00f3 SETE te devolvem pra rua \u2014 quatro em que o caso desaba, e tr\u00eas em que um soldado seu levanta e cumpre a sua pena, o que exige um homem na folha pra queimar. As outras quarenta e tr\u00eas acabam todas numa senten\u00e7a: o juiz REDUZ o que voc\u00ea enfrenta (at\u00e9 um quarto), mant\u00e9m COMO ACUSADO, ou AUMENTA (at\u00e9 o dobro), e ainda pode multar de passagem. Redu\u00e7\u00e3o \u00e9 sempre uma fra\u00e7\u00e3o da sua ficha, nunca um n\u00famero fixo de anos \u2014 uma acusa\u00e7\u00e3o de quarenta anos cortada at\u00e9 o osso ainda \u00e9 dez.<br>
+  \u25B8 O ACORDO vem por \u00faltimo, no corredor, depois que o juiz leu o n\u00famero \u2014 porque o n\u00famero \u00e9 contra o que voc\u00ea est\u00e1 negociando. Assine e cada pessoa da sua folha e cada escritura que voc\u00ea tem entra no processo, mais 15% do seu dinheiro em taxas e multas, e voc\u00ea sai do pr\u00e9dio naquele dia s\u00f3 com o que est\u00e1 no bolso e sem ningu\u00e9m pra tocar nada. Recuse e fica com tudo e cumpre os anos. Se voc\u00ea n\u00e3o tem nada nem emprega ningu\u00e9m, n\u00e3o existe oferta: o promotor quer a organiza\u00e7\u00e3o, n\u00e3o voc\u00ea. Pris\u00e3o \u00e9 o que o tribunal d\u00e1, n\u00e3o a rua.
 
   ${H("PRIS\u00c3O (anel interno)")}
   Uma volta interna = um ano cumprido. MA\u00c7OS DE CIGARRO s\u00e3o prote\u00e7\u00e3o: sem ma\u00e7os num dia de pris\u00e3o o p\u00e1tio te espanca at\u00e9 o hospital \u2014 ou pior, h\u00e1 1 chance em 4 de te matarem na hora. Brigas e rebeli\u00f5es podem te hospitalizar, e as piores viram fatais. A MAIORIA DAS MORTES ACONTECE NA PRIS\u00c3O \u2014 h\u00e1 50 formas diferentes de morrer l\u00e1 dentro. Em cada DIA DE PRIS\u00c3O voc\u00ea escolhe: FICAR QUIETO (tira a carta do dia \u2014 perigoso sem ma\u00e7os), CANTINA (5 ma\u00e7os por ${fmtK(packPrice()*5)}), SUBORNAR UM AGENTE (\u22121 ano por ${fmtK(bgU(1))}), ou CORRER O P\u00c1TIO \u2014 um corre que costuma render 5\u201320 ma\u00e7os mas pode acabar em briga e cama de hospital. FUGIR te liberta agora, mas os anos pulados (+5) voltam se voc\u00ea for preso de novo.
@@ -4555,8 +4556,9 @@ function openManual(){ window.speechSynthesis&&window.speechSynthesis.cancel(); 
   Every crime you pull is written onto your FILE with that charge's years. The file never arrests you by itself \u2014 but the day a POLICE RAID takes you, you are sentenced on ALL of it at once. An old boss with a long file goes down for decades; a clean sheet does a short stretch. Nothing cools a file: what you did, you did.
 
   ${H("THE LAW")}
-  Crimes and businesses never arrest you \u2014 the ONLY way down is landing on a POLICE RAID. The match's POLICE setting is simply how many of every ten raid cards end in handcuffs: LOWEST 1/10 \u00b7 LOW 3/10 \u00b7 REALISTIC 6/10 \u00b7 HARD 10/10 \u00b7 BRAZILIAN is worse again (tortured, shot, executed). Cards that don\u2019t arrest you FINE you. Arrest cards take bodyguards too \u2014 booked or shot. When the cuffs come out there is no bribe and nobody to send in your place: you TAKE THE DEAL \u2014 hand the prosecutor every body on your payroll and every deed you hold, plus 15% of your cash in fees and fines, and walk out the same day with only what is in your pocket \u2014 or you FACE IT \u2014 and facing it means the JAIL cell, not prison. From the cell your next roll offers BAIL, priced off the charge and what you are worth and payable in cash only, which drops the charge and walks you out; refuse it or fall short and you get COURT DAY.<br>
-  \u25B8 COURT DAY is fifty cards and only SEVEN of them put you back on the street \u2014 four where the case collapses, and three where a soldier of yours stands up and serves your sentence for you, which needs a man on the payroll to burn. The other forty-three all end in a cell: the judge CUTS what you are facing (down to a quarter of it), holds it AS CHARGED, or RAISES it (up to double), and may fine you on the way past. A cut is always a share of your file, never a flat number of years \u2014 a forty-year charge cut to the bone is still ten. Prison is what the court gives you, not the street.
+  Crimes and businesses never arrest you \u2014 the ONLY way down is landing on a POLICE RAID. The match's POLICE setting is simply how many of every ten raid cards end in handcuffs: LOWEST 1/10 \u00b7 LOW 3/10 \u00b7 REALISTIC 6/10 \u00b7 HARD 10/10 \u00b7 BRAZILIAN is worse again (tortured, shot, executed). Cards that don\u2019t arrest you FINE you. Arrest cards take bodyguards too \u2014 booked or shot. When the cuffs come out nothing is for sale: no bribe, nobody to send in your place, and no deal \u2014 you FACE IT, and facing it means the JAIL cell, not prison. From the cell your next roll offers BAIL, priced off the charge and what you are worth and payable in cash only, which drops the charge and walks you out; refuse it or fall short and you get COURT DAY.<br>
+  \u25B8 COURT DAY is fifty cards and only SEVEN of them put you back on the street \u2014 four where the case collapses, and three where a soldier of yours stands up and serves your sentence for you, which needs a man on the payroll to burn. The other forty-three all end in a sentence: the judge CUTS what you are facing (down to a quarter of it), holds it AS CHARGED, or RAISES it (up to double), and may fine you on the way past. A cut is always a share of your file, never a flat number of years \u2014 a forty-year charge cut to the bone is still ten.<br>
+  \u25B8 THE DEAL comes last, in the hallway, once the judge has read the number \u2014 because the number is what you are bargaining against. Sign and every body on your payroll and every deed you hold goes into the file, plus 15% of your cash in fees and fines, and you walk out of the building that day with only what is in your pocket and nobody left to run. Refuse and you keep all of it and serve the years. If you own nothing and employ nobody there is no offer at all: the prosecutor wants the organisation, not you. Prison is what the court gives you, not the street.
 
   ${H("PRISON (inner ring)")}
   One inner lap = one year served. CIGARETTE PACKS are the only currency inside: with no packs on an ANOTHER DAY cell the block beats you into the hospital \u2014 or worse, there's a 1-in-4 chance they just kill you. Prison fights and riots can hospitalize you, and the worst ones turn fatal. MOST DEATHS HAPPEN IN PRISON \u2014 there are 50 different ways to die inside. On an ANOTHER DAY cell you choose how to spend it: LAY LOW and draw the day's card (dangerous with no packs), or RUN THE YARD \u2014 a hustle that usually earns 5\u201320 packs but can end in a brawl and a hospital bed. The BLOCKS (extortion and the country's three biggest drugs) work like streets do outside: put inmates on one and it pays you every year and tolls every rival who lands there. THE SHOP sells a man on you (30pk), a cellphone (50pk), a year off the clock (40pk), a blade for another inmate (60pk) and tunnel access. The INFIRMARY is the only place inside that gives a life back \u2014 30 packs clears one hospital visit, one per stop. Land on VISIT DAY and your lawyer comes in: hire, sell off holdings or order an execution from inside \u2014 everything but crimes. ESCAPE frees you now, but the skipped years (+5) come back if you're busted again.
@@ -6076,7 +6078,7 @@ function applyCard(){
   // COURT — DEADLY = life sentence
   if(c.life){ p.sentence=capYears(30);
     const lifeMsg=cityLaw().life?L(" is convicted of MURDER — LIFE SENTENCE ("," é condenado por HOMICÍDIO — PENA PERPÉTUA ("):L(" is convicted of MURDER — MAX SENTENCE ("," é condenado por HOMICÍDIO — PENA MÁXIMA (");
-    log(p.name+lifeMsg+p.sentence+L("y).","a)."),"bad"); sendToPrison(p); render(); finish(); return; }
+    log(p.name+lifeMsg+p.sentence+L("y).","a)."),"bad"); courtVerdict(p); return; }
   /* ===== COURT DAY =====
      The judge decides HOW LONG, not whether. There are exactly two doors out of this room —
      a case that collapses, and a man on your payroll who stands up and takes it — and both
@@ -6102,7 +6104,7 @@ function applyCard(){
     const _pct=(c.pct!==undefined)?c.pct:1;
     p.sentence=capYears(Math.max(1, Math.round(p.sentence*_pct)));
     log(p.name+L(" sentenced: "," sentenciado: "," sentenciado: ")+p.sentence+L("y. To prison.","a. Para a prisão.","a. A prisión."),"warn");
-    sendToPrison(p); render(); finish(); return;
+    courtVerdict(p); return;
   }
   // RIOT sentence changes
   if(c.ryears!==undefined){p.sentence=Math.max(0,p.sentence+c.ryears);log(L("","A pena de ")+p.name+L("'s sentence now "," agora é ")+p.sentence+L("y.","a."),c.ryears>0?"bad":"good");
@@ -6291,31 +6293,21 @@ function arrestFlow(p){
   const years=p._pendingYears||5;
   if(p.freeArrest>0){p.freeArrest--;log(p.name+L(" uses a get-out-of-jail card. Walks free."," usa uma carta de saída. Sai livre."),"good");p._pendingYears=null;showNotice(L("GET OUT OF JAIL","SAIU DA CADEIA"),"***",L("The favor gets called in","O favor \u00e9 cobrado"),L("The cuffs were already out — but your banked get-out-of-jail card burns instead. Charges evaporate. You walk free.","As algemas j\u00e1 estavam na m\u00e3o — mas sua carta de sa\u00edda guardada \u00e9 queimada. As acusa\u00e7\u00f5es evaporam. Voc\u00ea sai livre."),()=>finish());return;}
   if(p.ai){
-    /* THE DEAL costs the whole organisation, so a Ghost only signs when the years would cost it
-       more than the empire is worth — a long stretch off a thin operation. A boss with a real
-       empire does the time and comes back to it. */
-    if(dealOffered(p) && aiTakesDeal(p,years)){
-      log(p.name+L(" signs the deal with the prosecutor."," assina o acordo com o promotor."," firma el trato con el fiscal."),"warn");
-      takeTheDeal(); return;
-    }
+    /* Nothing is bargained at the kerb any more — the prosecutor waits for a number from the
+       judge before he offers anything, so a Ghost is booked like everybody else. */
     const packs=Math.min(20,Math.floor(p.cash/1)); if(packs>0){p.cash-=packs;p.packs=packs;}
     doArrest(p,years);return;
   }
   const el=document.getElementById("cardEl");
   el.dataset.deck="law";
-  const canDeal=dealOffered(p);
-  const fee=dealFee(p), staff=dealStaff(p), holds=p.owns?p.owns.size:0;
   el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('BUSTED','PRESO EM FLAGRANTE')}</div>
     <div class="art">PD</div><div class="ttl">${L("You're going down","Voc\u00ea vai cair")}</div>
     <div class="bd">${L("The cuffs are out — ","As algemas j\u00e1 sa\u00edram — ","Las esposas ya salieron — ")}${years==30?L("they're calling it LIFE","est\u00e3o chamando de PERP\u00c9TUA","lo llaman PERPETUA"):years+L(" years"," anos"," a\u00f1os")}${L(" hanging over you. Nobody on your payroll takes this for you \u2014 whether a man of yours stands up for you is the judge's call on COURT DAY, not a favour you can call in here."," pesando sobre voc\u00ea. Ningu\u00e9m da sua folha assume isso por voc\u00ea \u2014 se algum dos seus levanta e assume, quem decide \u00e9 o juiz no DIA DO TRIBUNAL, n\u00e3o um favor que voc\u00ea cobra aqui."," pesando sobre ti. Nadie de tu n\u00f3mina carga con esto por ti \u2014 si alguno de los tuyos da la cara, lo decide el juez en el D\u00cdA DE JUICIO, no un favor que puedas cobrar aqu\u00ed.")}</div>
     <div class="out">${L("A crooked CO offers cigarette packs cheap by the pack — packs keep you safe inside.","Um agente corrupto oferece ma\u00e7os de cigarro baratos no maço — ma\u00e7os te mant\u00eam vivo l\u00e1 dentro.","Un agente corrupto ofrece paquetes de cigarrillos baratos por paquete — los paquetes te mantienen vivo ah\u00ed dentro.")}</div>
-    <div class="out" style="border-color:#ffb642;color:#ffb642">${canDeal
-      ? L("The prosecutor slides a page across: give up the organisation and you walk today. Every name on the payroll and every deed — <b>"+dealPeople(staff)+"</b>, <b>"+dealHoldings(holds)+"</b> — plus <b>"+fmtK(fee)+"</b> in fees and fines. The cash left in your pocket stays yours. No money buys this away any more.",
-          "O promotor empurra uma folha: entregue a organização e você sai hoje. Cada nome da folha e cada escritura — <b>"+dealPeople(staff)+"</b>, <b>"+dealHoldings(holds)+"</b> — mais <b>"+fmtK(fee)+"</b> de taxas e multas. O dinheiro que sobrar no bolso é seu. Não existe mais propina que resolva isso.",
-          "El fiscal desliza un papel: entrega la organización y sales hoy. Cada nombre de la nómina y cada escritura — <b>"+dealPeople(staff)+"</b>, <b>"+dealHoldings(holds)+"</b> — más <b>"+fmtK(fee)+"</b> en tasas y multas. El efectivo que te quede es tuyo. Ya no hay dinero que arregle esto.")
-      : L("Nothing to trade and nobody to send. The years are yours.","Nada pra negociar e ninguém pra mandar. Os anos são seus.","Nada que negociar y nadie a quien mandar. Los años son tuyos.")}</div>
+    <div class="out" style="border-color:#ffb642;color:#ffb642">${L("Nothing is bought here. The prosecutor has no offer for you until a judge puts a number on you — from the cell you can post BAIL, and if you can't, COURT DAY decides what you're worth trading for.",
+        "Aqui não se compra nada. O promotor não tem oferta nenhuma enquanto um juiz não colocar um número em você — da cela dá pra pagar FIANÇA, e se não der, o DIA DE TRIBUNAL decide por quanto vale negociar.",
+        "Aquí no se compra nada. El fiscal no tiene ninguna oferta hasta que un juez te ponga una cifra — desde la celda puedes pagar FIANZA, y si no puedes, el DÍA DE JUICIO decide por cuánto vale negociar.")}</div>
     <div class="go" style="flex-wrap:wrap">
-      ${canDeal?`<button class="amber" onclick="takeTheDeal()">${L('[ TAKE THE DEAL \u00b7 ','[ ACEITAR O ACORDO \u00b7 ','[ ACEPTAR EL TRATO \u00b7 ')}${staff}${L(staff===1?' person + ':' people + ', staff===1?' pessoa + ':' pessoas + ', staff===1?' persona + ':' personas + ')}${fmtK(fee)} ]</button>`:''}
       <button onclick="goToJailWithCigs(${years})">[ ${L("FACE IT","ENCARAR","ENFRENTARLO")} ]</button>
     </div>
     ${statusBar()}`;
@@ -6333,9 +6325,15 @@ function dealPeople(n){ return n+" "+(n===1?L("person","pessoa","persona"):L("pe
 function dealHoldings(n){ return n+" "+(n===1?L("holding","negócio","negocio"):L("holdings","negócios","negocios")); }
 function dealFee(p){ return Math.max(0, Math.round(Math.max(0,p.cash)*DEAL_CUT)); }
 function dealStaff(p){ let n=0; if(p&&p.owns) p.owns.forEach(c=>{n+=c;}); return n+(p.crew||0); }
-/* Offered on every arrest. Never gate this on a flag the arrest path always sets — that is
-   exactly how the deal, and the fall guy before it, spent whole versions invisible. */
-function dealOffered(p){ return !!p && p.alive!==false; }
+/* Offered on every verdict that carries time — but only when there is an organisation to
+   hand over. A boss with no staff and no deeds has nothing the prosecutor wants, and letting
+   him buy a walk for 15% of his pocket money would be the cheapest escape in the game.
+   Never gate this on a flag the court path always sets — that is exactly how the deal, and
+   the fall guy before it, spent whole versions invisible. */
+function dealOffered(p){
+  if(!p || p.alive===false) return false;
+  return dealStaff(p)>0 || !!(p.owns && p.owns.size);
+}
 function takeTheDeal(){
   const p=S.players[S.cur]; if(!dealOffered(p)) return;
   const fee=dealFee(p), staff=dealStaff(p), lost=p.owns?p.owns.size:0;
@@ -6343,7 +6341,8 @@ function takeTheDeal(){
   p.crew=0; p.crewAt=new Map();
   p.owns=new Map();                       // the deeds go with the people — back on the board
   if(p._fresh instanceof Map) p._fresh=new Map();
-  p._pendingYears=null; p.inJail=false;
+  p.sentence=0;                           // the years the judge just read out go with them
+  leaveCellFree(p);                       // charge dropped, cell packs confiscated at the desk
   log(p.name+L(" signs the deal — hands over "," assina o acordo — entrega "," firma el trato — entrega ")+dealPeople(staff)+
       L(" and "," e "," y ")+dealHoldings(lost)+L(", and "," , e "," , y ")+fmtK(fee)+
       L(" in fees. Walks out the same day."," em taxas. Sai no mesmo dia."," en tasas. Sale el mismo día."),"warn");
@@ -6354,6 +6353,49 @@ function takeTheDeal(){
       "Cada nome da sua folha entra no processo e cada escritura vai junto — "+dealPeople(staff)+", "+dealHoldings(lost)+" — e mais "+fmtK(fee)+" de taxas e multas. Você fica com o que tem no bolso e sai do prédio no mesmo dia, sem nada pra tocar e sem ninguém pra tocar.",
       "Cada nombre de tu nómina entra en el expediente y cada escritura se va con ellos — "+dealPeople(staff)+", "+dealHoldings(lost)+" — y "+fmtK(fee)+" más de tasas y multas. Te quedas con lo que llevas encima y sales del edificio el mismo día, sin nada que dirigir y sin nadie que lo dirija."),
     ()=>finish());
+}
+/* ===== THE VERDICT, AND THE OFFER THAT FOLLOWS IT =====
+   The prosecutor does not bargain at the kerb — at the kerb he has nothing to bargain against.
+   He comes now, on the courthouse steps, with the judge's number already read out, and the
+   number is the whole point of moving him here: you are no longer trading your organisation
+   against a vague fear of prison, you are trading it against exactly the years you just heard.
+   Sign and you walk out of the building today owning nothing and running nobody. Refuse and
+   you keep every deed and every man on the payroll, and you go and do the time.
+   A boss with no staff and no deeds is never offered this — see dealOffered(). */
+function courtVerdict(p){
+  if(!dealOffered(p)){ sendToPrison(p); render(); finish(); return; }
+  const years=p.sentence;
+  if(p.ai){
+    if(aiTakesDeal(p,years)){
+      log(p.name+L(" signs the prosecutor's deal on the courthouse steps rather than serve "," assina o acordo do promotor na escadaria do fórum em vez de cumprir "," firma el trato del fiscal en la escalinata del juzgado en vez de cumplir ")+years+L("y.","a.","a."),"warn");
+      takeTheDeal(); return;
+    }
+    sendToPrison(p); render(); finish(); return;
+  }
+  const fee=dealFee(p), staff=dealStaff(p), holds=p.owns?p.owns.size:0;
+  const isLife=(years>=30&&cityLaw().life);
+  const term=isLife?L("LIFE","PERP\u00c9TUA","PERPETUA"):years+L("y","a","a");
+  const el=document.getElementById("cardEl");
+  el.dataset.deck="law";
+  el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('THE DEAL','O ACORDO','EL TRATO')}</div>
+    <div class="art">PD</div><div class="ttl">${L("The prosecutor catches you in the hallway","O promotor te pega no corredor","El fiscal te alcanza en el pasillo")}</div>
+    <div class="bd">${L("The judge has read the number and it is <b>"+term+"</b>. Before the van comes round, the prosecutor puts a page in your hand. He never wanted you \u2014 he wanted what you built, and now he knows exactly what it is worth to you.",
+        "O juiz leu o n\u00famero e s\u00e3o <b>"+term+"</b>. Antes do camburão chegar, o promotor coloca uma folha na sua m\u00e3o. Ele nunca quis voc\u00ea \u2014 quis o que voc\u00ea construiu, e agora sabe exatamente quanto isso vale pra voc\u00ea.",
+        "El juez ley\u00f3 la cifra y son <b>"+term+"</b>. Antes de que llegue el furg\u00f3n, el fiscal te pone un papel en la mano. Nunca te quiso a ti \u2014 quer\u00eda lo que construiste, y ahora sabe exactamente cu\u00e1nto vale para ti.")}</div>
+    <div class="out" style="border-color:#ffb642;color:#ffb642">${L("Sign it and you walk out today. Every name on the payroll and every deed goes into the file \u2014 <b>"+dealPeople(staff)+"</b>, <b>"+dealHoldings(holds)+"</b> \u2014 plus <b>"+fmtK(fee)+"</b> in fees and fines. The cash left in your pocket stays yours. Refuse and you keep all of it, and you serve <b>"+term+"</b>.",
+        "Assine e voc\u00ea sai hoje. Cada nome da folha e cada escritura entra no processo \u2014 <b>"+dealPeople(staff)+"</b>, <b>"+dealHoldings(holds)+"</b> \u2014 mais <b>"+fmtK(fee)+"</b> de taxas e multas. O dinheiro que sobrar no bolso \u00e9 seu. Recuse e voc\u00ea fica com tudo, e cumpre <b>"+term+"</b>.",
+        "F\u00edrmalo y sales hoy. Cada nombre de la n\u00f3mina y cada escritura entra en el expediente \u2014 <b>"+dealPeople(staff)+"</b>, <b>"+dealHoldings(holds)+"</b> \u2014 m\u00e1s <b>"+fmtK(fee)+"</b> en tasas y multas. El efectivo que te quede es tuyo. Recházalo y te quedas con todo, y cumples <b>"+term+"</b>.")}</div>
+    <div class="go" style="flex-wrap:wrap">
+      <button class="amber" onclick="takeTheDeal()">${L('[ TAKE THE DEAL \u00b7 ','[ ACEITAR O ACORDO \u00b7 ','[ ACEPTAR EL TRATO \u00b7 ')}${staff}${L(staff===1?' person + ':' people + ', staff===1?' pessoa + ':' pessoas + ', staff===1?' persona + ':' personas + ')}${fmtK(fee)} ]</button>
+      <button class="red" onclick="refuseTheDeal()">${L('[ DO THE TIME \u00b7 ','[ CUMPRIR A PENA \u00b7 ','[ CUMPLIR LA CONDENA \u00b7 ')}${term} ]</button>
+    </div>
+    ${statusBar()}`;
+  openModal();
+}
+function refuseTheDeal(){
+  const p=S.players[S.cur];
+  log(p.name+L(" tears up the deal and goes down with the organisation intact."," rasga o acordo e cai com a organização inteira."," rompe el trato y cae con la organización intacta."),"warn");
+  closeModal(); sendToPrison(p); render(); finish();
 }
 /* Does this Ghost sign? Net worth is how this game is won, so the question is simply which
    path leaves it holding more. Signing leaves it 85% of the CASH IN HAND and nothing else —
