@@ -152,6 +152,13 @@
   .card .go{margin-top:16px;text-align:center;display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
   .card .go button{border-color:var(--phos);color:var(--phos);font-size:13px;padding:9px 16px}
   .card .go button:hover{background:var(--phos);color:#000}
+  /* the ATTACK target list: one column, split into streets / businesses / casino, each row
+     carrying what a single body is worth there */
+  .atkGrp{font-size:11px;font-weight:bold;letter-spacing:2px;opacity:.75;text-align:left;
+          margin:10px 0 2px;padding-bottom:2px;border-bottom:1px solid var(--phos-dim)}
+  .atkGrp:first-child{margin-top:0}
+  .card .go button .atkNum{display:block;font-size:11px;font-weight:normal;opacity:.72;
+          margin-top:2px;letter-spacing:0}
   .card .status{display:flex;justify-content:space-between;gap:6px;font-size:11.5px;font-weight:bold;margin:12px -18px -18px;padding:9px 14px;background:var(--phos);color:#000}
   .card .status span{white-space:nowrap}
   .card .ladder{margin:2px 0}
@@ -892,7 +899,7 @@ const ROLE_ES={"Crooked Sergeant":"Sargento Corrupto","Crooked Detective":"Detec
 const ES_STATIC={"NEW YORK CITY":"NUEVA YORK","PLAYERS — tap for record":"JUGADORES — toca para la ficha","DICE":"DADOS","ACTIONS":"ACCIONES","CONSOLE — this round":"CONSOLA — esta ronda","PLAYER ON TURN":"JUGADOR EN TURNO","OTHER PLAYERS — tap for record":"OTROS JUGADORES — toca para la ficha","[ MANUAL ]":"[ MANUAL ]","[reset]":"[reiniciar]","[ FOLLOW: OFF ]":"[ SEGUIR: NO ]","[ FOLLOW: ON ]":"[ SEGUIR: SÍ ]","[ AUTO: OFF ]":"[ AUTO: NO ]","[ AUTO: ON ]":"[ AUTO: SÍ ]","tap die to roll":"toca el dado para tirar","roll to move":"tira para avanzar","landed":"cayó"};
 const POLICE_LABELS_ES={0.25:"MUY BAJA",0.5:"BAJA",1:"REALISTA",3:"DIFÍCIL",4:"BRASILEÑA"};
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v35.1";
+const APP_VERSION="v35.2";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -5853,12 +5860,33 @@ function doAttack(fromMenu){
     const t=winnable[0]; resolveAttack(p,t.o,t.idx,Math.min(p.crew,UNIT_CAP,t.s+1)); return;
   }
   const el=document.getElementById("cardEl");
-  let btns=targets.map(t=>`<button onclick="attackTarget(${t.o.id},${t.idx})">[ ${t.o.name}: ${OUTER[t.idx].t} (${t.s} ${L('def','def')}) ]</button>`).join("");
+  /* Targets are read down ONE column, grouped by what they are, richest first inside each
+     group, and every row states what a single body is worth there — because that unit price
+     times the defenders is the whole reason to send men at it. Anything that somehow isn't a
+     street, a business or the casino still gets a group of its own; a target must never be
+     silently dropped from this list. */
+  const ATK_GRP=[{k:"street", t:L("STREETS \u00b7 soldiers","RUAS \u00b7 soldados","CALLES \u00b7 soldados")},
+                 {k:"biz",    t:L("BUSINESSES \u00b7 staff","NEG\u00d3CIOS \u00b7 funcion\u00e1rios","NEGOCIOS \u00b7 personal")},
+                 {k:"poker",  t:L("ILLEGAL CASINO","CASSINO ILEGAL","CASINO ILEGAL")},
+                 {k:null,     t:L("OTHER","OUTROS","OTROS")}];
+  const _row=(t)=>{ const per=cellUnit(t.idx);
+    return `<button onclick="attackTarget(${t.o.id},${t.idx})">[ ${t.o.name} \u00b7 ${OUTER[t.idx].t} ]`+
+           `<span class="atkNum">${fmtK(per)} ${L("each","cada","c/u")} \u00b7 ${t.s} ${L('def','def','def')} \u00b7 ${fmtK(per*t.s)} ${L("total","total","total")}</span></button>`; };
+  const _used=new Set();
+  let btns="";
+  ATK_GRP.forEach(g=>{
+    const rows=(g.k===null? targets.filter(t=>!_used.has(t))
+                          : targets.filter(t=>OUTER[t.idx]&&OUTER[t.idx].k===g.k))
+              .sort((a,b)=>cellUnit(b.idx)-cellUnit(a.idx));
+    if(!rows.length) return;
+    rows.forEach(t=>_used.add(t));
+    btns+=`<div class="atkGrp">${g.t}</div>`+rows.map(_row).join("");
+  });
   el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('ATTACK','ATAQUE')}</div>
     <div class="art">)|(</div><div class="ttl">${L('Pick a target','Escolha um alvo')}</div>
     <div class="sub">${L('You have ','Voc\u00ea tem ')}${p.crew} soldado${p.crew===1?"":"s"}. ${L('Choose a target, then pick how many to send. More attackers than defenders takes the turf.','Escolha um alvo e quantos enviar. Mais atacantes que defensores toma a \u00e1rea.')}</div>
     <div class="out">${L('Targets:','Alvos:')}</div>
-    <div class="go" style="flex-direction:column">${btns}<button onclick="atkExit()">${L('[ STAND DOWN ]','[ RECUAR ]')}</button></div>
+    <div class="go" style="flex-direction:column">${btns}<button style="margin-top:14px" onclick="atkExit()">${L('[ STAND DOWN ]','[ RECUAR ]')}</button></div>
     ${statusBar()}`;
   openModal();
 }
@@ -5868,7 +5896,7 @@ function attackTarget(oid,idx){
   const el=document.getElementById("cardEl"); el.dataset.deck="";
   el.innerHTML=`<div class="lbl" style="background:${p.color}">${L('ATTACK','ATAQUE')}</div>
     <div class="art">)|(</div><div class="ttl">${L('Send how many?','Enviar quantos?')}</div>
-    <div class="sub">${L('Target: ','Alvo: ')}<b>${OUTER[idx].t} ${L('of','de')} ${o.name}</b> — ${L('defended by','defendido por')} ${def} soldado${def===1?"":"s"}. ${L('You have ','Você tem ')}${p.crew}. ${L('Send more than ','Envie mais que ')}${def} ${L('to take it.','para tomar.')}</div>
+    <div class="sub">${L('Target: ','Alvo: ')}<b>${OUTER[idx].t} ${L('of','de')} ${o.name}</b> — ${L('defended by','defendido por')} ${def} soldado${def===1?"":"s"}. ${L('You have ','Você tem ')}${p.crew}. ${L('Send more than ','Envie mais que ')}${def} ${L('to take it.','para tomar.')}<br><span style="opacity:.72;font-size:12px">${fmtK(cellUnit(idx))} ${L("each","cada","c/u")} \u00b7 ${fmtK(cellUnit(idx)*def)} ${L("if you take it","se voc\u00ea tomar","si la tomas")}</span></div>
     <div class="out qdisp"><span id="atkval">0</span> / ${p.crew}</div>
     <div class="qkrow">
       <button onclick="atkKey('1')">1</button><button onclick="atkKey('2')">2</button><button onclick="atkKey('3')">3</button>
