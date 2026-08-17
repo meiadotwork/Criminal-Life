@@ -574,6 +574,22 @@
     .condice-panel #log{min-height:22vh;max-height:30vh;}
   }
 </style>
+<style id="dos87">
+  /* ===== THE CONSOLE IS THE POINT OF THAT COLUMN =====
+     The side column is a fixed-height flex column and STANDINGS was flex:0 0 auto — it refused
+     to shrink, so with nine players it took 556px of a 926px column and the console, the pane
+     the player had actually opened, was squeezed to three readable lines with 1,900px of story
+     inside it. The pane whose tab is open now takes the room and the standings give way.
+     `.side .pane.on{display:block}` also beat `.condice-panel{display:flex}` on specificity,
+     which stopped the log from ever stretching to its pane — restore it. */
+  .side .condice-panel.on{display:flex;}
+  @media(min-width:901px){
+    .side > .pane.on{flex:1 1 auto;min-height:38vh;}
+    .side > #pane-stand{flex:0 1 auto;max-height:34vh;overflow-y:auto;}
+    /* the pane bounds it now, so the log does not need a cap of its own */
+    .condice-panel #log{max-height:none;}
+  }
+</style>
 <style id="colorskin">
   /* die face shown as a number (D8/D10 rolls above 6 have no pip layout) */
   .die .dienum,#die .dienum{grid-column:1/4;grid-row:1/4;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:bold;color:var(--phos);}
@@ -899,7 +915,7 @@ const ROLE_ES={"Crooked Sergeant":"Sargento Corrupto","Crooked Detective":"Detec
 const ES_STATIC={"NEW YORK CITY":"NUEVA YORK","PLAYERS — tap for record":"JUGADORES — toca para la ficha","DICE":"DADOS","ACTIONS":"ACCIONES","CONSOLE — this round":"CONSOLA — esta ronda","PLAYER ON TURN":"JUGADOR EN TURNO","OTHER PLAYERS — tap for record":"OTROS JUGADORES — toca para la ficha","[ MANUAL ]":"[ MANUAL ]","[reset]":"[reiniciar]","[ FOLLOW: OFF ]":"[ SEGUIR: NO ]","[ FOLLOW: ON ]":"[ SEGUIR: SÍ ]","[ AUTO: OFF ]":"[ AUTO: NO ]","[ AUTO: ON ]":"[ AUTO: SÍ ]","tap die to roll":"toca el dado para tirar","roll to move":"tira para avanzar","landed":"cayó"};
 const POLICE_LABELS_ES={0.25:"MUY BAJA",0.5:"BAJA",1:"REALISTA",3:"DIFÍCIL",4:"BRASILEÑA"};
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v35.3";
+const APP_VERSION="v35.4";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
