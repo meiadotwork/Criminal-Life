@@ -899,7 +899,7 @@ const ROLE_ES={"Crooked Sergeant":"Sargento Corrupto","Crooked Detective":"Detec
 const ES_STATIC={"NEW YORK CITY":"NUEVA YORK","PLAYERS — tap for record":"JUGADORES — toca para la ficha","DICE":"DADOS","ACTIONS":"ACCIONES","CONSOLE — this round":"CONSOLA — esta ronda","PLAYER ON TURN":"JUGADOR EN TURNO","OTHER PLAYERS — tap for record":"OTROS JUGADORES — toca para la ficha","[ MANUAL ]":"[ MANUAL ]","[reset]":"[reiniciar]","[ FOLLOW: OFF ]":"[ SEGUIR: NO ]","[ FOLLOW: ON ]":"[ SEGUIR: SÍ ]","[ AUTO: OFF ]":"[ AUTO: NO ]","[ AUTO: ON ]":"[ AUTO: SÍ ]","tap die to roll":"toca el dado para tirar","roll to move":"tira para avanzar","landed":"cayó"};
 const POLICE_LABELS_ES={0.25:"MUY BAJA",0.5:"BAJA",1:"REALISTA",3:"DIFÍCIL",4:"BRASILEÑA"};
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v35.2";
+const APP_VERSION="v35.3";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -2847,9 +2847,9 @@ function aiName(){
    cash. reserveFrac = share of net worth kept liquid before it spends on military. */
 const AI_PROFILES={
   AGGRESSIVE:{ lbl:["AGGRESSIVE","AGRESSIVO","AGRESIVO"], recruitCap:12, recruitReserve:2, atkMinCrew:2, atkAllIn:true,  atkProb:0.60, buyMult:1.3, pokerMult:1.5, reserveFrac:0.30, crewCap:50, crewStep:3000,  garCap:100, garStep:4000  },
-  CAREFUL:   { lbl:["CAREFUL","CAUTELOSO","PRUDENTE"],     recruitCap:6,  recruitReserve:5, atkMinCrew:4, atkAllIn:false, atkProb:0.15, buyMult:2.0, pokerMult:2.0, reserveFrac:0.45, crewCap:32, crewStep:6000,  garCap:80,  garStep:8000  },
-  CAUTIOUS:  { lbl:["CAUTIOUS","RESERVADO","RESERVADO"],    recruitCap:4,  recruitReserve:7, atkMinCrew:6, atkAllIn:false, atkProb:0.06, buyMult:2.6, pokerMult:2.6, reserveFrac:0.55, crewCap:20, crewStep:10000, garCap:55,  garStep:14000 },
-  PASSIVE:   { lbl:["PASSIVE","PACÍFICO","PACÍFICO"],      recruitCap:2,  recruitReserve:9, atkMinCrew:9, atkAllIn:false, atkProb:0.02, buyMult:3.2, pokerMult:3.2, reserveFrac:0.65, crewCap:10, crewStep:20000, garCap:30,  garStep:26000 },
+  CAREFUL:   { lbl:["CAREFUL","CAUTELOSO","PRUDENTE"],     recruitCap:6,  recruitReserve:5, atkMinCrew:4, atkAllIn:false, atkProb:0.15, buyMult:2.0, pokerMult:2.0, reserveFrac:0.45, crewCap:32, crewStep:6000,  garCap:92,  garStep:8000  },
+  CAUTIOUS:  { lbl:["CAUTIOUS","RESERVADO","RESERVADO"],    recruitCap:4,  recruitReserve:7, atkMinCrew:6, atkAllIn:false, atkProb:0.06, buyMult:2.6, pokerMult:2.6, reserveFrac:0.55, crewCap:20, crewStep:10000, garCap:80,  garStep:14000 },
+  PASSIVE:   { lbl:["PASSIVE","PACÍFICO","PACÍFICO"],      recruitCap:2,  recruitReserve:9, atkMinCrew:9, atkAllIn:false, atkProb:0.02, buyMult:3.2, pokerMult:3.2, reserveFrac:0.65, crewCap:10, crewStep:20000, garCap:65,  garStep:26000 },
 };
 const AI_AGGRO_ORDER=["AGGRESSIVE","CAREFUL","CAUTIOUS","PASSIVE"];   // most → least aggressive
 function aiProf(p){ return AI_PROFILES[p&&p.temper]||AI_PROFILES.CAREFUL; }
@@ -7831,11 +7831,18 @@ function aiSceneCard(p,ttl,body,cls){ return `<div class="lbl" style="background
 /* Spreading thin loses games: ten blocks on one body each earn a trickle and hand a rival ten
    cheap conquests. Before a Ghost claims anything new, what it already holds has to carry some
    real weight — and the bar rises as it gets richer, so late-game money deepens instead of sprawls. */
-/* How many bodies a holding is meant to carry, given what the empire earns. One definition,
-   used by the garrison pass, by the decision to widen, and by the size of a new purchase. */
+/* How many bodies a holding is meant to carry. One definition, used by the garrison pass, by
+   the decision to widen, and by the size of a new purchase.
+
+   THE TARGET IS THE FULL HOUSE. It used to be 4 + a slice of yearly income, which stalled
+   around thirteen bodies while the board allowed forty-eight — so every Ghost holding sat at
+   about a third of capacity for the whole back half of the game. That is not an investment,
+   it is a shop window: a human who fills a cell to the cap can buy any of them back with
+   soldiers for a fraction of what they are worth. Now the only thing between a Ghost and a
+   full house is its own nerve. */
 function aiTargetDepth(p){
-  const pr=aiProf(p), inc=aiYearIncome(p);
-  return Math.max(2, Math.min(UNIT_CAP, capScaled(pr.garCap||8), 4+Math.floor(inc/(SOLDIER_COST*8))));
+  const pr=aiProf(p);
+  return Math.max(2, Math.min(UNIT_CAP, capScaled(pr.garCap||8)));
 }
 /* WIDEN ONLY ONCE WHAT YOU HOLD IS AT LEAST HALF STAFFED.
    A Ghost used to open a second shop while the first sat on one body, so its whole map was
@@ -7850,31 +7857,57 @@ function aiFillRatio(p){
 }
 function aiSpreadOK(p){ return aiFillRatio(p)>=0.5; }
 /* Opening a holding one body at a time is what made them so slow. Buy the deed and staff it
-   in the same move, as deep as the cash allows, keeping a reserve. */
+   in the same move, up to the full house, keeping a thin reserve. */
 function aiStaffNew(p,idx,per){
   const target=aiTargetDepth(p);
-  const reserve=Math.round(p.cash*0.20);
+  const reserve=Math.round(p.cash*0.10);
   let extra=0;
   while((p.owns.get(idx)||0)<target && p.cash-per>=reserve){ p.cash-=per; grantUnits(p,idx,1); extra++; }
   return extra;
 }
-function aiBuyStreet(idx,c){const p=S.players[S.cur];const mult=aiProf(p).buyMult;
-  /* Under half-staffed? Only a real bargain justifies widening — otherwise put the money into
-     what it already holds. */
-  const thr=c.price*mult*(aiSpreadOK(p)?1:4);
+/* HOW DEEP IS DEEP ENOUGH TO OPEN AT ALL.
+   What makes a holding a shop window is not its size in the abstract — it is being shallower
+   than the armies walking past it. A cell is taken by sending more men than defend it, so a
+   holding one body deeper than the biggest crew on the board cannot be taken in a single move
+   by anyone, and stops being something a rival simply shops for.
+   That is the floor to OPEN at. The full house is still the target the garrison pass keeps
+   climbing toward afterwards; this is only the bar for starting a new one, so that a Ghost in
+   a city with a 177-body house does not sit on its hands for the whole game. Never less than
+   a quarter of the house, never more than the house. */
+function aiOpenFloor(p){
+  const target=aiTargetDepth(p);
+  let biggest=0;
+  S.players.forEach(o=>{ if(o.alive&&o.id!==p.id) biggest=Math.max(biggest,o.crew||0); });
+  return Math.min(target, Math.max(2, Math.round(target*0.25), biggest+1));
+}
+/* CAN IT OPEN THIS *AND* GARRISON IT, TODAY? If not, it does not open it — the money goes
+   into what it already runs instead. The old test only asked whether it could afford the
+   deed, which is how Ghosts ended up holding a dozen cells at four bodies each. How much of
+   its cash a Ghost will commit in one move is its temperament: a reckless boss spends 70% of
+   what it holds, a passive one 35%.
+   The one exception is a boss with nothing at all — it has to be able to start somewhere. */
+function aiCanOpenFull(p,per){
+  if(!(per>0)) return false;
+  const pr=aiProf(p), floor=aiOpenFloor(p);
+  if(p.cash*(1-(pr.reserveFrac||0.30)) >= per*floor) return true;
+  if(!p.owns.size && p.cash >= per*Math.max(2,Math.round(floor*0.5))) return true;
+  return false;
+}
+function aiBuyStreet(idx,c){const p=S.players[S.cur];
+  /* Two gates, and both have to open: what it already holds must be at least half staffed,
+     and it must be able to fill THIS one today. Otherwise it walks past and the money goes
+     into depth on the turf it already owns. */
   let ttl,body;
-  if(p.cash>=thr){p.cash-=c.price;seedUnits(p,idx,1);
+  if(aiSpreadOK(p) && aiCanOpenFull(p,c.price)){p.cash-=c.price;seedUnits(p,idx,1);
     const extra=aiStaffNew(p,idx,c.price); const men=p.owns.get(idx)||1;
     log(p.name+L(" claims "," toma ")+c.t+(extra?L(" with "," com ")+men+L(" soldiers."," soldados."):"."),"good");
     ttl=L("CLAIMS TURF","TOMA A ÁREA");body=p.name+L(" buys "," compra ")+c.t+L(" for "," por ")+fmtK(c.price*(1+extra))+(extra?L(" and puts "," e coloca ")+men+L(" soldiers on it."," soldados nela."):".");}
   else {log(p.name+L(" passes on "," dispensa ")+c.t+".");ttl=L("WALKS PAST","PASSA DIRETO");body=p.name+L(" eyes "," olha ")+c.t+L(" but keeps the cash."," mas guarda o dinheiro.");}
   render();aiScene(aiSceneCard(p,ttl,body),finish);}
 function aiBuyBiz(idx,c){const p=S.players[S.cur];let ttl,body;
-  /* Enough to open it fully staffed? Then open it fully staffed. Otherwise deepen what it
-     already runs before opening another shop. */
-  const target=aiTargetDepth(p);
-  const thr=(aiSpreadOK(p)?c.income*1.5:c.income*1.5*4);
-  if(p.cash>=thr){p.cash-=c.income;seedUnits(p,idx,1);
+  /* A shop opens fully staffed or it does not open. A business running on two people earns a
+     trickle and hands the first rival who walks past a cheap conquest. */
+  if(aiSpreadOK(p) && aiCanOpenFull(p,c.income)){p.cash-=c.income;seedUnits(p,idx,1);
     const extra=aiStaffNew(p,idx,c.income); const men=p.owns.get(idx)||1;
     log(p.name+L(" opens "," abre ")+c.t+(extra?L(" with "," com ")+men+L(" workers."," funcionários."):"."),"good");
     ttl=L("OPENS SHOP","ABRE NEGÓCIO");body=p.name+L(" opens "," abre ")+c.t+L(" for "," por ")+fmtK(c.income*(1+extra))+(extra?L(" and staffs it with "," e coloca ")+men+L(" workers."," funcionários."):".");}
