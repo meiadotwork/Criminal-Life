@@ -915,7 +915,7 @@ const ROLE_ES={"Crooked Sergeant":"Sargento Corrupto","Crooked Detective":"Detec
 const ES_STATIC={"NEW YORK CITY":"NUEVA YORK","PLAYERS — tap for record":"JUGADORES — toca para la ficha","DICE":"DADOS","ACTIONS":"ACCIONES","CONSOLE — this round":"CONSOLA — esta ronda","PLAYER ON TURN":"JUGADOR EN TURNO","OTHER PLAYERS — tap for record":"OTROS JUGADORES — toca para la ficha","[ MANUAL ]":"[ MANUAL ]","[reset]":"[reiniciar]","[ FOLLOW: OFF ]":"[ SEGUIR: NO ]","[ FOLLOW: ON ]":"[ SEGUIR: SÍ ]","[ AUTO: OFF ]":"[ AUTO: NO ]","[ AUTO: ON ]":"[ AUTO: SÍ ]","tap die to roll":"toca el dado para tirar","roll to move":"tira para avanzar","landed":"cayó"};
 const POLICE_LABELS_ES={0.25:"MUY BAJA",0.5:"BAJA",1:"REALISTA",3:"DIFÍCIL",4:"BRASILEÑA"};
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v35.4";
+const APP_VERSION="v35.5";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -2862,10 +2862,21 @@ function aiName(){
    net worth so a rich boss actually fields (and garrisons) a real empire instead of hoarding
    cash. reserveFrac = share of net worth kept liquid before it spends on military. */
 const AI_PROFILES={
-  AGGRESSIVE:{ lbl:["AGGRESSIVE","AGRESSIVO","AGRESIVO"], recruitCap:12, recruitReserve:2, atkMinCrew:2, atkAllIn:true,  atkProb:0.60, buyMult:1.3, pokerMult:1.5, reserveFrac:0.30, crewCap:50, crewStep:3000,  garCap:100, garStep:4000  },
-  CAREFUL:   { lbl:["CAREFUL","CAUTELOSO","PRUDENTE"],     recruitCap:6,  recruitReserve:5, atkMinCrew:4, atkAllIn:false, atkProb:0.15, buyMult:2.0, pokerMult:2.0, reserveFrac:0.45, crewCap:32, crewStep:6000,  garCap:92,  garStep:8000  },
-  CAUTIOUS:  { lbl:["CAUTIOUS","RESERVADO","RESERVADO"],    recruitCap:4,  recruitReserve:7, atkMinCrew:6, atkAllIn:false, atkProb:0.06, buyMult:2.6, pokerMult:2.6, reserveFrac:0.55, crewCap:20, crewStep:10000, garCap:80,  garStep:14000 },
-  PASSIVE:   { lbl:["PASSIVE","PACÍFICO","PACÍFICO"],      recruitCap:2,  recruitReserve:9, atkMinCrew:9, atkAllIn:false, atkProb:0.02, buyMult:3.2, pokerMult:3.2, reserveFrac:0.65, crewCap:10, crewStep:20000, garCap:65,  garStep:26000 },
+/* ===== THE FOUR LEVELS =====
+   `level` is the whole personality in one number: the share of a full house this boss will
+   ever hold. Everything that makes a Ghost hard to take is pinned to it — how deep it
+   garrisons (garCap), how big a standing army it keeps (crewCap / recruitCap) and how readily
+   it comes at you (atkProb) — so the four temperaments are four genuinely different opponents
+   instead of four labels on the same boss.
+     AGGRESSIVE 100 — fills the house, biggest army, starts most of the fights
+     CAREFUL     75 — three quarters of a house, real army, picks its moments
+     CAUTIOUS    50 — half a house, small army, rarely moves first
+     PASSIVE     25 — a quarter of a house, token army, almost never attacks
+   A passive crew is meant to be soft turf. An aggressive one is meant to be a fortress. */
+  AGGRESSIVE:{ lbl:["AGGRESSIVE","AGRESSIVO","AGRESIVO"], level:100, recruitCap:12, recruitReserve:2, atkMinCrew:2, atkAllIn:true,  atkProb:0.60, buyMult:1.3, pokerMult:1.5, reserveFrac:0.30, crewCap:50, crewStep:3000,  garCap:100, garStep:4000  },
+  CAREFUL:   { lbl:["CAREFUL","CAUTELOSO","PRUDENTE"],    level:75,  recruitCap:9,  recruitReserve:5, atkMinCrew:4, atkAllIn:false, atkProb:0.28, buyMult:2.0, pokerMult:2.0, reserveFrac:0.45, crewCap:38, crewStep:6000,  garCap:75,  garStep:8000  },
+  CAUTIOUS:  { lbl:["CAUTIOUS","RESERVADO","RESERVADO"],   level:50,  recruitCap:6,  recruitReserve:7, atkMinCrew:6, atkAllIn:false, atkProb:0.12, buyMult:2.6, pokerMult:2.6, reserveFrac:0.55, crewCap:25, crewStep:10000, garCap:50,  garStep:14000 },
+  PASSIVE:   { lbl:["PASSIVE","PACÍFICO","PACÍFICO"],     level:25,  recruitCap:3,  recruitReserve:9, atkMinCrew:9, atkAllIn:false, atkProb:0.04, buyMult:3.2, pokerMult:3.2, reserveFrac:0.65, crewCap:13, crewStep:20000, garCap:25,  garStep:26000 },
 };
 const AI_AGGRO_ORDER=["AGGRESSIVE","CAREFUL","CAUTIOUS","PASSIVE"];   // most → least aggressive
 function aiProf(p){ return AI_PROFILES[p&&p.temper]||AI_PROFILES.CAREFUL; }
@@ -3312,6 +3323,7 @@ function careerBriefing(i){
     <div class="cfgline" style="opacity:.9;line-height:1.55">${L(lv.en,lv.pt,lv.es)}</div>
     <div class="cfgline" style="margin-top:10px">\u25B8 ${L("OBJECTIVE","OBJETIVO")}: <b>${careerGoalText(lv)}</b></div>
     <div class="cfgline">\u25B8 ${L("Rivals","Rivais")}: ${lv.ai} \u00B7 ${L("Dice","Dado")}: d${lv.dice} \u00B7 ${L("Police","Pol\u00edcia")}: ${policeLabelFor(lv.police)}${prison?` \u00B7 <b style="color:var(--red)">${L("START IN PRISON","COME\u00c7A PRESO")}</b>`:""}</div>
+    <div class="cfgline">\u25B8 ${L("The table","A mesa","La mesa")}: ${careerTableText(i,CL().length,lv.ai)}</div>
     <div class="cfgline">\u25B8 ${L("You","Voc\u00ea")}: ${L("age","idade")} ${(careerState&&careerState.age)||13} \u00B7 ${L("generation","gera\u00e7\u00e3o")} ${(careerState&&careerState.gens)||1}</div>
     <div class="cfgline">\u25B8 ${L("Buy-in","Entrada")}: <b>${_stk>0?fmtKcity(_stk,lv.city):L("NOTHING","NADA")}</b>${_stk>0?` \u00B7 ${L("out of your bankroll","sai da sua grana")} ${fmtKcity(_bank,lv.city)} \u2192 <b>${fmtKcity(Math.max(0,_bank-_stk),lv.city)}</b>`:""} \u00B7 ${L("year","ano")} ${(careerState&&careerState.year)||1970}</div>
     ${_afford?`<button class="cfggo" onclick="careerLaunch(${i})">${prison?L("[ INTO THE YARD \u00BB ]","[ PRO P\u00c1TIO \u00BB ]"):L("[ HIT THE STREETS \u00BB ]","[ PRAS RUAS \u00BB ]")}</button>`
@@ -3319,6 +3331,33 @@ function careerBriefing(i){
       <button class="cfggo" onclick="careerDropBack()">${L("[ \u2039 GO BACK A CITY ]","[ \u2039 VOLTAR UMA CIDADE ]")}</button>`}
     <button class="cfggo" style="opacity:.65" onclick="openCareer()">${L("[ \u2039 BACK ]","[ \u2039 VOLTAR ]")}</button>
   </div>`;
+}
+/* ===== WHO SITS AT THE TABLE, RUNG BY RUNG =====
+   The ladder used to field the same six crews in city 1 and city 53 — a fixed rotation that
+   never once included a PASSIVE boss — so the last city of a run was no harder to take than
+   the first. Now the calibre climbs with the ladder: the opening cities are full of passive
+   outfits sitting on a quarter of a house, and by the end every seat is an AGGRESSIVE boss
+   holding the whole thing.
+   Each seat is drawn a step either side of the rung's own level, so even a first city has one
+   crew worth respecting and a last city has one soft seat to open on. It is deterministic —
+   a given rung always fields the same table, so a city plays the same every time you come
+   back to it. */
+function careerTempers(i,total,n){
+  const t=0.15+0.85*((total>1)?Math.max(0,Math.min(1,i/(total-1))):1);
+  const out=[];
+  for(let k=0;k<n;k++){
+    const spread=((n>1)?(k/(n-1)):0.5)-0.5;                 // -0.5 .. +0.5 across the table
+    const q=Math.max(0,Math.min(1, t+spread*0.5));
+    out.push(q>=0.75?"AGGRESSIVE":q>=0.5?"CAREFUL":q>=0.25?"CAUTIOUS":"PASSIVE");
+  }
+  return out;
+}
+/* the same table, counted up, for the briefing */
+function careerTableText(i,total,n){
+  const c={AGGRESSIVE:0,CAREFUL:0,CAUTIOUS:0,PASSIVE:0};
+  careerTempers(i,total,n).forEach(t=>c[t]++);
+  return ["AGGRESSIVE","CAREFUL","CAUTIOUS","PASSIVE"].filter(k=>c[k])
+    .map(k=>c[k]+" "+temperLabel(k)).join(" \u00b7 ");
 }
 function careerLaunch(i){
   careerState=careerState||careerLoad();
@@ -3331,10 +3370,10 @@ function careerLaunch(i){
   setupData.city=lv.city; setupData.dice=lv.dice; setupData.dice0=lv.dice; setupData.police=lv.police;
   setupData.status=lv.status; setupData.year=careerState.year||1970;
   setupData.capital=stakeI; setupData.startCash=stakeI; setupData.n=1+lv.ai;
-  const tempers=["AGGRESSIVE","CAREFUL","AGGRESSIVE","CAUTIOUS","AGGRESSIVE","CAREFUL"];
+  const tempers=careerTempers(i,CL().length,lv.ai);
   const players=[{name:(careerState.name||L("YOU","VOC\u00ca")),pattern:PATTERNS[0].k,ai:false,age:(careerState.age||13)}];
   setupData.players=players;
-  for(let a=0;a<lv.ai;a++){ players.push({name:aiName(),pattern:PATTERNS[(a+1)%PATTERNS.length].k,ai:true,age:25,temper:tempers[a%tempers.length]}); }
+  for(let a=0;a<lv.ai;a++){ players.push({name:aiName(),pattern:PATTERNS[(a+1)%PATTERNS.length].k,ai:true,age:25,temper:tempers[a]}); }
   setupData.players=players; setupData.idx=setupData.n;
   launch();
   if(typeof S!=="undefined"&&S){ S.career={level:i,active:true}; saveGame(); }
