@@ -915,7 +915,7 @@ const ROLE_ES={"Crooked Sergeant":"Sargento Corrupto","Crooked Detective":"Detec
 const ES_STATIC={"NEW YORK CITY":"NUEVA YORK","PLAYERS — tap for record":"JUGADORES — toca para la ficha","DICE":"DADOS","ACTIONS":"ACCIONES","CONSOLE — this round":"CONSOLA — esta ronda","PLAYER ON TURN":"JUGADOR EN TURNO","OTHER PLAYERS — tap for record":"OTROS JUGADORES — toca para la ficha","[ MANUAL ]":"[ MANUAL ]","[reset]":"[reiniciar]","[ FOLLOW: OFF ]":"[ SEGUIR: NO ]","[ FOLLOW: ON ]":"[ SEGUIR: SÍ ]","[ AUTO: OFF ]":"[ AUTO: NO ]","[ AUTO: ON ]":"[ AUTO: SÍ ]","tap die to roll":"toca el dado para tirar","roll to move":"tira para avanzar","landed":"cayó"};
 const POLICE_LABELS_ES={0.25:"MUY BAJA",0.5:"BAJA",1:"REALISTA",3:"DIFÍCIL",4:"BRASILEÑA"};
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v35.5";
+const APP_VERSION="v35.6";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -3384,8 +3384,14 @@ function careerCityTaken(winner){
   careerState=careerState||careerLoad()||{name:winner.name,level:0,cleared:-1,bankroll:0,year:1987,active:true};
   const i=S.career.level;
   const carried=Math.max(0,Math.round(netWorth(winner)));
+  /* THE BANKROLL ADDS UP. careerLaunch() already took the buy-in out of the bank before the
+     city started, so what is left in careerBank() right now is everything you did NOT bring
+     to this table. This used to be a plain assignment — bankroll=carried — which threw all of
+     that away and left you holding only whatever the last city happened to be worth. Twelve
+     cities of winnings could vanish into one small city's net worth. */
+  const banked=careerBank();
   careerState.cleared=Math.max(careerState.cleared,i);
-  careerState.bankroll=carried; careerState.age=winner.age;
+  careerState.bankroll=banked+carried; careerState.age=winner.age;
   try{ careerState.year=gameYear(); }catch(e){}
   try{clearSave();}catch(e){} try{SFX.win();}catch(e){}
   const _WL=CL();
@@ -3394,14 +3400,56 @@ function careerCityTaken(winner){
   if(last){ careerState.active=false; careerSave(); return careerComplete(winner); }
   careerState.level=i+1; careerSave();
   const nextNm=careerCityName(_WL[i+1].city).toUpperCase();
-  const el=document.getElementById("cardEl"); if(!el)return; el.dataset.read="1"; el.dataset.deck="";
-  el.innerHTML=`<div class="lbl" style="background:${winner.color}">${L("CITY TAKEN","CIDADE DOMINADA")}</div>
-    <div style="text-align:center;font-size:40px;margin:8px 0">\u2605</div>
-    <div class="ttl" style="text-align:center;color:${winner.color}">${nm} ${L("IS YOURS","\u00c9 SUA")}</div>
-    <div class="sub" style="text-align:center">${winner.name} ${L("owns the city. You cash out ","domina a cidade. Voc\u00ea embolsa ")}<b>${fmtK(carried)}</b>${L(" and move on.",", e segue em frente.")}</div>
-    <div class="out" style="text-align:center">${L("Next city: ","Pr\u00f3xima cidade: ")}<b>${nextNm}</b> \u2014 ${L("your fortune travels with you.","sua fortuna vai com voc\u00ea.")}</div>
-    <div class="go"><button class="amber" onclick="careerShowStage();careerBriefing(${i+1})">${L("[ NEXT CITY \u00BB ]","[ PR\u00d3XIMA CIDADE \u00BB ]")}</button><button onclick="toMainMenu()">${L("[ MAIN MENU ]","[ MENU ]")}</button></div>`;
-  openModal();
+  careerCityReport(winner,{title:nm+" "+L("IS YOURS","\u00c9 SUA","ES TUYA"), lbl:L("CITY TAKEN","CIDADE DOMINADA","CIUDAD DOMINADA"),
+    city:nm, banked, carried, level:i,
+    next:`<div class="cvh" style="margin-top:6px">${L("NEXT","PR\u00d3XIMA","SIGUIENTE")}</div>
+      <div class="cvrow"><span>${L("Next city","Pr\u00f3xima cidade","Siguiente ciudad")}</span><b>${nextNm}</b></div>
+      <div class="cvrow"><span>${L("Buy-in there","Entrada de l\u00e1","Entrada all\u00ed")}</span><b>${fmtKcity(careerStake(i+1),_WL[i+1].city)}</b></div>`,
+    buttons:`<button class="amber" onclick="careerShowStage();careerBriefing(${i+1})">${L("[ NEXT CITY \u00BB ]","[ PR\u00d3XIMA CIDADE \u00BB ]","[ SIGUIENTE CIUDAD \u00BB ]")}</button><button onclick="toMainMenu()">${L("[ MAIN MENU ]","[ MENU ]","[ MEN\u00da ]")}</button>`});
+}
+/* ===== THE MATCH REPORT =====
+   Taking a city used to close on four lines of text. It is the end of a run that took years —
+   show the whole thing: the net-worth chart every boss was drawn on, the final table, what the
+   winner actually built, and where the money now stands in the career. Reuses the pause
+   screen's chart and leaderboard so there is one way of drawing this in the game. */
+function careerCityReport(winner,o){
+  const el=document.getElementById("cardEl"); if(!el)return;
+  el.dataset.read="1"; el.dataset.deck="";
+  const es=empireStats(winner);
+  const anyHist=S.players.some(p=>(p.nwHist||[]).length);
+  const ordered=orderedPlayers();
+  const row=(k,v)=>`<div class="cvrow"><span>${k}</span><b>${v}</b></div>`;
+  el.innerHTML=`<div class="cv">
+    <div class="cvhead">
+      <div class="cvtitle">\u2605 ${o.lbl}</div>
+      <div class="cvsub" style="color:${winner.color}">${o.title}</div>
+    </div>
+    ${anyHist?`<div class="cvh" style="margin-top:2px">${L("NET WORTH OVER TIME","PATRIM\u00d4NIO AO LONGO DO TEMPO","PATRIMONIO A LO LARGO DEL TIEMPO")}</div>
+      <div style="display:flex;justify-content:flex-end;gap:5px;margin:2px 0 4px"><button class="tiny" onclick="chartZoom(-1)">\u2212</button><button class="tiny" id="chartZoomBtn" onclick="chartZoom(0)" title="reset zoom">100%</button><button class="tiny" onclick="chartZoom(1)">+</button></div>
+      <div id="nwChartWrap" style="overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;border:1px solid #173a22"></div>`:""}
+    <div class="cvh" style="margin-top:6px">${L("THE MATCH","A PARTIDA","LA PARTIDA")}</div>
+    ${row(L("Turns played","Turnos jogados","Turnos jugados"),S.turn)}
+    ${row(L("Rivals buried","Rivais enterrados","Rivales enterrados"),S.players.filter(p=>p.ai&&!p.alive).length+" / "+S.players.filter(p=>p.ai).length)}
+    ${row(L("Your age","Sua idade","Tu edad"),winner.age)}
+    <div class="cvh" style="margin-top:6px">${L("WHAT YOU BUILT","O QUE VOC\u00ca CONSTRUIU","LO QUE CONSTRUISTE")}</div>
+    ${row(L("Net worth","Patrim\u00f4nio","Patrimonio"),fmtK(es.nw))}
+    ${row(L("Cash in hand","Dinheiro em m\u00e3os","Efectivo en mano"),fmtK(es.cash))}
+    ${row(L("Streets","Ruas","Calles"),es.turf+" ("+es.stSol+" "+L("soldiers","soldados","soldados")+")")}
+    ${row(L("Businesses","Neg\u00f3cios","Negocios"),es.biz+" ("+es.workers+" "+L("staff","funcion\u00e1rios","personal")+")")}
+    ${row(L("Soldiers on you","Soldados com voc\u00ea","Soldados contigo"),es.crew)}
+    ${row(L("Bosses you killed","Chefes que voc\u00ea matou","Jefes que mataste"),winner.bossKills||0)}
+    <div class="cvh" style="margin-top:6px">${L("THE BANKROLL","A GRANA","LA BANCA")}</div>
+    ${row(L("Banked before this city","Guardado antes desta cidade","Guardado antes de esta ciudad"),fmtK(o.banked))}
+    ${row(L("Taken out of ","Tirado de ","Sacado de ")+(o.city||""),fmtK(o.carried))}
+    ${row("<b>"+L("Bankroll now","Grana agora","Banca ahora")+"</b>","<b>"+fmtK(o.banked+o.carried)+"</b>")}
+    ${row(L("Generation","Gera\u00e7\u00e3o","Generaci\u00f3n"),(careerState&&careerState.gens)||1)}
+    ${o.next||""}
+    <div class="cvh" style="margin-top:6px">${L("FINAL TABLE","MESA FINAL","MESA FINAL")}</div>
+    <div>${standingsRows(true)}</div>
+    <div class="go">${o.buttons}</div>
+  </div>`;
+  openModal(true);
+  if(anyHist){ _chartData=ordered; _chartZoom=1; setTimeout(renderChart,30); }
 }
 function careerComplete(winner){
   try{clearSave();}catch(e){} try{SFX.win();}catch(e){}
