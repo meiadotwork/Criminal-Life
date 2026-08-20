@@ -915,7 +915,7 @@ const ROLE_ES={"Crooked Sergeant":"Sargento Corrupto","Crooked Detective":"Detec
 const ES_STATIC={"NEW YORK CITY":"NUEVA YORK","PLAYERS — tap for record":"JUGADORES — toca para la ficha","DICE":"DADOS","ACTIONS":"ACCIONES","CONSOLE — this round":"CONSOLA — esta ronda","PLAYER ON TURN":"JUGADOR EN TURNO","OTHER PLAYERS — tap for record":"OTROS JUGADORES — toca para la ficha","[ MANUAL ]":"[ MANUAL ]","[reset]":"[reiniciar]","[ FOLLOW: OFF ]":"[ SEGUIR: NO ]","[ FOLLOW: ON ]":"[ SEGUIR: SÍ ]","[ AUTO: OFF ]":"[ AUTO: NO ]","[ AUTO: ON ]":"[ AUTO: SÍ ]","tap die to roll":"toca el dado para tirar","roll to move":"tira para avanzar","landed":"cayó"};
 const POLICE_LABELS_ES={0.25:"MUY BAJA",0.5:"BAJA",1:"REALISTA",3:"DIFÍCIL",4:"BRASILEÑA"};
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v35.6";
+const APP_VERSION="v35.7";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -3162,23 +3162,48 @@ let careerState=null;
 function careerLoad(){ try{ const c=JSON.parse(localStorage.getItem(CAREER_KEY)); return (c&&typeof c.level==="number")?c:null; }catch(e){ return null; } }
 function careerSave(){ try{ if(careerState) localStorage.setItem(CAREER_KEY,JSON.stringify(careerState)); }catch(e){} }
 function careerCashTargetInternal(cashK){ const sc=(typeof S!=="undefined"&&S&&S.city&&CITIES[S.city])?CITIES[S.city].scale:1; return Math.round((cashK||0)/(sc||1)); }
+/* ===== BURY THEM =====
+   Money on its own never made a city take time — you can bank your way past a goal without
+   ever touching the people you are supposedly taking the city from. From the middle of the run
+   a city is not yours until HALF the table is in the ground, and for the last third of the
+   ladder it is not yours until ALL of them are.
+   A rival dies to a contract (three trips to the hospital) or to a paid execution, and both
+   cost real money — so this is a second, slower economy running alongside the cash goal, not a
+   box you tick on the way past. The opening third of the ladder asks for nothing: you are
+   nobody there, and you have no business ordering hits yet. */
+function careerKillReq(i,total,ai){
+  ai=Math.max(0,ai||0);
+  const t=(total>1)?Math.max(0,Math.min(1,i/(total-1))):1;
+  if(t<1/3) return 0;
+  if(t<2/3) return Math.ceil(ai/2);
+  return ai;
+}
+function careerKillsDone(){ return S.players.filter(x=>x.ai&&!x.alive).length; }
 function careerCheckWin(p){
   if(!careerActive()||S._careerEnded||!p||p.ai||!p.alive) return false;
   const lv=CL()[S.career.level]; const w=lv&&lv.win; if(!w) return false;
   if(w.lms){ const al=S.players.filter(x=>x.alive); return al.length<=1 && al[0]===p; }
   const es=empireStats(p);
-  if(w.cash!=null && netWorth(p) < careerCashTargetInternal(w.cash)) return false;
+  if(w.cash!=null && netWorth(p) < careerCashTargetInternal(careerGoalCash(S.career.level))) return false;
   if(w.biz!=null && es.biz < w.biz) return false;
   if(w.streets!=null && es.turf < w.streets) return false;
+  const need=careerKillReq(S.career.level,CL().length,lv.ai);
+  if(need>0 && careerKillsDone()<need) return false;
   return (w.cash!=null||w.biz!=null||w.streets!=null);
 }
-function careerGoalText(lv){
+function careerGoalText(lv,i){
   const w=lv&&lv.win; if(!w) return L("OWN THE CITY","DOMINE A CIDADE");
   if(w.lms) return L("LAST BOSS STANDING — outlive every rival","ÚLTIMO CHEFÃO DE PÉ — enterre todos os rivais");
   const sc=(CITIES[lv.city]&&CITIES[lv.city].scale)||1; const g=[];
-  if(w.cash!=null) g.push(fmtKcity(Math.round(w.cash/sc),lv.city));
+  if(w.cash!=null) g.push(fmtKcity(Math.round(careerGoalCash(i!=null?i:0)/sc),lv.city));
   if(w.streets!=null) g.push(w.streets+L(" streets"," ruas"));
   if(w.biz!=null) g.push(w.biz+L(" businesses"," negócios"));
+  if(i!=null){
+    const need=careerKillReq(i,CL().length,lv.ai);
+    if(need>0) g.push(need>=lv.ai
+      ? L("bury ALL "+lv.ai+" rivals","enterrar TODOS os "+lv.ai+" rivais","enterrar a TODOS los "+lv.ai+" rivales")
+      : L("bury "+need+" of "+lv.ai+" rivals","enterrar "+need+" dos "+lv.ai+" rivais","enterrar a "+need+" de "+lv.ai+" rivales"));
+  }
   return g.join(" + ");
 }
 function careerCityName(k){ return (CITIES[k]||CITIES.NY).name; }
@@ -3295,14 +3320,33 @@ function careerContinue(lvl){
    Take the city and your whole net worth becomes the new bankroll; lose it, or die in it,
    and the buy-in is simply gone. Can't cover the next city's buy-in and you drop back a
    city to rebuild — city 1 costs nothing, so a broke career always has somewhere to play. */
+/* ===== THE GOAL LADDER =====
+   Two things were wrong with the authored numbers. 24 of the 52 steps asked for LESS than the
+   city before them — Casablanca wanted 0.41x what Dubai did — and because the buy-in is a
+   share of the PREVIOUS city's goal, you walked into exactly those cities already holding most
+   of what they asked. Thirteen rungs started you over half done; Casablanca started you at 86%
+   of its goal before you rolled a die.
+   The ladder is now one climbing curve: the first city is untouched and every city after it
+   asks CAREER_GOAL_STEP more than the one before. Because the buy-in is a fixed share of the
+   previous goal, that also makes every city ask the SAME multiple of what you walk in with —
+   about eight times your money, everywhere — instead of anywhere between 1.2x and 14x. */
+const CAREER_GOAL_BASE=3300;    // what the first city of any campaign asks for
+const CAREER_GOAL_STEP=1.12;    // each city after asks 12% more than the last
+const CAREER_STAKE_FRAC=0.14;   // and you carry 14% of the last goal in with you
+/* Indexed by position in the CAMPAIGN you are playing, never by the row in the world ladder.
+   A continent run opens on its own first city at the base goal with an empty bankroll, exactly
+   as the world run does — reading a baked number off world-rung 40 would have opened Oceania
+   on a quarter of a million against nothing. */
+function careerGoalCash(i){
+  return Math.max(100, Math.round(CAREER_GOAL_BASE*Math.pow(CAREER_GOAL_STEP,Math.max(0,i|0))/100)*100);
+}
 /* Buy-in is derived from the ladder you are actually playing, not a baked number: the first
-   city of any campaign is free, and every later one costs a third of what the previous city
+   city of any campaign is free, and every later one costs a share of what the previous city
    paid out. That keeps a continent run affordable from its own first rung — a flat stake taken
    from the 45-city ladder would have opened Oceania on a $2.9M bill against a $0 bankroll. */
 function careerStake(i){ const _L=CL(); const lv=_L[i]; if(!lv||i<=0)return 0;
-  const prev=_L[i-1], w=(prev&&prev.win&&prev.win.cash)||0;
   const sc=(CITIES[lv.city]&&CITIES[lv.city].scale)||1;
-  return Math.max(0,Math.round(w*0.35/sc)); }
+  return Math.max(0,Math.round(careerGoalCash(i-1)*CAREER_STAKE_FRAC/sc)); }
 function careerBank(){ careerState=careerState||careerLoad(); return Math.max(0,Math.round((careerState&&careerState.bankroll)||0)); }
 function careerCanAfford(i){ return careerBank()>=careerStake(i); }
 function careerDropBack(){
@@ -3321,7 +3365,7 @@ function careerBriefing(i){
     <div class="cfgline">C:\\> ${campTitle(campOf(careerState))} ${i+1} / ${CL().length}</div>
     <div class="cfghead">${nm}</div>
     <div class="cfgline" style="opacity:.9;line-height:1.55">${L(lv.en,lv.pt,lv.es)}</div>
-    <div class="cfgline" style="margin-top:10px">\u25B8 ${L("OBJECTIVE","OBJETIVO")}: <b>${careerGoalText(lv)}</b></div>
+    <div class="cfgline" style="margin-top:10px">\u25B8 ${L("OBJECTIVE","OBJETIVO")}: <b>${careerGoalText(lv,i)}</b></div>
     <div class="cfgline">\u25B8 ${L("Rivals","Rivais")}: ${lv.ai} \u00B7 ${L("Dice","Dado")}: d${lv.dice} \u00B7 ${L("Police","Pol\u00edcia")}: ${policeLabelFor(lv.police)}${prison?` \u00B7 <b style="color:var(--red)">${L("START IN PRISON","COME\u00c7A PRESO")}</b>`:""}</div>
     <div class="cfgline">\u25B8 ${L("The table","A mesa","La mesa")}: ${careerTableText(i,CL().length,lv.ai)}</div>
     <div class="cfgline">\u25B8 ${L("You","Voc\u00ea")}: ${L("age","idade")} ${(careerState&&careerState.age)||13} \u00B7 ${L("generation","gera\u00e7\u00e3o")} ${(careerState&&careerState.gens)||1}</div>
