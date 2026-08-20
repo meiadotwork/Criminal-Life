@@ -1,6 +1,8 @@
 /* CRIMINAL TERMINAL service worker — network-first with cache fallback,
    so updates flow normally but the game boots fully offline once visited. */
-const CACHE = "ct-v1";
+/* Bumped on every release so a new deploy purges the old one automatically — the activate
+   handler below deletes any cache whose name isn't this, so nobody is left on a stale build. */
+const CACHE = "ct-v35.7";
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(["./", "./index.html"])).then(() => self.skipWaiting()));
 });
