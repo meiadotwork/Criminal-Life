@@ -477,6 +477,10 @@
   .agestep button{font-size:20px;padding:4px 14px;line-height:1;}
   #pageval{font-size:20px;min-width:44px;text-align:center;}
   /* ===== QUANTITY KEYPAD (type-the-number buy) — uses themed buttons so it fits every display mode ===== */
+  #cardEl .qpad{display:flex;gap:6px;align-items:stretch;margin-top:4px}
+  #cardEl .qpad .qkrow{flex:1 1 auto;margin-top:0}
+  #cardEl .qpct{display:grid;grid-template-rows:repeat(4,1fr);gap:6px;flex:0 0 76px}
+  #cardEl .qpct button{font-size:14px !important;font-weight:bold !important;padding:0 !important;letter-spacing:0}
   #cardEl .qkrow{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:4px}
   #cardEl .qkrow button{font-size:21px !important;font-weight:bold !important;padding:12px 0 !important;letter-spacing:1px}
   #cardEl .qkrow button.amber{font-size:14px !important;letter-spacing:1px}
@@ -915,7 +919,7 @@ const ROLE_ES={"Crooked Sergeant":"Sargento Corrupto","Crooked Detective":"Detec
 const ES_STATIC={"NEW YORK CITY":"NUEVA YORK","PLAYERS — tap for record":"JUGADORES — toca para la ficha","DICE":"DADOS","ACTIONS":"ACCIONES","CONSOLE — this round":"CONSOLA — esta ronda","PLAYER ON TURN":"JUGADOR EN TURNO","OTHER PLAYERS — tap for record":"OTROS JUGADORES — toca para la ficha","[ MANUAL ]":"[ MANUAL ]","[reset]":"[reiniciar]","[ FOLLOW: OFF ]":"[ SEGUIR: NO ]","[ FOLLOW: ON ]":"[ SEGUIR: SÍ ]","[ AUTO: OFF ]":"[ AUTO: NO ]","[ AUTO: ON ]":"[ AUTO: SÍ ]","tap die to roll":"toca el dado para tirar","roll to move":"tira para avanzar","landed":"cayó"};
 const POLICE_LABELS_ES={0.25:"MUY BAJA",0.5:"BAJA",1:"REALISTA",3:"DIFÍCIL",4:"BRASILEÑA"};
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v35.7";
+const APP_VERSION="v35.8";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -5689,11 +5693,19 @@ function qtyPad(cfg){
     <div style="font-size:12px;opacity:.7;margin-bottom:8px">${_f(per)} ${L("each","cada")} · ${_f(pk?p.packs:p.cash)} ${pk?L("on you","com você","contigo"):L("cash","em caixa")} · ${L("hire up to","contrate até","contrata hasta")} ${buyMax}${canSell?` · ${L("sell up to","venda até","vende hasta")} ${held} @ ${_f(cfg.sellPer)}`:''}</div>
     <div class="out qdisp"><span id="qval">0</span></div>
     <div class="qcalc"><span class="qtot" id="qtot"></span><span id="qleft" style="opacity:.7"></span></div>
-    <div class="qkrow">
-      <button onclick="qpKey('1')">1</button><button onclick="qpKey('2')">2</button><button onclick="qpKey('3')">3</button>
-      <button onclick="qpKey('4')">4</button><button onclick="qpKey('5')">5</button><button onclick="qpKey('6')">6</button>
-      <button onclick="qpKey('7')">7</button><button onclick="qpKey('8')">8</button><button onclick="qpKey('9')">9</button>
-      <button class="amber" onclick="qpMax()">MAX</button><button onclick="qpKey('0')">0</button><button onclick="qpDel()">&#9003;</button>
+    <div class="qpad">
+      <div class="qkrow">
+        <button onclick="qpKey('1')">1</button><button onclick="qpKey('2')">2</button><button onclick="qpKey('3')">3</button>
+        <button onclick="qpKey('4')">4</button><button onclick="qpKey('5')">5</button><button onclick="qpKey('6')">6</button>
+        <button onclick="qpKey('7')">7</button><button onclick="qpKey('8')">8</button><button onclick="qpKey('9')">9</button>
+        <button class="amber" onclick="qpMax()">MAX</button><button onclick="qpKey('0')">0</button><button onclick="qpDel()">&#9003;</button>
+      </div>
+      <div class="qpct">
+        <button onclick="qpPct(10)">10%</button>
+        <button onclick="qpPct(25)">25%</button>
+        <button onclick="qpPct(50)">50%</button>
+        <button onclick="qpPct(75)">75%</button>
+      </div>
     </div>
     <div class="go qgo">
       ${canSell?`<button class="red" id="qsell" onclick="qpSell()">[ ${L("SELL","VENDER","VENDER")} ]</button>`:''}
@@ -5720,6 +5732,15 @@ function qpDel(){ if(!_qp)return; _qp.val=_qp.val.slice(0,-1); qpUpdate(); }
 /* MAX means "as many as I can hire" — unless you can't afford one, in which case the only
    number that means anything is everything you're holding. */
 function qpMax(){ if(!_qp)return; _qp.val=String(qpBuyMax()>0?qpBuyMax():qpHeld()); qpUpdate(); }
+/* A share of the same ceiling MAX uses — what you can afford when there is anything to buy,
+   and what you are holding when there is not (a sell-only pad). Always at least one, so a
+   small percentage of a small number still does something rather than silently reading 0. */
+function qpPct(pct){
+  if(!_qp)return;
+  const cap=(qpBuyMax()>0?qpBuyMax():qpHeld());
+  _qp.val=String(cap>0?Math.max(1,Math.floor(cap*pct/100)):0);
+  qpUpdate();
+}
 function qpBuy(){ if(!_qp)return; const n=qpBuyN(); const c=_qp; _qp=null; if(n>0&&c.apply)c.apply(n); if(c.done)c.done(); }
 function qpSell(){ if(!_qp)return; const n=qpSellN(); const c=_qp; _qp=null; if(n>0&&c.sell)c.sell(n); if(c.done)c.done(); }
 function qpBack(){ if(!_qp)return; const c=_qp; _qp=null; if(c.done)c.done(); }
