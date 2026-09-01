@@ -919,7 +919,7 @@ const ROLE_ES={"Crooked Sergeant":"Sargento Corrupto","Crooked Detective":"Detec
 const ES_STATIC={"NEW YORK CITY":"NUEVA YORK","PLAYERS — tap for record":"JUGADORES — toca para la ficha","DICE":"DADOS","ACTIONS":"ACCIONES","CONSOLE — this round":"CONSOLA — esta ronda","PLAYER ON TURN":"JUGADOR EN TURNO","OTHER PLAYERS — tap for record":"OTROS JUGADORES — toca para la ficha","[ MANUAL ]":"[ MANUAL ]","[reset]":"[reiniciar]","[ FOLLOW: OFF ]":"[ SEGUIR: NO ]","[ FOLLOW: ON ]":"[ SEGUIR: SÍ ]","[ AUTO: OFF ]":"[ AUTO: NO ]","[ AUTO: ON ]":"[ AUTO: SÍ ]","tap die to roll":"toca el dado para tirar","roll to move":"tira para avanzar","landed":"cayó"};
 const POLICE_LABELS_ES={0.25:"MUY BAJA",0.5:"BAJA",1:"REALISTA",3:"DIFÍCIL",4:"BRASILEÑA"};
 /* single source of truth for the version — shown on the top bar and setup screen */
-const APP_VERSION="v35.8";
+const APP_VERSION="v35.9";
 (function(){try{const s=document.getElementById("verSub");if(s)s.textContent="// criminal terminal "+APP_VERSION;const t=document.getElementById("verTag");if(t)t.textContent=APP_VERSION;}catch(e){}})();
 const PATTERNS=[
   {k:"solid",label:"filled"},{k:"inv",label:"outline"},{k:"vstripe",label:"vertical"},
@@ -5732,13 +5732,24 @@ function qpDel(){ if(!_qp)return; _qp.val=_qp.val.slice(0,-1); qpUpdate(); }
 /* MAX means "as many as I can hire" — unless you can't afford one, in which case the only
    number that means anything is everything you're holding. */
 function qpMax(){ if(!_qp)return; _qp.val=String(qpBuyMax()>0?qpBuyMax():qpHeld()); qpUpdate(); }
-/* A share of the same ceiling MAX uses — what you can afford when there is anything to buy,
-   and what you are holding when there is not (a sell-only pad). Always at least one, so a
-   small percentage of a small number still does something rather than silently reading 0. */
+/* A share of THE MONEY IN YOUR POCKET. 25% means "spend a quarter of what I'm holding" — not
+   a quarter of some ceiling. The two are the same on a soldier pad, where the ceiling IS your
+   cash divided by the price, but they are nothing alike on a street or a shop: those cap at
+   the room left in the cell, so a share of the ceiling handed you half the empty slots instead
+   of half your money.
+   On a prison pad the purse is cigarette packs, so it is a share of those. Clamped by whatever
+   the pad allows, and floored at one so a share too small to buy anything still buys the one
+   thing you can afford rather than sitting at 0.
+   With nothing to buy at all the pad is a sell pad, and there a share can only sensibly mean a
+   share of what you hold. */
 function qpPct(pct){
   if(!_qp)return;
-  const cap=(qpBuyMax()>0?qpBuyMax():qpHeld());
-  _qp.val=String(cap>0?Math.max(1,Math.floor(cap*pct/100)):0);
+  const p=S.players[S.cur];
+  if(qpBuyMax()<=0){ const h=qpHeld(); _qp.val=String(h>0?Math.max(1,Math.floor(h*pct/100)):0); qpUpdate(); return; }
+  const purse=Math.max(0,_qp.pk?(p.packs||0):(p.cash||0));
+  const per=_qp.per||0;
+  const n=per>0?Math.floor(purse*pct/100/per):0;
+  _qp.val=String(Math.max(1,Math.min(n,qpBuyMax())));
   qpUpdate();
 }
 function qpBuy(){ if(!_qp)return; const n=qpBuyN(); const c=_qp; _qp=null; if(n>0&&c.apply)c.apply(n); if(c.done)c.done(); }
